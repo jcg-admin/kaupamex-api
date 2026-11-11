@@ -6,6 +6,7 @@ models/res_company.py:102-109``). Diseño: ``scripts/workbench/
 orm-continuation-plan-20261103T095630/designs/paperformat-company-init.md``.
 """
 import pytest
+from django.conf import settings
 from django.db import connection
 
 from addons.base.data.report_paperformat_data import seed
@@ -77,5 +78,22 @@ def test_init_models_runs_the_company_init():
     with connection.cursor() as cr:
         registry.init_models(cr, ['res.company'], {'module': 'base'},
                              install=False)
+    company.refresh_from_db()
+    assert company.paperformat_id == _ref('paperformat_euro').pk
+
+
+def test_company_init_writes_in_its_base_with_company_databases(monkeypatch):
+    """Con una base de compañía declarada (N>1) el router rehúsa escribir un
+    modelo de dominio sin contexto (``CompanyContextRequired``). ``init``
+    corre en el entorno de su base, como el ``env.cr`` que ``init_models``
+    le da en la fuente (``odoo19c: odoo/orm/registry.py:741-752``), así que
+    su ``write`` va a ``using`` aunque no haya empresa activa. El alias
+    declarado no se abre: sólo activa la rama N>1 del router."""
+    company = ResCompany.objects.create(name='Multi', code='multi-n')
+    ResCompany.objects.filter(pk=company.pk).update(paperformat=None)
+    monkeypatch.setitem(settings.DATABASES, 'company_987654321_db',
+                        settings.DATABASES['default'])
+    ResCompany.init(using=connection.alias)
+    monkeypatch.delitem(settings.DATABASES, 'company_987654321_db')
     company.refresh_from_db()
     assert company.paperformat_id == _ref('paperformat_euro').pk

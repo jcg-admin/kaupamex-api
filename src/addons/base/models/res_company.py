@@ -138,7 +138,8 @@ import api
 import fields
 import models
 from exceptions import ValidationError
-from orm.environments import sudo
+from orm.environments import Environment, sudo
+from orm.utils import SUPERUSER_ID
 from tools import date_utils, zeep
 from tools.cache import ormcache
 from tools.translate import _
@@ -659,9 +660,15 @@ class ResCompany(TimeStampedModel):
             return
         paperformat_euro = ReportPaperformat.objects.using(alias).get(
             pk=res_id)
-        for company in cls.objects.using(alias).filter(
-                paperformat__isnull=True):
-            company.write({'paperformat': paperformat_euro})
+        # El entorno de la base, como el que ``init_models`` abre en la
+        # fuente (``odoo19c: odoo/orm/registry.py:741``): ``write`` guarda
+        # por el router, y el router lee primero el alias del entorno. Sin
+        # él, con bases de compañía (N>1) la escritura se rechaza por falta
+        # de empresa, o va a la base de la empresa activa.
+        with Environment(alias, SUPERUSER_ID, {}):
+            for company in cls.objects.using(alias).filter(
+                    paperformat__isnull=True):
+                company.write({'paperformat': paperformat_euro})
 
     @classmethod
     def _get_company_address_field_names(cls):

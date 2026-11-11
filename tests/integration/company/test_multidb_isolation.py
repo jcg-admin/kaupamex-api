@@ -16,9 +16,10 @@ from django.conf import settings
 from django.db import connections, transaction
 
 from addons.authz.models import Module
-from addons.base.models import ResCompany
+from addons.base.models import (IrModelData, ReportPaperformat, ResCompany,
+                                ResUsers)
 from addons.sale_subscription.models import CompanyModuleSubscription
-from orm.environments import company_scope
+from orm.environments import Environment, company_scope
 from service import db as svc
 
 pytestmark = pytest.mark.integration
@@ -260,3 +261,163 @@ def test_init_creates_the_view_only_in_the_selected_database(
 
     _employee_public().init(using=alias_b)
     assert _view_kind(alias_b) == 'v'
+
+
+# --- init(using=...) de res.company y res.users bajo alias ---------------
+# Diseño: scripts/workbench/orm-continuation-plan-20261103T095630/designs/
+# init-alias-propagation.md.
+
+_PAPERFORMATS = ('paperformat_euro', 'paperformat_us',
+                 'paperformat_batch_deposit')
+
+
+def _euro_id(alias):
+    row = IrModelData.objects.using(alias).get(
+        module='base', name='paperformat_euro')
+    return row.res_id
+
+
+def _company_without_format(alias, code):
+    # ``db_manager`` conserva ``ResCompanyManager.create``, que fabrica el
+    # partner como la fuente (``res_company.py:296-300``); ``using`` daría
+    # el ``QuerySet.create`` genérico, sin partner. El entorno de la base
+    # lleva a ella las lecturas por router de los defaults (``stock``:
+    # ``_default_confirmation_mail_template`` resuelve un XML-ID), que bajo
+    # N>1 sin entorno ni empresa se rechazan.
+    with Environment(alias):
+        company = ResCompany.objects.db_manager(alias).create(name=code,
+                                                              code=code)
+    assert company._state.db == alias
+    ResCompany.objects.using(alias).filter(pk=company.pk).update(
+        paperformat=None)
+    return company.pk
+
+
+def _format_of(alias, pk):
+    return ResCompany.objects.using(alias).filter(pk=pk).values_list(
+        'paperformat_id', flat=True).get()
+
+
+@pytest.fixture
+def company_without_format_per_base(two_company_databases):
+    """Una compañía sin formato en A, en B y en ``default``; se retiran al
+    terminar para no dejar filas a los demás casos."""
+    alias_a, alias_b = two_company_databases
+    rows = {alias: _company_without_format(alias, f'init-{alias}')
+            for alias in (alias_a, alias_b, 'default')}
+    yield rows
+    for alias, pk in rows.items():
+        with Environment(alias):
+            ResCompany.objects.db_manager(alias).filter(pk=pk).delete()
+
+
+def test_paperformat_xml_ids_exist_in_every_base(two_company_databases):
+    """La siembra de ``base/0107`` corre en cada base aprovisionada y cada
+    XML-ID apunta a una fila de su propia base."""
+    for alias in (*two_company_databases, 'default'):
+        for name in _PAPERFORMATS:
+            row = IrModelData.objects.using(alias).get(module='base',
+                                                       name=name)
+            assert ReportPaperformat.objects.using(alias).filter(
+                pk=row.res_id).exists(), (alias, name)
+
+
+def test_company_init_writes_only_the_selected_base(
+        two_company_databases, company_without_format_per_base):
+    """≙ ``init`` con el cursor de la base que se instala
+    (``odoo19c: odoo/orm/registry.py:741-752``): sin empresa activa la
+    escritura cae en B, y ni A ni ``default`` cambian."""
+    alias_a, alias_b = two_company_databases
+    rows = company_without_format_per_base
+    ResCompany.init(using=alias_b)
+    assert _format_of(alias_b, rows[alias_b]) == _euro_id(alias_b)
+    assert _format_of(alias_a, rows[alias_a]) is None
+    assert _format_of('default', rows['default']) is None
+    # Reejecución: idempotente.
+    ResCompany.init(using=alias_b)
+    assert _format_of(alias_b, rows[alias_b]) == _euro_id(alias_b)
+    assert _format_of(alias_a, rows[alias_a]) is None
+
+
+def test_company_init_ignores_the_active_company_scope(
+        two_company_databases, company_without_format_per_base):
+    """El alias de ``init`` manda sobre la empresa activa, como el ``env.cr``
+    de la fuente manda sobre la compañía del contexto."""
+    alias_a, alias_b = two_company_databases
+    rows = company_without_format_per_base
+    with company_scope(_COMPANY_A_ID):
+        ResCompany.init(using=alias_b)
+    assert _format_of(alias_b, rows[alias_b]) == _euro_id(alias_b)
+    assert _format_of(alias_a, rows[alias_a]) is None
+
+
+def test_company_init_without_the_xml_id_assigns_nothing_and_rolls_back(
+        two_company_databases, company_without_format_per_base):
+    alias_a, alias_b = two_company_databases
+    rows = company_without_format_per_base
+    with transaction.atomic(using=alias_b):
+        # El borrado pasa por el colector y sus señales (``base_automation``
+        # lee por el router): en el entorno de B, como todo borrado de la
+        # fuente.
+        with Environment(alias_b):
+            IrModelData.objects.using(alias_b).filter(
+                module='base', name='paperformat_euro').delete()
+        ResCompany.init(using=alias_b)
+        assert _format_of(alias_b, rows[alias_b]) is None
+        transaction.set_rollback(True, using=alias_b)
+    assert IrModelData.objects.using(alias_b).filter(
+        module='base', name='paperformat_euro').exists()
+
+
+def _password(alias, uid):
+    return ResUsers.objects.using(alias).filter(pk=uid).values_list(
+        'password', flat=True).get()
+
+
+def test_users_init_encrypts_only_in_the_selected_base(
+        two_company_databases):
+    """La contraseña en claro de B se cifra; la de A sigue en claro; la de
+    ``default`` no cambia. Se restauran los valores originales."""
+    alias_a, alias_b = two_company_databases
+    uids = {alias: ResUsers.objects.using(alias).order_by('pk')
+            .values_list('pk', flat=True).first()
+            for alias in (alias_a, alias_b, 'default')}
+    original = {alias: _password(alias, uid) for alias, uid in uids.items()}
+    try:
+        for alias in (alias_a, alias_b):
+            ResUsers.objects.using(alias).filter(pk=uids[alias]).update(
+                password='clave-en-claro')
+        ResUsers.init(using=alias_b)
+        stored_b = _password(alias_b, uids[alias_b])
+        assert ResUsers._crypt_context().identify(stored_b) != 'plaintext'
+        assert ResUsers._crypt_context().verify('clave-en-claro', stored_b)
+        assert _password(alias_a, uids[alias_a]) == 'clave-en-claro'
+        assert _password('default', uids['default']) == original['default']
+    finally:
+        for alias, uid in uids.items():
+            ResUsers.objects.using(alias).filter(pk=uid).update(
+                password=original[alias])
+
+
+def test_init_models_runs_both_inits_in_the_selected_base(
+        two_company_databases, company_without_format_per_base):
+    alias_a, alias_b = two_company_databases
+    rows = company_without_format_per_base
+    uid = ResUsers.objects.using(alias_b).order_by('pk').values_list(
+        'pk', flat=True).first()
+    original = _password(alias_b, uid)
+    try:
+        ResUsers.objects.using(alias_b).filter(pk=uid).update(
+            password='otra-clave')
+        # ≙ ``env.registry`` de la base B.
+        registry = Environment(alias_b).registry
+        with connections[alias_b].cursor() as cr:
+            registry.init_models(cr, ['res.company', 'res.users'],
+                                 {'module': 'base'}, install=False)
+        assert _format_of(alias_b, rows[alias_b]) == _euro_id(alias_b)
+        assert _format_of(alias_a, rows[alias_a]) is None
+        assert ResUsers._crypt_context().identify(
+            _password(alias_b, uid)) != 'plaintext'
+    finally:
+        ResUsers.objects.using(alias_b).filter(pk=uid).update(
+            password=original)

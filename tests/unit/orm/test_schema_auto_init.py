@@ -10,7 +10,7 @@ import pytest
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 
-from orm.environments import Environment
+from orm.environments import Environment, get_current_cr
 from orm.registry import Registry
 from orm.table_objects import Index
 from orm.utils import SUPERUSER_ID
@@ -282,3 +282,20 @@ def test_init_replaces_a_view_with_another_column_set(env):
                    [VIEW])
         assert cr.fetchone()[0] == 0
     assert _relkind(VIEW) == 'v'
+
+
+def test_init_models_runs_init_in_the_environment_of_its_base(env,
+                                                              monkeypatch):
+    """≙ ``env = Environment(cr, SUPERUSER_ID, context)`` antes de
+    ``model.init()`` (``odoo19c: odoo/orm/registry.py:741-752``): el gancho
+    ve como ``env.cr`` la base del registro, que es lo que hace que una
+    escritura por el ORM dentro de ``init`` vaya a esa base."""
+    registry = Registry(connection.alias)
+    model = registry.models['test_orm.category']
+    seen = []
+    monkeypatch.setattr(model, 'init', classmethod(
+        lambda cls, using=None: seen.append(get_current_cr())))
+    assert get_current_cr() is None
+    with connection.cursor() as cr:
+        registry.init_models(cr, ['test_orm.category'], {}, install=False)
+    assert seen == [connection.alias]

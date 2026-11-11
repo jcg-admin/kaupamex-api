@@ -75,7 +75,7 @@ from psycopg import sql as pg_sql
 import orm.environments
 
 from modules import db as modules_db
-from orm.utils import FIELD_REGISTRY_HOOKS, model_field_registry
+from orm.utils import FIELD_REGISTRY_HOOKS, SUPERUSER_ID, model_field_registry
 from tools.func import locked, reset_cached_properties
 from tools.lru import LRU
 from tools.misc import Collector, OrderedSet, remove_accents
@@ -2367,17 +2367,23 @@ class Registry(Mapping):
             self._is_install = install
 
             using = self._alias()
-            for name in model_names:
-                model = self.models.get(name)
-                if model is None:
-                    continue
-                if hasattr(model, '_auto_init'):
-                    model._auto_init(using=using)
-                # ≙ ``model.init()`` tras ``_auto_init`` (``:752``): todo
-                # modelo de la fuente lo tiene; aquí también un modelo de
-                # Django sin el cargador (``hr.employee.public``).
-                if hasattr(model, 'init'):
-                    model.init(using=using)
+            # ≙ ``env = Environment(cr, SUPERUSER_ID, context)`` (``:741``):
+            # los ganchos corren con la base que se instala como ``env.cr``,
+            # así que una escritura por el ORM dentro de ``init`` va a esa
+            # base aunque no haya empresa activa (el router lee primero el
+            # alias del entorno, ``orm/routers.py:138-140``).
+            with orm.environments.Environment(using, SUPERUSER_ID, context):
+                for name in model_names:
+                    model = self.models.get(name)
+                    if model is None:
+                        continue
+                    if hasattr(model, '_auto_init'):
+                        model._auto_init(using=using)
+                    # ≙ ``model.init()`` tras ``_auto_init`` (``:752``): todo
+                    # modelo de la fuente lo tiene; aquí también un modelo de
+                    # Django sin el cargador (``hr.employee.public``).
+                    if hasattr(model, 'init'):
+                        model.init(using=using)
 
             self._reflect_all(model_names, context)
 
