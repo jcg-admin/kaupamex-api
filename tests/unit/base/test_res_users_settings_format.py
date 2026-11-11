@@ -44,12 +44,13 @@ def test_the_default_format_carries_id_and_the_user_reference(user):
 
 def test_the_audit_columns_stay_out_of_the_default_format(user):
     """
-    Las magic columns de la referencia son aquí ``created_at``/``updated_at``.
+    Las magic columns llevan el nombre de la referencia, ``create_date``/
+    ``write_date``.
     """
     settings = ResUsersSettings._find_or_create_for_user(user)
     formatted = settings._res_users_settings_format()
-    assert 'created_at' not in formatted
-    assert 'updated_at' not in formatted
+    assert 'create_date' not in formatted
+    assert 'write_date' not in formatted
 
 
 def test_an_explicit_list_wins_and_the_blacklist_still_applies(user):

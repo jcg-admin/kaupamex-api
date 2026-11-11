@@ -167,6 +167,11 @@ class OrderSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
     status_display = serializers.SerializerMethodField()
 
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
+
     class Meta:
         model = SaleOrder
         # Sin ``id``: el PK entero es secuencial y permitiría enumerar las
@@ -220,6 +225,13 @@ class OrderListSerializer(serializers.ModelSerializer):
     thumbnail_url = serializers.SerializerMethodField()
     status = serializers.SerializerMethodField()
     status_display = serializers.SerializerMethodField()
+
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
+
+    updated_at = serializers.DateTimeField(source='write_date', read_only=True)
 
     class Meta:
         model = SaleOrder

@@ -13,7 +13,7 @@ class PaymentGatewayEvent(TimeStampedModel):
     Acumula todos los eventos — nunca sobreescribe datos previos.
 
     H-S15-001: el modelo documentado usaba received_at. Se normaliza a
-    created_at (TimeStampedModel). Semántica idéntica.
+    create_date (TimeStampedModel). Semántica idéntica.
     """
 
     EVENT_WEBHOOK_RECEIVED = 'WEBHOOK_RECEIVED'
@@ -43,7 +43,7 @@ class PaymentGatewayEvent(TimeStampedModel):
 
     class Meta:
         db_table = 'payments_gateway_event'
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         verbose_name = 'Evento del gateway'
 
     def __str__(self):

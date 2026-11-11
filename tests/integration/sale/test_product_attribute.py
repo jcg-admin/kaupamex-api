@@ -102,7 +102,7 @@ def test_combination_price_adds_price_extra(db):
         line=line, attribute_value=l
     )
     ptav_l.price_extra = Decimal('50.00')
-    ptav_l.save(update_fields=['price_extra', 'updated_at'])
+    ptav_l.save(update_fields=['price_extra', 'write_date'])
     ptav_s = ProductTemplateAttributeValue.objects.get(
         line=line, attribute_value=s
     )

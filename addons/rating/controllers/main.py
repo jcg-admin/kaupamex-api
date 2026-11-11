@@ -115,9 +115,9 @@ class ProductReviewsView(APIView):
 
         if sort_by == 'helpful':
             approved = approved.order_by(
-                '-helpful_count', '-created_at', '-id')
+                '-helpful_count', '-create_date', '-id')
         else:
-            approved = approved.order_by('-created_at', '-id')
+            approved = approved.order_by('-create_date', '-id')
 
         ratings_all = list(
             Review.objects.filter(product=product, status=Review.STATUS_APPROVED)
@@ -348,7 +348,7 @@ class ReviewAdminListView(_AdminOnly, APIView):
         qs = (
             Review.objects.filter(status=status_filter)
             .select_related('user', 'product', 'sale_order')
-            .order_by('created_at', 'id')  # FIFO
+            .order_by('create_date', 'id')  # FIFO
         )
         # H-CICLO90-01: paginar para evitar OOM en tiendas con cola de
         # moderacion grande. Patron identico a AdminQuestionsListView
@@ -364,7 +364,8 @@ class ReviewAdminListView(_AdminOnly, APIView):
 
 class ReviewApproveView(_AdminOnly, APIView):
     @extend_schema(
-        summary='[DEPRECATED → PATCH /api/v2/admin/reviews/<pk>/status/] Approve review (idempotent).',
+        summary='[DEPRECATED → PATCH /api/v2/admin/reviews/<pk>/status/] '
+                'Approve review (idempotent).',
         deprecated=True,
         tags=['reviews'],
         responses={200: ReviewAdminSerializer, 400: None, 404: None},
@@ -394,7 +395,7 @@ class ReviewApproveView(_AdminOnly, APIView):
             review.moderated_by = request.user
             review.save(update_fields=[
                 'status', 'reject_reason', 'moderated_at',
-                'moderated_by', 'updated_at',
+                'moderated_by', 'write_date',
             ])
             ReviewModerationLog.objects.create(
                 review=review,
@@ -411,7 +412,8 @@ class ReviewRejectView(_AdminOnly, APIView):
     VALID_REASONS = {code for code, _ in Review.REJECT_REASONS}
 
     @extend_schema(
-        summary='[DEPRECATED → PATCH /api/v2/admin/reviews/<pk>/status/] Reject review with reason.',
+        summary='[DEPRECATED → PATCH /api/v2/admin/reviews/<pk>/status/] '
+                'Reject review with reason.',
         deprecated=True,
         tags=['reviews'],
         responses={200: ReviewAdminSerializer, 400: None, 404: None},
@@ -448,7 +450,7 @@ class ReviewRejectView(_AdminOnly, APIView):
         review.moderated_by = request.user
         review.save(update_fields=[
             'status', 'reject_reason', 'moderated_at',
-            'moderated_by', 'updated_at',
+            'moderated_by', 'write_date',
         ])
         ReviewModerationLog.objects.create(
             review=review,
@@ -498,7 +500,9 @@ class ReviewHelpfulVoteView(APIView):
                         'codigo_error': 'VOTE_DUPLICATE',
                     })
                 ReviewHelpfulVote.objects.create(user=request.user, review=review)
-                Review.objects.filter(pk=review.pk).update(helpful_count=F('helpful_count') + 1, updated_at=timezone.now())
+                Review.objects.filter(pk=review.pk).update(
+                    helpful_count=F('helpful_count') + 1,
+                    write_date=timezone.now())
         except IntegrityError:
             raise ValidationError({
                 'detail': 'Ya votaste esta reseña.',

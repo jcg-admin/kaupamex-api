@@ -64,7 +64,7 @@ def _process_payment_approval(
         payment.status = Payment.STATUS_APPROVED
         if amount:
             payment.amount = amount
-        payment.save(update_fields=['status', 'amount', 'updated_at'])
+        payment.save(update_fields=['status', 'amount', 'write_date'])
 
         # DEC-BC-12 / O2C R8: el Payment APPROVED de arriba ES el eje de
         # pago — la proyección canónica deriva PAID de él; la columna espejo

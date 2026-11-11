@@ -50,12 +50,12 @@ de ``create_date``, que no vuelve a cambiar tras el INSERT, así que en la
 práctica corre una sola vez). **Divergencia declarada:** el fallback de la
 referencia cuando ``date`` es ``None`` usa ``create_date`` (fecha de
 creación del registro); este modelo no denormaliza un timestamp de creación
-(medido: ``grep -rn "create_date\|created_at\|auto_now_add"
+(medido: ``grep -rn "create_date\|create_date\|auto_now_add"
 src/addons/account/models/*.py`` → 0 hits en este addon salvo el propio
 docstring). El puerto usa ``Estado #<pk>`` como aproximación estable —
 mismo fallback que ya tenía el bloque inline, sin cambio de comportamiento.
 DESCONOCIDO con condición de cierre: si se necesita fidelidad total al
-fallback de creación, requiere sumar ``created_at`` (vía ``TimeStampedModel``
+fallback de creación, requiere sumar ``create_date`` (vía ``TimeStampedModel``
 u homólogo) a este modelo — fuera del alcance de #126, que sólo pide portar
 ``_compute_date``.
 """

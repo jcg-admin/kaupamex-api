@@ -1274,12 +1274,12 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         })
         is_date_automation_last = (
             date_field_name == 'date_automation_last'
-            and hasattr(model_cls, 'created_at'))
+            and hasattr(model_cls, 'create_date'))
         if is_date_automation_last:
             time_domain |= models.Q(**{
                 f'{date_field_name}__isnull': True,
-                'created_at__gte': relative_last_run,
-                'created_at__lt': relative_until,
+                'create_date__gte': relative_last_run,
+                'create_date__lt': relative_until,
             })
         return model_cls.objects.filter(domain & time_domain)
 

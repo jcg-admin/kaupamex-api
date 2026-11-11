@@ -158,7 +158,7 @@ def test_database_log_handler_puebla_call_site(logger):
 
 def _age(pk, days):
     IrLogging.objects.filter(pk=pk).update(
-        created_at=timezone.now() - timedelta(days=days)
+        create_date=timezone.now() - timedelta(days=days)
     )
 
 

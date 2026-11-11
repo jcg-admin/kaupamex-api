@@ -22,6 +22,11 @@ class NotificationSerializer(serializers.ModelSerializer):
 
     is_read = serializers.BooleanField(source='read', read_only=True)
 
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
+
     class Meta:
         model = Notification
         fields = ['id', 'type', 'subject', 'body', 'is_read', 'created_at']

@@ -1102,12 +1102,12 @@ def is_transient(model_cls):
 
 #: ≙ ``LOG_ACCESS_COLUMNS`` (``odoo19c: odoo/orm/models.py:296``): las cuatro
 #: columnas que ``_log_access`` añade, con las fechas bajo su nombre de este
-#: árbol (``created_at``/``updated_at``;
+#: árbol (``create_date``/``write_date``;
 #: ``designs/log-access-columns-audit.md``).
 #: Vive aqui y no en ``orm/models.py`` —que la reexporta con el mismo
 #: nombre— porque ``orm.models`` importa este modulo, y
 #: :func:`check_transient_log_access` la necesita al construir la clase.
-LOG_ACCESS_COLUMNS = ['create_uid', 'created_at', 'write_uid', 'updated_at']
+LOG_ACCESS_COLUMNS = ['create_uid', 'create_date', 'write_uid', 'write_date']
 
 
 def check_transient_log_access(model_cls):
@@ -1117,7 +1117,7 @@ def check_transient_log_access(model_cls):
     Allá ``_log_access`` es una bandera que crea las columnas; aqui las
     columnas son campos declarados (``TransientModel`` las trae), asi que se
     exigen las dos cosas: que la bandera no las apague y que las columnas
-    existan. Sin ``updated_at`` la limpieza por antiguedad no tiene por donde
+    existan. Sin ``write_date`` la limpieza por antiguedad no tiene por donde
     barrer (:ref:`h-api-1146`).
 
     **Orden, divergencia medida:** la fuente comprueba antes de inscribir el

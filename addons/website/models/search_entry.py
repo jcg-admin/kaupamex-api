@@ -25,7 +25,7 @@ class SearchEntry(TimeStampedModel):
 
     class Meta:
         db_table = 'search_history_entry'
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         verbose_name = 'Entrada de historial de busqueda'
 
     def __str__(self):

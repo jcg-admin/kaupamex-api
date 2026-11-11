@@ -10,6 +10,13 @@ from addons.authz_oauth.models import OauthProvider
 class OauthProviderSerializer(serializers.ModelSerializer):
     """CRUD admin del proveedor (capability-gated)."""
 
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
+
+    updated_at = serializers.DateTimeField(source='write_date', read_only=True)
+
     class Meta:
         model = OauthProvider
         fields = [

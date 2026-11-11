@@ -182,7 +182,7 @@ class PurchaseOrder(TimeStampedModel):
 
     class Meta:
         db_table = 'purchase_order'
-        ordering = ['-created_at', '-id']
+        ordering = ['-create_date', '-id']
         verbose_name = 'Orden de compra'
         verbose_name_plural = 'Órdenes de compra'
 
@@ -332,11 +332,11 @@ class PurchaseOrder(TimeStampedModel):
             self.name = self._generate_purchase_name()
         self.state = self.STATE_PURCHASE
         self.date_order = self.date_order or timezone.now()
-        self.save(update_fields=['name', 'state', 'date_order', 'updated_at'])
+        self.save(update_fields=['name', 'state', 'date_order', 'write_date'])
         return self
 
     def button_cancel(self):
         """Cancela la orden (Odoo purchase.order.button_cancel)."""
         self.state = self.STATE_CANCEL
-        self.save(update_fields=['state', 'updated_at'])
+        self.save(update_fields=['state', 'write_date'])
         return self

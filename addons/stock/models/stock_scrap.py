@@ -251,7 +251,8 @@ class StockScrap(MailThread, TimeStampedModel):
     def __str__(self) -> str:
         return self.name or f'stock.scrap#{self.pk}'
 
-    # --- campos derivados que no se almacenan ---------------------------------
+    # --- campos derivados que no se almacenan
+    # ---------------------------------
 
     @property
     def allowed_uom_ids(self):
@@ -278,7 +279,8 @@ class StockScrap(MailThread, TimeStampedModel):
         """≙ ``tracking`` (``odoo19c: :29``) — ``related="product_id.tracking"``."""
         return self.product.tracking if self.product_id else None
 
-    # --- los cuatro computados almacenados (D-1) -------------------------------
+    # --- los cuatro computados almacenados (D-1)
+    # -------------------------------
 
     def _compute_product_uom_id(self):
         """≙ ``_compute_product_uom_id`` (``odoo19c: :66-69``)."""
@@ -358,7 +360,8 @@ class StockScrap(MailThread, TimeStampedModel):
             self.location = recomendada
         return {'warning': {'title': _('Warning'), 'message': mensaje}}
 
-    # --- guardas de ciclo de vida ---------------------------------------------
+    # --- guardas de ciclo de vida
+    # ---------------------------------------------
 
     def _unlink_except_done(self):
         """≙ ``_unlink_except_done`` (``odoo19c: :120-123``).
@@ -412,7 +415,8 @@ class StockScrap(MailThread, TimeStampedModel):
             self._compute_scrap_location_id()
         return super().save(*args, **kwargs)
 
-    # --- el movimiento que el desecho produce ---------------------------------
+    # --- el movimiento que el desecho produce
+    # ---------------------------------
 
     def _prepare_move_values(self):
         """≙ ``_prepare_move_values`` (``odoo19c: :125-150``).
@@ -474,7 +478,7 @@ class StockScrap(MailThread, TimeStampedModel):
         movimiento._action_done()
         self.state = self.STATE_DONE
         self.date_done = timezone.now()
-        self.save(update_fields=['name', 'state', 'date_done', 'updated_at'])
+        self.save(update_fields=['name', 'state', 'date_done', 'write_date'])
         if self.should_replenish:
             self.do_replenish()
         return True
@@ -500,7 +504,8 @@ class StockScrap(MailThread, TimeStampedModel):
             valores,
         )])
 
-    # --- descriptores de navegación (D-4) --------------------------------------
+    # --- descriptores de navegación (D-4)
+    # --------------------------------------
 
     def action_get_stock_picking(self):
         """≙ ``action_get_stock_picking`` (``odoo19c: :183-186``) — D-4."""
@@ -516,7 +521,8 @@ class StockScrap(MailThread, TimeStampedModel):
             'domain': [('move_id', 'in', list(self.move_ids.values_list('pk', flat=True)))],
         }
 
-    # --- los dos gates del desecho ---------------------------------------------
+    # --- los dos gates del desecho
+    # ---------------------------------------------
 
     def _should_check_available_qty(self):
         """≙ ``_should_check_available_qty`` (``odoo19c: :193-194``).

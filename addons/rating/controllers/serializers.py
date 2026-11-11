@@ -13,6 +13,11 @@ from addons.rating.models import Review, ReviewImage
 class ReviewImageSerializer(serializers.ModelSerializer):
     """UC-REV-02 cap6 — imagen adjunta a una reseña."""
 
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
+
     class Meta:
         model = ReviewImage
         fields = ['id', 'image', 'created_at']
@@ -24,6 +29,11 @@ class ReviewPublicSerializer(serializers.ModelSerializer):
 
     user_display = serializers.SerializerMethodField()
     images = ReviewImageSerializer(many=True, read_only=True)
+
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
 
     class Meta:
         model = Review
@@ -51,6 +61,11 @@ class ReviewAdminSerializer(serializers.ModelSerializer):
     # I2 (H-API-31): identidad desde la canónica (ver delivery/serializers).
     order_number = serializers.CharField(
         source='sale_order.name', read_only=True
+    )
+
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
     )
 
     class Meta:
@@ -91,6 +106,6 @@ class ReviewUpdateSerializer(serializers.Serializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save(
-            update_fields=list(validated_data.keys()) + ['updated_at']
+            update_fields=list(validated_data.keys()) + ['write_date']
         )
         return instance

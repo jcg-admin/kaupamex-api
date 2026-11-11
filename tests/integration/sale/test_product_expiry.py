@@ -364,7 +364,7 @@ def test_fefo_orders_by_removal_date_not_by_entry(db):
     ubicacion.removal_strategy = ProductRemoval.objects.create(
         name='FEFO', method='fefo'
     )
-    ubicacion.save(update_fields=['removal_strategy', 'updated_at'])
+    ubicacion.save(update_fields=['removal_strategy', 'write_date'])
     assert StockQuant._get_removal_strategy(producto, ubicacion) == 'fefo'
     fefo = list(StockQuant._gather(producto, ubicacion))
     assert [q.lot.name for q in fefo] == ['LB', 'LA']
@@ -374,7 +374,7 @@ def test_fefo_orders_by_removal_date_not_by_entry(db):
     # cae al método de ``stock`` intacto.
     assert StockQuant._get_removal_strategy_order('fifo') == ('in_date', 'id')
     ubicacion.removal_strategy = None
-    ubicacion.save(update_fields=['removal_strategy', 'updated_at'])
+    ubicacion.save(update_fields=['removal_strategy', 'write_date'])
     fifo = list(StockQuant._gather(producto, ubicacion))
     assert [q.lot.name for q in fifo] == ['LA', 'LB']
 
@@ -539,7 +539,7 @@ def test_lot_dates_survive_a_round_trip_to_the_database(db):
             'use_date',
             'removal_date',
             'alert_date',
-            'updated_at',
+            'write_date',
         ]
     )
 

@@ -1270,6 +1270,7 @@ src/addons/base/models/ir_sequence.py::anterior
 src/addons/base/models/ir_sequence.py::campos
 src/addons/base/models/ir_sequence.py::clave
 src/addons/base/models/ir_sequence.py::contexto
+src/addons/base/models/ir_sequence.py::doy
 src/addons/base/models/ir_sequence.py::efectiva
 src/addons/base/models/ir_sequence.py::formato
 src/addons/base/models/ir_sequence.py::formatos

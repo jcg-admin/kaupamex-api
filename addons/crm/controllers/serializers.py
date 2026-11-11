@@ -25,6 +25,11 @@ class ContactMessageCreateSerializer(serializers.ModelSerializer):
 class ContactMessageListItemSerializer(serializers.ModelSerializer):
     """UC-COM-02 — admin inbox list/detail item."""
 
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
+
     class Meta:
         model = ContactMessage
         fields = [
@@ -56,7 +61,8 @@ class ContactMessageSerializer(ContactMessageCreateSerializer):
     """
 
     id = serializers.IntegerField(read_only=True)
-    created_at = serializers.DateTimeField(read_only=True)
+    created_at = serializers.DateTimeField(source='create_date',
+                                           read_only=True)
 
     class Meta(ContactMessageCreateSerializer.Meta):
         fields = ContactMessageCreateSerializer.Meta.fields + [

@@ -62,7 +62,7 @@ class SearchHistoryViewSet(
 
     def get_queryset(self):
         return SearchEntry.objects.filter(user=self.request.user).order_by(
-            '-created_at', '-id'
+            '-create_date', '-id'
         )
 
     @extend_schema(

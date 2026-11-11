@@ -26,13 +26,13 @@ class VoucherChangeLog(TimeStampedModel):
     changes = models.JSONField(
         help_text='Dict de {campo: {before, after}} con los cambios aplicados.'
     )
-    # created_at viene de TimeStampedModel (renombrado de changed_at en
+    # create_date viene de TimeStampedModel (renombrado de changed_at en
     # migración)
 
     class Meta:
         db_table = 'voucher_change_log'
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         verbose_name = 'Cambio de voucher'
 
     def __str__(self):
-        return f'{self.voucher.code} — {self.created_at.date()}'
+        return f'{self.voucher.code} — {self.create_date.date()}'

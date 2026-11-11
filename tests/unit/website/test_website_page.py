@@ -174,7 +174,7 @@ class TestInheritsDelegation:
         assert page.name == 'Página 104'  # delegado (view.name)
         assert page.key == 'website.pagina-104'  # delegado (view.key)
         assert page.arch == '<t><div id="wrap"/></t>'
-        assert page.view_write_date == page.view.updated_at
+        assert page.view_write_date == page.view.write_date
 
     def test_writing_a_delegated_field_lands_on_the_view(self):
         website = _make_website()

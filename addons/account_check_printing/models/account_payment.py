@@ -274,7 +274,7 @@ class CheckPrintingPaymentInfo(TimeStampedModel):
         explícitamente tras escribir — ver ``validate_check_number_uniqueness``.
         """
         self.check_number = value
-        self.save(update_fields=['check_number', 'updated_at'])
+        self.save(update_fields=['check_number', 'write_date'])
         type(self).validate_check_number_uniqueness(self.payment)
         if value:
             journal_settings = CheckPrintingJournalSettings.ensure_check_sequence(
@@ -338,7 +338,7 @@ class CheckPrintingPaymentInfo(TimeStampedModel):
             return row
         journal_settings = CheckPrintingJournalSettings.ensure_check_sequence(payment.journal)
         row.check_number = journal_settings.sequence.next_by_id()
-        row.save(update_fields=['check_number', 'updated_at'])
+        row.save(update_fields=['check_number', 'write_date'])
         cls.validate_check_number_uniqueness(payment)
         return row
 
@@ -411,7 +411,7 @@ class CheckPrintingPaymentInfo(TimeStampedModel):
                     "layout' and set one."))
             row = cls.for_payment(payment, create=True)
             row.is_sent = True
-            row.save(update_fields=['is_sent', 'updated_at'])
+            row.save(update_fields=['is_sent', 'write_date'])
         return payments
 
     @classmethod

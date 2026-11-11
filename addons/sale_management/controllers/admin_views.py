@@ -65,7 +65,7 @@ def _admin_orders():
         .exclude(state=SaleOrder.STATE_DRAFT)
         .select_related('partner', 'carrier', 'delivery_address')
         .prefetch_related('order_line__product', 'payments', 'shipment_guide')
-        .order_by('-created_at', '-id')
+        .order_by('-create_date', '-id')
     )
 
 
@@ -84,19 +84,22 @@ class AdminOrderListView(APIView):
             'resultados".'
         ),
         parameters=[
-            OpenApiParameter('order_number', str,
-                             description='Coincidencia parcial en la referencia'),
+            OpenApiParameter(
+                'order_number', str,
+                description='Coincidencia parcial en la referencia'),
             OpenApiParameter('status', str, description='Estado proyectado'),
             OpenApiParameter('email', str,
                              description='Correo del cliente o del invitado'),
-            OpenApiParameter('date_from', str, description='Desde (YYYY-MM-DD)'),
+            OpenApiParameter('date_from', str,
+                             description='Desde (YYYY-MM-DD)'),
             OpenApiParameter('date_to', str, description='Hasta (YYYY-MM-DD)'),
             OpenApiParameter('page', int, description='Número de página'),
         ],
         responses={
             200: AdminOrderSerializer(many=True),
-            400: OpenApiResponse(description='INVALID_STATUS · INVALID_DATE_FORMAT '
-                                             '· INVALID_DATE_RANGE'),
+            400: OpenApiResponse(
+                description='INVALID_STATUS · INVALID_DATE_FORMAT '
+                            '· INVALID_DATE_RANGE'),
         },
         tags=['orders-admin'],
         operation_id='admin_orders_list',
@@ -146,9 +149,9 @@ class AdminOrderListView(APIView):
                 'codigo_error': 'INVALID_DATE_RANGE',
             })
         if date_from:
-            queryset = queryset.filter(created_at__date__gte=date_from)
+            queryset = queryset.filter(create_date__date__gte=date_from)
         if date_to:
-            queryset = queryset.filter(created_at__date__lte=date_to)
+            queryset = queryset.filter(create_date__date__lte=date_to)
 
         paginator = AdminOrderPagination()
         page      = paginator.paginate_queryset(queryset, request)

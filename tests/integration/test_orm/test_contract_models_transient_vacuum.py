@@ -28,7 +28,7 @@ pytestmark = pytest.mark.integration
 def _row_written(ago):
     row = BaseEnableProfilingWizard.objects.create()
     BaseEnableProfilingWizard.objects.filter(pk=row.pk).update(
-        updated_at=timezone.now() - ago)
+        write_date=timezone.now() - ago)
     return row
 
 
@@ -39,7 +39,7 @@ class TestEveryTransientHasAWriteDate:
                     if issubclass(model, TransientModel)]
         assert concrete
         missing = [model._meta.label for model in concrete
-                   if not any(f.name == 'updated_at'
+                   if not any(f.name == 'write_date'
                               for f in model._meta.get_fields())]
         assert missing == []
 
@@ -79,8 +79,8 @@ class TestTheTransactionClock:
         with transaction.atomic():
             row = BaseEnableProfilingWizard.objects.create()
             now = transaction_now(row._state.db)
-        assert row.created_at == now
-        assert row.updated_at == now
+        assert row.create_date == now
+        assert row.write_date == now
 
     def test_a_wall_clock_ahead_does_not_age_a_fresh_row(
             self, db, monkeypatch):

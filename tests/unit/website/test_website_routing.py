@@ -237,7 +237,7 @@ class TestEnumeratePages:
         record = records[page.url]
         assert record['id'] == page.pk
         assert record['name'] == 'Términos'
-        assert record['lastmod'] == page.updated_at.date()
+        assert record['lastmod'] == page.write_date.date()
 
     def test_query_string_filters_by_url_fragment(self):
         website = _make_website()

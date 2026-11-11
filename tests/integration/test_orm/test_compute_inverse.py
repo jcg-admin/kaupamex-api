@@ -32,8 +32,8 @@ PENDING_WRITE_MULTI = pytest.mark.xfail(
 
 def insert(model, *fnames, rowcount=1):
     """≙ ``insert`` (``test_fields.py:4747-4752``), con las columnas de
-    registro de este árbol (``created_at``/``updated_at``)."""
-    columns = sorted(fnames + ('created_at', 'updated_at'))
+    registro de este árbol (``create_date``/``write_date``)."""
+    columns = sorted(fnames + ('create_date', 'write_date'))
     header = ", ".join(f'"{column}"' for column in columns)
     template = ", ".join("%s" for _index in range(rowcount))
     return (f'INSERT INTO "{model._meta.db_table}" ({header}) '
@@ -43,7 +43,7 @@ def insert(model, *fnames, rowcount=1):
 def update(model, *fnames):
     """≙ ``update`` (``test_fields.py:4755-4768``)."""
     table = f'"{model._meta.db_table}"'
-    fnames = sorted(fnames + ('updated_at',))
+    fnames = sorted(fnames + ('write_date',))
     columns = ", ".join(f'"{column}"' for column in fnames)
     assignments = ", ".join(
         f'"{fname}" = "__tmp"."{fname}"' for fname in fnames)

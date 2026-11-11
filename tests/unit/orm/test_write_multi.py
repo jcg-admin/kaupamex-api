@@ -39,11 +39,11 @@ def family(env):
 
 def _stamp(record):
     return type(record).objects.filter(pk=record.id).values_list(
-        'updated_at', flat=True).get()
+        'write_date', flat=True).get()
 
 
 def _age(record):
-    type(record).objects.filter(pk=record.id).update(updated_at=PAST)
+    type(record).objects.filter(pk=record.id).update(write_date=PAST)
 
 
 def test_write_multi_rejects_a_length_mismatch(env):

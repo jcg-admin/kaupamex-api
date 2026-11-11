@@ -44,7 +44,7 @@ class Refund(TimeStampedModel):
 
     class Meta:
         db_table = 'payments_refund'
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         verbose_name = 'Reembolso'
 
     def __str__(self):

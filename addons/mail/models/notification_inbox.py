@@ -102,7 +102,7 @@ class Notification(BusListenerMixin, TimeStampedModel):
 
     class Meta:
         db_table = 'notifications_notification'
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         verbose_name = 'Notificacion'
         verbose_name_plural = 'Notificaciones'
         indexes = [
@@ -110,7 +110,7 @@ class Notification(BusListenerMixin, TimeStampedModel):
                 fields=['user', 'read'], name='notificatio_user_id_878a13_idx'
             ),
             models.Index(
-                fields=['user', '-created_at'],
+                fields=['user', '-create_date'],
                 name='notificatio_user_id_05b4bc_idx',
             ),
         ]

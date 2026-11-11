@@ -71,8 +71,8 @@ class NotificationListView(APIView):
         responses=NotificationSerializer(many=True),
     )
     def get(self, request):
-        # H-CICLO48-02: order_by('-created_at') garantiza orden determinista.
-        # El modelo tiene Meta.ordering=['-created_at'] pero reliar en el
+        # H-CICLO48-02: order_by('-create_date') garantiza orden determinista.
+        # El modelo tiene Meta.ordering=['-create_date'] pero reliar en el
         # ordering de Meta con queryset.filter() puede perderse tras un
         # .values() u otras operaciones de combinacion. Se explicita aqui.
         # H-CICLO88-02: limitar a _INBOX_CAP filas antes de paginar para
@@ -81,7 +81,7 @@ class NotificationListView(APIView):
         qs = (
             Notification.objects
             .filter(user=request.user)
-            .order_by('-created_at', '-id')[:_INBOX_CAP]
+            .order_by('-create_date', '-id')[:_INBOX_CAP]
         )
         paginator = _NotificationPagination()
         page = paginator.paginate_queryset(qs, request)
@@ -125,12 +125,16 @@ class NotificationMarkReadView(APIView):
     serializer_class = NotificationSerializer
 
     @extend_schema(
-        summary='[DEPRECATED → PATCH /api/v2/notifications/<pk>/] Marcar notificacion como leida',
+        summary='[DEPRECATED → PATCH /api/v2/notifications/<pk>/] Marcar '
+                'notificacion como leida',
         deprecated=True,
         tags=['notifications'],
         responses={200: inline_serializer(
             name='NotificationReadResponse',
-            fields={'id': rf_fields.IntegerField(), 'read': rf_fields.BooleanField()},
+            fields={
+                'id': rf_fields.IntegerField(),
+                'read': rf_fields.BooleanField(),
+            },
         )},
     )
     def post(self, request, notification_id):
@@ -139,7 +143,7 @@ class NotificationMarkReadView(APIView):
             raise Http404
         if not notif.read:
             notif.read = True
-            notif.save(update_fields=['read', 'updated_at'])
+            notif.save(update_fields=['read', 'write_date'])
         return Response({'id': notif.pk, 'read': True})
 
 
@@ -152,7 +156,8 @@ class NotificationMarkAllReadView(APIView):
     serializer_class = NotificationSerializer
 
     @extend_schema(
-        summary='[DEPRECATED → PATCH /api/v2/notifications/] Marcar todas las notificaciones como leidas',
+        summary='[DEPRECATED → PATCH /api/v2/notifications/] Marcar todas las '
+                'notificaciones como leidas',
         deprecated=True,
         tags=['notifications'],
         responses={200: inline_serializer(
@@ -163,7 +168,7 @@ class NotificationMarkAllReadView(APIView):
     def post(self, request):
         updated = Notification.objects.filter(
             user=request.user, read=False,
-        ).update(read=True, updated_at=timezone.now())
+        ).update(read=True, write_date=timezone.now())
         return Response({'updated': updated})
 
 
@@ -457,7 +462,7 @@ class NotificationListV2View(NotificationListView):
     def patch(self, request):
         updated = Notification.objects.filter(
             user=request.user, read=False,
-        ).update(read=True, updated_at=timezone.now())
+        ).update(read=True, write_date=timezone.now())
         return Response({'updated': updated})
 
 
@@ -478,7 +483,9 @@ class NotificationMarkReadV2View(APIView):
         tags=['notifications'],
         request=inline_serializer(
             name='NotificationMarkReadRequest',
-            fields={'read': rf_fields.BooleanField(required=False, default=True)},
+            fields={
+                'read': rf_fields.BooleanField(required=False, default=True),
+            },
         ),
         responses={200: inline_serializer(
             name='NotificationMarkReadResponse',
@@ -494,5 +501,5 @@ class NotificationMarkReadV2View(APIView):
             raise Http404
         if not notif.read:
             notif.read = True
-            notif.save(update_fields=['read', 'updated_at'])
+            notif.save(update_fields=['read', 'write_date'])
         return Response({'id': notif.pk, 'read': True})

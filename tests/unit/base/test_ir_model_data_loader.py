@@ -83,8 +83,8 @@ class TestPortedSymbolNames:
         # El INSERT en bruto esquiva a Django; sin estas dos la columna
         # NOT NULL revienta. Medido: reventaba.
         columns = IrModelData._build_insert_xmlids_values()
-        assert columns['created_at'] == "now() at time zone 'UTC'"
-        assert columns['updated_at'] == "now() at time zone 'UTC'"
+        assert columns['create_date'] == "now() at time zone 'UTC'"
+        assert columns['write_date'] == "now() at time zone 'UTC'"
 
     def test_the_lookup_is_memoised_like_the_reference(self):
         # odoo19c: :2270 — @tools.ormcache('xmlid')
@@ -129,7 +129,7 @@ class TestUpdateXmlids:
             ]
         )
         row = IrModelData.objects.get(module='base', name='imd_probe_audit')
-        assert row.created_at is not None and row.updated_at is not None
+        assert row.create_date is not None and row.write_date is not None
 
     def test_it_repoints_instead_of_duplicating(self):
         registry.clear_cache('default')

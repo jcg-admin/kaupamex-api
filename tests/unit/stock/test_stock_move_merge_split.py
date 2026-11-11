@@ -172,7 +172,7 @@ def test_merge_fields_takes_the_latest_date_when_shipping_all_at_once(
 ):
     """``:1269`` — con «todo junto» nada sale hasta que todo está."""
     picking.move_type = 'one'
-    picking.save(update_fields=['move_type', 'updated_at'])
+    picking.save(update_fields=['move_type', 'write_date'])
     temprano = timezone.now()
     tarde = temprano + timedelta(days=3)
     uno = make_move(picking=picking, date=temprano)
@@ -408,7 +408,7 @@ def test_assign_picking_values_wipes_a_conflicting_partner(
 ):
     """``:1582-1583`` — el albarán pasa a referirse a varios; se le quita."""
     picking.partner = ResPartner.objects.create(name='Cliente del albarán')
-    picking.save(update_fields=['partner', 'updated_at'])
+    picking.save(update_fields=['partner', 'write_date'])
     move = make_move(partner=ResPartner.objects.create(name='Otro'))
 
     assert (
@@ -421,7 +421,7 @@ def test_assign_picking_values_accumulate_the_origins_without_repeating(
 ):
     """``:1584-1589`` — los orígenes se suman; el ya presente no se duplica."""
     picking.origin = 'SO001'
-    picking.save(update_fields=['origin', 'updated_at'])
+    picking.save(update_fields=['origin', 'write_date'])
     uno, dos = make_move(origin='SO001'), make_move(origin='SO002')
 
     valores = uno._assign_picking_values(picking, moves=[uno, dos])

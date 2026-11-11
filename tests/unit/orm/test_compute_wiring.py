@@ -84,7 +84,7 @@ class TestTheDeclarationReachesTheGraph:
         asi
         que este caso recorre TODO el arbol y falla nombrando el culpable. Ya
         encontro dos: ``@api.depends('create_date')`` sobre un modelo cuya
-        columna de auditoria se llama ``created_at``.
+        columna de auditoria se llama ``create_date``.
         """
         rotas = []
         for model in apps.get_models():

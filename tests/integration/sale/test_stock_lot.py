@@ -121,7 +121,7 @@ def test_gather_lifo_when_the_location_declares_it(db):
     loc.removal_strategy = ProductRemoval.objects.create(
         name='LIFO', method='lifo'
     )
-    loc.save(update_fields=['removal_strategy', 'updated_at'])
+    loc.save(update_fields=['removal_strategy', 'write_date'])
 
     l_old = StockLot.objects.create(name='OLD2', product=product)
     l_new = StockLot.objects.create(name='NEW2', product=product)

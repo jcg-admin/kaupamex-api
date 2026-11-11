@@ -156,7 +156,7 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     ==============================  =========================================
     Referencia                      Aquí
     ==============================  =========================================
-    ``create_date`` (:85)           ``created_at`` de ``TimeStampedModel``,
+    ``create_date`` (:85)           ``create_date`` de ``TimeStampedModel``,
                                     ya con el ``index=True`` que la fuente
                                     añade al sobreescribirlo
     ``order_line`` (:226)           el reverso de ``SaleOrderLine.order``,
@@ -249,11 +249,11 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         (STATE_CANCEL, 'Cancelada'),
     ]
 
-    # DEC-003: ``TimeStampedModel`` deja ``created_at`` sin índice y encarga a
+    # DEC-003: ``TimeStampedModel`` deja ``create_date`` sin índice y encarga a
     # cada modelo declararlo "por volumen (inventario, órdenes)". El espejo lo
     # declaraba y la canónica no lo heredó al retirarlo, aunque es ella la que
     # se ordena por fecha en el panel del comprador y en el admin.
-    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    create_date = models.DateTimeField(auto_now_add=True, db_index=True)
 
     # ``name`` NULL mientras es borrador (Odoo lo asigna al crear vía
     # secuencia; aquí se asigna al confirmar). UNIQUE admite múltiples NULL en
@@ -797,7 +797,7 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     class Meta:
         db_table = 'sale_order'
         # Derivado de ``_order`` de la cabecera, término a término. Antes era
-        # ``['-created_at']``, que coincide con éste en todo pedido que no se
+        # ``['-create_date']``, que coincide con éste en todo pedido que no se
         # haya confirmado —``date_order`` nace igual a la creación— y difiere
         # sólo en los confirmados, donde ``action_confirm`` reescribe la fecha
         # con el instante de la confirmación. Eso es exactamente lo que la
@@ -1132,7 +1132,7 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         self.amount_tax = self._sum_lines('price_tax')
         self.amount_total = self._sum_lines('price_total')
         self.save(update_fields=[
-            'amount_untaxed', 'amount_tax', 'amount_total', 'updated_at'])
+            'amount_untaxed', 'amount_tax', 'amount_total', 'write_date'])
 
     @api.depends('company')
     def _compute_validity_date(self):
@@ -1204,7 +1204,7 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
             self.name = _next_sale_name()
         self.state = self.STATE_SALE
         self.date_order = timezone.now()
-        self.save(update_fields=['name', 'state', 'date_order', 'updated_at'])
+        self.save(update_fields=['name', 'state', 'date_order', 'write_date'])
         self._track_state(previo)
         return True
 
@@ -1213,7 +1213,7 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         if self.state in (self.STATE_CANCEL, self.STATE_SENT):
             previo = self.state
             self.state = self.STATE_DRAFT
-            self.save(update_fields=['state', 'updated_at'])
+            self.save(update_fields=['state', 'write_date'])
             self._track_state(previo)
         return True
 
@@ -1223,21 +1223,21 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
             raise ValidationError('No se puede cancelar una orden bloqueada.')
         previo = self.state
         self.state = self.STATE_CANCEL
-        self.save(update_fields=['state', 'updated_at'])
+        self.save(update_fields=['state', 'write_date'])
         self._track_state(previo)
         return True
 
     def action_lock(self):
         previo = self.locked
         self.locked = True
-        self.save(update_fields=['locked', 'updated_at'])
+        self.save(update_fields=['locked', 'write_date'])
         self._track('locked', 'Bloqueada', 'boolean', previo, self.locked)
         return True
 
     def action_unlock(self):
         previo = self.locked
         self.locked = False
-        self.save(update_fields=['locked', 'updated_at'])
+        self.save(update_fields=['locked', 'write_date'])
         self._track('locked', 'Bloqueada', 'boolean', previo, self.locked)
         return True
 
@@ -1267,5 +1267,5 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         move = create_invoice_from_sale_order(self, self.company)
         move.post()
         self.invoice = move
-        self.save(update_fields=['invoice', 'updated_at'])
+        self.save(update_fields=['invoice', 'write_date'])
         return move

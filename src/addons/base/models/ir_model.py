@@ -817,7 +817,7 @@ class IrModel(models.OriginMixin, TimeStampedModel):
         cuanto ``state`` difiere del sembrado, que es el caso de toda fila
         creada a mano con el ``default=STATE_MANUAL`` del campo.
 
-        ``created_at`` queda fuera de ``update_fields`` a propósito: su
+        ``create_date`` queda fuera de ``update_fields`` a propósito: su
         ``auto_now_add`` recalcula al preparar el lote, así que incluirlo
         borraría la fecha de alta de una fila que ya existía.
 
@@ -849,7 +849,7 @@ class IrModel(models.OriginMixin, TimeStampedModel):
             cls.objects.using(using).bulk_create(
                 [cls(model=label, **params) for label, params in pending],
                 update_conflicts=True, unique_fields=['model'],
-                update_fields=[*columns, 'updated_at'])
+                update_fields=[*columns, 'write_date'])
             registry.clear_cache('stable')
         cls._update_model_xmlids(module, classes, using=using)
         created = sum(label not in stored for label, _ in pending)
@@ -2350,12 +2350,12 @@ class IrModelConstraint(models.CopyMixin, TimeStampedModel):
         if (row.type, row.definition, row.message) == (
                 values['type'], values['definition'], values['message']):
             return None
-        # ``updated_at`` explícito: ``QuerySet.update()`` no dispara el
+        # ``write_date`` explícito: ``QuerySet.update()`` no dispara el
         # ``auto_now`` del campo, y la fuente sí refresca la marca —su
         # ``UPDATE`` abre con ``SET write_date=now() AT TIME ZONE 'UTC'``
         # (``odoo19c: :1968``). Omitirlo dejaría la fila con la fecha del alta.
         cls.objects.using(using).filter(pk=row.pk).update(
-            updated_at=timezone.now(), **values)
+            write_date=timezone.now(), **values)
         for name, value in values.items():
             setattr(row, name, value)
         return row
@@ -2468,7 +2468,7 @@ class IrModelRelation(TimeStampedModel):
     """``ir.model.relation`` — tabla intermedia de un Many2many.
 
     La fuente declara ``write_date``/``create_date`` explícitos; aquí los
-    aporta ``TimeStampedModel`` (``created_at``/``updated_at``), que es el
+    aporta ``TimeStampedModel`` (``create_date``/``write_date``), que es el
     equivalente del log-access en este árbol.
     """
 
@@ -3356,8 +3356,8 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
             # ``_log_access``, así que la fuente no las nombra. Son literales,
             # no marcadores: no consumen parámetro y el conteo por fila sigue
             # siendo cinco.
-            'created_at': "now() at time zone 'UTC'",
-            'updated_at': "now() at time zone 'UTC'",
+            'create_date': "now() at time zone 'UTC'",
+            'write_date': "now() at time zone 'UTC'",
         }
 
     @classmethod
@@ -3372,11 +3372,11 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
             INSERT INTO ir_model_data {row_names}
             VALUES {row_placeholders}
             ON CONFLICT (module, name)
-            DO UPDATE SET (model, res_id, updated_at) =
+            DO UPDATE SET (model, res_id, write_date) =
                 (EXCLUDED.model, EXCLUDED.res_id, now() at time zone 'UTC')
                 WHERE (ir_model_data.res_id != EXCLUDED.res_id
                        OR ir_model_data.model != EXCLUDED.model) {and_where}
-            RETURNING module, name, model, res_id, created_at, updated_at
+            RETURNING module, name, model, res_id, create_date, write_date
         """
 
     @classmethod

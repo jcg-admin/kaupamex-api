@@ -457,7 +457,7 @@ def action_clear_quantities(self):
             },
         }
     self.product_qty = 0
-    self.save(update_fields=['product_qty', 'updated_at'])
+    self.save(update_fields=['product_qty', 'write_date'])
     return False
 
 

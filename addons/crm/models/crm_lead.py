@@ -535,10 +535,11 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             ),
         ]
         indexes = [
-            # ≙ los tres ``models.Index`` de la fuente (:259-261), con su nombre.
+            # ≙ los tres ``models.Index`` de la fuente (:259-261), con su
+            # nombre.
             models.Index(fields=['user_id', 'team_id', 'type'],
                          name='crm_lead_user_team_type_idx'),
-            models.Index(fields=['created_at', 'team_id'],
+            models.Index(fields=['create_date', 'team_id'],
                          name='crm_lead_create_team_idx'),
             models.Index(fields=['-priority', '-id'], condition=Q(active=True),
                          name='crm_lead_default_order_idx'),
@@ -707,28 +708,29 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         if not self.date_last_stage_update:
             self.date_last_stage_update = datetime.now(timezone.utc)
 
-    #: ``create_date`` de la fuente es ``created_at`` aqui — la columna de
+    #: ``create_date`` de la fuente es ``create_date`` aqui — la columna de
     #: auditoria de ``TimeStampedModel``. El decorador la nombraba con el
     #: nombre de alla mientras el cuerpo ya leia el de aqui: era inerte, y
     #: el porte estricto de ``resolve_depends`` (#273 capa B) lo destapo.
-    @api.depends('created_at', 'date_open')
+    @api.depends('create_date', 'date_open')
     def _compute_day_open(self):
-        """≙ ``_compute_day_open`` (:371-380) — días entre alta y asignación."""
-        if not (self.date_open and self.created_at):
+        """≙ ``_compute_day_open`` (:371-380) — días entre alta y
+        asignación."""
+        if not (self.date_open and self.create_date):
             self.day_open = None
             return
-        date_create = self.created_at.replace(microsecond=0)
+        date_create = self.create_date.replace(microsecond=0)
         self.day_open = abs((self.date_open - date_create).days)
 
     #: Misma correccion que en ``_compute_day_open``: ``create_date`` no
-    #: existe aqui; la columna es ``created_at``.
-    @api.depends('created_at', 'date_closed')
+    #: existe aqui; la columna es ``create_date``.
+    @api.depends('create_date', 'date_closed')
     def _compute_day_close(self):
         """≙ ``_compute_day_close`` (:382-390) — días entre alta y cierre."""
-        if not (self.date_closed and self.created_at):
+        if not (self.date_closed and self.create_date):
             self.day_close = None
             return
-        self.day_close = abs((self.date_closed - self.created_at).days)
+        self.day_close = abs((self.date_closed - self.create_date).days)
 
     @classmethod
     def _get_rotting_depends_fields(cls):
@@ -1609,13 +1611,15 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         won_leads = type(self).objects.filter(
             type=self.TYPE_OPPORTUNITY, active=True, probability=100,
         )
-        won_this_year = won_leads.filter(created_at__year=tz_midnight.year)
+        won_this_year = won_leads.filter(create_date__year=tz_midnight.year)
         mine = won_this_year.filter(user_id=self.user_id_id)
 
         def _max_revenue(qs, dias):
             since = tz_midnight - timedelta(days=dias)
-            fila = qs.exclude(pk=self.pk).filter(created_at__gte=since).order_by(
-                '-expected_revenue').values_list('expected_revenue', flat=True).first()
+            fila = (qs.exclude(pk=self.pk)
+                    .filter(create_date__gte=since)
+                    .order_by('-expected_revenue')
+                    .values_list('expected_revenue', flat=True).first())
             return fila
 
         def _is_lower_than_expected_revenue(value):
@@ -1626,16 +1630,16 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         team_stages = won_this_year.filter(team_id=self.team_id_id) if self.team_id_id \
             else won_this_year.filter(team_id__isnull=True)
 
-        closed_today = mine.filter(created_at__gte=tz_midnight).count()
+        closed_today = mine.filter(create_date__gte=tz_midnight).count()
         closed_yesterday = mine.filter(
-            created_at__gte=tz_midnight - timedelta(days=1),
-            created_at__lt=tz_midnight).count()
+            create_date__gte=tz_midnight - timedelta(days=1),
+            create_date__lt=tz_midnight).count()
         closed_minus2day = mine.filter(
-            created_at__gte=tz_midnight - timedelta(days=2),
-            created_at__lt=tz_midnight - timedelta(days=1)).count()
+            create_date__gte=tz_midnight - timedelta(days=2),
+            create_date__lt=tz_midnight - timedelta(days=1)).count()
         closed_minus3day = mine.filter(
-            created_at__gte=tz_midnight - timedelta(days=3),
-            created_at__lt=tz_midnight - timedelta(days=2)).count()
+            create_date__gte=tz_midnight - timedelta(days=3),
+            create_date__lt=tz_midnight - timedelta(days=2)).count()
 
         if mine.count() == 1:
             return _('Go, go, go! Congrats for your first deal.')
@@ -1654,11 +1658,11 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         # el cierre más rápido del mes, con la guarda del minuto de la fuente:
         # sólo cuenta si transcurrió tiempo real desde el alta
         min_days = won_this_year.filter(
-            created_at__gte=tz_midnight - timedelta(days=31),
+            create_date__gte=tz_midnight - timedelta(days=31),
         ).order_by('day_close').values_list('day_close', flat=True).first()
         if min_days is not None and min_days == self.day_close \
                 and (self.day_close or 31) < 31 and self.date_closed \
-                and (self.date_closed - self.created_at).total_seconds() > 60:
+                and (self.date_closed - self.create_date).total_seconds() > 60:
             return _('Wow, that was fast. That deal did not stand a chance!')
         # salto de la primera etapa directamente a la victoria
         stages = [int(k) for k, dur in self.duration_tracking.items() if dur >= 60]
@@ -2037,7 +2041,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
 
         active_authors = set(
             MailMessage.objects
-            .filter(model=self._name, res_id__in=source_ids, created_at__gt=since)
+            .filter(model=self._name, res_id__in=source_ids,
+                    create_date__gt=since)
             .values_list('author_id', flat=True)
         )
         already_following = set(
@@ -2686,7 +2691,7 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         # 1. las candidatas: con etapa, creadas tras la fecha de arranque, ni
         # ganadas ni perdidas
         leads_to_update = list(cls.objects.filter(
-            stage_id__isnull=False, created_at__gte=pls_start_date,
+            stage_id__isnull=False, create_date__gte=pls_start_date,
             won_status='pending',
         ))
         total = len(leads_to_update)
@@ -2734,7 +2739,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     # ---------------------------------
 
     @classmethod
-    def _pls_prepare_update_frequency_table(cls, leads, rebuild=False, target_state=False):
+    def _pls_prepare_update_frequency_table(cls, leads, rebuild=False,
+                                            target_state=False):
         """≙ ``_pls_prepare_update_frequency_table`` (:2498-2585).
 
         Común a las dos vías. Prepara dos diccionarios: las frecuencias NUEVAS
@@ -2750,12 +2756,16 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
 
         if rebuild:
             pls_leads = list(cls.objects.filter(
-                created_at__gte=pls_start_date, won_status__in=['lost', 'won']))
+                create_date__gte=pls_start_date,
+                won_status__in=['lost', 'won']))
             team_ids = list(CrmTeam.objects.values_list('pk', flat=True)) + [0]
-            criterion = Q(created_at__gte=pls_start_date, won_status__in=['lost', 'won'])
+            criterion = Q(create_date__gte=pls_start_date,
+                          won_status__in=['lost', 'won'])
         else:
-            pls_leads = [lead for lead in leads
-                         if lead.created_at and lead.created_at.date() >= pls_start_date]
+            pls_leads = [
+                lead for lead in leads
+                if lead.create_date
+                and lead.create_date.date() >= pls_start_date]
             if not pls_leads:
                 return {}, {}
             team_ids = [lead.team_id_id for lead in pls_leads if lead.team_id_id] + [0]

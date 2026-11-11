@@ -454,16 +454,16 @@ def _filter_can_send_abandoned_cart_mail(cls, orders):
     sales_after_abandoned_date = cls.objects.filter(
         state='sale',
         partner_id__in=buyers,
-        created_at__gte=abandoned_datetime,
+        create_date__gte=abandoned_datetime,
         website_sale_info__website_id=website_id,
     )
     latest_create_date_per_buyer = {}
     for sale in orders:
         previous = latest_create_date_per_buyer.get(sale.partner_id)
         latest_create_date_per_buyer[sale.partner_id] = (
-            sale.created_at
+            sale.create_date
             if previous is None
-            else max(previous, sale.created_at)
+            else max(previous, sale.create_date)
         )
     has_later_sale_order = {}
     for sale in sales_after_abandoned_date:

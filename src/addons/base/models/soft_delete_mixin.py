@@ -105,13 +105,13 @@ class SoftDeleteModel(models.Model):
     class Meta:
         abstract = True
 
-    def delete(self, using=None, keep_parents=False):  # noqa: D401
+    def delete(self, using=None, keep_parents=False):
         """Override: soft delete por defecto. DEC-DOC-007."""
         self.is_deleted = True
         self.deleted_at = timezone.now()
         self.save(
-            update_fields=['is_deleted', 'deleted_at', 'updated_at']
-            if hasattr(self, 'updated_at')
+            update_fields=['is_deleted', 'deleted_at', 'write_date']
+            if hasattr(self, 'write_date')
             else ['is_deleted', 'deleted_at'],
             using=using,
         )
@@ -126,7 +126,7 @@ class SoftDeleteModel(models.Model):
         self.is_deleted = False
         self.deleted_at = None
         self.save(
-            update_fields=['is_deleted', 'deleted_at', 'updated_at']
-            if hasattr(self, 'updated_at')
+            update_fields=['is_deleted', 'deleted_at', 'write_date']
+            if hasattr(self, 'write_date')
             else ['is_deleted', 'deleted_at'],
         )

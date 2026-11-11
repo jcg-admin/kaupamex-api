@@ -130,10 +130,10 @@ def test_revoking_writes_the_log_row_through_the_orm(db):
     key = _make_session()
     fila = _make_log(user, key)
     long_ago = timezone.now() - datetime.timedelta(days=30)
-    ResDeviceLog.objects.filter(pk=fila.pk).update(updated_at=long_ago)
+    ResDeviceLog.objects.filter(pk=fila.pk).update(write_date=long_ago)
     ResDevice.objects.filter(user_id=user.pk)._revoke(_Request())
     fila.refresh_from_db()
-    assert fila.updated_at > long_ago
+    assert fila.write_date > long_ago
 
 
 def test_revoking_returns_how_many_log_rows_it_marked(db):

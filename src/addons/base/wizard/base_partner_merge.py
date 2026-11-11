@@ -564,7 +564,7 @@ class PartnerMerge:
 
         for campo in dst_partner._meta.concrete_fields:
             nombre = campo.name
-            if nombre in ('id', 'created_at', 'updated_at'):
+            if nombre in ('id', 'create_date', 'write_date'):
                 continue
             for registro in list(src_partners) + [dst_partner]:
                 valor = getattr(registro, nombre, None)
@@ -586,7 +586,7 @@ class PartnerMerge:
         if parent is not None and parent.pk != dst_partner.pk:
             try:
                 dst_partner.parent = parent
-                dst_partner.save(update_fields=['parent', 'updated_at'])
+                dst_partner.save(update_fields=['parent', 'write_date'])
             except (UserError, ValueError):
                 logger.info(
                     'Se omite la jerarquía recursiva parent=%s del'
@@ -630,7 +630,7 @@ class PartnerMerge:
                 cuenta.partner = dst_partner
                 # Sin ``update_fields``: ``ResPartnerBank`` es ``models.Model``
                 # a secas, no ``TimeStampedModel``, así que no tiene
-                # ``updated_at`` que acompañar al campo tocado.
+                # ``write_date`` que acompañar al campo tocado.
                 cuenta.save()
 
     @classmethod
@@ -799,14 +799,14 @@ class PartnerMerge:
     def _get_ordered_partner(cls, partner_ids):
         """≙ ``_get_ordered_partner`` (``:550-556``).
 
-        Orden ``(not active, created_at)`` descendente. Consecuencia, que es lo
-        que el llamador usa: **el último es el destino** — el activo más
+        Orden ``(not active, create_date)`` descendente. Consecuencia, que es
+        lo que el llamador usa: **el último es el destino** — el activo más
         antiguo.
         """
         modelo = _resolve('base', 'ResPartner')
         contactos = list(modelo.objects.filter(pk__in=partner_ids))
         contactos.sort(
-            key=lambda p: (not p.active, p.created_at), reverse=True
+            key=lambda p: (not p.active, p.create_date), reverse=True
         )
         return contactos
 

@@ -172,7 +172,7 @@ class CourierDetailView(_AdminOnly, APIView):
     def delete(self, request, pk):
         courier = self._get(pk)
         courier.is_active = False
-        courier.save(update_fields=['is_active', 'updated_at'])
+        courier.save(update_fields=['is_active', 'write_date'])
         return Response({'deactivated': True})
 
 
@@ -183,7 +183,7 @@ class ShipmentGuideListCreateView(_AdminOnly, APIView):
         qs = (
             ShipmentGuide.objects.filter(is_deleted=False)
             .select_related('sale_order', 'courier')
-            .order_by('-created_at', '-id')
+            .order_by('-create_date', '-id')
         )
         if request.query_params.get('order_id'):
             qs = qs.filter(order_id=request.query_params['order_id'])
@@ -315,7 +315,8 @@ class ShipmentGuideDetailView(_AdminOnly, APIView):
     def get(self, request, pk):
         return Response(ShipmentGuideSerializer(self._get_guide(pk)).data)
 
-    @extend_schema(summary='Actualizar guía (rastreo o estado)', tags=['logistics'],
+    @extend_schema(summary='Actualizar guía (rastreo o estado)',
+                   tags=['logistics'],
                    request=ShipmentGuideSerializer,
                    responses={200: ShipmentGuideSerializer,
                               400: error_response('Estado o rastreo inválido'),
@@ -346,7 +347,7 @@ class ShipmentGuideDetailView(_AdminOnly, APIView):
         ``warning`` en la respuesta pero la operacion se permite (el admin
         confirma con ``confirm_duplicate=true`` si quiere silenciar el aviso).
         """
-        update_fields = ['updated_at']
+        update_fields = ['write_date']
         warning = None
         previous_tracking = guide.tracking_number
 
@@ -374,7 +375,8 @@ class ShipmentGuideDetailView(_AdminOnly, APIView):
             update_fields.append('tracking_url')
 
         guide.save(update_fields=update_fields)
-        # Auditoria del cambio (Alt C: el historial conserva el numero anterior).
+        # Auditoria del cambio (Alt C: el historial conserva el numero
+        # anterior).
         ShipmentEvent.objects.create(
             guide=guide, status=guide.status,
             description=(
@@ -406,7 +408,7 @@ class ShipmentGuideDetailView(_AdminOnly, APIView):
                 status=400,
             )
         guide.status = new_status
-        guide.save(update_fields=['status', 'updated_at'])
+        guide.save(update_fields=['status', 'write_date'])
         ShipmentEvent.objects.create(
             guide=guide, status=new_status,
             description=request.data.get('description', ''),
@@ -423,7 +425,8 @@ class ConfirmDeliveryView(_AdminOnly, APIView):
                        {'status': serializers.CharField(),
                         'already_delivered': serializers.BooleanField(),
                         'tracking_number': serializers.CharField(),
-                        'delivered_at': serializers.DateTimeField(required=False)}),
+                        'delivered_at': serializers.DateTimeField(
+                            required=False)}),
                        400: error_response('Guía cancelada'),
                        404: error_response('Guía no encontrada')})
     def post(self, request, pk):
@@ -441,7 +444,8 @@ class ConfirmDeliveryView(_AdminOnly, APIView):
         #     (guide=DELIVERED pero order≠DELIVERED o viceversa).
         # (b) dos admins confirmando la misma guia concurrentemente, creando
         #     dos SaleOrderStatusLog SHIPPED→DELIVERED.
-        # Ademas se crea SaleOrderStatusLog para la transicion SHIPPED→DELIVERED,
+        # Ademas se crea SaleOrderStatusLog para la transicion
+        # SHIPPED→DELIVERED,
         # que antes quedaba sin entrada de auditoria.
         with transaction.atomic():
             guide_locked = (ShipmentGuide.objects.select_for_update()
@@ -456,7 +460,9 @@ class ConfirmDeliveryView(_AdminOnly, APIView):
             now = timezone.now()
             guide_locked.status = ShipmentGuide.STATUS_DELIVERED
             guide_locked.delivered_at = now
-            guide_locked.save(update_fields=['status', 'delivered_at', 'updated_at'])
+            guide_locked.save(
+                update_fields=['status', 'delivered_at', 'write_date'],
+            )
             _track_sale_state(
                 guide_locked.sale_order, previous_order_status,
                 STATUS_DELIVERED, request.user,
@@ -492,7 +498,9 @@ class CancelGuideView(_AdminOnly, APIView):
         guide.status = ShipmentGuide.STATUS_CANCELLED
         guide.is_deleted = True
         guide.deleted_at = timezone.now()
-        guide.save(update_fields=['status', 'is_deleted', 'deleted_at', 'updated_at'])
+        guide.save(
+            update_fields=['status', 'is_deleted', 'deleted_at', 'write_date'],
+        )
         return Response({'cancelled': True, 'tracking_number': guide.tracking_number})
 
 
@@ -563,12 +571,15 @@ class BuyerReportIncidentView(APIView):
         request=inline_serializer('BuyerReportIncidentRequest', {
             'problem_type': serializers.ChoiceField(
                 choices=sorted(PROBLEM_TYPES)),
-            'description': serializers.CharField(min_length=MIN_DESCRIPTION_LEN),
+            'description': serializers.CharField(
+                min_length=MIN_DESCRIPTION_LEN,
+            ),
         }),
         responses={201: None,
                    400: error_response('Payload inválido'),
                    404: error_response('Orden o guía no encontrada'),
-                   409: error_response('Envío no despachado o reporte reciente existente')})
+                   409: error_response(
+                       'Envío no despachado o reporte reciente existente')})
     def post(self, request, order_id=None, order_number=None):
         # La UI del comprador usa order_number (el PK entero se oculta); se
         # acepta cualquiera de los dos, siempre scoped al usuario. El nombre
@@ -605,7 +616,8 @@ class BuyerReportIncidentView(APIView):
                 status=400,
             )
 
-        # EX-02: el paquete no ha salido aún → no se puede reportar problema de envío.
+        # EX-02: el paquete no ha salido aún → no se puede reportar problema
+        # de envío.
         if guide.status not in self.REPORTABLE_STATUSES:
             return Response(
                 {
@@ -618,12 +630,13 @@ class BuyerReportIncidentView(APIView):
                 status=409,
             )
 
-        # 409 RECENT_REPORT_EXISTS: evitar reportes duplicados recientes del comprador.
+        # 409 RECENT_REPORT_EXISTS: evitar reportes duplicados recientes del
+        # comprador.
         recent_cutoff = timezone.now() - timedelta(hours=24)
         if guide.events.filter(
             status=ShipmentGuide.STATUS_INCIDENT,
             recorded_by=request.user,
-            created_at__gte=recent_cutoff,
+            create_date__gte=recent_cutoff,
         ).exists():
             return Response(
                 {
@@ -638,7 +651,7 @@ class BuyerReportIncidentView(APIView):
             now = timezone.now()
             if guide_locked.status != ShipmentGuide.STATUS_INCIDENT:
                 guide_locked.status = ShipmentGuide.STATUS_INCIDENT
-                guide_locked.save(update_fields=['status', 'updated_at'])
+                guide_locked.save(update_fields=['status', 'write_date'])
             event = ShipmentEvent.objects.create(
                 guide=guide_locked,
                 status=ShipmentGuide.STATUS_INCIDENT,

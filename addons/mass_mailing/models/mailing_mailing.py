@@ -94,7 +94,7 @@ class MailingMailing(MailThread, TimeStampedModel):
 
     class Meta:
         db_table = 'mailing_mailing'
-        ordering = ['-created_at', '-id']
+        ordering = ['-create_date', '-id']
         verbose_name = 'Envio masivo'
         verbose_name_plural = 'Envios masivos'
 

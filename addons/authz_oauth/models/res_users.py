@@ -198,7 +198,7 @@ def _auth_oauth_signin(provider_id, validation, params):
     )
     if account is not None:
         account.oauth_access_token = params['access_token']
-        account.save(update_fields=['oauth_access_token', 'updated_at'])
+        account.save(update_fields=['oauth_access_token', 'write_date'])
         return account.user.login
 
     if params.get('no_user_creation') or not signup_open():

@@ -29,25 +29,36 @@ from addons.base.models.ir_ui_view import VIEW_TYPE_TEMPLATE, IrUiView
 #: ``_descriptor_from_view`` espeja ``_get_template_view`` de la referencia.
 REPORT_SALEORDER_KEY = 'sale.report_saleorder'
 
-REPORT_SALEORDER_ARCH = """\
+REPORT_SALEORDER_ARCH = (
+    """\
 <descriptor>
   <section name="issuer">
     <field name="name">{{ docs.company.name|default_if_none:'' }}</field>
     <field name="address">{{ docs.company.partner.contact_address }}</field>
-    <field name="email">{{ docs.company.partner.email|default_if_none:'' }}</field>
-    <field name="phone">{{ docs.company.partner.phone|default_if_none:'' }}</field>
+    <field name="email">{{ docs.company.partner.email|default_if_none:'' }}"""
+    """</field>
+    <field name="phone">{{ docs.company.partner.phone|default_if_none:'' }}"""
+    """</field>
     <field name="logo">{{ docs.company.logo_png_b64 }}</field>
   </section>
   <section name="buyer">
-    <field name="name">{% if docs.partner.partner %}{{ docs.partner.partner.name|default_if_none:'' }}{% else %}{{ docs.guest_email|default_if_none:'' }}{% endif %}</field>
-    <field name="address">{% if docs.partner.partner %}{{ docs.partner.partner.contact_address }}{% endif %}</field>
+    <field name="name">{% if docs.partner.partner %}"""
+    """{{ docs.partner.partner.name|default_if_none:'' }}{% else %}"""
+    """{{ docs.guest_email|default_if_none:'' }}{% endif %}</field>
+    <field name="address">{% if docs.partner.partner %}"""
+    """{{ docs.partner.partner.contact_address }}{% endif %}</field>
   </section>
-  <field name="order_number">{% if docs.name %}{{ docs.name }}{% else %}#{{ docs.pk }}{% endif %}</field>
-  <field name="date">{% if docs.date_order %}{{ docs.date_order|date:'c' }}{% else %}{{ docs.created_at|date:'c' }}{% endif %}</field>
-  <field name="currency">{% if currency %}{{ currency }}{% else %}MXN{% endif %}</field>
+  <field name="order_number">{% if docs.name %}{{ docs.name }}{% else %}"""
+    """#{{ docs.pk }}{% endif %}</field>
+  <field name="date">{% if docs.date_order %}{{ docs.date_order|date:'c' }}"""
+    """{% else %}{{ docs.create_date|date:'c' }}{% endif %}</field>
+  <field name="currency">{% if currency %}{{ currency }}{% else %}"""
+    """MXN{% endif %}</field>
   <list name="items" in="docs.order_line.all">
-    <field name="name">{% if item.name %}{{ item.name }}{% else %}{{ item.product }}{% endif %}</field>
-    <field name="sku">{{ item.product.default_code|default_if_none:'' }}</field>
+    <field name="name">{% if item.name %}{{ item.name }}{% else %}"""
+    """{{ item.product }}{% endif %}</field>
+    <field name="sku">{{ item.product.default_code|default_if_none:'' }}"""
+    """</field>
     <field name="quantity">{{ item.product_uom_qty|stringformat:'s' }}</field>
     <field name="unit_price">{{ item.price_unit|stringformat:'.2f' }}</field>
     <field name="amount">{{ item.price_total|stringformat:'.2f' }}</field>
@@ -59,7 +70,7 @@ REPORT_SALEORDER_ARCH = """\
   </section>
   <section name="notes"></section>
 </descriptor>
-"""
+""")
 
 
 def seed(using=None):

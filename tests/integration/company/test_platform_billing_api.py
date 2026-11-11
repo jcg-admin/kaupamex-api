@@ -191,7 +191,7 @@ class TestRetryInvoiceEndpoint:
         c = ResCompany.objects.create(code='acme', name='Acme')
         inv = self._failed_invoice(c)
         inv.status = SubscriptionInvoice.Status.PAID
-        inv.save(update_fields=['status', 'updated_at'])
+        inv.save(update_fields=['status', 'write_date'])
         biller = _user_with_caps('b3@kaupamex.mx', ['platform.billing'])
         api_client.force_login(biller)
         res = api_client.post(_retry_url(inv.id))

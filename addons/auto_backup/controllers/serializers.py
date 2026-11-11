@@ -13,6 +13,13 @@ class DbBackupDetailsSerializer(serializers.ModelSerializer):
     fuente escribe en el campo homónimo.
     """
 
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
+
+    updated_at = serializers.DateTimeField(source='write_date', read_only=True)
+
     class Meta:
         model = DbBackupDetails
         fields = [

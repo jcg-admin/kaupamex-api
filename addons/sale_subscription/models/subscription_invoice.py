@@ -101,7 +101,7 @@ class SubscriptionInvoice(TimeStampedModel):
         db_table = 'subscription_invoice'
         verbose_name = 'Factura de suscripción'
         verbose_name_plural = 'Facturas de suscripción'
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         # Idempotencia (EX-04): una suscripción no se factura dos veces por el
         # mismo período. Reintentar la corrida es seguro.
         unique_together = [('subscription', 'period')]
@@ -131,5 +131,5 @@ class SubscriptionInvoice(TimeStampedModel):
         move = create_invoice_from_subscription(self, system)
         move.post()
         self.account_move = move
-        self.save(update_fields=['account_move', 'updated_at'])
+        self.save(update_fields=['account_move', 'write_date'])
         return move

@@ -44,7 +44,7 @@ class StockLandedCost(TimeStampedModel):
 
     class Meta:
         db_table = 'stock_landed_cost'
-        ordering = ['-created_at', '-id']
+        ordering = ['-create_date', '-id']
         verbose_name = 'Coste en destino'
         verbose_name_plural = 'Costes en destino'
 

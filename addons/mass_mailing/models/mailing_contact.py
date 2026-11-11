@@ -62,7 +62,7 @@ class MailingContact(TimeStampedModel):
 
     class Meta:
         db_table = 'mailing_contact'
-        ordering = ['-created_at', '-id']
+        ordering = ['-create_date', '-id']
         verbose_name = 'Contacto de envio masivo'
         verbose_name_plural = 'Contactos de envio masivo'
         indexes = [

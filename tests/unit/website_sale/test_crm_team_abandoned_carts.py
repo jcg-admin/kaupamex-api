@@ -63,7 +63,7 @@ from tests.factories.product_factory import make_product
 
 # Los dos ayudantes se **importan**, no se reescriben: ``make_buyer`` existe
 # porque ``sale_order_un_draft_por_partner`` es un índice único parcial (un
-# solo borrador por cliente), y ``make_cart`` alinea ``created_at`` con
+# solo borrador por cliente), y ``make_cart`` alinea ``create_date`` con
 # ``date_order`` para poder fabricar un pedido viejo. Duplicarlos aquí sería
 # fabricar una segunda fuente de verdad que nadie sincroniza.
 from tests.unit.website_sale.test_abandoned_cart import make_buyer, make_cart

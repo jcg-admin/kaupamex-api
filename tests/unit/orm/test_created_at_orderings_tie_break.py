@@ -1,9 +1,9 @@
-"""Cada orden por ``created_at`` sigue el contrato que su fuente declara.
+"""Cada orden por ``create_date`` sigue el contrato que su fuente declara.
 
 Las fechas de ``TimeStampedModel`` son la hora de la transacción
 (``cr.now()``, ``odoo19c@abe4040ec1: odoo/orm/models.py:4394-4396`` y
 ``:4801-4805``; ``odoo/sql_db.py:271-278``): las filas escritas en una misma
-transacción comparten ``created_at``. Qué hace cada consulta con ese empate
+transacción comparten ``create_date``. Qué hace cada consulta con ese empate
 no se decide en bloque: se deriva, consulta por consulta, de su fuente.
 
 La clase de cada consulta, y su fuente, viven en el catálogo del Workbench
@@ -21,17 +21,17 @@ La clase de cada consulta, y su fuente, viven en el catálogo del Workbench
     paginación de la interfaz.
 
 *Métrica:* llamadas ``order_by`` cuyos argumentos literales incluyen
-``created_at`` o ``-created_at``, en ``src/`` y ``addons/`` sin pruebas ni
+``create_date`` o ``-create_date``, en ``src/`` y ``addons/`` sin pruebas ni
 migraciones, identificadas por archivo y función contenedora.
 *Ciega a:* órdenes construidos con variables, ``Meta.ordering`` y
-``F('created_at')``; y al orden **principal** de cada consulta, que en varias
+``F('create_date')``; y al orden **principal** de cada consulta, que en varias
 diverge del ``_order`` de la referencia y es otra obligación.
 """
 import ast
 import pathlib
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
-DATE = {'created_at', '-created_at'}
+DATE = {'create_date', '-create_date'}
 TIE = {'id', '-id', 'pk', '-pk'}
 
 #: El catálogo vive en el Workbench de la iniciativa, con la revisión de
@@ -87,7 +87,7 @@ def _conforms(cls, keys):
 
 
 def test_the_scan_sees_the_orderings():
-    """Control: el recorrido encuentra órdenes por ``created_at``; un cero
+    """Control: el recorrido encuentra órdenes por ``create_date``; un cero
     aquí sería un instrumento ciego, no un árbol sano."""
     assert len(list(_orderings())) >= 20
 

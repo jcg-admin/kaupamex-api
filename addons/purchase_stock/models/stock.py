@@ -514,7 +514,7 @@ def _update_name_and_code(cls, warehouses, new_name=False, new_code=False):
         rule_rec = warehouse.buy_pull
         if rule_rec is not None and rule_rec.name:
             rule_rec.name = rule_rec.name.replace(warehouse.name, new_name, 1)
-            rule_rec.save(update_fields=['name', 'updated_at'])
+            rule_rec.save(update_fields=['name', 'write_date'])
     return None
 
 
@@ -675,7 +675,7 @@ def _get_replenishment_order_notification(self):
     queryset = POL.objects.filter(orderpoint=self)
     written_after = get_context().get('written_after')
     if written_after:
-        queryset = queryset.filter(updated_at__gte=written_after)
+        queryset = queryset.filter(write_date__gte=written_after)
     line = queryset.first()
     if line is None:
         return None

@@ -27,6 +27,11 @@ class ModulePriceSerializer(serializers.ModelSerializer):
 
     module_code = serializers.CharField(source='module.code', read_only=True)
 
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
+
     class Meta:
         model = ModulePrice
         fields = [
@@ -89,6 +94,11 @@ class CompanySerializer(serializers.ModelSerializer):
     tax_id = serializers.CharField(source='vat', read_only=True)
     active_modules = serializers.SerializerMethodField()
     user_count = serializers.SerializerMethodField()
+
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
 
     class Meta:
         model = ResCompany
@@ -156,6 +166,11 @@ class CompanyModuleSubscriptionSerializer(serializers.ModelSerializer):
     company_code = serializers.CharField(source='company.code', read_only=True)
     module_code = serializers.CharField(source='module.code', read_only=True)
     is_active = serializers.SerializerMethodField()
+
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
 
     class Meta:
         model = CompanyModuleSubscription
@@ -278,6 +293,11 @@ class SubscriptionInvoiceSerializer(serializers.ModelSerializer):
     company_code = serializers.CharField(source='company.code', read_only=True)
     module_code = serializers.CharField(
         source='subscription.module.code',
+        read_only=True,
+    )
+
+    created_at = serializers.DateTimeField(
+        source='create_date',
         read_only=True,
     )
 

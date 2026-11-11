@@ -76,7 +76,7 @@ def test_invalid_orders_are_rejected(env, order, error):
 def test_day_of_week_shifts_by_the_first_day_of_the_language(env):
     message = env['test_orm.message'].browse(())
     query = _query(message)
-    term = 'created_at:day_of_week'
+    term = 'create_date:day_of_week'
     terms = {term: message._read_group_groupby(message._table, term, query)}
     sql = message._read_group_orderby(f'{term} asc', terms, query)
     assert _code(sql).startswith('mod(7 - %s + date_part(')

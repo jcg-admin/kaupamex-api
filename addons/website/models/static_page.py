@@ -128,7 +128,7 @@ class StaticPage(WebsiteSearchableMixin, TimeStampedModel):
 class StaticPageVersion(TimeStampedModel):
     """
     Versión de una página estática. UC-CFG-04 (FR-CFG-04.02).
-    updated_at registra cuándo se modificó el estado
+    write_date registra cuándo se modificó el estado
     (DRAFT→PUBLISHED→ARCHIVED).
     """
 

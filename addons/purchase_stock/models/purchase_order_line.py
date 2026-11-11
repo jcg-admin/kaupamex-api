@@ -211,7 +211,7 @@ def _update_move_date_deadline(self, new_date):
         )
     for move in pending_moves:
         move.date_deadline = new_date
-        move.save(update_fields=['date_deadline', 'updated_at'])
+        move.save(update_fields=['date_deadline', 'write_date'])
 
 
 def _check_orderpoint_picking_type(self):
@@ -277,7 +277,7 @@ def delete_cancelling_moves(self, *args, **kwargs):
     else:
         for move in self.move_dest_ids.all():
             move.procure_method = move.PROCURE_MAKE_TO_STOCK
-            move.save(update_fields=['procure_method', 'updated_at'])
+            move.save(update_fields=['procure_method', 'write_date'])
             move._recompute_state()
     return None
 

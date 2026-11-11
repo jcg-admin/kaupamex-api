@@ -11,6 +11,11 @@ from addons.authz_passkey.models import PasskeyKey
 
 class PasskeyKeySerializer(serializers.ModelSerializer):
 
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
+
     class Meta:
         model = PasskeyKey
         fields = ['id', 'name', 'created_at']

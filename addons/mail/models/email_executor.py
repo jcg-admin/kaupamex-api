@@ -109,7 +109,7 @@ def _mark_notification_sent(notification):
     if notification is None:
         return
     notification.notification_status = MailNotification.STATUS_SENT
-    notification.save(update_fields=['notification_status', 'updated_at'])
+    notification.save(update_fields=['notification_status', 'write_date'])
 
 
 def _mark_notification_failed(notification, task, exc):
@@ -123,7 +123,7 @@ def _mark_notification_failed(notification, task, exc):
         notification.mail_mail = task
     notification.save(update_fields=[
         'notification_status', 'failure_type', 'failure_reason',
-        'mail_mail', 'updated_at',
+        'mail_mail', 'write_date',
     ])
 
 

@@ -205,13 +205,14 @@ class TestCodeCheck:
         """La ventana es de ``TOTP_RATE_LIMITS``, no «desde siempre»."""
         user, secret = enrolled
         _burn(user, secret, LIMIT_CODE_CHECK)
-        # ``created_at`` es ``auto_now_add``: se envejece con UPDATE, que es la
+        # ``create_date`` es ``auto_now_add``: se envejece con UPDATE, que es
+        # la
         # única vía que no vuelve a pasar por el default del campo.
         viejo = timezone.now() - timezone.timedelta(
             seconds=INTERVAL_CODE_CHECK + 60
         )
         AuthTotpRateLimitLog.objects.filter(user_id_id=user.pk).update(
-            created_at=viejo
+            create_date=viejo
         )
 
         with pytest.raises(AccessDenied) as excinfo:
@@ -307,7 +308,7 @@ class TestSweep:
             user_id_id=user.pk, ip='', limit_type='code_check'
         )
         AuthTotpRateLimitLog.objects.filter(pk=vieja.pk).update(
-            created_at=timezone.now()
+            create_date=timezone.now()
             - timezone.timedelta(seconds=GC_MAX_AGE_SECONDS + 60)
         )
 

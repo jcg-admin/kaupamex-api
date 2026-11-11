@@ -412,11 +412,11 @@ def test_date_category_to_domain_filters_matching_picking(
     picking = StockPicking.objects.create(
         picking_type=picking_type, company=company
     )
-    dominio_hoy = StockPicking.date_category_to_domain('created_at', 'today')
+    dominio_hoy = StockPicking.date_category_to_domain('create_date', 'today')
     assert StockPicking.objects.filter(pk=picking.pk, **dominio_hoy).exists()
 
     dominio_pasado = StockPicking.date_category_to_domain(
-        'created_at', 'before'
+        'create_date', 'before'
     )
     assert not StockPicking.objects.filter(
         pk=picking.pk, **dominio_pasado
@@ -428,7 +428,7 @@ def test_date_category_to_domain_unknown_category_returns_none():
     ``:1842-1885`` — categoría inválida devuelve ``None`` (Odoo: mismo
     dict.get).
     """
-    assert StockPicking.date_category_to_domain('created_at', 'nunca') is None
+    assert StockPicking.date_category_to_domain('create_date', 'nunca') is None
 
 
 # -- create (D-8) --------
@@ -1176,7 +1176,7 @@ def test_send_confirmation_email_posts_when_enabled_and_outgoing(
         update_fields=[
             'stock_move_email_validation',
             'stock_mail_confirmation_template',
-            'updated_at',
+            'write_date',
         ]
     )
     picking = StockPicking.objects.create(

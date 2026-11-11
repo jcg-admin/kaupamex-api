@@ -123,7 +123,7 @@ class Command(BaseCommand):
                         for key, value in changed.items():
                             setattr(row, key, value)
                         row.save(
-                            using=using, update_fields=[*changed, 'updated_at']
+                            using=using, update_fields=[*changed, 'write_date']
                         )
 
             if not dry_run and row is not None:

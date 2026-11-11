@@ -83,7 +83,7 @@ def test_the_destination_is_the_oldest_active_partner(make_partner):
     viejo = make_partner('Ana')
     nuevo = make_partner('Ana')
     ordenados = PartnerMerge._get_ordered_partner([nuevo.pk, viejo.pk])
-    # ordenado por (no activo, created_at) descendente → el destino es
+    # ordenado por (no activo, create_date) descendente → el destino es
     # el último
     assert ordenados[-1].pk == viejo.pk
 

@@ -75,7 +75,7 @@ class TotpSecret(TimeStampedModel):
         db_table = 'authz_totp_secret'
         verbose_name = 'Secreto TOTP'
         verbose_name_plural = 'Secretos TOTP'
-        ordering = ['-created_at']
+        ordering = ['-create_date']
 
     def __str__(self):
         state = 'activo' if self.confirmed else 'pendiente'

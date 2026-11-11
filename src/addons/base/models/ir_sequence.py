@@ -52,7 +52,7 @@ escrita a mano con su ``default``, no responderlo. Es lo que hace
 ``base.0045_ir_sequence_audit_columns``.
 
 Ahora las dos heredan ``TimeStampedModel``, que es la forma que este árbol
-adoptó del log-access. Trae **dos** columnas —``created_at``/``updated_at``,
+adoptó del log-access. Trae **dos** columnas —``create_date``/``write_date``,
 ≙ ``create_date``/``write_date``— y no cuatro: las de **quién**
 (``create_uid``/``write_uid``) no existen en **ningún** modelo del proyecto
 (medido: ``grep -rln "create_uid = fields" src/ addons/`` → 0). Esa mitad es

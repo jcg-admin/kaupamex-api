@@ -70,7 +70,7 @@ def get_or_create_draft_order(user=None, cart_token=None):
     if user is not None and getattr(user, 'is_authenticated', False):
         draft = (
             SaleOrder.objects.filter(partner=user, state=SaleOrder.STATE_DRAFT)
-            .order_by('-created_at', '-id')
+            .order_by('-create_date', '-id')
             .first()
         )
         if draft is not None:
@@ -151,7 +151,7 @@ def add_item_to_draft(order, product, quantity=1):
             line.product_uom_qty = new_qty
             line.price_unit = unit_price
             line.save(
-                update_fields=['product_uom_qty', 'price_unit', 'updated_at']
+                update_fields=['product_uom_qty', 'price_unit', 'write_date']
             )
     return line, created
 
@@ -246,7 +246,7 @@ def update_draft_item_quantity(order, item_pk, quantity):
     if quantity > stock:
         raise DraftOrderError('Stock insuficiente.', 'INSUFFICIENT_STOCK')
     line.product_uom_qty = quantity
-    line.save(update_fields=['product_uom_qty', 'updated_at'])
+    line.save(update_fields=['product_uom_qty', 'write_date'])
     return line
 
 
@@ -310,7 +310,7 @@ def merge_draft_orders(user, cart_token):
                     update_fields=[
                         'product_uom_qty',
                         'price_unit',
-                        'updated_at',
+                        'write_date',
                     ]
                 )
             else:
@@ -397,7 +397,7 @@ def confirm_draft_order(
             subtotal += live_price * line.product_uom_qty
             line.price_unit = live_price
             line.name = _line_snapshot_name(line.product)
-            line.save(update_fields=['price_unit', 'name', 'updated_at'])
+            line.save(update_fields=['price_unit', 'name', 'write_date'])
 
         voucher_discount = (
             voucher.calculate_discount(subtotal)
@@ -423,7 +423,7 @@ def confirm_draft_order(
                 )
             Voucher.objects.filter(pk=voucher.pk).update(
                 current_uses=F('current_uses') + 1,
-                updated_at=timezone.now(),
+                write_date=timezone.now(),
             )
             if order.partner_id:
                 VoucherUsage.objects.create(
@@ -436,7 +436,7 @@ def confirm_draft_order(
             order.guest_email = guest_email
         order.cart_token = None
         order.save(
-            update_fields=['notes', 'guest_email', 'cart_token', 'updated_at']
+            update_fields=['notes', 'guest_email', 'cart_token', 'write_date']
         )
         order.action_confirm()
 
@@ -544,7 +544,7 @@ def cancel_order(
         order.cancellation_reason = reason
         order.cancelled_at = timezone.now()
         order.save(
-            update_fields=['cancellation_reason', 'cancelled_at', 'updated_at']
+            update_fields=['cancellation_reason', 'cancelled_at', 'write_date']
         )
 
         if order.state != SaleOrder.STATE_CANCEL and not order.locked:

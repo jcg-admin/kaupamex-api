@@ -69,5 +69,5 @@ class ProductCosting(TimeStampedModel):
         costing, _ = cls.objects.get_or_create(product=product)
         if cost_method is not None and costing.cost_method != cost_method:
             costing.cost_method = cost_method
-            costing.save(update_fields=['cost_method', 'updated_at'])
+            costing.save(update_fields=['cost_method', 'write_date'])
         return costing

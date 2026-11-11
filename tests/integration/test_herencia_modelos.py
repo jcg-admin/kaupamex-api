@@ -99,7 +99,7 @@ class TestTimeStampedModelHerencia:
         assert TimeStampedModel._meta.abstract is True
 
     def test_timestampedmodel_tiene_get_latest_by(self, db):
-        assert TimeStampedModel._meta.get_latest_by == 'created_at'
+        assert TimeStampedModel._meta.get_latest_by == 'create_date'
 
 
 class TestTimestampsEspeciales:
@@ -107,15 +107,15 @@ class TestTimestampsEspeciales:
 
     def test_h_inh_001_order_created_at_tiene_db_index(self, db):
         """DEC-003: override explícito en SaleOrder."""
-        field = SaleOrder._meta.get_field('created_at')
+        field = SaleOrder._meta.get_field('create_date')
         assert field.db_index is True
 
     def test_h_inh_003_voucherchangelog_campo_es_created_at(self, db):
-        """H-INH-003: VoucherChangeLog.changed_at renombrado a created_at."""
+        """H-INH-003: VoucherChangeLog.changed_at renombrado a create_date."""
         field_names = [f.name for f in VoucherChangeLog._meta.get_fields()]
         assert 'changed_at' not in field_names
-        assert 'created_at' in field_names
-        assert 'updated_at' in field_names
+        assert 'create_date' in field_names
+        assert 'write_date' in field_names
 
     # H-INH-004 verificaba que ``SiteSettings`` tuviera ambos timestamps. Esa
     # tabla se retiró (H-API-265): los ajustes ya no son una fila, son claves

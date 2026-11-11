@@ -56,7 +56,7 @@ class Chargeback(TimeStampedModel):
 
     class Meta:
         db_table = 'payments_chargeback'
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         verbose_name = 'Contracargo'
 
     def __str__(self):

@@ -58,7 +58,7 @@ class WishlistItem(TimeStampedModel, SoftDeleteModel):
                 name='unique_wishlist_user_product',
             ),
         ]
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         verbose_name = 'Item de lista de deseos'
 
     def __str__(self):

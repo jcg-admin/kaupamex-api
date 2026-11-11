@@ -715,18 +715,23 @@ class Profiler:
                         values = {
                             "name": self.description,
                             "session": self.profile_session,
-                            "created_at": now,
-                            # ``updated_at`` no existe en la referencia: es la
+                            "create_date": now,
+                            # ``write_date`` no existe en la referencia: es la
                             # segunda columna de auditoría de TimeStampedModel,
                             # declarada NOT NULL sin default de base. Un INSERT
                             # crudo que la omita revienta, así que nace igual a
-                            # ``created_at`` — que es lo que el ORM haría.
-                            "updated_at": now,
-                            "init_stack_trace": json.dumps(_format_stack(self.init_stack_trace)),
+                            # ``create_date`` — que es lo que el ORM haría.
+                            "write_date": now,
+                            "init_stack_trace": json.dumps(
+                                _format_stack(self.init_stack_trace),
+                            ),
                             "duration": self.duration,
                             "cpu_duration": self.cpu_duration,
                             "entry_count": self.entry_count(),
-                            "sql_count": sum(len(collector.entries) for collector in self.collectors if collector.name == 'sql')
+                            "sql_count": sum(
+                                len(collector.entries)
+                                for collector in self.collectors
+                                if collector.name == 'sql')
                         }
                         # Las cinco columnas de traza son NOT NULL aquí y
                         # nullables en la referencia: su default vive en el
@@ -745,9 +750,11 @@ class Profiler:
                         if others:
                             values['others'] = json.dumps(others)
                         # La referencia pasa la fila entera como UNA tupla a un
-                        # solo ``%s``: psycopg2 la adapta a la lista ``(a,b,c)``
+                        # solo ``%s``: psycopg2 la adapta a la lista
+                        # ``(a,b,c)``
                         # de un VALUES. psycopg3 la adapta a un literal de tipo
-                        # compuesto —medido: ``VALUES '(persistido,"2026-…")'``,
+                        # compuesto —medido: ``VALUES
+                        # '(persistido,"2026-…")'``,
                         # error de sintaxis—, así que aquí cada valor lleva su
                         # propio marcador. Misma fila, otro adaptador.
                         query = SQL(

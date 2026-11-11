@@ -966,7 +966,7 @@ class IrUiViewCustom(TimeStampedModel):
 
     class Meta:
         db_table = 'ir_ui_view_custom'
-        ordering = ['-created_at', '-id']
+        ordering = ['-create_date', '-id']
         verbose_name = 'Vista personalizada'
         verbose_name_plural = 'Vistas personalizadas'
         indexes = [

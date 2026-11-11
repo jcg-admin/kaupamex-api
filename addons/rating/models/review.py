@@ -98,7 +98,7 @@ class Review(TimeStampedModel, SoftDeleteModel):
                 name='unique_review_user_product',
             )
         ]
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         verbose_name = 'Reseña'
 
     def __str__(self):
@@ -136,7 +136,7 @@ class ReviewModerationLog(TimeStampedModel):
 
     class Meta:
         db_table = 'reviews_moderation_log'
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         verbose_name = 'Auditoria de moderacion'
 
 
@@ -186,8 +186,8 @@ class ReviewImage(models.Model):
         Review, on_delete=models.CASCADE, related_name='images'
     )
     image = models.ImageField(upload_to='reviews/images/')
-    created_at = models.DateTimeField(auto_now_add=True)
+    create_date = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'reviews_image'
-        ordering = ['created_at']
+        ordering = ['create_date']

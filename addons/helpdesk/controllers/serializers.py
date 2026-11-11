@@ -68,6 +68,11 @@ class SupportTicketCreateResponseSerializer(serializers.ModelSerializer):
 
     ticket_id = serializers.IntegerField(source='pk', read_only=True)
 
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
+
     class Meta:
         model = SupportTicket
         fields = ['ticket_id', 'status', 'subject', 'created_at', 'order_id']
@@ -78,6 +83,13 @@ class SupportTicketListSerializer(serializers.ModelSerializer):
     """UC-SUPP-02 — list item."""
 
     ticket_id = serializers.IntegerField(source='pk', read_only=True)
+
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
+
+    updated_at = serializers.DateTimeField(source='write_date', read_only=True)
 
     class Meta:
         model = SupportTicket
@@ -93,7 +105,7 @@ class SupportTicketReplySerializer(serializers.ModelSerializer):
 
     reply_id = serializers.IntegerField(source='pk', read_only=True)
     ticket_id = serializers.IntegerField(read_only=True)
-    sent_at = serializers.DateTimeField(source='created_at', read_only=True)
+    sent_at = serializers.DateTimeField(source='create_date', read_only=True)
     author = serializers.SerializerMethodField()
 
     class Meta:
@@ -118,6 +130,13 @@ class SupportTicketDetailSerializer(serializers.ModelSerializer):
     available_actions = serializers.SerializerMethodField()
     buyer = serializers.SerializerMethodField()
 
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
+
+    updated_at = serializers.DateTimeField(source='write_date', read_only=True)
+
     class Meta:
         model = SupportTicket
         fields = [
@@ -129,8 +148,12 @@ class SupportTicketDetailSerializer(serializers.ModelSerializer):
 
     def get_replies(self, obj) -> list:
         request = self.context.get('request')
-        is_staff = bool(request and request.user.is_authenticated and is_superadmin(request.user))
-        qs = obj.replies.all().order_by('created_at', 'id')
+        is_staff = bool(
+            request and request.user.is_authenticated and is_superadmin(
+                request.user,
+            ),
+        )
+        qs = obj.replies.all().order_by('create_date', 'id')
         if not is_staff:
             qs = qs.filter(is_internal_note=False)
         return SupportTicketReplySerializer(qs, many=True).data
@@ -145,7 +168,8 @@ class SupportTicketDetailSerializer(serializers.ModelSerializer):
 
     def get_buyer(self, obj) -> dict | None:
         request = self.context.get('request')
-        if not (request and request.user.is_authenticated and is_superadmin(request.user)):
+        if not (request and request.user.is_authenticated
+                and is_superadmin(request.user)):
             return None
         # ``res.users`` delega la identidad al partner (``_inherits`` de la
         # referencia): el nombre humano vive en ``ResPartner.name``, expuesto
@@ -176,6 +200,13 @@ class AdminSupportTicketListSerializer(serializers.ModelSerializer):
     ticket_id     = serializers.IntegerField(source='pk', read_only=True)
     customer      = serializers.SerializerMethodField()
     replies_count = serializers.IntegerField(read_only=True)
+
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
+
+    updated_at = serializers.DateTimeField(source='write_date', read_only=True)
 
     class Meta:
         model = SupportTicket

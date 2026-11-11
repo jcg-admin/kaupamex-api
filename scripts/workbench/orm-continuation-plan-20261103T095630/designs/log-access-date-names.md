@@ -146,3 +146,55 @@ llama `create_uid`. `LogAccessUserField` no es un constructor que
 Su renombre físico (`db_column` y `RENAME COLUMN`, el mismo mecanismo de las
 fechas) se añade a B para que las tres superficies coincidan con la fuente en
 las cuatro columnas. El gate también tiene que reconocer el constructor.
+
+## Verificación (2026-11-11, sobre `7eb9508a`)
+
+- **Migraciones.** 74 `*_log_access_date_names` con 754 `RenameField`, 96
+  `AlterModelOptions` y 8 pares de índices. Otras 74
+  `*_log_access_user_column_names` con 752 `AlterField` (`db_column`), que
+  cubren 376 modelos × 2 columnas de autoría. `makemigrations --check`: sin
+  cambios. `check --database default`: sin errores. Las dos de `product` se
+  renumeraron a 0020/0021 detrás de `0019_favorite_index_short_name`.
+- **Base nueva** (`orm_x2hokp_wtb`, `--create-db`): 62 de 62 en las pruebas de
+  A, B, C, la operación de cómputo, el lookup de xmlid y el gate de FK.
+- **Antes y después** (`outputs/gates/preservation-logaccess-b`). Una base
+  sembrada en el estado C y migrada a B conserva `id`, las dos fechas y los
+  dos usuarios en las 1084 filas de la muestra, con conteos iguales. La única
+  columna con nombre viejo es `token_blacklist_outstandingtoken.created_at`,
+  de `rest_framework_simplejwt`, fuera del log-access (DEC-09).
+- **Coste del renombre de autoría.** Cambiar `db_column` en un `ForeignKey`
+  hace que Django borre y recree la restricción FK, y recrearla valida la
+  tabla. Es lineal en filas, a diferencia del `RENAME COLUMN` de las fechas,
+  que es de catálogo.
+- **Anulaciones** (base: 29 de 29 en `test_log_access_date_names` +
+  `test_check_fk_naming`):
+
+  | Mitad anulada | Cae | Sobreviven |
+  |---|---|---|
+  | `source='create_date'` del serializador de la API v2 | `test_the_api_keeps_its_external_names` | 28 |
+  | `LogAccessUserField` en `SINGLE_VALUED` del gate | `test_the_log_access_constructor_is_measured` | 28 |
+  | `db_column='create_uid'` en `TimeStampedModel` | las 29, en el montaje | 0 |
+
+  El tercero actúa al cargar las clases: la comprobación de sincronía entre
+  modelos y migraciones rechaza el modelo que diverge. Discrimina por sesión,
+  no por prueba, igual que las mitades de la unidad C.
+- **Estilo.** El renombre toca funciones y clases, y la admisión
+  identifica cada hallazgo por el nodo que lo contiene, así que las líneas
+  largas previas de esos nodos cuentan como introducidas. Se corrigieron con
+  un fijador que sólo acepta un cambio si el AST sin posiciones queda igual
+  (salvo el texto de seis docstrings). La constante XML del reporte de venta
+  se partió en literales contiguos, y el mismo AST prueba que su valor no
+  cambia. Se retiró un `# noqa: D401` inerte: ningún linter del repositorio
+  aplica D401.
+- **El barrido de residuos tenía un punto ciego, y se midió.** La búsqueda
+  del nombre viejo usaba `rg -w`, y `\b` no separa `created_at` de
+  `created_at__gte`, porque `_` es carácter de palabra. Quedaron 19 archivos
+  con búsquedas por sufijo (`created_at__lt`, `updated_at__gte`, …) y
+  `test_bus` falló con `FieldError`. Se repitió el barrido sin `-w`. La única
+  población con `created_at` propio es `OutstandingToken` de simplejwt, que
+  ningún módulo del árbol consulta, así que se renombraron todos.
+- **Identificadores.** `texto`, una clave de datos de prueba, pasa a `text`.
+  `doy` (*day of year*) es la clave verbatim de la fuente (`odoo19c:
+  odoo/addons/base/models/ir_sequence.py:219`): el léxico la lee como español,
+  pero no se puede traducir sin romper el contrato, así que entra al baseline
+  como deuda heredada.

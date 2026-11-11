@@ -119,7 +119,7 @@ class AvatarMixin(ImageMixin):
         """
         name = getattr(self, self._avatar_name_field) or ''
         initial = html_escape(name[0].upper())
-        created = getattr(self, 'created_at', None)
+        created = getattr(self, 'create_date', None)
         bgcolor = get_hsl_from_seed(
             name + str(created.timestamp() if created else '')
         )

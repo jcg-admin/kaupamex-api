@@ -139,11 +139,14 @@ class ShipmentGuide(TimeStampedModel, SoftDeleteModel):
     # numbers and may issue the same number string. A global UNIQUE constraint
     # would reject the second guide as a duplicate even though
     # (DHL, "12345") and (Estafeta, "12345") are distinct shipments.
-    # Uniqueness is enforced via unique_together = ('courier', 'tracking_number')
-    # in Meta, and a db_index on tracking_number alone is retained for fast lookups.
+    # Uniqueness is enforced via
+    # unique_together = ('courier', 'tracking_number')
+    # in Meta, and a db_index on tracking_number alone is retained for fast
+    # lookups.
     tracking_number = models.CharField(max_length=80, db_index=True)
     # UC-LOG-02 PARTE 7.1 / Alt B: optional direct tracking URL provided by the
-    # courier. When set, takes precedence over the courier's URL template so the
+    # courier. When set, takes precedence over the courier's URL template so
+    # the
     # buyer (UC-LOG-03) sees the exact link the courier supplied.
     tracking_url    = models.URLField(max_length=500, blank=True, default='')
     status          = models.CharField(
@@ -156,7 +159,7 @@ class ShipmentGuide(TimeStampedModel, SoftDeleteModel):
 
     class Meta:
         db_table     = 'logistics_shipment_guide'
-        ordering     = ['-created_at']
+        ordering = ['-create_date']
         verbose_name = 'Guia de envio'
         # H-CICLO78-10: uniqueness per courier — same tracking number is valid
         # for different carriers (each carrier has its own numbering space).
@@ -192,7 +195,7 @@ class ShipmentEvent(TimeStampedModel):
 
     class Meta:
         db_table     = 'logistics_shipment_event'
-        ordering     = ['-occurred_at', '-created_at']
+        ordering = ['-occurred_at', '-create_date']
         verbose_name = 'Evento de envio'
 
     def __str__(self):
@@ -312,7 +315,8 @@ class ShippingMethod(TimeStampedModel):
     #
     # Equivalencias de la semilla:
     #   Odoo ``type='service'``  → nuestro producto sin stock relevante.
-    #   Odoo ``sale_ok=False``   → ``is_published=False`` (fuera del storefront:
+    #   Odoo ``sale_ok=False``   → ``is_published=False`` (fuera del
+    # storefront:
     #                              el comprador nunca lo ve en el catálogo).
     SERVICE_SKU_PREFIX = 'SRV-ENVIO-'
 
@@ -343,7 +347,7 @@ class ShippingMethod(TimeStampedModel):
                 product_tmpl=tmpl, default_code=sku, active=True,
             )
         self.product = variant
-        self.save(update_fields=['product', 'updated_at'])
+        self.save(update_fields=['product', 'write_date'])
         return variant
 
 from .delivery_address import DeliveryAddress  # noqa: E402

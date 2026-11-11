@@ -501,12 +501,12 @@ def _allocate_leads(cls, teams, creation_delta_days=7):
     for team in teams:
         if not team.assignment_max:
             continue
-        filtros = dj_models.Q(created_at__lte=max_create_dt)
+        filtros = dj_models.Q(create_date__lte=max_create_dt)
         filtros &= dj_models.Q(team_id__isnull=True, user_id__isnull=True)
         filtros &= ~dj_models.Q(won_status='won')
         if creation_delta_days > 0:
             filtros &= dj_models.Q(
-                created_at__gt=timezone.now()
+                create_date__gt=timezone.now()
                 - datetime.timedelta(days=creation_delta_days))
         extra = literal_eval(team.assignment_domain or '[]')
         if extra:

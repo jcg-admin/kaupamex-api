@@ -73,7 +73,7 @@ def apply_voucher_to_draft(order, code, user=None):
 
         coupon, _ = SaleOrderCoupon.objects.get_or_create(order=order)
         coupon.voucher = voucher
-        coupon.save(update_fields=['voucher', 'updated_at'])
+        coupon.save(update_fields=['voucher', 'write_date'])
 
     return voucher, voucher.calculate_discount(cart_total), cart_total
 

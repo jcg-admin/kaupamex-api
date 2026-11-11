@@ -137,5 +137,5 @@ class CompanySetting(TimeStampedModel):
             )
             if not created and obj.value != str(value):
                 obj.value = str(value)
-                obj.save(update_fields=['value', 'updated_at'])
+                obj.save(update_fields=['value', 'write_date'])
         return obj

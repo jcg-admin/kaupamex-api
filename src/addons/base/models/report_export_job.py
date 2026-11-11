@@ -51,7 +51,7 @@ class ExportJob(TimeStampedModel):
 
     class Meta:
         db_table = 'report_export_job'
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         verbose_name = 'Export job'
         verbose_name_plural = 'Export jobs'
 

@@ -109,7 +109,7 @@ def consume_recovery_code(user, code):
     if row is None:
         return False
     row.used_at = timezone.now()
-    row.save(update_fields=['used_at', 'updated_at'])
+    row.save(update_fields=['used_at', 'write_date'])
     return True
 
 
@@ -191,7 +191,7 @@ def verify_code(user, code):
         _logger.warning('2FA check: REUSE for %r', user.login)
         return False
     row.last_counter = counter
-    row.save(update_fields=['last_counter', 'updated_at'])
+    row.save(update_fields=['last_counter', 'write_date'])
     _logger.info('2FA check: SUCCESS for %r', user.login)
     return True
 
@@ -237,7 +237,7 @@ def confirm_setup(user, code):
         return None
     row.confirmed = True
     row.last_counter = counter
-    row.save(update_fields=['confirmed', 'last_counter', 'updated_at'])
+    row.save(update_fields=['confirmed', 'last_counter', 'write_date'])
     return generate_recovery_codes(user)
 
 

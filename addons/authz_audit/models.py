@@ -64,10 +64,10 @@ class AuthzEvent(AppendOnlyModel):
         db_table = 'authz_event'
         verbose_name = 'Evento de autorización'
         verbose_name_plural = 'Eventos de autorización'
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         indexes = [
-            models.Index(fields=['action', '-created_at']),
-            models.Index(fields=['actor', 'action', '-created_at']),
+            models.Index(fields=['action', '-create_date']),
+            models.Index(fields=['actor', 'action', '-create_date']),
         ]
 
     def __str__(self):

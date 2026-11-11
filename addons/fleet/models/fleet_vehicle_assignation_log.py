@@ -34,7 +34,7 @@ class FleetVehicleAssignationLog(TimeStampedModel):
 
     class Meta:
         db_table = 'fleet_vehicle_assignation_log'
-        ordering = ['-created_at', '-date_start']
+        ordering = ['-create_date', '-date_start']
         verbose_name = 'Historial de conductor'
         verbose_name_plural = 'Historial de conductores'
 

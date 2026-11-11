@@ -46,7 +46,7 @@ class Referral(TimeStampedModel):
 
     class Meta:
         db_table = 'referral_referral'
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         verbose_name = 'Referido'
 
     def __str__(self):

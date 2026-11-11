@@ -108,8 +108,8 @@ def produce(production):
     for wo in production.workorders.all():
         if wo.state != wo.STATE_DONE:
             wo.state = wo.STATE_DONE
-            wo.save(update_fields=['state', 'updated_at'])
+            wo.save(update_fields=['state', 'write_date'])
 
     production.state = production.STATE_DONE
-    production.save(update_fields=['state', 'updated_at'])
+    production.save(update_fields=['state', 'write_date'])
     return unit_cost

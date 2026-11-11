@@ -81,5 +81,5 @@ def recompute_purchase_price_with_bom(line) -> Decimal:
     if cost is None:
         return margin.capture_purchase_price()
     margin.purchase_price = cost
-    margin.save(update_fields=['purchase_price', 'updated_at'])
+    margin.save(update_fields=['purchase_price', 'write_date'])
     return cost

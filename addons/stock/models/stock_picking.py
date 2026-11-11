@@ -1128,7 +1128,8 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
          sin ``store`` son ``property`` (D-6) y ``package_history_ids`` es el
          reverso del M2M declarado en ``stock_package_history.py``.
        - **Backorder/wizard — 9** (``_should_show_transfers``,
-         ``_should_ignore_backorders``, ``_get_without_quantities_error_message``,
+         ``_should_ignore_backorders``,
+         ``_get_without_quantities_error_message``,
          ``_action_generate_backorder_wizard``,
          ``_check_backorder``, ``_autoconfirm_picking``,
          ``_get_moves_to_backorder``, ``_create_backorder_picking``,
@@ -1192,12 +1193,13 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
          falta editarlos, sólo leerlos.
 
        ``_compute_move_type`` (ya cubierto por ``save()``, primer pase) y
-       ``_default_picking_type_id`` (divergencia ya declarada — ``picking_type``
-       nulable) **no** están en el conteo de 93: están resueltos, no
-       bloqueados. ``move_ids``/``move_line_ids``/``backorder_ids``/
-       ``return_ids`` tampoco: son accesores reversos de Django
-       (``related_name``) — existen en runtime y son invisibles al AST, que
-       es la ceguera de este instrumento (``metrica-decide-la-conclusion.md``).
+       ``_default_picking_type_id`` (divergencia ya declarada —
+       ``picking_type`` nulable) **no** están en el conteo de 93: están
+       resueltos, no bloqueados. ``move_ids``/``move_line_ids``/
+       ``backorder_ids``/``return_ids`` tampoco: son accesores reversos de
+       Django (``related_name``) — existen en runtime y son invisibles al AST,
+       que es la ceguera de este instrumento
+       (``metrica-decide-la-conclusion.md``).
 
        Sucesor de todo el grupo: tarea **PENDIENTE DE ASIGNAR** — completar
        ``StockPicking`` en dos sub-pases restantes (backorder-wizard,
@@ -1208,7 +1210,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
 
        - ``_order`` está declarado verbatim; ``Meta.ordering`` ahora incluye
          ``-priority`` (portado) y sustituye ``scheduled_date`` (aún
-         BLOQUEADO) por ``-created_at`` hasta que ese campo aterrice.
+         BLOQUEADO) por ``-create_date`` hasta que ese campo aterrice.
        - ``_name_uniq`` (``odoo19c: :710``) sigue sin `Meta.constraints`
          —``company`` ya existe, pero es nulable y ``name`` tiene datos con
          ``''``/``None`` heredados; añadir la restricción ahora arriesga una
@@ -1244,9 +1246,11 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
          BLOQUEADO.
     """
 
-    # Atributos de clase de modelo — los cuatro de ORM que la referencia declara
+    # Atributos de clase de modelo — los cuatro de ORM que la referencia
+    # declara
     # (``odoo19c: :539-542``), verbatim. Los dos mixins que ``_inherit`` nombra
-    # **existen y están heredados** (``MailThread``, ``MailActivityMixin`` en la
+    # **existen y están heredados** (``MailThread``, ``MailActivityMixin`` en
+    # la
     # lista de bases): el hilo del chatter y las actividades planificadas.
     _name = 'stock.picking'
     _inherit = ['mail.thread', 'mail.activity.mixin']
@@ -1293,7 +1297,8 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         help_text='Documento de origen (Odoo origin).',
     )
     # Odoo stock.picking.sale_id — el enlace lo añade el módulo sale_stock
-    # (stock_picking se inherita en sale_stock/models/stock_picking.py). Aquí el
+    # (stock_picking se inherita en sale_stock/models/stock_picking.py). Aquí
+    # el
     # albarán conoce su orden de venta canónica; el sub-estado de preparación
     # (state confirmed/assigned) se proyecta a IN_PREPARATION cuando aún no hay
     # guía de transportista (V5a de analisis-unificar-orders-sale, H-SALE-09).
@@ -1303,7 +1308,8 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
     )
     # ≙ ``is_locked`` (``odoo19c: :658-660``). Entra en este pase porque el
     # movimiento lo consume en tres derivados (``is_locked``,
-    # ``is_initial_demand_editable``, ``is_date_editable``) — declararlo aquí es
+    # ``is_initial_demand_editable``, ``is_date_editable``) — declararlo aquí
+    # es
     # más barato que fabricar una divergencia en ``stock_move``.
     is_locked        = fields.Boolean(
         default=True,
@@ -1361,7 +1367,8 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
                   '``_assign_picking_values`` cuando el albarán agrupa '
                   'movimientos de contactos distintos.',
     )
-    # ≙ ``company_id`` (``odoo19c: :634-636``, ``related='picking_type_id.company_id'``
+    # ≙ ``company_id`` (``odoo19c: :634-636``,
+    # ``related='picking_type_id.company_id'``
     # ``store=True readonly=True index=True``). Nulable aquí porque
     # ``picking_type`` lo es (ver arriba): con el tipo ausente no hay empresa
     # de la que derivarla.
@@ -1371,7 +1378,8 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         help_text='Empresa (Odoo company_id, related del tipo de operación).',
     )
     # ≙ ``user_id`` (``odoo19c: :637-641``, ``tracking=True copy=False``). Su
-    # ``domain`` de la referencia acota a los usuarios de ``stock.group_stock_user``;
+    # ``domain`` de la referencia acota a los usuarios de
+    # ``stock.group_stock_user``;
     # el grupo aún no se siembra, así que la acotación queda declarada y no
     # inventada — la impone quien asigne, no el campo.
     user             = fields.Many2one(
@@ -1440,10 +1448,10 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
     class Meta:
         db_table = 'stock_picking'
         # ≙ ``_order = "priority desc, scheduled_date asc, id desc"``. Con
-        # ``priority`` ya portado y ``scheduled_date`` aún en el grupo
-        # BLOQUEADO (``_compute_scheduled_date``), ``created_at`` sustituye al
-        # segundo eje hasta que ese campo aterrice.
-        ordering = ['-priority', '-created_at', '-id']
+        # ``priority`` ya portado, ``create_date`` sustituye al segundo eje:
+        # BLOQUEADO por ``_compute_scheduled_date`` — sin ese cómputo no existe
+        # ``scheduled_date``.
+        ordering = ['-priority', '-create_date', '-id']
         verbose_name = 'Transferencia de inventario'
         verbose_name_plural = 'Transferencias de inventario'
 
@@ -1847,7 +1855,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         if not self.name:
             self.name = f'WH/{uuid.uuid4().hex[:8].upper()}'
         self.state = self.STATE_CONFIRMED
-        self.save(update_fields=['name', 'state', 'updated_at'])
+        self.save(update_fields=['name', 'state', 'write_date'])
         for move in self.move_ids.all():
             move._action_confirm()
         return self
@@ -1855,7 +1863,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
     def action_assign(self):
         """Reserva/asigna la disponibilidad (Odoo action_assign)."""
         self.state = self.STATE_ASSIGNED
-        self.save(update_fields=['state', 'updated_at'])
+        self.save(update_fields=['state', 'write_date'])
         for move in self.move_ids.all():
             move._action_assign()
         return self
@@ -1865,13 +1873,13 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         for move in self.move_ids.all():
             move._action_done()
         self.state = self.STATE_DONE
-        self.save(update_fields=['state', 'updated_at'])
+        self.save(update_fields=['state', 'write_date'])
         return self
 
     def action_cancel(self):
         """Cancela la transferencia (Odoo action_cancel)."""
         self.state = self.STATE_CANCEL
-        self.save(update_fields=['state', 'updated_at'])
+        self.save(update_fields=['state', 'write_date'])
         for move in self.move_ids.all():
             move._action_cancel()
         return self
@@ -1888,7 +1896,8 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
     # _action_done... arriesga contradecir stock_move.py") no les aplica
     # símbolo a símbolo. ``_action_done`` en sí, ``do_unreserve``,
     # ``_sanity_check``, ``action_split_transfer``, ``_pre_action_done_hook``,
-    # ``button_scrap``, ``action_see_move_scrap``, ``action_picking_move_tree``,
+    # ``button_scrap``, ``action_see_move_scrap``,
+    # ``action_picking_move_tree``,
     # ``_can_return``, ``action_see_returns``, ``_is_to_external_location`` y
     # todo el clúster de backorder (``_check_backorder``,
     # ``_autoconfirm_picking``, ``_get_moves_to_backorder``,
@@ -1947,7 +1956,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
                 self.STATE_ASSIGNED if relevante == 'partially_available'
                 else relevante)
         self.state = nuevo_estado
-        self.save(update_fields=['state', 'updated_at'])
+        self.save(update_fields=['state', 'write_date'])
         return nuevo_estado
 
     def _onchange_picking_type(self):
@@ -2065,7 +2074,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
     def action_toggle_is_locked(self):
         """≙ ``action_toggle_is_locked`` (``odoo19c: :1529-1532``)."""
         self.is_locked = not self.is_locked
-        self.save(update_fields=['is_locked', 'updated_at'])
+        self.save(update_fields=['is_locked', 'write_date'])
         return True
 
     def _add_reference(self, reference=False):

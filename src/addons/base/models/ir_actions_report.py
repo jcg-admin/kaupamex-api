@@ -691,7 +691,7 @@ class IrActionsReport(IrActionsBase):
         self.binding_model_name = self.model
         self.binding_type = BINDING_TYPE_REPORT
         self.save(
-            update_fields=['binding_model_name', 'binding_type', 'updated_at']
+            update_fields=['binding_model_name', 'binding_type', 'write_date']
         )
 
     def unlink_action(self):
@@ -699,7 +699,7 @@ class IrActionsReport(IrActionsBase):
         if not self.binding_model_name:
             return
         self.binding_model_name = ''
-        self.save(update_fields=['binding_model_name', 'updated_at'])
+        self.save(update_fields=['binding_model_name', 'write_date'])
 
     def associated_view(self):
         """La acción de ventana que lista las vistas de este reporte.

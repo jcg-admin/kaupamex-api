@@ -76,7 +76,7 @@ class Command(BaseCommand):
                 mod.is_application = spec.is_application
                 mod.category = spec.category
                 mod.save(update_fields=[
-                    'is_application', 'category', 'updated_at',
+                    'is_application', 'category', 'write_date',
                 ])
 
         # Grafo de dependencias (SOL-085 S3). ``set`` es idempotente.
@@ -95,8 +95,10 @@ class Command(BaseCommand):
             )
             caps.append(cap)
 
-        # Superadmin: todas las capacidades. Las CRUD quedan a nivel FULL (default
-        # de RoleCapability) → implican view/create/edit/full; las nombradas por
+        # Superadmin: todas las capacidades. Las CRUD quedan a nivel FULL
+        # (default
+        # de RoleCapability) → implican view/create/edit/full; las nombradas
+        # por
         # membresía. Además hace bypass en el resolver.
         role, _ = Role.objects.get_or_create(
             code=SUPERADMIN_ROLE_CODE, defaults={'name': 'Superadministrador'},
@@ -113,13 +115,18 @@ class Command(BaseCommand):
 
         # Capacidades de "cuenta propia": todo usuario autenticado —incluido
         # staff no-superadmin— gestiona SU propia cuenta (perfil, contraseña,
-        # baja, historial de pago). Se siembran en TODOS los roles para no dejar
-        # a nadie fuera de su propia cuenta (DEC-ENF-01). ``add`` es idempotente.
+        # baja, historial de pago). Se siembran en TODOS los roles para no
+        # dejar
+        # a nadie fuera de su propia cuenta (DEC-ENF-01). ``add`` es
+        # idempotente.
         # DEC-ENF-01: capacidades de cuenta propia — se siembran en TODOS los
         # roles para que nadie quede fuera de su propia cuenta.
-        # 'account.bus' entra aquí porque el endpoint del bus deriva el canal de
-        # la sesión y sólo devuelve mensajes del propio usuario: gatearlo con una
-        # capacidad de dominio (p. ej. notificaciones) dejaría sin eventos de pago
+        # 'account.bus' entra aquí porque el endpoint del bus deriva el canal
+        # de
+        # la sesión y sólo devuelve mensajes del propio usuario: gatearlo con
+        # una
+        # capacidad de dominio (p. ej. notificaciones) dejaría sin eventos de
+        # pago
         # a quien no la tenga, siendo suyos.
         self_account_codes = {
             'account.profile', 'account.password', 'account.security',

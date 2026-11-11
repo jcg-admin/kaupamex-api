@@ -35,7 +35,7 @@ class CheckoutAttempt(models.Model):
     )
     idempotency_key = models.CharField(max_length=100)
     response_json = models.TextField(default='')
-    created_at = models.DateTimeField(auto_now_add=True)
+    create_date = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'base_checkout_attempt'

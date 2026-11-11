@@ -1410,7 +1410,7 @@ def _create_field_lookup(model, name):
 #: ≙ ``LOG_ACCESS_COLUMNS`` (``odoo19c: odoo/orm/models.py:296``). Allá son
 #: ``create_uid``, ``create_date``, ``write_uid`` y ``write_date``; aquí las
 #: declara ``TimeStampedModel`` (y ``TransientModel``): los dos usuarios con
-#: el nombre de la fuente y las dos fechas como ``created_at``/``updated_at``
+#: el nombre de la fuente y las dos fechas como ``create_date``/``write_date``
 #: (``designs/log-access-columns-audit.md``).
 #: La lista se declara en ``orm.model_classes`` —que la necesita al construir
 #: la clase y no puede importar este modulo— y llega aqui por el import de
@@ -3070,7 +3070,7 @@ class RecordLoaderMixin(FieldSqlMixin):
                 # guarda lo nombrado, así que la columna se nombra.
                 if getattr(type(self), '_log_access', True):
                     update_fields.extend(
-                        fname for fname in ('write_uid', 'updated_at')
+                        fname for fname in ('write_uid', 'write_date')
                         if fname in writable and fname not in update_fields)
                     # Sólo en la carga llegan aquí: fuera, ``values`` ya no
                     # las trae (:func:`_log_access_bad_names`). Se lee de
@@ -5281,7 +5281,7 @@ def _write_rows(model, ids, vals_list):
     """
     fields_of = model_field_registry(model)
     writable = model._meta._non_pk_concrete_field_names
-    log_access = [fname for fname in ('write_uid', 'updated_at')
+    log_access = [fname for fname in ('write_uid', 'write_date')
                   if getattr(model, '_log_access', True)
                   and fname in writable]
     rows = {row.pk: row
@@ -10474,8 +10474,8 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
         Copia adaptada. Dos cambios de mecanismo, el mismo efecto: el
         ``IN %s`` de la fuente es ``= ANY(%s)`` —psycopg 3 adapta una lista,
         no una tupla—, y las filas que faltan se escriben con ``bulk_create``
-        en vez de ``COPY FROM``: ``ir_model_data`` exige aquí ``created_at``,
-        ``updated_at`` y ``noupdate`` sin defecto en la base, y el alta de
+        en vez de ``COPY FROM``: ``ir_model_data`` exige aquí ``create_date``,
+        ``write_date`` y ``noupdate`` sin defecto en la base, y el alta de
         Django los pone. ``ir.model.data`` es un modelo de Django sin caché
         de campos, así que la invalidación de la fuente no tiene destinatario.
         """

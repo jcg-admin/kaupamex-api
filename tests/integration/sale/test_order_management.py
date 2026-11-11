@@ -282,7 +282,7 @@ class TestListadoOrdenes:
 
         res = auth_client.get(ORDERS_URL)
         results = res.json()['results']
-        # El más reciente primero (por created_at DESC)
+        # El más reciente primero (por create_date DESC)
         assert results[0]['order_number'] == o2.name
 
     def test_listado_filtro_status(
@@ -367,7 +367,7 @@ class TestListadoOrdenes:
             'order_number',
             'status',
             'status_display',
-            'created_at',
+            'create_date',
             'total',
             'items_count',
         }

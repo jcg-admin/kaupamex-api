@@ -181,7 +181,7 @@ class TestReturnStatusChangedSignal:
             order = _make_order(user)
             ret = self._make_return(user, order)
             ret.status = ReturnRequest.Status.APPROVED
-            ret.save(update_fields=['status', 'updated_at'])
+            ret.save(update_fields=['status', 'write_date'])
 
         assert Notification.objects.filter(
             user=user,
@@ -195,7 +195,7 @@ class TestReturnStatusChangedSignal:
             ret.rejection_reason = 'Fuera de periodo de devolucion.'
             ret.status = ReturnRequest.Status.REJECTED
             ret.save(
-                update_fields=['status', 'rejection_reason', 'updated_at']
+                update_fields=['status', 'rejection_reason', 'write_date']
             )
 
         assert Notification.objects.filter(
@@ -208,7 +208,7 @@ class TestReturnStatusChangedSignal:
             order = _make_order(user)
             ret = self._make_return(user, order)
             ret.status = ReturnRequest.Status.INFO_REQUESTED
-            ret.save(update_fields=['status', 'updated_at'])
+            ret.save(update_fields=['status', 'write_date'])
 
         assert not Notification.objects.filter(
             user=user, type='RETURN_UPDATE'

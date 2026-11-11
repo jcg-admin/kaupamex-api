@@ -1519,7 +1519,7 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
         self.deactivated_reason = reason
         self.deactivated_at = timezone.now()
         self.save(update_fields=[
-            'active', 'deactivated_reason', 'deactivated_at', 'updated_at',
+            'active', 'deactivated_reason', 'deactivated_at', 'write_date',
         ])
 
     # --- Pertenencia a grupo por identificador externo (≙ :1034-1096) ---
@@ -2336,7 +2336,7 @@ class ResUsersLog(TimeStampedModel):
         verbose_name_plural = 'Registros de acceso'
 
     def __str__(self) -> str:
-        return f'acceso de {self.user_id} el {self.created_at}'
+        return f'acceso de {self.user_id} el {self.create_date}'
 
     @classmethod
     @api.autovacuum
@@ -2357,7 +2357,7 @@ class ResUsersLog(TimeStampedModel):
         """
         later = cls.objects.filter(
             user=models.OuterRef('user'),
-            created_at__gt=models.OuterRef('created_at'),
+            create_date__gt=models.OuterRef('create_date'),
         )
         deleted, _ = cls.objects.filter(models.Exists(later)).delete()
         _logger.info("GC'd %d user log entries", deleted)

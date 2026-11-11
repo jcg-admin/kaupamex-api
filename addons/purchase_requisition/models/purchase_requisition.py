@@ -465,7 +465,7 @@ class PurchaseRequisition(TimeStampedModel):
         for order in self.purchase_ids.filter(state='draft'):
             order.button_cancel()
         self.state = STATE_CANCEL
-        self.save(update_fields=['state', 'updated_at'])
+        self.save(update_fields=['state', 'write_date'])
 
     def action_confirm(self):
         """≙ ``action_confirm`` (``odoo19c: :129-140``).
@@ -496,12 +496,12 @@ class PurchaseRequisition(TimeStampedModel):
                     )
                 line._create_supplier_info()
         self.state = STATE_CONFIRMED
-        self.save(update_fields=['state', 'updated_at'])
+        self.save(update_fields=['state', 'write_date'])
 
     def action_draft(self):
         """≙ ``action_draft`` (``odoo19c: :142-144``)."""
         self.state = STATE_DRAFT
-        self.save(update_fields=['state', 'updated_at'])
+        self.save(update_fields=['state', 'write_date'])
 
     def action_done(self):
         """≙ ``action_done`` (``odoo19c: :146-156``).
@@ -520,7 +520,7 @@ class PurchaseRequisition(TimeStampedModel):
         for line in self.line_ids.all():
             line.supplier_info_ids.all().delete()
         self.state = STATE_DONE
-        self.save(update_fields=['state', 'updated_at'])
+        self.save(update_fields=['state', 'write_date'])
 
 
 class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):

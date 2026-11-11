@@ -9,7 +9,7 @@ que escribe (``models.py:6386-6400``) y nada los vuelve a marcar.
 Aquí la escritura la hace ``Model.save`` de Django, y su ``pre_save`` de un
 campo ``auto_now`` asigna la fecha con ``setattr`` *dentro* de ese mismo
 guardado. La asignación pasaba por ``FieldDescriptor.__set__`` →
-``field.write`` y volvía a marcar sucio ``updated_at``, que ya iba en el
+``field.write`` y volvía a marcar sucio ``write_date``, que ya iba en el
 ``UPDATE``: cada vuelta lo recreaba y el volcado agotaba el tope.
 
 *Métrica:* ids sucios tras ``flush_all`` y el aviso del logger.
@@ -63,7 +63,7 @@ def test_the_written_date_is_the_persisted_one(related):
         e.flush_all()
         row = MODELS_BY_NAME['test_orm.related']._base_manager.get(
             pk=record.id)
-        assert row.updated_at == record.updated_at
+        assert row.write_date == record.write_date
         assert row.name == 'renamed'
 
 
@@ -73,7 +73,7 @@ def test_a_dirty_value_not_written_stays_dirty(related):
     field = model_field_registry(type(record))['name']
     with sudo():
         field._update_cache([record], 'pending', dirty=True)
-        record.save(update_fields=['updated_at'])
+        record.save(update_fields=['write_date'])
         assert _dirty(e).get('name') == [record.id]
         e.flush_all()
         assert _dirty(e) == {}
@@ -101,5 +101,5 @@ def test_an_unwritten_column_with_the_same_value_stays_dirty(related):
     with sudo():
         field._update_cache([record], 'pending', dirty=True)
         record.__dict__['name'] = 'pending'
-        record.save(update_fields=['updated_at'])
+        record.save(update_fields=['write_date'])
         assert _dirty(e).get('name') == [record.id]

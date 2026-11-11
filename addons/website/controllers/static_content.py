@@ -115,7 +115,7 @@ class StaticContentDetailView(_AdminOnly, APIView):
         content.version += 1
         content.title = title
         content.body = body
-        content.save(update_fields=['title', 'body', 'version', 'updated_at'])
+        content.save(update_fields=['title', 'body', 'version', 'write_date'])
 
         StaticContentVersion.objects.create(
             content=content, version=content.version,

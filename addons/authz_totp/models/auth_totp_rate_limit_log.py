@@ -44,7 +44,7 @@ columnas y su orden, que es lo que el índice hace.
 
 Los otros dos renombres son de stack, no de contenido: ``user_id`` es ``user``
 —la FK de Django, igual que en ``totp_secret.py`` y ``auth_totp.py``— y
-``create_date`` es el ``created_at`` de ``TimeStampedModel``.
+``create_date`` es el ``create_date`` de ``TimeStampedModel``.
 """
 
 import logging
@@ -133,7 +133,7 @@ class AuthTotpRateLimitLog(TimeStampedModel):
             # columnas y mismo orden; el nombre se acorta por el límite de
             # Django (ver la cabecera del módulo).
             models.Index(
-                fields=['user_id', 'limit_type', 'created_at'],
+                fields=['user_id', 'limit_type', 'create_date'],
                 name='authz_totp_rate_limit_idx',
             ),
         ]
@@ -160,5 +160,5 @@ class AuthTotpRateLimitLog(TimeStampedModel):
         corte = timezone.now() - timedelta(
             seconds=max(GC_MAX_AGE_SECONDS, GC_FLOOR_SECONDS)
         )
-        borradas, _resto = cls.objects.filter(created_at__lt=corte).delete()
+        borradas, _resto = cls.objects.filter(create_date__lt=corte).delete()
         _logger.info('GC TOTP rate limit log delete %d entries', borradas)

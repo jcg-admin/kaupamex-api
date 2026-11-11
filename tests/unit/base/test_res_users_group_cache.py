@@ -182,7 +182,7 @@ def test_saving_the_user_invalidates(db):
     user._get_group_ids()
     ResGroups.objects.filter(pk=grupo.pk).update(name='Ventas MX')
     user.active = False
-    user.save(update_fields=['active', 'updated_at'])
+    user.save(update_fields=['active', 'write_date'])
     with CaptureQueriesContext(connection) as queries:
         user._get_group_ids()
     assert len(queries) > 0

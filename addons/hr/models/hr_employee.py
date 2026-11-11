@@ -1206,7 +1206,7 @@ class HrEmployee(models.BaseModel, MailThread, MailActivityMixin,
         """
         if version is None:
             return {}
-        skip = ('employee', 'created_at', 'updated_at')
+        skip = ('employee', 'create_date', 'write_date')
         values = {}
         for field in HrVersion._meta.concrete_fields:
             if field.primary_key or field.name in skip:
@@ -1377,8 +1377,8 @@ class HrEmployee(models.BaseModel, MailThread, MailActivityMixin,
 
     def _get_new_hire_field(self):
         """≙ ``_get_new_hire_field`` (``:419-420``): ``'create_date'`` →
-        ``created_at``."""
-        return 'created_at'
+        ``create_date``."""
+        return 'create_date'
 
     @property
     def newly_hired_computed(self):

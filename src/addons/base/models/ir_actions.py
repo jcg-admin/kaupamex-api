@@ -850,9 +850,9 @@ class IrActionsServerHistory(TimeStampedModel):
     class Meta:
         db_table = 'ir_actions_server_history'
         #: ≙ ``_order = 'create_date desc, id desc'``. ``create_date`` es aquí
-        #: ``created_at``, que es la forma que este árbol adoptó del
+        #: ``create_date``, que es la forma que este árbol adoptó del
         #: log-access (``timestamped_mixin.py``).
-        ordering = ['-created_at', '-id']
+        ordering = ['-create_date', '-id']
         verbose_name = 'Historial de acción de servidor'
         verbose_name_plural = 'Historiales de acción de servidor'
 
@@ -866,19 +866,19 @@ class IrActionsServerHistory(TimeStampedModel):
         **El autor no se imprime, y es una divergencia ya declarada, no un
         hueco de este porte:** la fuente lo saca de ``create_uid``, una de las
         cuatro columnas de log-access que su ORM inyecta en todo modelo. Aquí
-        el mixin aporta las dos de *cuándo* (``created_at``/``updated_at``) y
+        el mixin aporta las dos de *cuándo* (``create_date``/``write_date``) y
         ninguna de las de *quién*; la alternativa —auto-inyectarlas en la capa
         ``orm/``, que es donde la referencia las pone— está registrada como
         DEC-09 de ``adoptar-arquitectura-server-service-odoo``. El día que
         exista, esta etiqueta recupera su segunda mitad sin tocar nada más.
         """
-        if not self.created_at:
+        if not self.create_date:
             self.display_name = label = False
             return label
         lang = get_lang(env())
         user = get_current_user()
         zone = getattr(user, 'tz', None) if user is not None else None
-        moment = self.created_at.replace(microsecond=0)
+        moment = self.create_date.replace(microsecond=0)
         tzinfo = None
         if zone:
             try:

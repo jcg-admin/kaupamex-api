@@ -305,7 +305,7 @@ def _totp_rate_limit(self, limit_type, ip=''):
     count = AuthTotpRateLimitLog.objects.filter(
         user_id_id=self.pk,
         limit_type=limit_type,
-        created_at__gte=desde,
+        create_date__gte=desde,
     ).count()
     if count >= limit:
         raise AccessDenied(RATE_LIMIT_DESCRIPTIONS[limit_type])

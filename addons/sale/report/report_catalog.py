@@ -106,7 +106,7 @@ def build_sale_order(records, **ctx):
         'buyer': _buyer(order),
         'order_number': order.name or f'#{order.pk}',
         'date': (
-            (order.date_order or order.created_at).isoformat(
+            (order.date_order or order.create_date).isoformat(
                 timespec='seconds'
             )
         ),

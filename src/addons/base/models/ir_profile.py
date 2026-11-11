@@ -479,7 +479,7 @@ class IrProfile(ProfileSetMixin, TimeStampedModel):
         """
         cutoff = timezone.now() - datetime.timedelta(days=GC_RETENTION_DAYS)
         ids = list(
-            cls.objects.filter(created_at__lt=cutoff).values_list(
+            cls.objects.filter(create_date__lt=cutoff).values_list(
                 'pk', flat=True
             )[:GC_UNLINK_LIMIT]
         )

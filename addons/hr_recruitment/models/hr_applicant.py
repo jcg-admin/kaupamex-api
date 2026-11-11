@@ -28,7 +28,7 @@ declaran en su propio comentario de campo):
 ``partner_phone_sanitized``, ``linkedin_profile``, ``type_id``→``type``,
 ``availability``, ``color``, ``employee_id``→``employee``,
 ``emp_is_active``, ``employee_name``, ``probability``, ``create_date``
-(≙ ``created_at`` de ``TimeStampedModel``), ``stage_id``→``stage``,
+(≙ ``create_date`` de ``TimeStampedModel``), ``stage_id``→``stage``,
 ``last_stage_id``→``last_stage``, ``categ_ids``→``categs``,
 ``company_id``→``company``, ``user_id``→``user``, ``date_closed``,
 ``date_open``, ``date_last_stage_update``, ``priority``, ``job_id``→``job``,
@@ -381,13 +381,13 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
         """≙ ``_compute_day`` — mitad ``day_open`` (``odoo19c: :461-474``)."""
         if not self.date_open:
             return None
-        return (self.date_open - self.created_at).total_seconds() / 86400.0
+        return (self.date_open - self.create_date).total_seconds() / 86400.0
 
     def day_close(self):
         """≙ ``_compute_day`` — mitad ``day_close``."""
         if not self.date_closed:
             return None
-        return (self.date_closed - self.created_at).total_seconds() / 86400.0
+        return (self.date_closed - self.create_date).total_seconds() / 86400.0
 
     def compute_delay_close(self):
         """≙ ``_compute_delay`` (``odoo19c: :476-482``) — asigna

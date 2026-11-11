@@ -101,7 +101,7 @@ class MailingTrace(TimeStampedModel):
 
     class Meta:
         db_table = 'mailing_trace'
-        ordering = ['-created_at', '-id']
+        ordering = ['-create_date', '-id']
         verbose_name = 'Traza de envio masivo'
         verbose_name_plural = 'Trazas de envio masivo'
         constraints = [

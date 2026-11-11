@@ -397,7 +397,8 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         (PROCURE_MAKE_TO_ORDER, 'Advanced: Apply Procurement Rules'),
     ]
 
-    # Los SIETE estados de la referencia (``:106-113``). ``partially_available``
+    # Los SIETE estados de la referencia (``:106-113``).
+    # ``partially_available``
     # faltaba: lo consume la agregación de cantidades del producto y lo escribe
     # ``_recompute_state`` (D-3 del docstring).
     STATE_DRAFT               = 'draft'
@@ -1182,7 +1183,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         """
         self.move_orig_ids.remove(parent_move)
         self.procure_method = self.PROCURE_MAKE_TO_STOCK
-        self.save(update_fields=['procure_method', 'updated_at'])
+        self.save(update_fields=['procure_method', 'write_date'])
         self._recompute_state()
 
     @staticmethod
@@ -1550,7 +1551,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             nuevo = self.STATE_CONFIRMED
         if self.state != nuevo:
             self.state = nuevo
-            self.save(update_fields=['state', 'updated_at'])
+            self.save(update_fields=['state', 'write_date'])
 
     # -- el recorrido de la cadena de movimientos --
 
@@ -1673,8 +1674,8 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         return [self._prepare_move_line_vals(quantity=1, reserved_quant=reserved_quant)
                 for _ in range(int(quantity))]
 
-    def _update_reserved_quantity_vals(self, need, location, lot=None, package=None,
-                                       owner=None, strict=True):
+    def _update_reserved_quantity_vals(self, need, location, lot=None,
+                                       package=None, owner=None, strict=True):
         """≙ ``_update_reserved_quantity_vals`` (``odoo19c: :1912-1956``).
 
         Decide **el reparto** sin escribirlo: qué línea existente crece y qué
@@ -1731,7 +1732,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                                        precision_digits=redondeo) == 0
             if actualizable is not None and exacta:
                 actualizable.quantity += Decimal(str(in_uom))
-                actualizable.save(update_fields=['quantity', 'updated_at'])
+                actualizable.save(update_fields=['quantity', 'write_date'])
             elif (self.product.tracking == 'serial' and self.picking_type_id
                   and (self.picking_type.use_create_lots
                        or self.picking_type.use_existing_lots)):
@@ -1941,7 +1942,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
 
         if regla is None:
             self.procure_method = self.PROCURE_MAKE_TO_STOCK
-            self.save(update_fields=['procure_method', 'updated_at'])
+            self.save(update_fields=['procure_method', 'write_date'])
             return
 
         self.rule = regla
@@ -1950,7 +1951,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             if regla.procure_method in (self.PROCURE_MAKE_TO_STOCK,
                                         self.PROCURE_MAKE_TO_ORDER)
             else self.PROCURE_MAKE_TO_STOCK)
-        self.save(update_fields=['rule', 'procure_method', 'updated_at'])
+        self.save(update_fields=['rule', 'procure_method', 'write_date'])
 
     def _do_unreserve(self):
         """≙ ``_do_unreserve`` (``odoo19c: :1018-1044``).
@@ -2095,7 +2096,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             # Se le suelta el albarán: o lo absorbe un positivo, o abre un
             # pedido pendiente. En ninguno de los dos casos deja rastro aquí.
             negativo.picking = None
-            negativo.save(update_fields=['picking', 'updated_at'])
+            negativo.save(update_fields=['picking', 'write_date'])
 
         por_clave_limitada = defaultdict(list)
         for grupo in candidatos:
@@ -2118,7 +2119,8 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                     por_clave_limitada[clave_limitada(iguales[0])].append(iguales[0])
 
         for negativo in negativos:
-            for positivo in por_clave_limitada.get(clave_limitada(negativo), []):
+            for positivo in por_clave_limitada.get(
+                    clave_limitada(negativo), []):
                 total_value = (positivo.product_qty * positivo.price_unit
                                + negativo.product_qty * negativo.price_unit)
                 if positivo.product_uom_qty >= abs(negativo.product_uom_qty):
@@ -2133,8 +2135,8 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                     positivo.move_orig_ids.add(*[
                         o for o in negativo.move_orig_ids.all()
                         if o.location_dest_id == positivo.location_id])
-                    positivo.save(update_fields=['product_uom_qty', 'price_unit',
-                                                 'updated_at'])
+                    positivo.save(update_fields=[
+                        'product_uom_qty', 'price_unit', 'write_date'])
                     fusionados.append(positivo)
                     por_borrar.append(negativo)
                     if not positivo.product_uom_qty:
@@ -2144,9 +2146,9 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                 negativo.price_unit = float_round(
                     total_value / negativo.product_qty, precision_digits=of_price)
                 negativo.save(update_fields=['product_uom_qty', 'price_unit',
-                                             'updated_at'])
+                                             'write_date'])
                 positivo.product_uom_qty = Decimal('0')
-                positivo.save(update_fields=['product_uom_qty', 'updated_at'])
+                positivo.save(update_fields=['product_uom_qty', 'write_date'])
                 por_cancelar.append(positivo)
 
         # El conjunto de borrados se toma ANTES de borrar: ``Model.delete()``
@@ -2195,7 +2197,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         origenes = values.pop('move_orig_ids', [])
         for campo, valor in values.items():
             setattr(self, campo, valor)
-        self.save(update_fields=[*values, 'updated_at'])
+        self.save(update_fields=[*values, 'write_date'])
         if destinos:
             self.move_dest_ids.add(*destinos)
         if origenes:
@@ -2253,8 +2255,10 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         """
         conjunto = list(moves) if moves is not None else [self]
         picking = apps.get_model('stock', 'StockPicking')
-        for _k, grupo in groupby(sorted(conjunto, key=lambda m: str(m._key_assign_picking())),
-                                 key=lambda m: m._key_assign_picking()):
+        for _k, grupo in groupby(
+                sorted(conjunto,
+                       key=lambda m: str(m._key_assign_picking())),
+                key=lambda m: m._key_assign_picking()):
             grupo = list(grupo)
             nuevo = False
             albaran = grupo[0]._search_picking_for_assignation()
@@ -2263,7 +2267,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                 if valores:
                     for campo, valor in valores.items():
                         setattr(albaran, campo, valor)
-                    albaran.save(update_fields=[*valores, 'updated_at'])
+                    albaran.save(update_fields=[*valores, 'write_date'])
             else:
                 grupo = [m for m in grupo if m.product_uom_qty >= 0]
                 if not grupo:
@@ -2273,7 +2277,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                     **grupo[0]._get_new_picking_values(moves=grupo))
             for move in grupo:
                 move.picking = albaran
-                move.save(update_fields=['picking', 'updated_at'])
+                move.save(update_fields=['picking', 'write_date'])
                 move._assign_picking_post_process(new=nuevo)
         return True
 
@@ -2452,7 +2456,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             round=False)
         self.product_uom_qty = Decimal(str(
             float_round(restante, precision_digits=redondeo)))
-        self.save(update_fields=['product_uom_qty', 'updated_at'])
+        self.save(update_fields=['product_uom_qty', 'write_date'])
         self._recompute_state()
         return [valores]
 
@@ -2634,7 +2638,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             elif accion == 'update':
                 for campo, valor in vals.items():
                     setattr(linea, campo, valor)
-                linea.save(update_fields=[*vals, 'updated_at'])
+                linea.save(update_fields=[*vals, 'write_date'])
             elif accion == 'create':
                 creadas.append(StockMoveLine.objects.create(**vals))
         return creadas
@@ -2825,7 +2829,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             # Sin lotes nuevos no hay reserva que ampliar: la cantidad es la
             # que ya sostienen las líneas.
             self.quantity = Decimal(str(cantidad))
-            self.save(update_fields=['quantity', 'updated_at'])
+            self.save(update_fields=['quantity', 'write_date'])
             return None
 
         base = self.picking.location if self.picking_id else self.location
@@ -2866,7 +2870,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             cantidad += max(0.0, nueva_asignada - asignable)
 
         self.quantity = Decimal(str(cantidad))
-        self.save(update_fields=['quantity', 'updated_at'])
+        self.save(update_fields=['quantity', 'write_date'])
 
         if product.tracking == 'serial':
             problematicos = candidatos.exclude(base.child_of_domain('location'))
@@ -2968,7 +2972,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             return self
         has_pending_orig = self.move_orig_ids.exclude(state=self.STATE_DONE).exists()
         self.state = self.STATE_WAITING if has_pending_orig else self.STATE_CONFIRMED
-        self.save(update_fields=['state', 'updated_at'])
+        self.save(update_fields=['state', 'write_date'])
         return self
 
     def _action_assign(self):
@@ -2989,7 +2993,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                 self.state = self.STATE_ASSIGNED
             elif self.quantity > 0:
                 self.state = self.STATE_PARTIALLY_AVAILABLE
-        self.save(update_fields=['quantity', 'state', 'updated_at'])
+        self.save(update_fields=['quantity', 'state', 'write_date'])
         return self
 
     def _action_done(self):
@@ -3000,7 +3004,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         StockQuant.apply_move(self.product, self.location, self.location_dest, done_qty)
         self.quantity = done_qty
         self.state = self.STATE_DONE
-        self.save(update_fields=['quantity', 'state', 'updated_at'])
+        self.save(update_fields=['quantity', 'state', 'write_date'])
         return self
 
     def _action_cancel(self):
@@ -3009,5 +3013,5 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             return self
         self.state = self.STATE_CANCEL
         self.quantity = Decimal('0.0000')
-        self.save(update_fields=['state', 'quantity', 'updated_at'])
+        self.save(update_fields=['state', 'quantity', 'write_date'])
         return self

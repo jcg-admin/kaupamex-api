@@ -63,7 +63,7 @@ def test_admin_lists_ir_logging(admin_client):
     body = resp.json()
     assert body['source'] == 'applog'
     assert body['count'] == 2
-    # orden desc por created_at: la ultima creada primero
+    # orden desc por create_date: la ultima creada primero
     assert body['results'][0]['msg'] == 'boom'
     assert body['results'][0]['logger_name'] == 'apps.x'
     assert body['results'][0]['trace'] == 'Traceback...'
@@ -141,10 +141,10 @@ def test_filter_from_to_range(admin_client):
         URL, {'from': '2000-01-01T00:00:00', 'to': '2100-01-01T00:00:00'}
     )
     assert wide.json()['count'] == 2
-    # from en el futuro → ninguno (created_at < from)
+    # from en el futuro → ninguno (create_date < from)
     future = admin_client.get(URL, {'from': '2100-01-01T00:00:00'})
     assert future.json()['count'] == 0
-    # to en el pasado → ninguno (created_at > to)
+    # to en el pasado → ninguno (create_date > to)
     past = admin_client.get(URL, {'to': '2000-01-01T00:00:00'})
     assert past.json()['count'] == 0
 

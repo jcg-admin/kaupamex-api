@@ -76,14 +76,14 @@ class TestMailMailRetryQueue:
     def test_should_not_retry_at_max_attempts(self, db):
         m = MailMail.enqueue(to='a@x.com', subject='X')
         m.attempts = m.max_attempts
-        m.save(update_fields=['attempts', 'updated_at'])
+        m.save(update_fields=['attempts', 'write_date'])
         assert m.should_retry is False
 
     def test_pending_returns_due_outgoing(self, db):
         due_now = MailMail.enqueue(to='a@x.com', subject='now')
         future = MailMail.enqueue(to='b@x.com', subject='later')
         future.scheduled_date = timezone.now() + timezone.timedelta(hours=1)
-        future.save(update_fields=['scheduled_date', 'updated_at'])
+        future.save(update_fields=['scheduled_date', 'write_date'])
         sent = MailMail.enqueue(to='c@x.com', subject='done')
         sent.mark_sent()
 

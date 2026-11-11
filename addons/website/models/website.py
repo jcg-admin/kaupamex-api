@@ -1684,7 +1684,7 @@ class Website(TimeStampedModel):
         ``StaticPage``.** La enumeración primaria es la de la fuente:
         ``website.page`` filtrado por ``website_indexed``, publicación y
         ``date_publish``, con la ``priority`` de la vista (vía la delegación)
-        y el ``lastmod`` como el mayor de ``updated_at``/``view_write_date``
+        y el ``lastmod`` como el mayor de ``write_date``/``view_write_date``
         (≙ ``write_date``/``view_write_date``). El filtro
         ``('visibility', '=', False)`` de la vista delegada **ya opera**
         desde #565: la visibilidad vive en la fila lateral de la vista
@@ -1754,7 +1754,7 @@ class Website(TimeStampedModel):
             if page.priority != 16:
                 record['priority'] = min(round(page.priority / 32.0, 1), 1)
             last_dates = [
-                d for d in (page.updated_at, page.view_write_date) if d
+                d for d in (page.write_date, page.view_write_date) if d
             ]
             if last_dates:
                 record['lastmod'] = max(last_dates).date()
@@ -1769,8 +1769,8 @@ class Website(TimeStampedModel):
             if query_string and query_string not in url:
                 continue
             record = {'loc': url, 'id': page.pk, 'name': page.title}
-            if page.updated_at:
-                record['lastmod'] = page.updated_at.date()
+            if page.write_date:
+                record['lastmod'] = page.write_date.date()
             yield record
 
         # ==== controladores ====
@@ -3194,7 +3194,7 @@ class Website(TimeStampedModel):
         ``unique=`` es un hash de la fecha de escritura para invalidar la
         caché del navegador al cambiar la imagen.
 
-        Divergencias declaradas: (1) ``write_date`` ↔ ``updated_at``
+        Divergencias declaradas: (1) ``write_date`` ↔ ``write_date``
         (``TimeStampedModel``); (2) el ``record.sudo()`` de la fuente es
         innecesario — este ORM no aplica ACL en lecturas; (3) sin ``_name``
         declarado, el segmento del modelo usa el label de Django
@@ -3202,7 +3202,7 @@ class Website(TimeStampedModel):
         prospectivo de ``atributos-de-clase-de-modelo.md``.
         """
         sha = hashlib.sha512(
-            str(getattr(record, 'updated_at', None)).encode('utf-8')
+            str(getattr(record, 'write_date', None)).encode('utf-8')
         ).hexdigest()[:7]
         size = '' if size is None else '/%s' % size
         model_name = name_of(type(record)) or type(record)._meta.label_lower

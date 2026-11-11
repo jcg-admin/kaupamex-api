@@ -132,7 +132,7 @@ def test_the_forty_four_source_fields_are_declared():
     declarado en la clase.
     *Ciega a:* un atributo heredado de ``TimeStampedModel`` que por casualidad
     se llame como un campo de la fuente — ninguno de los 44 colisiona
-    (``created_at``/``updated_at`` no están en la lista).
+    (``create_date``/``write_date`` no están en la lista).
     """
     columns = {f.name for f in Website._meta.get_fields()}
     missing = []

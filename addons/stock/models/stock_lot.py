@@ -510,7 +510,7 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         **DIVERGENCIA de mecanismo declarada:** la fuente ordena las entregas
         por ``date_done`` (fecha de validación del albarán) antes de tomar sus
         contactos. ``StockPicking`` en este árbol aún no declara ese campo —
-        sólo tiene ``created_at``/``updated_at`` de ``TimeStampedModel``, sin
+        sólo tiene ``create_date``/``write_date`` de ``TimeStampedModel``, sin
         marca de "cuándo se validó". Se ordena por ``pk`` descendente, el
         proxy más cercano al orden cronológico disponible hoy.
 

@@ -258,13 +258,13 @@ def test_update_revoked_writes_through_the_orm(db):
     user = _make_user('revoca-fecha@ejemplo.mx')
     long_ago = timezone.now() - datetime.timedelta(days=30)
     row = _make_log(user, 'z' * 42, last_activity=long_ago)
-    ResDeviceLog.objects.filter(pk=row.pk).update(updated_at=long_ago)
+    ResDeviceLog.objects.filter(pk=row.pk).update(write_date=long_ago)
 
     ResDeviceLog._ResDeviceLog__update_revoked()
 
     row.refresh_from_db()
     assert row.revoked is True
-    assert row.updated_at > long_ago
+    assert row.write_date > long_ago
 
 
 def test_update_revoked_leaves_a_live_session_alone(db):

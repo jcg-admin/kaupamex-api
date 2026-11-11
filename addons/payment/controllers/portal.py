@@ -159,7 +159,7 @@ def payment_status(request, order_number):
 
     payment = (
         Payment.objects.filter(sale_order=order)
-        .order_by('-created_at', '-id').first()
+        .order_by('-create_date', '-id').first()
     )
     if payment is None:
         return Response(
@@ -195,5 +195,5 @@ def payment_history(request, order_number):
             status=status.HTTP_404_NOT_FOUND)
 
     payments = Payment.objects.filter(
-        sale_order=order).order_by('-created_at', '-id')
+        sale_order=order).order_by('-create_date', '-id')
     return Response(PaymentSerializer(payments, many=True).data)

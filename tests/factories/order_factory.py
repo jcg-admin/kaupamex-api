@@ -205,5 +205,5 @@ def mark_delivered(order, courier=None):
     else:
         guide.status = ShipmentGuide.STATUS_DELIVERED
         guide.delivered_at = timezone.now()
-        guide.save(update_fields=['status', 'delivered_at', 'updated_at'])
+        guide.save(update_fields=['status', 'delivered_at', 'write_date'])
     return order

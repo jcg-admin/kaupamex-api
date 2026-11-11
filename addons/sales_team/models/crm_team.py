@@ -86,7 +86,7 @@ class CrmTeam(TimeStampedModel):
     class Meta:
         db_table = 'crm_team'
         # Odoo _order = "sequence ASC, create_date DESC, id DESC".
-        ordering = ['sequence', '-created_at', '-id']
+        ordering = ['sequence', '-create_date', '-id']
         verbose_name = 'Equipo de venta'
         verbose_name_plural = 'Equipos de venta'
 

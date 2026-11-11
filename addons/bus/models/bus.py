@@ -118,7 +118,7 @@ class BusMessage(TimeStampedModel):
         qs = cls.objects.filter(channel__in=list(channels))
         if last == 0:
             qs = qs.filter(
-                created_at__gt=timezone.now()
+                create_date__gt=timezone.now()
                 - datetime.timedelta(
                     seconds=cls.BUFFER_SECONDS,
                 ),
@@ -167,5 +167,5 @@ class BusMessage(TimeStampedModel):
             )
         )
         corte = timezone.now() - datetime.timedelta(seconds=withholding)
-        borradas, _ = cls.objects.filter(created_at__lt=corte).delete()
+        borradas, _ = cls.objects.filter(create_date__lt=corte).delete()
         return borradas

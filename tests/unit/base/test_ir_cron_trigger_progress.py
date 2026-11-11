@@ -283,10 +283,10 @@ def test_commit_progress_accepts_an_explicit_remaining(cron):
 
 def test_the_progress_collector_sweeps_by_age(cron):
     """``_gc_cron_progress`` (``:929-933``) — la fuente filtra por
-    ``create_date``, que aqui es ``created_at``."""
+    ``create_date``, que aqui es ``create_date``."""
     _, progress = cron._add_progress()
     IrCronProgress.objects.filter(pk=progress.pk).update(
-        created_at=timezone.now() - timedelta(weeks=2)
+        create_date=timezone.now() - timedelta(weeks=2)
     )
     hechos, quedan = IrCronProgress._gc_cron_progress()
     assert hechos >= 1

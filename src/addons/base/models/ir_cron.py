@@ -1596,10 +1596,10 @@ class IrCronProgress(TimeStampedModel):
         """≙ ``_gc_cron_progress`` (``odoo19c: ir_cron.py:929-933``).
 
         Barre los avances de mas de una semana. La fuente filtra por
-        ``create_date``, que aqui es ``created_at`` de ``TimeStampedModel``.
+        ``create_date``, que aqui es ``create_date`` de ``TimeStampedModel``.
         """
         limite = timezone.now() - timedelta(weeks=1)
-        ids = list(cls.objects.filter(created_at__lt=limite)
+        ids = list(cls.objects.filter(create_date__lt=limite)
                    .values_list('pk', flat=True)[:GC_UNLINK_LIMIT])
         cls.objects.filter(pk__in=ids).delete()
         return len(ids), len(ids) == GC_UNLINK_LIMIT

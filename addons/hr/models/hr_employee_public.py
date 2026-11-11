@@ -143,7 +143,7 @@ class HrEmployeePublic(models.Model):
     create_date = fields.Datetime(
         null=True,
         blank=True,
-        help_text='Odoo create_date — en la vista sale de e.created_at.',
+        help_text='Odoo create_date — en la vista sale de e.create_date.',
     )
     # ≙ las otras tres columnas mágicas: con ``_log_access = True`` la
     # fuente las tiene en ``_fields`` y ``_get_fields`` las selecciona de
@@ -151,17 +151,17 @@ class HrEmployeePublic(models.Model):
     create_uid = fields.Many2one(
         'base.ResUsers', on_delete=models.DO_NOTHING, null=True, blank=True,
         db_constraint=False, related_name='+', db_column='create_uid',
-        help_text='Odoo create_uid — en la vista sale de e.create_uid_id.',
+        help_text='Odoo create_uid — en la vista sale de e.create_uid.',
     )
     write_date = fields.Datetime(
         null=True,
         blank=True,
-        help_text='Odoo write_date — en la vista sale de e.updated_at.',
+        help_text='Odoo write_date — en la vista sale de e.write_date.',
     )
     write_uid = fields.Many2one(
         'base.ResUsers', on_delete=models.DO_NOTHING, null=True, blank=True,
         db_constraint=False, related_name='+', db_column='write_uid',
-        help_text='Odoo write_uid — en la vista sale de e.write_uid_id.',
+        help_text='Odoo write_uid — en la vista sale de e.write_uid.',
     )
     name = fields.Char(blank=True, default='')
     active = fields.Boolean(default=True)
@@ -609,10 +609,10 @@ class HrEmployeePublic(models.Model):
                 'e.id AS employee_id',
                 'e.name AS name',
                 'e.active AS active',
-                'e.created_at AS create_date',
-                'e.create_uid_id AS create_uid',
-                'e.updated_at AS write_date',
-                'e.write_uid_id AS write_uid',
+                'e.create_date AS create_date',
+                'e.create_uid AS create_uid',
+                'e.write_date AS write_date',
+                'e.write_uid AS write_uid',
                 'v.department_id AS department_id',
                 'v.job_id AS job_id',
                 'e.company_id AS company_id',

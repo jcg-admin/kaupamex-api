@@ -19,6 +19,11 @@ class StaticPageVersionSerializer(serializers.ModelSerializer):
         default=None,
     )
 
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
+
     class Meta:
         model = StaticPageVersion
         fields = [
@@ -38,6 +43,8 @@ class StaticPageSerializer(serializers.ModelSerializer):
     slug_display = serializers.CharField(
         source='get_slug_display', read_only=True
     )
+
+    updated_at = serializers.DateTimeField(source='write_date', read_only=True)
 
     class Meta:
         model = StaticPage
@@ -77,6 +84,8 @@ class PublicStaticPageSerializer(serializers.ModelSerializer):
         source='get_slug_display', read_only=True
     )
 
+    updated_at = serializers.DateTimeField(source='write_date', read_only=True)
+
     class Meta:
         model = StaticPage
         fields = ['slug', 'slug_display', 'title', 'content', 'updated_at']
@@ -94,6 +103,11 @@ class SearchEntrySerializer(serializers.ModelSerializer):
     usa para agrupar repeticiones: "Camisa Azul" y "camisa  azul" son la
     misma búsqueda para quien la hizo.
     """
+
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
 
     class Meta:
         model = SearchEntry

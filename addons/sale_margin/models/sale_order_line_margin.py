@@ -72,7 +72,7 @@ class SaleOrderLineMargin(TimeStampedModel):
         Congela el costo actual del producto como snapshot (al confirmar).
         """
         self.purchase_price = self._cost_snapshot()
-        self.save(update_fields=['purchase_price', 'updated_at'])
+        self.save(update_fields=['purchase_price', 'write_date'])
         return self.purchase_price
 
     # margin = price_subtotal - purchase_price * qty (Odoo _compute_margin).

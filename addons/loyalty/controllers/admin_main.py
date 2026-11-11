@@ -63,7 +63,7 @@ class VoucherViewSet(ModelViewSet):
         'activate': 'vouchers.edit', 'deactivate': 'vouchers.edit',
     }
     serializer_class   = VoucherSerializer
-    queryset = Voucher.objects.all().order_by('-created_at', '-id')
+    queryset = Voucher.objects.all().order_by('-create_date', '-id')
     http_method_names  = ['get', 'post', 'patch', 'delete', 'head', 'options']
     # H-CICLO106-01: agregar paginacion al listado de admin para evitar OOM
     # en tiendas con muchas campanas de cupones. page_size=50 cubre el caso
@@ -109,7 +109,7 @@ class VoucherViewSet(ModelViewSet):
         instance.deleted_at     = now
         instance.save(update_fields=[
             'is_active', 'deactivated_at', 'deactivated_by',
-            'is_deleted', 'deleted_at', 'updated_at',
+            'is_deleted', 'deleted_at', 'write_date',
         ])
 
     @action(detail=True, methods=['post'], url_path='activate')
@@ -128,7 +128,16 @@ class VoucherViewSet(ModelViewSet):
             voucher.deleted_at      = None
             voucher.deactivated_at = None
             voucher.deactivated_by = None
-            voucher.save(update_fields=['is_active', 'is_deleted', 'deleted_at', 'deactivated_at', 'deactivated_by', 'updated_at'])
+            voucher.save(
+                update_fields=[
+                    'is_active',
+                    'is_deleted',
+                    'deleted_at',
+                    'deactivated_at',
+                    'deactivated_by',
+                    'write_date',
+                ],
+            )
         return Response(VoucherSerializer(voucher).data)
 
     @action(detail=True, methods=['post'], url_path='deactivate')
@@ -162,7 +171,14 @@ class VoucherViewSet(ModelViewSet):
             voucher.is_active      = False
             voucher.deactivated_at = timezone.now()
             voucher.deactivated_by = request.user
-            voucher.save(update_fields=['is_active', 'deactivated_at', 'deactivated_by', 'updated_at'])
+            voucher.save(
+                update_fields=[
+                    'is_active',
+                    'deactivated_at',
+                    'deactivated_by',
+                    'write_date',
+                ],
+            )
             VoucherChangeLog.objects.create(
                 voucher=voucher,
                 changed_by=request.user,

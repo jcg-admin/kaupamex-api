@@ -149,7 +149,7 @@ class MailNotification(TimeStampedModel):
 
     class Meta:
         db_table = 'mail_notification'
-        ordering = ['-created_at', '-id']
+        ordering = ['-create_date', '-id']
         verbose_name = 'Notificacion de mensaje'
         verbose_name_plural = 'Notificaciones de mensaje'
         indexes = [
@@ -176,6 +176,6 @@ class MailNotification(TimeStampedModel):
                 'is_read',
                 'read_date',
                 'notification_status',
-                'updated_at',
+                'write_date',
             ]
         )

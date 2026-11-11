@@ -55,7 +55,7 @@ def mark_sms_sent(notification):
     if notification.sms_id:
         notification.sms.mark_sent()
     notification.notification_status = MailNotification.STATUS_SENT
-    notification.save(update_fields=['notification_status', 'updated_at'])
+    notification.save(update_fields=['notification_status', 'write_date'])
 
 
 def mark_sms_error(notification, reason, failure_type=None):
@@ -74,6 +74,6 @@ def mark_sms_error(notification, reason, failure_type=None):
             'notification_status',
             'failure_type',
             'failure_reason',
-            'updated_at',
+            'write_date',
         ]
     )

@@ -72,7 +72,7 @@ class MailingSubscription(TimeStampedModel):
 
     class Meta:
         db_table = 'mailing_subscription'
-        ordering = ['-created_at', '-id']
+        ordering = ['-create_date', '-id']
         verbose_name = 'Suscripcion a lista de correo'
         verbose_name_plural = 'Suscripciones a listas de correo'
         constraints = [
@@ -103,11 +103,11 @@ class MailingSubscription(TimeStampedModel):
         self.confirmation_token = None
         self.save(update_fields=[
             'confirmed_at', 'opt_out', 'opt_out_datetime',
-            'confirmation_token', 'updated_at',
+            'confirmation_token', 'write_date',
         ])
 
     def unsubscribe(self):
         """Baja de ESTA lista (Odoo ``opt_out=True`` en la suscripcion)."""
         self.opt_out = True
         self.opt_out_datetime = timezone.now()
-        self.save(update_fields=['opt_out', 'opt_out_datetime', 'updated_at'])
+        self.save(update_fields=['opt_out', 'opt_out_datetime', 'write_date'])

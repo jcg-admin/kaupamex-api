@@ -192,7 +192,7 @@ def test_update_last_login_creates_one_row(user):
 
 
 def _stamp_logs(user, *offsets_in_seconds):
-    """Crea filas de acceso con ``created_at`` explícito.
+    """Crea filas de acceso con ``create_date`` explícito.
 
     Dentro de una transacción todas comparten ``cr.now()``; las fechas
     distintas se fijan después del alta, como harían transacciones separadas.
@@ -203,7 +203,7 @@ def _stamp_logs(user, *offsets_in_seconds):
         user._update_last_login()
         row = ResUsersLog.objects.filter(user=user).order_by('-id').first()
         ResUsersLog.objects.filter(pk=row.pk).update(
-            created_at=base + datetime.timedelta(seconds=offset))
+            create_date=base + datetime.timedelta(seconds=offset))
         rows.append(row.pk)
     return rows
 

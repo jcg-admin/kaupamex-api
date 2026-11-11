@@ -59,7 +59,7 @@ def _backdate(queryset, when):
     se retrocede la fecha con un ``UPDATE`` directo, sin pasar por
     ``save()`` (misma técnica usada para poblar rangos de tiempo en
     pruebas de KPI sin depender de ``freezegun``, ausente del proyecto)."""
-    queryset.update(created_at=when)
+    queryset.update(create_date=when)
 
 
 class TestGetMarginValue:

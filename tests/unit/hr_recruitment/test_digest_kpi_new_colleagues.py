@@ -107,7 +107,7 @@ class TestNewColleaguesCountsEmployeesOfTheCompany:
             name='Contratación vieja', company=company
         )
         HrEmployee.objects.filter(pk=employee.pk).update(
-            created_at=TODAY - timedelta(days=30)
+            create_date=TODAY - timedelta(days=30)
         )
         with user_scope(recruiter.pk):
             value = digest.compute_kpi_value(

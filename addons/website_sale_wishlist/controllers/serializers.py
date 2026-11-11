@@ -64,6 +64,9 @@ class WishlistItemSerializer(ModelSerializer):
     is_available = SerializerMethodField()
     stock = SerializerMethodField()
 
+    created_at = drf_serializers.DateTimeField(source='create_date',
+                                               read_only=True)
+
     class Meta:
         model = WishlistItem
         fields = [

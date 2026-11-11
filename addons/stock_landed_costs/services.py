@@ -155,7 +155,7 @@ def validate(cost):
         )
         _bump_avco(adj.product)
     cost.state = cost.STATE_DONE
-    cost.save(update_fields=['state', 'updated_at'])
+    cost.save(update_fields=['state', 'write_date'])
     return cost
 
 
@@ -171,4 +171,4 @@ def _bump_avco(product):
     value = valuation._product_value_svl(product)
     if qty > 0:
         costing.standard_price = (value / qty).quantize(Decimal('0.0001'))
-        costing.save(update_fields=['standard_price', 'updated_at'])
+        costing.save(update_fields=['standard_price', 'write_date'])

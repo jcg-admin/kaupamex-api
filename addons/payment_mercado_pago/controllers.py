@@ -271,7 +271,7 @@ class MercadoPagoWebhookView(APIView):
                 payment.mp_order_id = payment_id
                 update_fields.append('mp_order_id')
             if update_fields:
-                update_fields.append('updated_at')
+                update_fields.append('write_date')
                 payment.save(update_fields=update_fields)
 
         # Procesar según el estado
@@ -299,7 +299,7 @@ class MercadoPagoWebhookView(APIView):
             if payment:
                 with transaction.atomic():
                     payment.status = Payment.STATUS_FAILED
-                    payment.save(update_fields=['status', 'updated_at'])
+                    payment.save(update_fields=['status', 'write_date'])
                     PaymentGatewayEvent.objects.create(
                         payment=payment,
                         event_type=PaymentGatewayEvent.EVENT_PAYMENT_FAILED,
@@ -365,7 +365,7 @@ class MercadoPagoWebhookView(APIView):
             if not created:
                 cb.status = cb_status
                 cb.description = description
-                cb.save(update_fields=['status', 'description', 'updated_at'])
+                cb.save(update_fields=['status', 'description', 'write_date'])
 
         action = 'created' if created else 'updated'
         logger.info(

@@ -89,7 +89,7 @@ def test_detects_diverging_metadata():
     call_command('seed_authz')
     module = Module.objects.get(code='catalogue')
     module.category = 'Categoría inventada'
-    module.save(update_fields=['category', 'updated_at'])
+    module.save(update_fields=['category', 'write_date'])
 
     out = io.StringIO()
     with pytest.raises(CommandError):

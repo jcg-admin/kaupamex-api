@@ -3,9 +3,9 @@ odoo/orm/model_classes.py:216-220``.
 
 Oráculo literal: *"TransientModels must have log_access turned on, in order
 to implement their vacuum policy"*, como ``TypeError``, antes de inscribir el
-modelo. Aquí ``_log_access`` son las columnas ``created_at`` y ``updated_at``
+modelo. Aquí ``_log_access`` son las columnas ``create_date`` y ``write_date``
 (``LOG_ACCESS_COLUMNS``), que ``TransientModel`` declara: la limpieza barre por
-``updated_at``.
+``write_date``.
 
 Mutaciones que lo hacen caer: no conectar la comprobación a la construcción
 de la clase (cae la del modelo construido); aceptar un transitorio sin
@@ -37,9 +37,9 @@ def _dates():
     """Las cuatro columnas de ``LOG_ACCESS_COLUMNS``: las fechas y la
     autoría, como enteros porque ``isolate_apps`` no trae ``res.users``."""
     return {'create_uid': models.IntegerField(null=True),
-            'created_at': models.DateTimeField(null=True),
+            'create_date': models.DateTimeField(null=True),
             'write_uid': models.IntegerField(null=True),
-            'updated_at': models.DateTimeField(null=True)}
+            'write_date': models.DateTimeField(null=True)}
 
 
 class TestTheCheck:

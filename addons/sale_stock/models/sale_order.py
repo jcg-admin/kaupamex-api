@@ -92,5 +92,5 @@ class SaleOrderDelivery(TimeStampedModel):
 
     def refresh_status(self) -> str | None:
         self.delivery_status = self.compute_status()
-        self.save(update_fields=['delivery_status', 'updated_at'])
+        self.save(update_fields=['delivery_status', 'write_date'])
         return self.delivery_status

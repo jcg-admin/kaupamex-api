@@ -244,5 +244,5 @@ def load_modules(using):
                 if install:
                     row.state = IrModule.STATE_INSTALLED
                     row.save(using=using,
-                             update_fields=['state', 'updated_at'])
+                             update_fields=['state', 'write_date'])
                 environment.flush_all()

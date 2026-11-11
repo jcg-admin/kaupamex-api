@@ -42,6 +42,11 @@ class PaymentSerializer(serializers.ModelSerializer):
         source='sale_order.name', read_only=True
     )
 
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
+
     class Meta:
         model = Payment
         fields = [

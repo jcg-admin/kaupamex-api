@@ -26,7 +26,7 @@ class SupportTicketReply(TimeStampedModel):
 
     class Meta:
         db_table = 'support_ticket_reply'
-        ordering = ['created_at']
+        ordering = ['create_date']
         verbose_name = 'Respuesta de ticket'
         verbose_name_plural = 'Respuestas de ticket'
 

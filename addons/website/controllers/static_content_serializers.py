@@ -7,6 +7,11 @@ from addons.website.models import StaticContent, StaticContentVersion
 class StaticContentVersionSerializer(serializers.ModelSerializer):
     changed_by_username = serializers.SerializerMethodField()
 
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
+
     class Meta:
         model = StaticContentVersion
         fields = [
@@ -26,6 +31,8 @@ class StaticContentVersionSerializer(serializers.ModelSerializer):
 
 class StaticContentSerializer(serializers.ModelSerializer):
     versions = StaticContentVersionSerializer(many=True, read_only=True)
+
+    updated_at = serializers.DateTimeField(source='write_date', read_only=True)
 
     class Meta:
         model = StaticContent

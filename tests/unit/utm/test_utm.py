@@ -343,7 +343,7 @@ class TestUtmSource:
 
         assert 'Spring sale' in generated
         assert 'Campaign Stage' in generated  # ≙ ``_description``
-        assert stage.created_at.date().isoformat() in generated
+        assert stage.create_date.date().isoformat() in generated
 
     def test_generate_name_truncates_long_content(self):
         stage = UtmStage.objects.create(name='Ideas')

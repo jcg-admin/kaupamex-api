@@ -95,7 +95,7 @@ class SupportTicket(
 
     class Meta:
         db_table = 'support_ticket'
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         verbose_name = 'Ticket de soporte'
         verbose_name_plural = 'Tickets de soporte'
         indexes = [
@@ -129,9 +129,9 @@ class SupportTicket(
         ticket_ids = list(
             cls.objects.filter(
                 status=cls.Status.AWAITING_USER,
-                updated_at__lte=umbral,
+                write_date__lte=umbral,
             )
-            .order_by('updated_at')
+            .order_by('write_date')
             .values_list('pk', flat=True)[:batch_size]
         )
 
@@ -168,7 +168,7 @@ class SupportTicket(
             # _closed_by_staff=True → el signal notifica como staff.
             ticket._closed_by_staff = True
             ticket.status = cls.Status.CLOSED
-            ticket.save(update_fields=['status', 'updated_at'])
+            ticket.save(update_fields=['status', 'write_date'])
 
             SupportTicketReply.objects.create(
                 ticket=ticket,

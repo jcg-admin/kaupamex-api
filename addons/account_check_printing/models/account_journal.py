@@ -169,7 +169,7 @@ class CheckPrintingJournalSettings(TimeStampedModel):
             number_increment=1,
             company=journal.company,
         )
-        row.save(update_fields=['sequence', 'updated_at'])
+        row.save(update_fields=['sequence', 'write_date'])
         return row
 
     @classmethod
@@ -229,7 +229,7 @@ class CheckPrintingJournalSettings(TimeStampedModel):
         row.sequence.save(update_fields=['number_next', 'padding'])
         if row is not self:
             self.sequence = row.sequence
-            self.save(update_fields=['sequence', 'updated_at'])
+            self.save(update_fields=['sequence', 'write_date'])
 
     # -- diseño --------------------------------------------------------------
 

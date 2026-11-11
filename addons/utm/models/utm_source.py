@@ -122,10 +122,10 @@ class UtmSource(TimeStampedModel):
         if len(content) >= 24:
             content = f'{content[:20]}...'
 
-        # ``created_at`` es el ``create_date`` de la fuente
+        # ``create_date`` es el ``create_date`` de la fuente
         # (``TimeStampedModel``); ``timezone.now()`` su
         # ``fields.Datetime.today()``.
-        create_date = getattr(record, 'created_at', None) or timezone.now()
+        create_date = getattr(record, 'create_date', None) or timezone.now()
         model_description = getattr(
             type(record), '_description', type(record).__name__
         )

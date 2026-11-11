@@ -185,7 +185,7 @@ class PayPalWebhookView(APIView):
                 capture_id = capture_result['capture_id']
                 payment.gateway_payment_id = capture_id
                 payment.save(
-                    update_fields=['gateway_payment_id', 'updated_at']
+                    update_fields=['gateway_payment_id', 'write_date']
                 )
             except Exception as exc:
                 # DEC-BC-06: 500 — fallo interno al capturar. PayPal
@@ -217,7 +217,7 @@ class PayPalWebhookView(APIView):
                     if payment:
                         payment.gateway_payment_id = capture_id
                         payment.save(
-                            update_fields=['gateway_payment_id', 'updated_at']
+                            update_fields=['gateway_payment_id', 'write_date']
                         )
 
             if payment:
@@ -247,7 +247,7 @@ class PayPalWebhookView(APIView):
             if payment:
                 with transaction.atomic():
                     payment.status = Payment.STATUS_FAILED
-                    payment.save(update_fields=['status', 'updated_at'])
+                    payment.save(update_fields=['status', 'write_date'])
                     PaymentGatewayEvent.objects.create(
                         payment=payment,
                         event_type=PaymentGatewayEvent.EVENT_PAYMENT_FAILED,

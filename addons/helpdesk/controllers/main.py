@@ -100,7 +100,7 @@ def _get_ticket_for_user(ticket_id, user):
 
 
 def _annotate_first_response(qs):
-    """Anota ``first_response_at``: created_at de la primera respuesta de
+    """Anota ``first_response_at``: create_date de la primera respuesta de
     staff no interna de cada ticket. UC-SUPP-05 (T-009) — metrica de
     tiempo-medio-de-primera-respuesta y columna de export CSV.
 
@@ -117,8 +117,8 @@ def _annotate_first_response(qs):
             author__role_assignments__role__code=SUPERADMIN_ROLE_CODE,
             is_internal_note=False,
         )
-        .order_by('created_at', 'id')
-        .values('created_at')[:1]
+        .order_by('create_date', 'id')
+        .values('create_date')[:1]
     )
     return qs.annotate(first_response_at=Subquery(first_staff_reply_qs))
 
@@ -149,9 +149,9 @@ def _apply_admin_filters(qs, params):
     if params.get('category'):
         qs = qs.filter(category=params['category'])
     if params.get('created_from'):
-        qs = qs.filter(created_at__gte=params['created_from'])
+        qs = qs.filter(create_date__gte=params['created_from'])
     if params.get('created_to'):
-        qs = qs.filter(created_at__lte=params['created_to'])
+        qs = qs.filter(create_date__lte=params['created_to'])
     # H-CICLO23-04: `user_id` filtra por el comprador propietario del ticket.
     if params.get('user_id'):
         qs = qs.filter(user_id=params['user_id'])
@@ -188,7 +188,7 @@ class SupportTicketListCreateView(APIView):
         # los tickets en memoria. Sin paginacion, compradores con muchos
         # tickets producian respuestas lentas y alto consumo de RAM.
         qs = SupportTicket.objects.filter(
-            user=request.user).order_by('-created_at', '-id')
+            user=request.user).order_by('-create_date', '-id')
         paginator = _BuyerTicketPagination()
         page = paginator.paginate_queryset(qs, request)
         if page is not None:
@@ -244,13 +244,13 @@ class SupportTicketListCreateView(APIView):
             user=request.user,
             category=category,
             status__in=ACTIVE_TICKET_STATUSES,
-            created_at__gte=threshold,
+            create_date__gte=threshold,
         )
         if payload.get('order_id'):
             duplicate_qs = duplicate_qs.filter(order_id=payload['order_id'])
         else:
             duplicate_qs = duplicate_qs.filter(order_id__isnull=True)
-        existing = duplicate_qs.order_by('-created_at', '-id').first()
+        existing = duplicate_qs.order_by('-create_date', '-id').first()
         if existing is not None:
             return Response(
                 {
@@ -343,7 +343,7 @@ class SupportTicketReplyView(APIView):
                     ticket.status = SupportTicket.Status.AWAITING_USER
                 else:
                     ticket.status = SupportTicket.Status.IN_PROGRESS
-                ticket.save(update_fields=['status', 'updated_at'])
+                ticket.save(update_fields=['status', 'write_date'])
 
         return Response(
             SupportTicketReplySerializer(reply).data,
@@ -360,7 +360,8 @@ class SupportTicketCloseView(APIView):
     serializer_class = SupportTicketCloseSerializer
 
     @extend_schema(
-        summary='[DEPRECATED → PATCH /api/v2/support/tickets/<id>/status/] Cerrar ticket',
+        summary='[DEPRECATED → PATCH /api/v2/support/tickets/<id>/status/] '
+                'Cerrar ticket',
         deprecated=True,
         tags=['support'],
         request=SupportTicketCloseSerializer,
@@ -401,7 +402,7 @@ class SupportTicketCloseView(APIView):
             # signal (True) se aplicaba tambien al cierre por comprador.
             ticket._closed_by_staff = is_superadmin(request.user)
             ticket.status = SupportTicket.Status.CLOSED
-            ticket.save(update_fields=['status', 'updated_at'])
+            ticket.save(update_fields=['status', 'write_date'])
 
             SupportTicketReply.objects.create(
                 ticket=ticket,
@@ -413,7 +414,7 @@ class SupportTicketCloseView(APIView):
         return Response({
             'ticket_id': ticket.pk,
             'status': ticket.status,
-            'closed_at': ticket.updated_at,
+            'closed_at': ticket.write_date,
             'closed_by': 'ADMIN' if is_superadmin(request.user) else 'BUYER',
         })
 
@@ -426,7 +427,8 @@ class SupportTicketReopenView(APIView):
     serializer_class = SupportTicketDetailSerializer
 
     @extend_schema(
-        summary='[DEPRECATED → PATCH /api/v2/support/tickets/<id>/status/] Reabrir ticket',
+        summary='[DEPRECATED → PATCH /api/v2/support/tickets/<id>/status/] '
+                'Reabrir ticket',
         deprecated=True,
         tags=['support'],
         responses={
@@ -445,7 +447,8 @@ class SupportTicketReopenView(APIView):
         # H-CICLO111-02: envolver en transaction.atomic() para serializar
         # reaperturas concurrentes del mismo ticket. Sin atomic, dos requests
         # simultáneos pasan el chequeo status==CLOSED y ambos ejecutan el
-        # save(), produciendo doble transición y potencial estado inconsistente.
+        # save(), produciendo doble transición y potencial estado
+        # inconsistente.
         with transaction.atomic():
             ticket = SupportTicket.objects.select_for_update().filter(
                 pk=ticket_id
@@ -459,11 +462,11 @@ class SupportTicketReopenView(APIView):
                     status=status.HTTP_409_CONFLICT,
                 )
             ticket.status = SupportTicket.Status.OPEN
-            ticket.save(update_fields=['status', 'updated_at'])
+            ticket.save(update_fields=['status', 'write_date'])
         return Response({
             'ticket_id': ticket.pk,
             'status': ticket.status,
-            'reopened_at': ticket.updated_at,
+            'reopened_at': ticket.write_date,
         })
 
 
@@ -501,7 +504,7 @@ class AdminSupportTicketListView(APIView):
         qs, error = _apply_admin_filters(qs, request.query_params)
         if error is not None:
             return error
-        qs = qs.select_related('user').order_by('created_at', 'id')
+        qs = qs.select_related('user').order_by('create_date', 'id')
 
         # Metrics (global, not filtered)
         all_tickets = SupportTicket.objects.all()
@@ -515,7 +518,7 @@ class AdminSupportTicketListView(APIView):
             .filter(first_response_at__isnull=False)
             .annotate(
                 response_time=ExpressionWrapper(
-                    F('first_response_at') - F('created_at'),
+                    F('first_response_at') - F('create_date'),
                     output_field=DurationField(),
                 )
             )
@@ -590,14 +593,14 @@ class AdminSupportTicketExportCSVView(APIView):
         if error is not None:
             return error
         qs = _annotate_first_response(qs).select_related('user').order_by(
-            'created_at', 'id'
+            'create_date', 'id'
         )
 
         buf = io.StringIO()
         writer = csv.writer(buf)
         writer.writerow([
             'id', 'asunto', 'estado', 'prioridad', 'categoria',
-            'comprador_email', 'created_at', 'primera_respuesta',
+            'comprador_email', 'create_date', 'primera_respuesta',
         ])
         for ticket in qs:
             writer.writerow([
@@ -607,7 +610,7 @@ class AdminSupportTicketExportCSVView(APIView):
                 ticket.priority,
                 ticket.category,
                 ticket.user.email if ticket.user_id else '',
-                ticket.created_at.isoformat(),
+                ticket.create_date.isoformat(),
                 ticket.first_response_at.isoformat()
                 if ticket.first_response_at else '',
             ])

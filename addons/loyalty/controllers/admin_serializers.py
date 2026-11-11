@@ -9,6 +9,13 @@ from addons.loyalty.models import Voucher, VoucherChangeLog
 class VoucherSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
 
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
+
+    updated_at = serializers.DateTimeField(source='write_date', read_only=True)
+
     class Meta:
         model = Voucher
         fields = [

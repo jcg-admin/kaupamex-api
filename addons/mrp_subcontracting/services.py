@@ -116,5 +116,5 @@ def subcontract_produce(production, service_cost):
         valuation.value_move(move, unit_cost=unit_cost)
 
     production.state = production.STATE_DONE
-    production.save(update_fields=['state', 'updated_at'])
+    production.save(update_fields=['state', 'write_date'])
     return unit_cost

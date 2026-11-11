@@ -22,8 +22,13 @@ class CourierSerializer(serializers.ModelSerializer):
 
 
 class ShipmentEventSerializer(serializers.ModelSerializer):
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
+
     class Meta:
-        model  = ShipmentEvent
+        model = ShipmentEvent
         fields = ['id', 'status', 'description', 'occurred_at', 'created_at']
 
 
@@ -38,8 +43,13 @@ class ShipmentGuideSerializer(serializers.ModelSerializer):
     order_number = serializers.CharField(source='sale_order.name', read_only=True)
     last_event   = serializers.SerializerMethodField()
 
+    created_at = serializers.DateTimeField(
+        source='create_date',
+        read_only=True,
+    )
+
     class Meta:
-        model  = ShipmentGuide
+        model = ShipmentGuide
         fields = [
             'id', 'sale_order', 'order_number', 'courier', 'courier_id',
             'tracking_number', 'tracking_url', 'status', 'delivered_at',

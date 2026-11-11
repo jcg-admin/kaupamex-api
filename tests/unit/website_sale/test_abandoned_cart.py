@@ -120,7 +120,7 @@ def make_cart(
 ):
     """Un carrito con la antigüedad y los rasgos que el caso necesite.
 
-    ``created_at`` se alinea con ``date_order``: es ``auto_now_add``, así que
+    ``create_date`` se alinea con ``date_order``: es ``auto_now_add``, así que
     hay que reescribirlo por ``update()`` para fabricar un pedido viejo. Sin
     esa alineación todo pedido nacería «ahora» y
     ``_filter_can_send_abandoned_cart_mail`` —que compara ``create_date``
@@ -130,7 +130,7 @@ def make_cart(
     order = SaleOrder.objects.create(
         state=state, partner=buyer, date_order=born
     )
-    SaleOrder.objects.filter(pk=order.pk).update(created_at=born)
+    SaleOrder.objects.filter(pk=order.pk).update(create_date=born)
     order.refresh_from_db()
     if with_line:
         SaleOrderLine.objects.create(

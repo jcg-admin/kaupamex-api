@@ -304,7 +304,7 @@ class TestActionAddEntirePacks:
     def test_done_picking_returns_false(self, picking, variant, source):
         package, _quant = _package_with_quant(variant, source)
         picking.state = StockPicking.STATE_DONE
-        picking.save(update_fields=['state', 'updated_at'])
+        picking.save(update_fields=['state', 'write_date'])
         assert picking.action_add_entire_packs([package.pk]) is False
 
 
@@ -312,7 +312,7 @@ class TestActionPutInPack:
     def test_done_picking_returns_none(self, picking):
         # odoo19c :1765 — sólo delega con el albarán sin terminar/cancelar.
         picking.state = StockPicking.STATE_DONE
-        picking.save(update_fields=['state', 'updated_at'])
+        picking.save(update_fields=['state', 'write_date'])
         assert picking.action_put_in_pack() is None
 
     def test_delegates_to_the_move_lines(
@@ -357,7 +357,7 @@ class TestPackagesCount:
         )
         history.picking_ids.add(picking)
         picking.state = StockPicking.STATE_DONE
-        picking.save(update_fields=['state', 'updated_at'])
+        picking.save(update_fields=['state', 'write_date'])
         assert picking.packages_count == 1
 
     def test_package_history_ids_is_the_m2m_reverse(
@@ -394,7 +394,7 @@ class TestShowCheckAvailability:
         # odoo19c :964-980 — confirmado + demanda sin cubrir + movimiento
         # pendiente de cantidad no nula.
         picking.state = StockPicking.STATE_CONFIRMED
-        picking.save(update_fields=['state', 'updated_at'])
+        picking.save(update_fields=['state', 'write_date'])
         self._move(picking, variant, source, destination, company)
         assert picking.show_check_availability is True
 
@@ -402,7 +402,7 @@ class TestShowCheckAvailability:
         self, picking, variant, source, destination, company
     ):
         picking.state = StockPicking.STATE_DRAFT
-        picking.save(update_fields=['state', 'updated_at'])
+        picking.save(update_fields=['state', 'write_date'])
         self._move(picking, variant, source, destination, company)
         assert picking.show_check_availability is False
 
@@ -411,7 +411,7 @@ class TestShowCheckAvailability:
     ):
         # odoo19c :972-974 — ``m.picked or product_uom_qty == quantity``.
         picking.state = StockPicking.STATE_CONFIRMED
-        picking.save(update_fields=['state', 'updated_at'])
+        picking.save(update_fields=['state', 'write_date'])
         self._move(
             picking,
             variant,

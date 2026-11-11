@@ -375,3 +375,19 @@ class TestTheMetaclassDeclaresTheAuthorshipColumns:
         forms = {name: form for _k, name, form in gate.declarations(path)}
 
         assert forms == {'create_uid': 'C', 'write_uid': 'B'}
+
+    def test_the_log_access_constructor_is_measured(self, tmp_path):
+        """``LogAccessUserField`` es un ``ForeignKey``: sin reconocerlo, el
+        gate no ve las columnas de autoría que declara la base común."""
+        path = tmp_path / 'timestamped_mixin.py'
+        path.write_text(
+            'from django.db import models\n'
+            '\n'
+            'class TimeStampedModel(models.Model):\n'
+            '    create_uid = LogAccessUserField('
+            '\'base.ResUsers\', db_column=\'create_uid\')\n'
+        )
+
+        forms = {name: form for _k, name, form in gate.declarations(path)}
+
+        assert forms == {'create_uid': 'C'}

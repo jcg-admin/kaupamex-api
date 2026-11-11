@@ -284,11 +284,11 @@ class WebsitePage(
         """
         ≙ ``view_write_date`` (``related='view_id.write_date'``, ``:43-44``).
 
-        ``write_date`` de la referencia es ``updated_at`` en
+        ``write_date`` de la referencia es ``write_date`` en
         ``TimeStampedModel`` — la equivalencia ya declarada por el porte de
         B1 de ``website.py``.
         """
-        return self.view.updated_at if self.view_id else None
+        return self.view.write_date if self.view_id else None
 
     @property
     def arch(self):

@@ -80,8 +80,12 @@ REFERENCE_19C = _tree('odoo19c')
 #: Los constructores de UN solo valor relacional. ``fields.Many2one`` es
 #: nuestro despachador (``src/orm/fields_relational.py``): con ``store=True``
 #: devuelve un ``models.ForeignKey``, así que las dos formas de declararlo
-#: producen los mismos tres ejes y las dos se miden.
-SINGLE_VALUED = ('Many2one', 'ForeignKey', 'OneToOneField')
+#: producen los mismos tres ejes y las dos se miden. ``LogAccessUserField``
+#: es el ``ForeignKey`` de las columnas de autoría
+# (``orm/fields_temporal.py``).
+SINGLE_VALUED = (
+    'Many2one', 'ForeignKey', 'OneToOneField', 'LogAccessUserField',
+)
 
 #: Raíces del monolito modular. ``addons`` son los de comunidad portados;
 #: ``src`` es el núcleo espejado.

@@ -238,7 +238,7 @@ def alert_date_exceeded(cls):
         if lote.pk not in with_stock:
             continue
         lote.product_expiry_reminded = True
-        lote.save(update_fields=['product_expiry_reminded', 'updated_at'])
+        lote.save(update_fields=['product_expiry_reminded', 'write_date'])
         marcados.append(lote)
     return marcados
 

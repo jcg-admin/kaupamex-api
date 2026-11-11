@@ -142,7 +142,7 @@ def test_copied_price_is_immutable_after_rate_change():
     sub.save()
     # Cambio de tarifa: cerrar la vieja, abrir una nueva más cara.
     old.effective_to = now
-    old.save(update_fields=['effective_to', 'updated_at'])
+    old.save(update_fields=['effective_to', 'write_date'])
     ModulePrice.objects.create(
         module=m,
         billing_cycle=ModulePrice.BillingCycle.MONTHLY,

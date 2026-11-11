@@ -79,7 +79,8 @@ class CourierWebhookView(APIView):
         description=(
             'Recibe cambios de estado de envío desde la plataforma del '
             'courier. Verifica la firma HMAC-SHA256 (header X-Signature) con '
-            'el secreto compartido del courier antes de procesar. Idempotente: '
+            'el secreto compartido del courier antes de procesar. '
+            'Idempotente: '
             'reenviar el mismo evento no duplica el historial. El PATCH admin '
             'manual (LOG-02) sigue disponible como fallback.'
         ),
@@ -185,7 +186,8 @@ class CourierWebhookView(APIView):
             )
             return Response({'status': 'already_processed', 'guide_status': guide.status}, status=200)
 
-        # Transacción atómica: update de la guía + create del evento append-only.
+        # Transacción atómica: update de la guía + create del evento
+        # append-only.
         # recorded_by=None: lo registró el sistema del courier, no un admin.
         with transaction.atomic():
             guide_locked = ShipmentGuide.objects.select_for_update().get(pk=guide.pk)
@@ -198,7 +200,7 @@ class CourierWebhookView(APIView):
                     status=200,
                 )
             guide_locked.status = new_status
-            guide_locked.save(update_fields=['status', 'updated_at'])
+            guide_locked.save(update_fields=['status', 'write_date'])
             ShipmentEvent.objects.create(
                 guide=guide_locked, status=new_status,
                 description=note, occurred_at=occurred_at, recorded_by=None,

@@ -12,8 +12,8 @@ mixin) queda como alternativa diferida en DEC-09 de
 vivían juntos en ``mixins.py``, agrupados por naturaleza ("son mixins") —
 agrupación que la referencia no hace.
 
-Equivale al log-access de la referencia: ``create_date`` → ``created_at``,
-``write_date`` → ``updated_at``.
+Equivale al log-access de la referencia: ``create_date`` → ``create_date``,
+``write_date`` → ``write_date``.
 
 **Es también el hogar de lo que la referencia cuelga de ``BaseModel``.**
 ``RecordLoaderMixin`` (``orm/models.py``) porta ``_load_records`` y su cadena,
@@ -92,12 +92,12 @@ class TimeStampedModel(
     models.Model,
 ):
     """
-    Clase base abstracta que provee created_at y updated_at a todos
+    Clase base abstracta que provee create_date y write_date a todos
     los modelos que hereden de ella.
 
     Usar en TODOS los modelos concretos del proyecto excepto User.
     No incluye ordering — cada modelo define el suyo.
-    No incluye db_index en created_at — los modelos que requieren
+    No incluye db_index en create_date — los modelos que requieren
     índice por volumen (inventario, órdenes) lo declaran directamente.
     """
 
@@ -120,10 +120,10 @@ class TimeStampedModel(
     #: auto-creó: un modelo sin manager propio lo recibe, y uno que declara el
     #: suyo lo conserva. Ver :ref:`h-api-876`.
 
-    created_at = TransactionDateTimeField(
+    create_date = TransactionDateTimeField(
         auto_now_add=True,
     )
-    updated_at = TransactionDateTimeField(
+    write_date = TransactionDateTimeField(
         auto_now=True,
     )
     #: ≙ ``create_uid``/``write_uid`` de ``_log_access`` (``odoo19c:
@@ -133,13 +133,15 @@ class TimeStampedModel(
     create_uid = LogAccessUserField(
         'base.ResUsers', models.SET_NULL, null=True, blank=True,
         editable=False, related_name='+', db_index=False,
+        db_column='create_uid',
         stamp_on_create_only=True,
     )
     write_uid = LogAccessUserField(
         'base.ResUsers', models.SET_NULL, null=True, blank=True,
         editable=False, related_name='+', db_index=False,
+        db_column='write_uid',
     )
 
     class Meta:
         abstract = True
-        get_latest_by = 'created_at'
+        get_latest_by = 'create_date'

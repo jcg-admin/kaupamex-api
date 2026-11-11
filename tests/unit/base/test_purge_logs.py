@@ -18,7 +18,7 @@ El archivo vive aqui porque el sujeto del test —el **comando**— se mudo con 
 modelo al disolverse ``observability`` (H-API-752). La politica que el comando
 invoca tiene su propio test en ``tests/unit/base/test_ir_logging.py``.
 
-``created_at`` es ``auto_now_add`` → se fuerza con ``queryset.update`` para
+``create_date`` es ``auto_now_add`` → se fuerza con ``queryset.update`` para
 simular antiguedad. Toca DB → ``django_db``.
 """
 
@@ -36,7 +36,7 @@ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
 def _age(model, pk, days):
     model.objects.filter(pk=pk).update(
-        created_at=timezone.now() - timedelta(days=days)
+        create_date=timezone.now() - timedelta(days=days)
     )
 
 

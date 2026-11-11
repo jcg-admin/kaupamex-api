@@ -45,12 +45,12 @@ class ContactMessage(TimeStampedModel, SoftDeleteModel):
 
     class Meta:
         db_table = 'contact_message'
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         verbose_name = 'Mensaje de contacto'
         verbose_name_plural = 'Mensajes de contacto'
         indexes = [
             models.Index(fields=['read']),
-            models.Index(fields=['-created_at']),
+            models.Index(fields=['-create_date']),
         ]
 
     def __str__(self):

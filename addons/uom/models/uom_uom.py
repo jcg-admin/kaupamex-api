@@ -301,9 +301,9 @@ class Uom(TimeStampedModel):
         """
         if not type(self).filter_protected_uoms([self]):
             return None
-        if self.created_at is None:
+        if self.create_date is None:
             return None
-        if self.created_at >= timezone.now() - CRITICAL_CHANGE_GRACE:
+        if self.create_date >= timezone.now() - CRITICAL_CHANGE_GRACE:
             return None
         return (
             'Se han modificado campos críticos de %s.\n'

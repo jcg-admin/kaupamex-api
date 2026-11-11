@@ -69,14 +69,14 @@ def receive(product, quantity, unit_cost, move=None, cost_method=None):
             costing.standard_price = (value_on_hand / qty_on_hand).quantize(
                 Decimal('0.0001')
             )
-            costing.save(update_fields=['standard_price', 'updated_at'])
+            costing.save(update_fields=['standard_price', 'write_date'])
     elif (
         costing.cost_method == ProductCosting.COST_STANDARD
         and costing.standard_price == 0
     ):
         # Estándar sin costo fijado aún: adopta el costo de la primera entrada.
         costing.standard_price = unit_cost.quantize(Decimal('0.0001'))
-        costing.save(update_fields=['standard_price', 'updated_at'])
+        costing.save(update_fields=['standard_price', 'write_date'])
     return layer
 
 
@@ -135,7 +135,7 @@ def _run_fifo(product, quantity):
         candidate.remaining_qty = candidate.remaining_qty - qty_taken
         candidate.remaining_value = candidate.remaining_value - value_taken
         candidate.save(
-            update_fields=['remaining_qty', 'remaining_value', 'updated_at']
+            update_fields=['remaining_qty', 'remaining_value', 'write_date']
         )
         qty_to_take -= qty_taken
         tmp_value += value_taken

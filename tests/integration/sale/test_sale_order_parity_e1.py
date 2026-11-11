@@ -53,7 +53,7 @@ class TestCarrierParity:
             name='Estándar E1', cost=Decimal('99.00'), estimated_days=3
         )
         draft.carrier = metodo
-        draft.save(update_fields=['carrier', 'updated_at'])
+        draft.save(update_fields=['carrier', 'write_date'])
 
         draft.refresh_from_db()
         assert draft.carrier_id == metodo.pk
@@ -65,7 +65,7 @@ class TestCarrierParity:
             name='Temporal E1', cost=Decimal('50.00'), estimated_days=2
         )
         draft.carrier = metodo
-        draft.save(update_fields=['carrier', 'updated_at'])
+        draft.save(update_fields=['carrier', 'write_date'])
 
         metodo.delete()
 
@@ -78,7 +78,7 @@ class TestCarrierParity:
             name='Inverso E1', cost=Decimal('120.00'), estimated_days=5
         )
         draft.carrier = metodo
-        draft.save(update_fields=['carrier', 'updated_at'])
+        draft.save(update_fields=['carrier', 'write_date'])
 
         assert list(metodo.sale_orders.all()) == [draft]
 
@@ -101,7 +101,7 @@ class TestCancellationParity:
                 'state',
                 'cancellation_reason',
                 'cancelled_at',
-                'updated_at',
+                'write_date',
             ]
         )
 
@@ -125,7 +125,7 @@ class TestCancellationParity:
                 'admin_cancelled_by',
                 'cancellation_reason',
                 'cancelled_at',
-                'updated_at',
+                'write_date',
             ]
         )
 
@@ -148,7 +148,7 @@ class TestCancellationParity:
                 'admin_cancelled_by',
                 'cancellation_reason',
                 'cancelled_at',
-                'updated_at',
+                'write_date',
             ]
         )
 

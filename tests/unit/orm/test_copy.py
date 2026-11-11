@@ -104,8 +104,8 @@ class TestMagicColumns:
         Las cuatro de la fuente: dos de autoría y dos fechas, éstas con el
         nombre de este árbol (``designs/log-access-columns-audit.md``).
         """
-        assert LOG_ACCESS_COLUMNS == ['create_uid', 'created_at',
-                                      'write_uid', 'updated_at']
+        assert LOG_ACCESS_COLUMNS == ['create_uid', 'create_date',
+                                      'write_uid', 'write_date']
         assert set(LOG_ACCESS_COLUMNS) <= set(MAGIC_COLUMNS)
 
 

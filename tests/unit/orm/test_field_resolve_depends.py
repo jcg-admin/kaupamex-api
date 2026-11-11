@@ -115,9 +115,9 @@ class DependsWizard(django_models.Model):
     #: Las fechas de acceso: el registro rechaza un transitorio sin ellas
     #: (``check_transient_log_access``), igual que la fuente.
     create_uid = django_models.IntegerField(null=True)
-    created_at = django_models.DateTimeField(null=True)
+    create_date = django_models.DateTimeField(null=True)
     write_uid = django_models.IntegerField(null=True)
-    updated_at = django_models.DateTimeField(null=True)
+    write_date = django_models.DateTimeField(null=True)
 
     class Meta:
         app_label = 'base'

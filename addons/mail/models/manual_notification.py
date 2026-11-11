@@ -59,7 +59,7 @@ class ManualNotification(TimeStampedModel):
 
     class Meta:
         db_table = 'notifications_manual'
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         verbose_name = 'Notificacion manual'
         verbose_name_plural = 'Notificaciones manuales'
 

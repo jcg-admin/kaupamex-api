@@ -218,7 +218,7 @@ class HrWorkEntry(TimeStampedModel):
 
     class Meta:
         db_table = 'hr_work_entry'
-        ordering = ['created_at']  # ≙ _order = 'create_date'
+        ordering = ['create_date']  # ≙ _order = 'create_date'
         verbose_name = 'Entrada de trabajo'
         verbose_name_plural = 'Entradas de trabajo'
         indexes = [

@@ -86,7 +86,7 @@ class SignalCloseTest(TestCase):
         ticket._closed_by_staff = True
         ticket.status = SupportTicket.Status.CLOSED
         with self.captureOnCommitCallbacks(execute=True):
-            ticket.save(update_fields=['status', 'updated_at'])
+            ticket.save(update_fields=['status', 'write_date'])
         self.assertEqual(
             Notification.objects.filter(
                 user=self.user, type=NotificationType.SUPPORT_UPDATE
@@ -99,7 +99,7 @@ class SignalCloseTest(TestCase):
         # Guardar de nuevo sin cambio de status — no debe disparar UC-NOT-08
         ticket.subject = 'Updated'
         with self.captureOnCommitCallbacks(execute=True):
-            ticket.save(update_fields=['subject', 'updated_at'])
+            ticket.save(update_fields=['subject', 'write_date'])
         self.assertEqual(Notification.objects.count(), 0)
 
 
@@ -111,7 +111,7 @@ class AutoCloseCommandTest(TestCase):
         ticket = _make_ticket(self.user)
         stale_time = timezone.now() - timedelta(days=AUTO_CLOSE_DAYS + 1)
         SupportTicket.objects.filter(pk=ticket.pk).update(
-            updated_at=stale_time
+            write_date=stale_time
         )
         ticket.refresh_from_db()
         return ticket
@@ -144,7 +144,7 @@ class AutoCloseCommandTest(TestCase):
         )
 
     def test_skips_recent_ticket(self):
-        _make_ticket(self.user)  # updated_at = now (reciente)
+        _make_ticket(self.user)  # write_date = now (reciente)
         call_command('auto_close_support_tickets')
         ticket = SupportTicket.objects.first()
         self.assertEqual(ticket.status, SupportTicket.Status.AWAITING_USER)

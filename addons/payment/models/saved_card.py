@@ -63,7 +63,7 @@ class SavedCard(TimeStampedModel):
 
     class Meta:
         db_table = 'payments_saved_card'
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         verbose_name = 'Tarjeta guardada'
         constraints = [
             models.UniqueConstraint(

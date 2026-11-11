@@ -73,10 +73,10 @@ class AdminLogsView(APIView):
                 'level', str, description='level exacto (INFO, ERROR, ...)'
             ),
             OpenApiParameter(
-                'from', str, description='created_at >= (ISO 8601)'
+                'from', str, description='create_date >= (ISO 8601)'
             ),
             OpenApiParameter(
-                'to', str, description='created_at <= (ISO 8601)'
+                'to', str, description='create_date <= (ISO 8601)'
             ),
             OpenApiParameter('page', int, description='Numero de pagina'),
             OpenApiParameter(
@@ -129,17 +129,17 @@ class AdminLogsView(APIView):
 
     def _queryset(self, request):
         # ≙ ``_order = 'id DESC'`` (``odoo19c: base/models/ir_logging.py:8``):
-        # las filas de una misma transacción comparten ``created_at``.
+        # las filas de una misma transacción comparten ``create_date``.
         qs = IrLogging.objects.all().order_by('-id')
         correlation_id = request.query_params.get('correlation_id')
         if correlation_id:
             qs = qs.filter(correlation_id=correlation_id)
         dt_from = self._parse_dt(request, 'from')
         if dt_from is not None:
-            qs = qs.filter(created_at__gte=dt_from)
+            qs = qs.filter(create_date__gte=dt_from)
         dt_to = self._parse_dt(request, 'to')
         if dt_to is not None:
-            qs = qs.filter(created_at__lte=dt_to)
+            qs = qs.filter(create_date__lte=dt_to)
         level = request.query_params.get('level')
         if level:
             qs = qs.filter(level=level.upper())
@@ -153,7 +153,7 @@ class AdminLogsView(APIView):
         if dt is None:
             raise DRFValidationError({key: 'Fecha ISO 8601 invalida.'})
         # USE_TZ activo: un ISO sin offset llega naive; comparar naive contra
-        # created_at (aware) lanza RuntimeWarning y es ambiguo. Lo
+        # create_date (aware) lanza RuntimeWarning y es ambiguo. Lo
         # anclamos a la
         # zona activa (H-API-LOG: filtro from/to naive bajo USE_TZ).
         if timezone.is_naive(dt):
@@ -171,5 +171,5 @@ class AdminLogsView(APIView):
             'msg': obj.message,
             'trace': obj.trace,
             'correlation_id': obj.correlation_id,
-            'created_at': obj.created_at.isoformat(),
+            'created_at': obj.create_date.isoformat(),
         }

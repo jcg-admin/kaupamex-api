@@ -64,9 +64,9 @@ class ResUsersSettings(TimeStampedModel):
     #: ≙ las *magic columns* de la referencia (``id``, ``create_uid``,
     #: ``create_date``, ``write_uid``, ``write_date``): las que el formato por
     #: defecto nunca incluye salvo que se pidan. Aquí el log-access son dos
-    #: —``created_at`` y ``updated_at``, ver ``TimeStampedModel``— y los dos
+    #: —``create_date`` y ``write_date``, ver ``TimeStampedModel``— y los dos
     #: ``*_uid`` no existen (DEC-09: la autoría se difiere a la capa ``orm``).
-    AUDIT_COLUMNS = ('created_at', 'updated_at')
+    AUDIT_COLUMNS = ('create_date', 'write_date')
 
     @classmethod
     def _get_fields_blacklist(cls):

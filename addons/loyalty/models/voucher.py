@@ -156,7 +156,7 @@ class Voucher(TimeStampedModel, SoftDeleteModel):
 
     class Meta:
         db_table = 'voucher_voucher'
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         verbose_name = 'Voucher'
 
     def __str__(self):
@@ -279,7 +279,7 @@ class Voucher(TimeStampedModel, SoftDeleteModel):
                 actualizado.is_active = False
                 actualizado.deactivated_at = now
                 actualizado.save(
-                    update_fields=['is_active', 'deactivated_at', 'updated_at']
+                    update_fields=['is_active', 'deactivated_at', 'write_date']
                 )
                 VoucherChangeLog.objects.create(
                     voucher=actualizado,

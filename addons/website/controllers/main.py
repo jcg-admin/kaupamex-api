@@ -80,7 +80,8 @@ class StaticPageStatusV2View(_PageAdmin, APIView):
     required_capability = 'settings.edit'
     serializer_class = StaticPagePublishSerializer
 
-    @extend_schema(summary='Publicar nueva versión de página estática (UC-CFG-04)',
+    @extend_schema(summary='Publicar nueva versión de página estática '
+                           '(UC-CFG-04)',
                    tags=['admin-pages'],
                    request=StaticPagePublishSerializer,
                    responses={201: StaticPageVersionSerializer})
@@ -105,7 +106,7 @@ class StaticPageStatusV2View(_PageAdmin, APIView):
                 StaticPageVersion.objects.filter(
                     page=page, status=StaticPageVersion.STATUS_PUBLISHED,
                 ).update(status=StaticPageVersion.STATUS_ARCHIVED,
-                         updated_at=timezone.now())
+                         write_date=timezone.now())
 
             last = page.versions.order_by('-version').first()
             version = StaticPageVersion.objects.create(
@@ -131,11 +132,14 @@ class StaticPageRestorationV2View(_PageAdmin, APIView):
     required_capability = 'settings.edit'
     serializer_class = StaticPageRestorationSerializer
 
-    @extend_schema(summary='Revertir página estática a una versión (UC-CFG-04)',
+    @extend_schema(summary='Revertir página estática a una versión '
+                           '(UC-CFG-04)',
                    tags=['admin-pages'],
                    request=StaticPageRestorationSerializer,
                    responses={201: StaticPageVersionSerializer,
-                              400: error_response('VERSION_REQUIRED · INVALID_VERSION'),
+                              400: error_response(
+                                  'VERSION_REQUIRED · INVALID_VERSION',
+                              ),
                               404: error_response('Versión no encontrada')})
     def post(self, request, slug):
         version_raw = request.data.get('version')
@@ -166,7 +170,7 @@ class StaticPageRestorationV2View(_PageAdmin, APIView):
             StaticPageVersion.objects.filter(
                 page=page, status=StaticPageVersion.STATUS_PUBLISHED,
             ).update(status=StaticPageVersion.STATUS_ARCHIVED,
-                     updated_at=timezone.now())
+                     write_date=timezone.now())
 
             last = page.versions.order_by('-version').first()
             restored = StaticPageVersion.objects.create(

@@ -91,13 +91,15 @@ class WishlistView(CapabilityRequiredMixin, APIView):
             'items_out_of_stock': items_out_of_stock,
         })
 
-    @extend_schema(summary='Agregar producto a lista de deseos', tags=['wishlist'],
+    @extend_schema(summary='Agregar producto a lista de deseos',
+                   tags=['wishlist'],
                    request=inline_serializer('WishlistAddRequest', {
                        'product_id': drf_serializers.IntegerField(),
                    }),
                    responses={201: WishlistItemSerializer,
                               400: error_response('Datos inválidos'),
-                              409: error_response('El producto ya está en la lista')})
+                              409: error_response(
+                                  'El producto ya está en la lista')})
     def post(self, request):
         product_id = request.data.get('product_id')
         if not product_id:
@@ -115,7 +117,7 @@ class WishlistView(CapabilityRequiredMixin, APIView):
                 existing.deleted_at = None
                 existing.price_at_add = price
                 existing.save(update_fields=[
-                    'is_deleted', 'deleted_at', 'price_at_add', 'updated_at',
+                    'is_deleted', 'deleted_at', 'price_at_add', 'write_date',
                 ])
                 return Response(WishlistItemSerializer(existing).data,
                                 status=status.HTTP_201_CREATED)

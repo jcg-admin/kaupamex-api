@@ -54,7 +54,7 @@ class SmsSms(TimeStampedModel):
 
     class Meta:
         db_table = 'sms_sms'
-        ordering = ['-created_at', '-id']
+        ordering = ['-create_date', '-id']
         verbose_name = 'SMS saliente'
         verbose_name_plural = 'SMS salientes'
 
@@ -65,10 +65,10 @@ class SmsSms(TimeStampedModel):
         """Marca el SMS como enviado (Odoo state=sent)."""
         self.state = self.STATE_SENT
         self.error_code = ''
-        self.save(update_fields=['state', 'error_code', 'updated_at'])
+        self.save(update_fields=['state', 'error_code', 'write_date'])
 
     def mark_error(self, code: str) -> None:
         """Marca el SMS como fallido con un motivo (Odoo state=error)."""
         self.state = self.STATE_ERROR
         self.error_code = code
-        self.save(update_fields=['state', 'error_code', 'updated_at'])
+        self.save(update_fields=['state', 'error_code', 'write_date'])

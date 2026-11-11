@@ -148,5 +148,5 @@ def test_the_lookup_reads_only_the_model_and_the_res_id():
         columns = sql.split(' FROM ')[0]
         assert '"ir_model_data"."model"' in columns
         assert '"ir_model_data"."res_id"' in columns
-        assert '"create_uid_id"' not in columns
+        assert '"create_uid"' not in columns
         assert '"module"' not in columns

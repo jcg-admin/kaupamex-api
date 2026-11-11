@@ -64,14 +64,15 @@ class AdminSubscriberExportCSVView(_AdminOnly, APIView):
     def get(self, request):
         qs = mm.list_subscriptions(
             request.query_params.get('status'),
-        ).order_by('created_at', 'id')
+        ).order_by('create_date', 'id')
 
         buf = io.StringIO()
         writer = csv.writer(buf)
         writer.writerow(['email', 'estado', 'fecha_suscripcion'])
         for sub in qs.iterator():
             writer.writerow([
-                sub.contact_id.email, mm.status_of(sub), sub.created_at.isoformat(),
+                sub.contact_id.email, mm.status_of(sub),
+                sub.create_date.isoformat(),
             ])
 
         response = HttpResponse(buf.getvalue(), content_type='text/csv')

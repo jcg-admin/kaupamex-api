@@ -332,12 +332,12 @@ class DigestDigest(TimeStampedModel):
     def action_activate(self):
         """≙ ``digest.py:121-122``."""
         self.state = DigestState.ACTIVATED
-        self.save(update_fields=['state', 'updated_at'])
+        self.save(update_fields=['state', 'write_date'])
 
     def action_deactivate(self):
         """≙ ``digest.py:124-125``."""
         self.state = DigestState.DEACTIVATED
-        self.save(update_fields=['state', 'updated_at'])
+        self.save(update_fields=['state', 'write_date'])
 
     def action_set_periodicity(self, periodicity):
         """≙ ``digest.py:127-129``. Recalcula ``next_run_date`` (reemplaza el
@@ -351,7 +351,7 @@ class DigestDigest(TimeStampedModel):
             )
         self.periodicity = periodicity
         self.next_run_date = self._get_next_run_date()
-        self.save(update_fields=['periodicity', 'next_run_date', 'updated_at'])
+        self.save(update_fields=['periodicity', 'next_run_date', 'write_date'])
 
     def _get_next_run_date(self):
         """≙ ``_get_next_run_date`` (``digest.py:367-377``). Divergencia 5:
@@ -449,7 +449,7 @@ class DigestDigest(TimeStampedModel):
         'login_date'``). Divergencia 4: ``ResUsersLog`` no tiene FK a
         compañía — se filtra por ``user__in company_id.user_ids``."""
         qs = ResUsersLog.objects.filter(
-            created_at__gte=start, created_at__lt=end
+            create_date__gte=start, create_date__lt=end
         )
         if self.company_id:
             qs = qs.filter(user__in=self.company_id.user_ids.all())
@@ -462,7 +462,7 @@ class DigestDigest(TimeStampedModel):
         para external IDs ausentes); cuenta todo ``MailMessage`` del rango,
         acotado por compañía vía el autor."""
         qs = MailMessage.objects.filter(
-            created_at__gte=start, created_at__lt=end
+            create_date__gte=start, create_date__lt=end
         )
         if self.company_id:
             qs = qs.filter(author__in=self.company_id.user_ids.all())
@@ -484,7 +484,7 @@ class DigestDigest(TimeStampedModel):
         model,
         start,
         end,
-        date_field='created_at',
+        date_field='create_date',
         additional_domain=None,
         sum_field=None,
     ):
@@ -503,7 +503,7 @@ class DigestDigest(TimeStampedModel):
            ``_get_kpi_compute_parameters``: aquí la ventana la reparte
            ``compute_kpis`` desde ``_compute_timeframes``, que es el mismo
            dato calculado una vez para las tres columnas.
-        3. **``date_field`` por defecto es ``created_at``**, el nombre de la
+        3. **``date_field`` por defecto es ``create_date``**, el nombre de la
            columna de auditoría de este árbol (la fuente dice ``create_date``).
         4. **``additional_domain`` es un dict de lookups de Django**, no una
            lista de tuplas: el motor de dominios no interviene en un filtro que

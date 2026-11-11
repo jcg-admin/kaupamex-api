@@ -122,10 +122,10 @@ class TestFieldsRegistry:
             'id',
             'create_uid',
             'create_uid_id',
-            'created_at',
+            'create_date',
             'write_uid',
             'write_uid_id',
-            'updated_at',
+            'write_date',
             'properties_field',
             'properties_field_id',
             'properties_definition',
@@ -235,8 +235,8 @@ class TestPropertyExpression:
         ``Field.property_to_sql`` porque ``BaseDate`` no estaba portado. Lo que
         medía era nuestro hueco, no la conducta de la fuente.
         """
-        sql = definition._field_to_sql(TABLE, 'created_at.month_number')
-        assert sql.code == 'date_part(%%s, "%s"."created_at")' % TABLE
+        sql = definition._field_to_sql(TABLE, 'create_date.month_number')
+        assert sql.code == 'date_part(%%s, "%s"."create_date")' % TABLE
         assert sql.params == ['month']
 
     def test_a_date_field_refuses_an_unknown_granularity(self, definition):
@@ -247,7 +247,7 @@ class TestPropertyExpression:
         ``BaseDate``, que sí sabe de granularidades y no reconoce ésta.
         """
         with pytest.raises(ValueError, match='granularity algo is not'):
-            definition._field_to_sql(TABLE, 'created_at.algo')
+            definition._field_to_sql(TABLE, 'create_date.algo')
 
     def test_a_plain_field_still_refuses_any_property(self, definition):
         """El control del caso base — ≙ ``Field.property_to_sql`` (``:1241``).

@@ -130,5 +130,5 @@ class TestRelatedModel:
         # Las dos fechas son la hora de la transacción, como ``cr.now()``
         # (``odoo19c: odoo/orm/models.py:4803-4805``), no la del reloj.
         now = transaction_now(row._state.db)
-        assert row.created_at == now
-        assert row.updated_at == now
+        assert row.create_date == now
+        assert row.write_date == now

@@ -294,7 +294,7 @@ class MailMail(TimeStampedModel):
         self.state = self.STATE_SENT
         self.failure_type = None
         self.failure_reason = ''
-        fields = ['state', 'failure_type', 'failure_reason', 'updated_at']
+        fields = ['state', 'failure_type', 'failure_reason', 'write_date']
         if count_attempt:
             self.attempts = self.attempts + 1
             fields.append('attempts')
@@ -313,7 +313,7 @@ class MailMail(TimeStampedModel):
                 'failure_type',
                 'failure_reason',
                 'attempts',
-                'updated_at',
+                'write_date',
             ]
         )
 
@@ -321,7 +321,7 @@ class MailMail(TimeStampedModel):
         """Devuelve un correo en ``exception`` a la cola (``outgoing``) para su
         siguiente reintento. Adaptacion de proyecto (cola sin broker)."""
         self.state = self.STATE_OUTGOING
-        self.save(update_fields=['state', 'updated_at'])
+        self.save(update_fields=['state', 'write_date'])
 
     def register_failed_attempt(
         self, failure_type, reason='', *, backoff=None
@@ -342,7 +342,7 @@ class MailMail(TimeStampedModel):
             'failure_type',
             'failure_reason',
             'state',
-            'updated_at',
+            'write_date',
         ]
         if self.attempts >= self.max_attempts:
             self.state = self.STATE_EXCEPTION

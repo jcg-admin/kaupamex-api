@@ -74,12 +74,12 @@ def test_a_lagging_schema_waits_for_post_migrate(child):
         # Las FK diferidas del alta impiden un ALTER en la misma transacción.
         cursor.execute('SET CONSTRAINTS ALL IMMEDIATE')
         cursor.execute('ALTER TABLE test_orm_model_child_m2o '
-                       'DROP COLUMN create_uid_id')
+                       'DROP COLUMN create_uid')
     _run(ComputeStoredFields('test_orm', 'testormmodelchildm2o', ['size1']))
     assert _stored(record_id) == (None, None)
     with connection.cursor() as cursor:
         cursor.execute('ALTER TABLE test_orm_model_child_m2o '
-                       'ADD COLUMN create_uid_id integer')
+                       'ADD COLUMN create_uid integer')
     run_pending_computes(using=connection.alias)
     assert _stored(record_id)[0] == 4
     run_pending_computes(using=connection.alias)

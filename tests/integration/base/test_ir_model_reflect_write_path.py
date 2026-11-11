@@ -201,7 +201,7 @@ class TestReflectConstraintWritesBelowTheOrm:
             'unique(name)',
             'prueba_camino_con4',
         )
-        before = IrModelConstraint.objects.get(pk=created.pk).updated_at
+        before = IrModelConstraint.objects.get(pk=created.pk).write_date
         IrModelConstraint._reflect_constraint(
             ResDeviceLog,
             'con_camino_d',
@@ -209,7 +209,7 @@ class TestReflectConstraintWritesBelowTheOrm:
             'unique(other)',
             'prueba_camino_con4',
         )
-        after = IrModelConstraint.objects.get(pk=created.pk).updated_at
+        after = IrModelConstraint.objects.get(pk=created.pk).write_date
         assert after > before
 
 

@@ -123,5 +123,5 @@ class JournalDebitSequence(TimeStampedModel):
         )
         if not created:
             row.debit_sequence = cls.default_for_type(journal.type)
-            row.save(update_fields=['debit_sequence', 'updated_at'])
+            row.save(update_fields=['debit_sequence', 'write_date'])
         return row

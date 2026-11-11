@@ -54,7 +54,7 @@ def suspend_company_billing(company):
         status=CompanyModuleSubscription.Status.ACTIVE,
     ):
         sub.status = CompanyModuleSubscription.Status.SUSPENDED
-        sub.save(update_fields=['status', 'updated_at'])
+        sub.save(update_fields=['status', 'write_date'])
 
 
 def _billable_subscriptions(company, at):

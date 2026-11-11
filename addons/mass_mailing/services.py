@@ -71,7 +71,7 @@ def serialize_item(sub) -> dict:
         'status': status_of(sub),
         'confirmed_at': sub.confirmed_at,
         'unsubscribed_at': sub.opt_out_datetime,
-        'created_at': sub.created_at,
+        'created_at': sub.create_date,
     }
 
 
@@ -119,7 +119,7 @@ def reopt_in(sub, confirmation_token):
             'opt_out_datetime',
             'confirmed_at',
             'confirmation_token',
-            'updated_at',
+            'write_date',
         ]
     )
     return sub
@@ -177,7 +177,7 @@ def list_subscriptions(status=None):
     qs = (
         MailingSubscription.objects.filter(mailing_list=newsletter_list())
         .select_related('contact_id')
-        .order_by('-created_at', '-id')
+        .order_by('-create_date', '-id')
     )
     if status:
         qs = _status_filter(qs, status)
@@ -202,7 +202,7 @@ def find_recent_mailing(subject, body_html, cutoff):
     """Envío idéntico reciente (guarda de idempotencia), con lock de fila."""
     return (
         MailingMailing.objects.select_for_update()
-        .filter(subject=subject, body_html=body_html, created_at__gte=cutoff)
+        .filter(subject=subject, body_html=body_html, create_date__gte=cutoff)
         .first()
     )
 

@@ -12,7 +12,7 @@ Qué se mide, y qué NO
 ----------------------
 
 La forma del log-access adoptada en este árbol es ``TimeStampedModel``, con
-**dos** columnas —``created_at``/``updated_at``, ≙ ``create_date``/
+**dos** columnas —``create_date``/``write_date``, ≙ ``create_date``/
 ``write_date``— y no cuatro. Las de *quién* (``create_uid``/``write_uid``) no
 existen en **ningún** modelo del proyecto: medido,
 ``grep -rln "create_uid = fields" src/ addons/`` da 0. Es una divergencia del
@@ -44,7 +44,7 @@ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
 
 @pytest.mark.parametrize('model', [IrSequence, IrSequenceDateRange])
-@pytest.mark.parametrize('column', ['created_at', 'updated_at'])
+@pytest.mark.parametrize('column', ['create_date', 'write_date'])
 def test_the_audit_column_is_declared(db, model, column):
     """≙ las que el ORM de la fuente añade sin ``_log_access = False``."""
     assert model._meta.get_field(column) is not None
@@ -52,8 +52,8 @@ def test_the_audit_column_is_declared(db, model, column):
 
 def test_a_sequence_records_when_it_was_created(db):
     sequence = IrSequence.objects.create(name='Folio', code='folio.test')
-    assert sequence.created_at is not None
-    assert sequence.updated_at is not None
+    assert sequence.create_date is not None
+    assert sequence.write_date is not None
 
 
 def test_a_date_range_records_when_it_was_created(db):
@@ -61,5 +61,5 @@ def test_a_date_range_records_when_it_was_created(db):
     date_range = IrSequenceDateRange.objects.create(
         sequence=sequence, date_from='2026-01-01', date_to='2026-12-31'
     )
-    assert date_range.created_at is not None
-    assert date_range.updated_at is not None
+    assert date_range.create_date is not None
+    assert date_range.write_date is not None

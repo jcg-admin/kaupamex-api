@@ -85,9 +85,9 @@ def test_a_week_shifts_by_the_first_day_of_the_language(env):
 
 
 def test_a_datetime_without_tz_truncates_in_utc(env):
-    sql, _ = _groupby(env['test_orm.message'].browse(()), 'created_at:day')
+    sql, _ = _groupby(env['test_orm.message'].browse(()), 'create_date:day')
     assert _code(sql) == \
-        'date_trunc(%s, "test_orm_message"."created_at"::timestamp)'
+        'date_trunc(%s, "test_orm_message"."create_date"::timestamp)'
 
 
 def test_the_zone_comes_from_the_recordset_context(env):
@@ -95,9 +95,9 @@ def test_the_zone_comes_from_the_recordset_context(env):
     que la del entorno activo agrupa con la suya."""
     message = env['test_orm.message'].browse(()).with_context(
         tz='America/Mexico_City')
-    sql, _ = _groupby(message, 'created_at:hour_number')
+    sql, _ = _groupby(message, 'create_date:hour_number')
     assert _code(sql) == ("date_part(%s, timezone(%s, timezone('UTC', "
-                          "\"test_orm_message\".\"created_at\")))")
+                          "\"test_orm_message\".\"create_date\")))")
     assert sql.params == ['hour', 'America/Mexico_City']
 
 

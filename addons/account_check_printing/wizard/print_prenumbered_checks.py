@@ -91,7 +91,7 @@ class PrintPrenumberedChecksWizard(TransientModel):
         for payment in payments:
             row = CheckPrintingPaymentInfo.for_payment(payment, create=True)
             row.check_number = '%0{}d'.format(number_len) % check_number
-            row.save(update_fields=['check_number', 'updated_at'])
+            row.save(update_fields=['check_number', 'write_date'])
             CheckPrintingPaymentInfo.validate_check_number_uniqueness(payment)
             check_number += 1
 

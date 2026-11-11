@@ -265,7 +265,7 @@ def verify_email(token):
             'active',
             'deactivated_reason',
             'deactivated_at',
-            'updated_at',
+            'write_date',
         ]
     )
     partner_svc.signup_cancel(partner)

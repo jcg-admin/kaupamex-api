@@ -68,12 +68,12 @@ class ReturnRequest(MailThread, TimeStampedModel, SoftDeleteModel):
 
     class Meta:
         db_table = 'return_request'
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         verbose_name = 'Solicitud de devolucion'
         verbose_name_plural = 'Solicitudes de devolucion'
         indexes = [
             models.Index(fields=['user', 'status']),
-            models.Index(fields=['status', 'created_at']),
+            models.Index(fields=['status', 'create_date']),
         ]
 
     def __str__(self):
@@ -134,7 +134,7 @@ class ReturnHistoryEntry(TimeStampedModel):
 
     class Meta:
         db_table = 'return_history_entry'
-        ordering = ['created_at']
+        ordering = ['create_date']
         verbose_name = 'Entrada de historial de devolucion'
         verbose_name_plural = 'Entradas de historial de devoluciones'
 
@@ -168,7 +168,7 @@ class ReturnEvidence(TimeStampedModel):
 
     class Meta:
         db_table = 'return_evidence'
-        ordering = ['created_at']
+        ordering = ['create_date']
         verbose_name = 'Evidencia de devolucion'
         verbose_name_plural = 'Evidencias de devolucion'
 

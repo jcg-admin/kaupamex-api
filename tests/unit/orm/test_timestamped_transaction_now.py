@@ -5,7 +5,7 @@
 la hora de inicio de la transacción, memorizada (``odoo/sql_db.py:271-278``).
 Todo lo escrito en una misma transacción lleva la misma fecha.
 
-*Métrica:* ``created_at``/``updated_at`` frente a ``SELECT now()``.
+*Métrica:* ``create_date``/``write_date`` frente a ``SELECT now()``.
 *Ciega a:* el modo autocommit fuera de ``atomic`` (cada sentencia es su
 propia transacción y la igualdad no aplica).
 """
@@ -36,7 +36,7 @@ def test_a_write_in_the_create_transaction_keeps_the_date():
         time.sleep(0.01)
         record.write({'name': 'b'})
         e.flush_all()
-        assert record.updated_at == record.created_at
+        assert record.write_date == record.create_date
 
 
 def test_two_creates_in_one_transaction_share_the_date():
@@ -45,14 +45,14 @@ def test_two_creates_in_one_transaction_share_the_date():
         first = e['test_orm.related'].create({'name': 'a'})
         time.sleep(0.01)
         second = e['test_orm.related'].create({'name': 'b'})
-        assert first.created_at == second.created_at
+        assert first.create_date == second.create_date
 
 
 def test_the_date_is_the_transaction_timestamp():
     with sudo(), transaction.atomic():
         e = current_env()
         record = e['test_orm.related'].create({'name': 'a'})
-        assert record.created_at == _transaction_now()
+        assert record.create_date == _transaction_now()
 
 
 def test_a_savepoint_keeps_the_transaction_date():
@@ -64,7 +64,7 @@ def test_a_savepoint_keeps_the_transaction_date():
         time.sleep(0.01)
         with transaction.atomic():
             inner = e['test_orm.related'].create({'name': 'b'})
-        assert inner.created_at == outer.created_at
+        assert inner.create_date == outer.create_date
 
 
 def test_one_insert_takes_both_dates_from_one_clock_reading(monkeypatch):
@@ -82,7 +82,7 @@ def test_one_insert_takes_both_dates_from_one_clock_reading(monkeypatch):
     monkeypatch.setattr(fields_temporal, 'transaction_now', advancing)
     with sudo():
         record = current_env()['test_orm.related'].create({'name': 'a'})
-        assert record.created_at == record.updated_at
+        assert record.create_date == record.write_date
 
 
 def test_the_clock_is_read_on_the_row_database(monkeypatch):
@@ -117,7 +117,7 @@ def test_a_later_save_reads_the_clock_again(monkeypatch):
     with sudo():
         row = Model(name='a')
         row.save()
-        created = row.updated_at
+        created = row.write_date
         row.name = 'b'
         row.save()
-        assert row.updated_at > created
+        assert row.write_date > created

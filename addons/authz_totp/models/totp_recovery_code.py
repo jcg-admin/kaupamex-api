@@ -49,7 +49,7 @@ class TotpRecoveryCode(TimeStampedModel):
         db_table = 'authz_totp_recovery_code'
         verbose_name = 'Código de recuperación TOTP'
         verbose_name_plural = 'Códigos de recuperación TOTP'
-        ordering = ['-created_at']
+        ordering = ['-create_date']
         indexes = [
             models.Index(
                 fields=['user', 'code_hash'], name='authz_totp_rec_user_hash'

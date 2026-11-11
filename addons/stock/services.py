@@ -125,7 +125,7 @@ class InventoryService:
                     continue
                 take = min(free, remaining)
                 quant.quantity -= take
-                quant.save(update_fields=['quantity', 'updated_at'])
+                quant.save(update_fields=['quantity', 'write_date'])
                 remaining -= take
             if remaining > ZERO:
                 raise InsufficientStockError(

@@ -59,8 +59,8 @@ def test_injected_columns_are_stamped_on_save(user):
     country.refresh_from_db()
     assert country.create_uid_id == user.pk
     assert country.write_uid_id == other.pk
-    assert country.created_at is not None
-    assert country.updated_at >= country.created_at
+    assert country.create_date is not None
+    assert country.write_date >= country.create_date
 
 
 def test_a_model_prepared_later_receives_them_by_the_signal():

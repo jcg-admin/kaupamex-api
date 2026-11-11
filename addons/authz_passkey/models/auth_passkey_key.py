@@ -9,7 +9,7 @@ Divergencias declaradas:
 
 - ``groups='base.group_system'`` sobre ``credential_identifier``/
   ``public_key``/``sign_count`` → los campos NO salen por la API (el
-  serializer sólo expone ``id``/``name``/``created_at``).
+  serializer sólo expone ``id``/``name``/``create_date``).
 - El ``init()`` con ``ALTER TABLE`` (columna sin ORM para blindarla del
   prefetch) es mecánica del ORM de Odoo; Django no hace prefetch implícito
   de columnas — campo normal.

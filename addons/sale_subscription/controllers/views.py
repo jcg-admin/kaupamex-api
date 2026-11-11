@@ -114,7 +114,7 @@ class CompanyViewSet(CapabilityRequiredMixin, ModelViewSet):
         company = self.get_object()
         qs = SubscriptionInvoice.objects.filter(
             company=company,
-        ).order_by('-created_at', '-id')
+        ).order_by('-create_date', '-id')
         return Response(SubscriptionInvoiceSerializer(qs, many=True).data)
 
     def get_serializer_class(self):
@@ -136,7 +136,7 @@ class CompanyViewSet(CapabilityRequiredMixin, ModelViewSet):
                 'codigo_error': 'INVALID_STATUS_TRANSITION',
             })
         company.status = ResCompany.Status.SUSPENDED
-        company.save(update_fields=['status', 'updated_at'])
+        company.save(update_fields=['status', 'write_date'])
         return Response(CompanySerializer(company).data)
 
     @action(detail=True, methods=['post'])
@@ -148,7 +148,7 @@ class CompanyViewSet(CapabilityRequiredMixin, ModelViewSet):
                 'codigo_error': 'INVALID_STATUS_TRANSITION',
             })
         company.status = ResCompany.Status.ACTIVE
-        company.save(update_fields=['status', 'updated_at'])
+        company.save(update_fields=['status', 'write_date'])
         return Response(CompanySerializer(company).data)
 
 

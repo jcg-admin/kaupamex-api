@@ -55,7 +55,7 @@ def _consume_assertion(request, passkey, webauthn_response):
         )
         return False
     passkey.sign_count = new_sign_count
-    passkey.save(update_fields=['sign_count', 'updated_at'])
+    passkey.save(update_fields=['sign_count', 'write_date'])
     return True
 
 

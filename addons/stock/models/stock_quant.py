@@ -820,9 +820,9 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                 quant.inventory_quantity = Decimal(contado)
                 quant.user = vals.get('user')
                 quant.inventory_date = timezone.now().date()
-                quant.save(update_fields=['inventory_quantity', 'user',
-                                          'inventory_date', 'inventory_diff_quantity',
-                                          'updated_at'])
+                quant.save(update_fields=[
+                    'inventory_quantity', 'user', 'inventory_date',
+                    'inventory_diff_quantity', 'write_date'])
             quants.append(quant)
         return browse(cls, [quant.pk for quant in quants])
 
@@ -1028,7 +1028,7 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
             }
         self._apply_inventory(date)
         self.inventory_quantity_set = False
-        self.save(update_fields=['inventory_quantity_set', 'updated_at'])
+        self.save(update_fields=['inventory_quantity_set', 'write_date'])
         return None
 
     @classmethod
@@ -1079,7 +1079,8 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         }
 
     @classmethod
-    def action_set_inventory_quantity(cls, quants, user=None, from_request_count=False):
+    def action_set_inventory_quantity(cls, quants, user=None,
+                                      from_request_count=False):
         """≙ ``action_set_inventory_quantity`` (``odoo19c: :497-516``).
 
         Si alguno ya tiene conteo fijado, la referencia pide confirmación antes
@@ -1102,7 +1103,7 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
             quant.inventory_quantity_set = True
             quant.save(update_fields=['inventory_quantity', 'user',
                                       'inventory_quantity_set',
-                                      'inventory_diff_quantity', 'updated_at'])
+                                      'inventory_diff_quantity', 'write_date'])
         return None
 
     @classmethod
@@ -1141,9 +1142,10 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                 quant, update_fields=['inventory_quantity',
                                       'inventory_diff_quantity',
                                       'inventory_quantity_set', 'user',
-                                      'updated_at'])
+                                      'write_date'])
 
-    def action_set_inventory_quantity_zero(self, user=None, inventory_report_mode=False):
+    def action_set_inventory_quantity_zero(self, user=None,
+                                           inventory_report_mode=False):
         """≙ ``action_set_inventory_quantity_zero`` (``odoo19c: :551-556``)."""
         self.inventory_quantity = Decimal('0.00')
         if inventory_report_mode:
@@ -1151,7 +1153,7 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         else:
             self.user = user
             self.save(update_fields=['inventory_quantity', 'user',
-                                     'inventory_diff_quantity', 'updated_at'])
+                                     'inventory_diff_quantity', 'write_date'])
 
     # ------------------------------------------------------------------ #
     # Nombre para mostrar y restricciones                                 #
@@ -1725,7 +1727,7 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                 type(self).objects
                 .filter(product=self.product,
                         location__usage__in=['internal', 'transit'])
-                .order_by('-created_at')
+                .order_by('-create_date')
                 .first()
             )
             if previo is not None:
@@ -1768,17 +1770,19 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
             movimiento.action_done()
             if date is not None:
                 movimiento.date = date
-                movimiento.save(update_fields=['date', 'updated_at'])
+                movimiento.save(update_fields=['date', 'write_date'])
         if self.location is not None:
             self.location.last_inventory_date = timezone.now().date()
-            self.location.save(update_fields=['last_inventory_date', 'updated_at'])
+            self.location.save(
+                update_fields=['last_inventory_date', 'write_date'],
+            )
             self.inventory_date = self.location.get_next_inventory_date()
         type(self).action_clear_inventory_quantity([self])
 
     @classmethod
     def _update_available_quantity(cls, product, location, quantity=None,
-                                   reserved_quantity=None, lot=None, package=None,
-                                   owner=None, in_date=None):
+                                   reserved_quantity=None, lot=None,
+                                   package=None, owner=None, in_date=None):
         """≙ ``_update_available_quantity`` (``odoo19c: :1038-1106``).
 
         Docstring de la referencia: *"Increase or decrease `quantity` or
@@ -1789,7 +1793,8 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         concurren: es la clave de orden de FIFO, y tomar la nueva rompería el
         orden de consumo.
         """
-        with sudo():  # ``self = self.sudo()`` de la referencia (``odoo19c: :1055``)
+        # ``self = self.sudo()`` de la referencia (``odoo19c: :1055``).
+        with sudo():
             if not (quantity or reserved_quantity):
                 raise ValidationError(
                     _('Se debe indicar la cantidad o la cantidad reservada.'))
@@ -1814,7 +1819,8 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
             quant = quants[0] if quants else None
             if quant is not None:
                 # ≙ ``try_lock_for_update(limit=1)`` (``:1085``): la referencia
-                # bloquea el primer quant disponible para que dos transacciones no
+                # bloquea el primer quant disponible para que dos
+                # transacciones no
                 # repartan el mismo saldo.
                 quant = (cls.objects.select_for_update()
                          .filter(pk=quant.pk).first()) or quant
@@ -1824,8 +1830,9 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                 if reserved_quantity:
                     nueva = quant.reserved_quantity + Decimal(reserved_quantity)
                     quant.reserved_quantity = nueva if nueva > cero else cero
-                quant.save(update_fields=['in_date', 'quantity', 'reserved_quantity',
-                                          'inventory_diff_quantity', 'updated_at'])
+                quant.save(update_fields=[
+                    'in_date', 'quantity', 'reserved_quantity',
+                    'inventory_diff_quantity', 'write_date'])
             else:
                 vals = {'product': product, 'location': location, 'lot': lot,
                         'package': package, 'owner': owner, 'in_date': in_date}
@@ -2217,7 +2224,7 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                 # Sólo se mueve el contenedor si todo su contenido va con él.
                 return
             package.package_dest = padre
-            package.save(update_fields=['package_dest', 'updated_at'])
+            package.save(update_fields=['package_dest', 'write_date'])
             set_parent_package(padre)
 
         resultado = package_dest
@@ -2295,5 +2302,11 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         quant, _creado = cls.objects.get_or_create(
             product=product, location=location, lot=lot)
         quant.quantity = Decimal(qty)
-        quant.save(update_fields=['quantity', 'inventory_diff_quantity', 'updated_at'])
+        quant.save(
+            update_fields=[
+                'quantity',
+                'inventory_diff_quantity',
+                'write_date',
+            ],
+        )
         return quant

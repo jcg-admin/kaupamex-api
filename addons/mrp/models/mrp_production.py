@@ -74,7 +74,7 @@ class MrpProduction(TimeStampedModel):
 
     class Meta:
         db_table = 'mrp_production'
-        ordering = ['-created_at', '-id']
+        ordering = ['-create_date', '-id']
         verbose_name = 'Orden de fabricación'
         verbose_name_plural = 'Órdenes de fabricación'
 
@@ -90,7 +90,7 @@ class MrpProduction(TimeStampedModel):
         if not self.name:
             self.name = f'MO-{uuid.uuid4().hex[:8].upper()}'
         self.state = self.STATE_CONFIRMED
-        self.save(update_fields=['name', 'state', 'updated_at'])
+        self.save(update_fields=['name', 'state', 'write_date'])
         return self
 
     def button_mark_done(self):
@@ -100,7 +100,7 @@ class MrpProduction(TimeStampedModel):
                 'Solo una orden confirmada/en progreso se termina.'
             )
         self.state = self.STATE_DONE
-        self.save(update_fields=['state', 'updated_at'])
+        self.save(update_fields=['state', 'write_date'])
         return self
 
     def action_cancel(self):
@@ -108,7 +108,7 @@ class MrpProduction(TimeStampedModel):
         if self.state == self.STATE_DONE:
             raise ValidationError('Una orden terminada no puede cancelarse.')
         self.state = self.STATE_CANCEL
-        self.save(update_fields=['state', 'updated_at'])
+        self.save(update_fields=['state', 'write_date'])
         return self
 
     def move_raw_ids(self):

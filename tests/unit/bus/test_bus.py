@@ -68,7 +68,8 @@ def test_poll_sin_last_solo_ve_la_ventana_reciente(_):
     """
     viejo = BusMessage.sendone('c1', 't', {'n': 'viejo'})
     BusMessage.objects.filter(pk=viejo.pk).update(
-        created_at=timezone.now() - datetime.timedelta(seconds=BusMessage.BUFFER_SECONDS + 10),
+        create_date=timezone.now() - datetime.timedelta(
+            seconds=BusMessage.BUFFER_SECONDS + 10),
     )
     BusMessage.sendone('c1', 't', {'n': 'nuevo'})
 
@@ -95,7 +96,7 @@ def test_last_id_sin_mensajes_es_cero(_):
 def test_gc_borra_lo_viejo_y_conserva_lo_reciente(_):
     viejo = BusMessage.sendone('c1', 't', {'n': 'viejo'})
     BusMessage.objects.filter(pk=viejo.pk).update(
-        created_at=timezone.now() - datetime.timedelta(days=2),
+        create_date=timezone.now() - datetime.timedelta(days=2),
     )
     BusMessage.sendone('c1', 't', {'n': 'nuevo'})
 
@@ -111,7 +112,7 @@ def test_gc_lee_la_retencion_de_system_parameter(_):
     )
     reciente = BusMessage.sendone('c1', 't', {'n': 1})
     BusMessage.objects.filter(pk=reciente.pk).update(
-        created_at=timezone.now() - datetime.timedelta(seconds=120),
+        create_date=timezone.now() - datetime.timedelta(seconds=120),
     )
 
     assert BusMessage._gc_messages() == 1
@@ -143,7 +144,7 @@ class _Delegado(BusListenerMixin):
 
 
 def test_bus_send_publica_en_el_canal_propio(_):
-    _Emisor('u7')._bus_send('notificacion', {'texto': 'hola'})
+    _Emisor('u7')._bus_send('notificacion', {'text': 'hola'})
 
     fila = BusMessage.objects.get()
     assert fila.channel == 'emisor:u7'

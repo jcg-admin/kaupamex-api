@@ -81,16 +81,18 @@ class TransientModel(TransactionClockSaveMixin, Model):
     #: limpieza por antigüedad. Mismos nombres que ``TimeStampedModel``, la
     #: convención del árbol para ``create_date``/``write_date``. Su valor es
     #: el reloj de la transacción, ``cr.now()`` (``models.py:4801-4805``).
-    created_at = TransactionDateTimeField(auto_now_add=True, null=True)
-    updated_at = TransactionDateTimeField(auto_now=True, null=True)
+    create_date = TransactionDateTimeField(auto_now_add=True, null=True)
+    write_date = TransactionDateTimeField(auto_now=True, null=True)
     create_uid = LogAccessUserField(
         'base.ResUsers', models.SET_NULL, null=True, blank=True,
         editable=False, related_name='+', db_index=False,
+        db_column='create_uid',
         stamp_on_create_only=True,
     )
     write_uid = LogAccessUserField(
         'base.ResUsers', models.SET_NULL, null=True, blank=True,
         editable=False, related_name='+', db_index=False,
+        db_column='write_uid',
     )
 
     #: ≙ ``:18-21``. ``_auto``: crea tabla; ``_register``: no se registra
@@ -166,9 +168,9 @@ class TransientModel(TransactionClockSaveMixin, Model):
         usando: una fila recién escrita es el formulario que alguien tiene
         abierto.
 
-        ``write_date`` de allá es aquí ``updated_at`` (``TimeStampedModel``);
+        ``write_date`` de allá es aquí ``write_date`` (``TimeStampedModel``);
         el
-        transitorio que no lo declare cae a ``created_at``, y si tampoco lo
+        transitorio que no lo declare cae a ``create_date``, y si tampoco lo
         tiene no se barre por antigüedad — su tope será el de conteo.
         """
         seconds = max(seconds, MINIMUM_IDLE_SECONDS)
@@ -178,9 +180,9 @@ class TransientModel(TransactionClockSaveMixin, Model):
                   - datetime.timedelta(seconds=seconds))
         names = {f.name for f in cls._meta.get_fields()}
         stamp = (
-            'updated_at'
-            if 'updated_at' in names
-            else 'created_at' if 'created_at' in names else None
+            'write_date'
+            if 'write_date' in names
+            else 'create_date' if 'create_date' in names else None
         )
         if stamp is None:
             return False

@@ -53,7 +53,7 @@ def unverified_user(seeded, db):
     )
     user.active = False
     user.deactivated_reason = User.DEACTIVATION_UNVERIFIED
-    user.save(update_fields=['active', 'deactivated_reason', 'updated_at'])
+    user.save(update_fields=['active', 'deactivated_reason', 'write_date'])
     return user
 
 
@@ -84,7 +84,7 @@ class TestSendVerificationEmail:
         """Reactivar por correo una cuenta suspendida saltaría al admin."""
         unverified_user.deactivated_reason = User.DEACTIVATION_SUSPENDED
         unverified_user.save(
-            update_fields=['deactivated_reason', 'updated_at']
+            update_fields=['deactivated_reason', 'write_date']
         )
         with pytest.raises(UserError):
             su.send_verification_email(unverified_user)
@@ -127,7 +127,7 @@ class TestVerifyEmailEndpoint:
     ):
         """Un token de ``reset`` no debe servir de llave de activación."""
         unverified_user.active = True
-        unverified_user.save(update_fields=['active', 'updated_at'])
+        unverified_user.save(update_fields=['active', 'write_date'])
         token = su._action_reset_password(unverified_user)
 
         response = api_client.post(VERIFY_URL, {'token': token}, format='json')

@@ -70,8 +70,8 @@ class Command(enum.IntEnum):
             setattr(target, campo, valor)
         target.save(
             update_fields=(
-                [*kwargs, 'updated_at']
-                if hasattr(target, 'updated_at')
+                [*kwargs, 'write_date']
+                if hasattr(target, 'write_date')
                 else list(kwargs)
             )
         )

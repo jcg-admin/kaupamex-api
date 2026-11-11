@@ -93,7 +93,7 @@ class TestLaColumnaSeRecalculaAlCambiarLineas:
         order = _order(producto)
         linea = order.order_line.get()
         linea.product_uom_qty = 3
-        linea.save(update_fields=['product_uom_qty', 'updated_at'])
+        linea.save(update_fields=['product_uom_qty', 'write_date'])
         assert order.amount_total == Decimal('300.00')
 
     def test_borrar_la_linea_recalcula_a_cero(self, producto):
@@ -110,7 +110,7 @@ class TestLaColumnaSeRecalculaAlCambiarLineas:
     def test_with_line_of_shipping(self, producto, metodo):
         order = _order(producto)
         order.carrier = metodo
-        order.save(update_fields=['carrier', 'updated_at'])
+        order.save(update_fields=['carrier', 'write_date'])
         set_delivery_line(order, Decimal('99.00'))
         assert order.amount_total == Decimal('199.00')
 
@@ -190,7 +190,7 @@ class TestDesgloseContribuidoPorCadaAddon:
     ):
         order = _order(producto)
         order.carrier = metodo
-        order.save(update_fields=['carrier', 'updated_at'])
+        order.save(update_fields=['carrier', 'write_date'])
         set_delivery_line(order, Decimal('99.00'))
         SaleOrderLine.objects.create(
             order=order,

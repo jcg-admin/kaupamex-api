@@ -51,8 +51,8 @@ a Odoo o al ``AppLog`` previo se documenta explícitamente):
   hasta DEC-AF-11; retirado ese modelo, es una de las dos columnas que la
   partición pierde (la otra es ``view_name``), porque el ``access_log`` del
   proxy no las conoce.
-- ``create_date`` / ``write_date`` (Datetime) -> ``created_at`` /
-  ``updated_at``
+- ``create_date`` / ``write_date`` (Datetime) -> ``create_date`` /
+  ``write_date``
   (heredados de ``AppendOnlyModel``/``TimeStampedModel``, DEC-09).
 
 Columnas propias (NO existen en Odoo ``ir.logging``, necesarias para el
@@ -138,7 +138,7 @@ class IrLogging(AppendOnlyModel):
         verbose_name_plural = 'Logging'
         indexes = [
             models.Index(
-                fields=['-created_at'], name='ir_logging_created_idx'
+                fields=['-create_date'], name='ir_logging_created_idx'
             ),
         ]
 
@@ -215,15 +215,15 @@ class IrLogging(AppendOnlyModel):
 
         low_qs = cls.objects.filter(
             level__in=cls._LOW_LEVELS,
-            created_at__lt=ahora - timedelta(days=cls.LOW_LEVEL_DAYS),
+            create_date__lt=ahora - timedelta(days=cls.LOW_LEVEL_DAYS),
         )
         access_qs = cls.objects.filter(
             cuatro_xx,
-            created_at__lt=ahora - timedelta(days=cls.ACCESS_LEVEL_DAYS),
+            create_date__lt=ahora - timedelta(days=cls.ACCESS_LEVEL_DAYS),
         )
         high_qs = cls.objects.filter(
             level__in=cls._HIGH_LEVELS,
-            created_at__lt=ahora - timedelta(days=cls.HIGH_LEVEL_DAYS),
+            create_date__lt=ahora - timedelta(days=cls.HIGH_LEVEL_DAYS),
         ).exclude(cuatro_xx)
 
         conteos = {

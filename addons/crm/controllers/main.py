@@ -124,7 +124,7 @@ class AdminContactMessageListView(_AdminOnly, APIView):
         responses={200: ContactMessageAdminSerializer(many=True)},
     )
     def get(self, request):
-        qs = ContactMessage.objects.all().order_by('-created_at', '-id')
+        qs = ContactMessage.objects.all().order_by('-create_date', '-id')
         # H-CICLO76-09: paginate to avoid OOM on large contact message tables.
         # An unbounded queryset could load thousands of rows into memory on a
         # single request.  25 per page is consistent with other admin list
@@ -161,7 +161,7 @@ class AdminContactMessageDetailView(_AdminOnly, APIView):
         msg = _get_message(message_id)
         if request.data.get('is_read') is True:
             msg.read = True
-            msg.save(update_fields=['read', 'updated_at'])
+            msg.save(update_fields=['read', 'write_date'])
         return Response(ContactMessageAdminSerializer(msg).data)
 
 
@@ -178,7 +178,7 @@ class AdminContactMessageMarkReadView(_AdminOnly, APIView):
     def post(self, request, message_id):
         msg = _get_message(message_id)
         msg.read = True
-        msg.save(update_fields=['read', 'updated_at'])
+        msg.save(update_fields=['read', 'write_date'])
         return Response(ContactMessageAdminSerializer(msg).data)
 
 
@@ -223,7 +223,15 @@ class AdminContactMessageReplyView(_AdminOnly, APIView):
             msg.replied = True
             msg.reply_body = reply_body
             msg.reply_sent_at = timezone.now()
-            msg.save(update_fields=['read', 'replied', 'reply_body', 'reply_sent_at', 'updated_at'])
+            msg.save(
+                update_fields=[
+                    'read',
+                    'replied',
+                    'reply_body',
+                    'reply_sent_at',
+                    'write_date',
+                ],
+            )
 
         dispatch_email(
             subject=f'Re: {msg.subject}',

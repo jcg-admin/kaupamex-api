@@ -600,13 +600,13 @@ class TestAdminFirstResponseMetric:
             user=user, subject=subject, body='Mensaje suficientemente largo.'
         )
         SupportTicket.objects.filter(pk=ticket.pk).update(
-            created_at=ticket_created_at
+            create_date=ticket_created_at
         )
         reply = SupportTicketReply.objects.create(
             ticket=ticket, author=admin_user, body='Respuesta de soporte.'
         )
         SupportTicketReply.objects.filter(pk=reply.pk).update(
-            created_at=reply_created_at
+            create_date=reply_created_at
         )
         return ticket
 
@@ -714,12 +714,12 @@ class TestAdminExportCSV:
             subject='Con respuesta',
             body='Mensaje suficientemente largo.',
         )
-        SupportTicket.objects.filter(pk=ticket.pk).update(created_at=t0)
+        SupportTicket.objects.filter(pk=ticket.pk).update(create_date=t0)
         reply = SupportTicketReply.objects.create(
             ticket=ticket, author=admin_user, body='Respuesta de soporte.'
         )
         SupportTicketReply.objects.filter(pk=reply.pk).update(
-            created_at=t0 + timedelta(minutes=15)
+            create_date=t0 + timedelta(minutes=15)
         )
 
         res = admin_client.get(self.ADMIN_EXPORT_URL)
@@ -733,7 +733,7 @@ class TestAdminExportCSV:
             'prioridad',
             'categoria',
             'comprador_email',
-            'created_at',
+            'create_date',
             'primera_respuesta',
         ]
         match = next(r for r in data_rows if r[0] == str(ticket.pk))
@@ -899,7 +899,7 @@ class CierreIdempotenteAutoCloseTest(TestCase):
         )
         stale_time = timezone.now() - timedelta(days=AUTO_CLOSE_DAYS + 1)
         SupportTicket.objects.filter(pk=ticket.pk).update(
-            updated_at=stale_time
+            write_date=stale_time
         )
         ticket.refresh_from_db()
         return ticket
