@@ -1,0 +1,165 @@
+La biblioteca num2words no está instalada; el importe en palabras no estará disponible.
+System check identified some issues:
+
+WARNINGS:
+base.PropertiesBaseDefinition.properties_field: (fields.W342) Setting unique=True on a ForeignKey has the same effect as using a OneToOneField.
+	HINT: ForeignKey(unique=True) is usually better served by a OneToOneField.
+fleet.FleetVehicleLogServices.account_move_line: (fields.W342) Setting unique=True on a ForeignKey has the same effect as using a OneToOneField.
+	HINT: ForeignKey(unique=True) is usually better served by a OneToOneField.
+Operations to perform:
+  Apply all migrations: account, account_add_gln, account_check_printing, account_debit_note, account_edi, account_edi_proxy_client, account_fleet, account_payment, account_tax_python, account_test, account_update_tax_tags, admin, analytic, auth, authz, authz_audit, authz_ldap, authz_oauth, authz_passkey, authz_password_policy, authz_reauth, authz_signup, authz_totp, authz_totp_mail, auto_backup, base, base_address_extended, base_automation, base_geolocalize, base_import_module, base_install_request, base_setup, base_sparse_field, bus, certificate, contenttypes, crm, delivery, digest, fleet, helpdesk, hr, hr_homeworking, hr_recruitment, hr_recruitment_skills, hr_skills, hr_timesheet, hr_work_entry, html_editor, loyalty, mail, mass_mailing, mrp, mrp_subcontracting, onboarding, payment, product, product_matrix, project, purchase, purchase_requisition, rating, resource, sale, sale_crm, sale_loyalty, sale_management, sale_margin, sale_mrp, sale_product_matrix, sale_project, sale_purchase, sale_sms, sale_stock, sale_subscription, sale_timesheet, sales_team, sessions, sms, stock, stock_account, stock_landed_costs, test_orm, token_blacklist, uom, utm, web, website, website_sale, website_sale_wishlist
+Running migrations:
+  Applying account.0035_log_access_date_names... OK
+  Applying account.0036_log_access_user_column_names... OK
+  Applying account_check_printing.0004_log_access_date_names... OK
+  Applying account_check_printing.0005_log_access_user_column_names... OK
+  Applying account_debit_note.0003_log_access_date_names... OK
+  Applying account_debit_note.0004_log_access_user_column_names... OK
+  Applying account_edi.0004_log_access_date_names... OK
+  Applying account_edi.0005_log_access_user_column_names... OK
+  Applying account_edi_proxy_client.0005_log_access_date_names... OK
+  Applying account_edi_proxy_client.0006_log_access_user_column_names... OK
+  Applying account_test.0004_log_access_date_names... OK
+  Applying account_test.0005_log_access_user_column_names... OK
+  Applying analytic.0009_log_access_date_names... OK
+  Applying analytic.0010_log_access_user_column_names... OK
+  Applying authz.0005_log_access_date_names... OK
+  Applying authz.0006_log_access_user_column_names... OK
+  Applying authz_audit.0004_log_access_date_names... OK
+  Applying authz_audit.0005_log_access_user_column_names... OK
+  Applying authz_ldap.0004_log_access_date_names... OK
+  Applying authz_ldap.0005_log_access_user_column_names... OK
+  Applying authz_oauth.0004_log_access_date_names... OK
+  Applying authz_oauth.0005_log_access_user_column_names... OK
+  Applying authz_passkey.0003_log_access_date_names... OK
+  Applying authz_passkey.0004_log_access_user_column_names... OK
+  Applying authz_reauth.0003_log_access_date_names... OK
+  Applying authz_reauth.0004_log_access_user_column_names... OK
+  Applying authz_signup.0005_log_access_date_names... OK
+  Applying authz_signup.0006_log_access_user_column_names... OK
+  Applying authz_totp.0008_log_access_date_names... OK
+  Applying authz_totp.0009_log_access_user_column_names... OK
+  Applying auto_backup.0006_log_access_date_names... OK
+  Applying auto_backup.0007_log_access_user_column_names... OK
+  Applying base.0111_log_access_date_names... OK
+  Applying base.0112_log_access_user_column_names... OK
+  Applying base_address_extended.0005_log_access_date_names... OK
+  Applying base_address_extended.0006_log_access_user_column_names... OK
+  Applying base_automation.0006_log_access_date_names... OK
+  Applying base_automation.0007_log_access_user_column_names... OK
+  Applying base_import_module.0004_log_access_date_names... OK
+  Applying base_import_module.0005_log_access_user_column_names... OK
+  Applying base_install_request.0005_log_access_date_names... OK
+  Applying base_install_request.0006_log_access_user_column_names... OK
+  Applying base_sparse_field.0005_log_access_date_names... OK
+  Applying base_sparse_field.0006_log_access_user_column_names... OK
+  Applying bus.0003_log_access_date_names... OK
+  Applying bus.0004_log_access_user_column_names... OK
+  Applying certificate.0003_log_access_date_names... OK
+  Applying certificate.0004_log_access_user_column_names... OK
+  Applying utm.0005_log_access_date_names... OK
+  Applying sales_team.0009_log_access_date_names... OK
+  Applying crm.0007_log_access_date_names... OK
+  Applying crm.0008_log_access_user_column_names... OK
+  Applying delivery.0004_log_access_date_names... OK
+  Applying delivery.0005_log_access_user_column_names... OK
+  Applying digest.0010_log_access_date_names... OK
+  Applying digest.0011_log_access_user_column_names... OK
+  Applying fleet.0007_log_access_date_names... OK
+  Applying fleet.0008_log_access_user_column_names... OK
+  Applying helpdesk.0004_log_access_date_names... OK
+  Applying helpdesk.0005_log_access_user_column_names... OK
+  Applying hr.0018_log_access_date_names... OK
+  Applying hr.0019_log_access_user_column_names... OK
+  Applying hr_homeworking.0004_log_access_date_names... OK
+  Applying hr_homeworking.0005_log_access_user_column_names... OK
+  Applying hr_recruitment.0006_log_access_date_names... OK
+  Applying hr_recruitment.0007_log_access_user_column_names... OK
+  Applying hr_recruitment_skills.0004_log_access_date_names... OK
+  Applying hr_recruitment_skills.0005_log_access_user_column_names... OK
+  Applying hr_skills.0006_log_access_date_names... OK
+  Applying hr_skills.0007_log_access_user_column_names... OK
+  Applying hr_work_entry.0006_log_access_date_names... OK
+  Applying hr_work_entry.0007_log_access_user_column_names... OK
+  Applying html_editor.0003_log_access_date_names... OK
+  Applying html_editor.0004_log_access_user_column_names... OK
+  Applying loyalty.0004_log_access_date_names... OK
+  Applying loyalty.0005_log_access_user_column_names... OK
+  Applying mail.0007_log_access_date_names... OK
+  Applying mail.0008_log_access_user_column_names... OK
+  Applying mass_mailing.0004_log_access_date_names... OK
+  Applying mass_mailing.0005_log_access_user_column_names... OK
+  Applying mrp.0005_log_access_date_names... OK
+  Applying mrp.0006_log_access_user_column_names... OK
+  Applying mrp_subcontracting.0003_log_access_date_names... OK
+  Applying mrp_subcontracting.0004_log_access_user_column_names... OK
+  Applying onboarding.0004_log_access_date_names... OK
+  Applying onboarding.0005_log_access_user_column_names... OK
+  Applying payment.0004_log_access_date_names... OK
+  Applying payment.0005_log_access_user_column_names... OK
+  Applying product.0020_log_access_date_names... OK
+  Applying product.0021_log_access_user_column_names... OK
+  Applying product_matrix.0003_log_access_date_names... OK
+  Applying product_matrix.0004_log_access_user_column_names... OK
+  Applying project.0007_log_access_date_names... OK
+  Applying project.0008_log_access_user_column_names... OK
+  Applying purchase.0007_log_access_date_names... OK
+  Applying purchase.0008_log_access_user_column_names... OK
+  Applying purchase_requisition.0003_log_access_date_names... OK
+  Applying purchase_requisition.0004_log_access_user_column_names... OK
+  Applying rating.0003_log_access_date_names... OK
+  Applying rating.0004_log_access_user_column_names... OK
+  Applying resource.0004_log_access_date_names... OK
+  Applying resource.0005_log_access_user_column_names... OK
+  Applying sale.0017_log_access_date_names... OK
+  Applying sale.0018_log_access_user_column_names... OK
+  Applying sale_crm.0003_log_access_date_names... OK
+  Applying sale_crm.0004_log_access_user_column_names... OK
+  Applying sale_loyalty.0003_log_access_date_names... OK
+  Applying sale_loyalty.0004_log_access_user_column_names... OK
+  Applying sale_management.0004_log_access_date_names... OK
+  Applying sale_management.0005_log_access_user_column_names... OK
+  Applying sale_margin.0003_log_access_date_names... OK
+  Applying sale_margin.0004_log_access_user_column_names... OK
+  Applying sale_mrp.0003_log_access_date_names... OK
+  Applying sale_mrp.0004_log_access_user_column_names... OK
+  Applying sale_product_matrix.0003_log_access_date_names... OK
+  Applying sale_product_matrix.0004_log_access_user_column_names... OK
+  Applying sale_project.0003_log_access_date_names... OK
+  Applying sale_project.0004_log_access_user_column_names... OK
+  Applying sale_purchase.0003_log_access_date_names... OK
+  Applying sale_purchase.0004_log_access_user_column_names... OK
+  Applying sale_sms.0003_log_access_date_names... OK
+  Applying sale_sms.0004_log_access_user_column_names... OK
+  Applying sale_stock.0006_log_access_date_names... OK
+  Applying sale_stock.0007_log_access_user_column_names... OK
+  Applying sale_subscription.0004_log_access_date_names... OK
+  Applying sale_subscription.0005_log_access_user_column_names... OK
+  Applying sale_timesheet.0003_log_access_date_names... OK
+  Applying sale_timesheet.0004_log_access_user_column_names... OK
+  Applying sales_team.0010_log_access_user_column_names... OK
+  Applying sms.0003_log_access_date_names... OK
+  Applying sms.0004_log_access_user_column_names... OK
+  Applying stock.0028_log_access_date_names... OK
+  Applying stock.0029_log_access_user_column_names... OK
+  Applying stock_account.0004_log_access_date_names... OK
+  Applying stock_account.0005_log_access_user_column_names... OK
+  Applying stock_landed_costs.0003_log_access_date_names... OK
+  Applying stock_landed_costs.0004_log_access_user_column_names... OK
+  Applying test_orm.0047_log_access_date_names... OK
+  Applying test_orm.0048_log_access_user_column_names... OK
+  Applying uom.0007_log_access_date_names... OK
+  Applying uom.0008_log_access_user_column_names... OK
+  Applying utm.0006_log_access_user_column_names... OK
+  Applying website.0012_log_access_date_names... OK
+  Applying website.0013_log_access_user_column_names... OK
+  Applying website_sale.0006_log_access_date_names... OK
+  Applying website_sale.0007_log_access_user_column_names... OK
+  Applying website_sale_wishlist.0003_log_access_date_names... OK
+  Applying website_sale_wishlist.0004_log_access_user_column_names... OK
+Catálogo técnico: 0 añadidos, 0 actualizados (alcance medido: 124 addon(s) en /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/wt-b/src/addons, /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/wt-b/addons).
+auto_install coherente: 0 pendientes (alcance medido: 124 addon(s) con manifest de 124 en el árbol).
+/tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/wt-b/src/orm/fields.py:4468: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+  warnings.warn(
+/tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/wt-b/src/orm/fields.py:4468: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+  warnings.warn(

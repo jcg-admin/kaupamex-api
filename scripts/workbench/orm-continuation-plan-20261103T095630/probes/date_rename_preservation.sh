@@ -43,14 +43,16 @@ for t in "${TABLES[@]}"; do
     psql_db "SELECT '$t', id, create_date, write_date, create_uid, write_uid FROM $t ORDER BY id" \
         >> "$OUT/after.tsv"
 done
-psql_db "SELECT count(*) FROM information_schema.columns
+# Tabla y columna, no sólo el conteo: un modelo de terceros (fuera del
+# log-access, DEC-09) puede declarar su propio ``created_at``.
+psql_db "SELECT table_name, column_name FROM information_schema.columns
          WHERE column_name IN ('created_at','updated_at','create_uid_id','write_uid_id')
-           AND table_schema = 'public'" > "$OUT/old-columns-left.txt"
+           AND table_schema = 'public' ORDER BY 1, 2" > "$OUT/old-columns-left.tsv"
 
 rows=$(wc -l < "$OUT/before.tsv")
 if cmp -s "$OUT/before.tsv" "$OUT/after.tsv" \
         && cmp -s "$OUT/counts-before.tsv" "$OUT/counts-after.tsv"; then
-    echo "PRESERVADAS: $rows filas, conteos iguales; columnas viejas: $(cat "$OUT/old-columns-left.txt")"
+    echo "PRESERVADAS: $rows filas, conteos iguales; columnas viejas: $(wc -l < "$OUT/old-columns-left.tsv") ($(tr '\t\n' '. ' < "$OUT/old-columns-left.tsv"))"
     exit 0
 fi
 echo "DIFERENCIAS: ver before.tsv/after.tsv en $OUT"
