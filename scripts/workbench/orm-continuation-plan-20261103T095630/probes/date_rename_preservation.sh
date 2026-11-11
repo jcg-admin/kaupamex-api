@@ -1,16 +1,16 @@
 #!/bin/bash
-# Antes/después del renombre de las fechas del log-access (hija B de
+# Antes/después del renombre de las columnas del log-access (hija B de
 # TASK-API-0485, designs/log-access-date-names.md).
 #
 # Uso: date_rename_preservation.sh <worktree-C> <worktree-B> <base> <salida>
 #
 # 1. Migra <base> (desechable, se crea aquí) al estado del worktree C.
-# 2. Toma una muestra: id y las dos fechas de tablas con filas sembradas, más
-#    el conteo de filas de cada una.
+# 2. Toma una muestra: id, las dos fechas y los dos usuarios de tablas con
+#    filas sembradas, más el conteo de filas de cada una.
 # 3. Migra la misma base con el worktree B (RENAME COLUMN).
 # 4. Lee la misma muestra con los nombres nuevos y compara fila a fila.
 #
-# Sale 0 si todas las filas conservan sus dos fechas y el conteo; 1 si no.
+# Sale 0 si todas las filas conservan sus cuatro valores y el conteo; 1 si no.
 # No borra la base: la deja para inspección; su retirada es un paso aparte.
 set -euo pipefail
 WT_C=$1; WT_B=$2; DB=$3; OUT=$4
@@ -26,7 +26,7 @@ sudo -u postgres createdb -O orm_x2hokp "$DB"
 : > "$OUT/before.tsv"
 for t in "${TABLES[@]}"; do
     psql_db "SELECT '$t', count(*) FROM $t" >> "$OUT/counts-before.tsv"
-    psql_db "SELECT '$t', id, created_at, updated_at FROM $t ORDER BY id" \
+    psql_db "SELECT '$t', id, created_at, updated_at, create_uid_id, write_uid_id FROM $t ORDER BY id" \
         >> "$OUT/before.tsv"
 done
 
@@ -36,11 +36,11 @@ done
 : > "$OUT/after.tsv"
 for t in "${TABLES[@]}"; do
     psql_db "SELECT '$t', count(*) FROM $t" >> "$OUT/counts-after.tsv"
-    psql_db "SELECT '$t', id, create_date, write_date FROM $t ORDER BY id" \
+    psql_db "SELECT '$t', id, create_date, write_date, create_uid, write_uid FROM $t ORDER BY id" \
         >> "$OUT/after.tsv"
 done
 psql_db "SELECT count(*) FROM information_schema.columns
-         WHERE column_name IN ('created_at','updated_at')
+         WHERE column_name IN ('created_at','updated_at','create_uid_id','write_uid_id')
            AND table_schema = 'public'" > "$OUT/old-columns-left.txt"
 
 rows=$(wc -l < "$OUT/before.tsv")
