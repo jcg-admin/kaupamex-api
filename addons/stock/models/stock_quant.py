@@ -367,8 +367,13 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
     _rec_name = 'product_id'
     _rec_names_search = ['location_id', 'lot_id', 'package_id', 'owner_id']
 
-    product           = fields.Many2one(
-        'product.ProductProduct', null=False, on_delete=models.CASCADE, related_name='quants',
+    #: ``ondelete='restrict'`` en la fuente (``stock_quant.py:44-47``): borrar
+    #: un producto con existencias falla y las existencias se conservan.
+    #: ``PROTECT`` y no ``RESTRICT``: ver ``designs/
+    #: stock-quant-restrict-ondelete.md`` del banco de continuación del ORM.
+    product = fields.Many2one(
+        'product.ProductProduct', null=False, on_delete=models.PROTECT,
+        related_name='quants',
         help_text='Producto (Odoo product_id).',
     )
     company           = fields.Many2one(
@@ -377,12 +382,15 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         help_text='Empresa (Odoo company_id, related a location_id.company_id '
                   'con store=True; se recalcula en save()).',
     )
-    location          = fields.Many2one(
-        'stock.StockLocation', null=False, on_delete=models.CASCADE, related_name='quants',
+    #: ``ondelete='restrict'`` en la fuente (``stock_quant.py:56-59``).
+    location = fields.Many2one(
+        'stock.StockLocation', null=False, on_delete=models.PROTECT,
+        related_name='quants',
         help_text='Ubicación (Odoo location_id).',
     )
-    lot               = fields.Many2one(
-        'stock.StockLot', on_delete=models.CASCADE, related_name='quants',
+    #: ``ondelete='restrict'`` en la fuente (``stock_quant.py:63-66``).
+    lot = fields.Many2one(
+        'stock.StockLot', on_delete=models.PROTECT, related_name='quants',
         null=True, blank=True,
         help_text='Lote / número de serie (Odoo lot_id). NULL = sin lote.',
     )

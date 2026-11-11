@@ -25,6 +25,14 @@ _MATRIX = (pathlib.Path(__file__).resolve().parents[3] / 'scripts'
            / 'workbench' / 'orm-continuation-plan-20261103T095630'
            / 'outputs' / 'fk_reference_ondelete.tsv')
 
+#: Filas ya corregidas: su caso corre sin ``xfail`` y tiene que pasar. Cada
+#: entrada cita la unidad que la corrigió.
+CORRECTED = {
+    # designs/stock-quant-restrict-ondelete.md
+    'stock.StockQuant.product', 'stock.StockQuant.location',
+    'stock.StockQuant.lot',
+}
+
 #: Política de Django que corresponde al ``ondelete`` de la fuente.
 _EXPECTED = {
     'set null': (models.SET_NULL,),
@@ -37,12 +45,12 @@ def _destructive_rows():
         for row in csv.DictReader(handle, delimiter='\t'):
             kind = row['reference_ondelete'].split(' (')[0]
             if kind in _EXPECTED and row['django_policy'] == 'CASCADE':
-                yield pytest.param(
-                    row, kind,
-                    id=f"{row['django_field']}.{row['field']}",
-                    marks=pytest.mark.xfail(strict=True, reason=(
+                ident = f"{row['django_field']}.{row['field']}"
+                marks = () if ident in CORRECTED else pytest.mark.xfail(
+                    strict=True, reason=(
                         f"{kind} -> CASCADE "
-                        f"(odoo19c: {row['reference_field']})")))
+                        f"(odoo19c: {row['reference_field']})"))
+                yield pytest.param(row, kind, id=ident, marks=marks)
 
 
 _ROWS = list(_destructive_rows())

@@ -61,3 +61,26 @@ conducta y su fila paramétrica.
 *Métrica:* filas de `stock.quant` antes y después de borrar el padre.
 *Ciega a:* `quant.company` (`CASCADE` aquí; en la fuente es un `related`
 almacenado sin FK): divergencia distinta, fuera de esta unidad.
+
+## RED, implementación y controles (2026-11-11T05:41:03)
+
+RED: los tres casos de conducta fallaron con `DID NOT RAISE
+ProtectedError` (el borrado se ejecutaba y arrastraba el quant).
+
+Implementación: `product`, `location` y `lot` de `StockQuant` a
+`on_delete=models.PROTECT`; migración `stock/0025_quant_restrict_ondelete`
+(`AlterField` ×3, sólo estado; la FK física no cambia).
+`test_delete_policy_contract.py`: conjunto `CORRECTED` con las tres filas,
+que corren sin `xfail`. Resultado: 11 passed, 95 xfailed.
+
+Control que destapó un defecto de la prueba: con `CASCADE` de vuelta en
+`product` sólo cayó la fila paramétrica; el caso de conducta seguía verde
+porque el lote del fixture también apunta al producto y era él quien
+lanzaba `ProtectedError`. Se separaron los fixtures (quant sin lote para
+producto y ubicación; con lote sólo para el caso del lote). Repetidos:
+
+| Mutación | Cae |
+|---|---|
+| `product` → `CASCADE` | exactamente `test_deleting_the_parent_of_a_quant_is_refused[variant]` y su fila paramétrica |
+| `location` → `CASCADE` | exactamente `...[location]` y su fila paramétrica |
+| `lot` → `CASCADE` | exactamente `test_deleting_the_lot_of_a_quant_is_refused` y su fila paramétrica |
