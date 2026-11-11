@@ -1,0 +1,144 @@
+bringing up nodes...
+bringing up nodes...
+
+........................................................................ [  2%]
+........................................................................ [  4%]
+........................................................................ [  7%]
+......................................................................... [  9%]
+........................................................................ [ 12%]
+........................................................................ [ 14%]
+........................................................................ [ 17%]
+...................s.................................................... [ 19%]
+..................ssssss..............ssssssssss........................ [ 22%]
+........................................................................ [ 24%]
+........................................................................ [ 27%]
+........................................................................ [ 29%]
+........................................................................ [ 32%]
+........................................................................ [ 34%]
+........................................................................ [ 37%]
+........................................................................ [ 39%]
+........................................................................ [ 42%]
+........................................................................ [ 44%]
+........................................................................ [ 47%]
+........................................................................ [ 49%]
+........................................................................ [ 51%]
+........................................................................ [ 54%]
+........................................................................ [ 56%]
+........................................................................ [ 59%]
+........................................................................ [ 61%]
+........................................................................ [ 64%]
+...................................................................ss.ss [ 66%]
+ssssssssssss...........ss.ssss.......................................... [ 69%]
+........................................................................ [ 71%]
+........................................................................ [ 74%]
+........................................................................ [ 76%]
+........................................................................ [ 79%]
+........................................................................ [ 81%]
+........................................................................ [ 84%]
+........................................................................ [ 86%]
+........................................................................ [ 89%]
+......................................................................... [ 91%]
+........................................................................ [ 94%]
+........................................................................ [ 96%]
+........................................................................ [ 99%]
+..........................                                               [100%]
+=============================== warnings summary ===============================
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:48: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/unit/orm/test_table_objects_reach_meta.py)
+    class TestOrmCategory(TestOrmModel):
+
+tests/unit/orm/test_field_setup_phase.py: 1 warning
+tests/unit/orm/test_domain_hierarchy.py: 1 warning
+tests/unit/orm/test_access_manager.py: 1 warning
+tests/unit/orm/test_marked_method_collectors.py: 1 warning
+tests/unit/orm/test_modified_engine.py: 12 warnings
+tests/unit/orm/test_environments_pooling_and_flush.py: 1 warning
+tests/unit/orm/test_new_with_django_comodel.py: 1 warning
+tests/unit/orm/test_compute_stored_fields_operation.py: 1 warning
+tests/unit/orm/test_registry_load_axis.py: 1 warning
+tests/unit/orm/test_field_conversion.py: 1 warning
+tests/unit/orm/test_field_triggers.py: 14 warnings
+tests/unit/orm/test_related_field_declaration.py: 1 warning
+tests/unit/orm/test_compute_wiring.py: 2 warnings
+tests/unit/orm/test_flush_manager_contract.py: 3 warnings
+tests/unit/orm/test_nonstored_compute_dispatch.py: 1 warning
+tests/unit/orm/test_record_environment_field_contract.py: 2 warnings
+tests/unit/orm/test_registry_field_axis.py: 3 warnings
+tests/unit/orm/test_res_groups_compute_contract.py: 1 warning
+tests/unit/orm/test_unsaved_modified.py: 1 warning
+tests/unit/orm/test_missing_recompute.py: 16 warnings
+  /home/user/kaupamex-api/src/orm/fields.py:4468: UserWarning: Field <django.db.models.fields.related.ForeignKey: target> in dependency of contenttypes.VirtualDeleteSource.echo should be searchable. This is necessary to determine which records to recompute when contenttypes.VirtualDeleteTarget.label is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_field_setup_phase.py: 1 warning
+tests/unit/orm/test_domain_hierarchy.py: 1 warning
+tests/unit/orm/test_access_manager.py: 1 warning
+tests/unit/orm/test_marked_method_collectors.py: 1 warning
+tests/unit/orm/test_modified_engine.py: 12 warnings
+tests/unit/orm/test_environments_pooling_and_flush.py: 1 warning
+tests/unit/orm/test_new_with_django_comodel.py: 1 warning
+tests/unit/orm/test_compute_stored_fields_operation.py: 1 warning
+tests/unit/orm/test_registry_load_axis.py: 1 warning
+tests/unit/orm/test_field_conversion.py: 1 warning
+tests/unit/orm/test_field_triggers.py: 14 warnings
+tests/unit/orm/test_related_field_declaration.py: 1 warning
+tests/unit/orm/test_compute_wiring.py: 2 warnings
+tests/unit/orm/test_flush_manager_contract.py: 3 warnings
+tests/unit/orm/test_nonstored_compute_dispatch.py: 1 warning
+tests/unit/orm/test_record_environment_field_contract.py: 2 warnings
+tests/unit/orm/test_registry_field_axis.py: 3 warnings
+tests/unit/orm/test_res_groups_compute_contract.py: 1 warning
+tests/unit/orm/test_unsaved_modified.py: 1 warning
+tests/unit/orm/test_missing_recompute.py: 16 warnings
+  /home/user/kaupamex-api/src/orm/fields.py:4468: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_field_setup_phase.py: 1 warning
+tests/unit/orm/test_domain_hierarchy.py: 1 warning
+tests/unit/orm/test_access_manager.py: 1 warning
+tests/unit/orm/test_marked_method_collectors.py: 1 warning
+tests/unit/orm/test_modified_engine.py: 12 warnings
+tests/unit/orm/test_environments_pooling_and_flush.py: 1 warning
+tests/unit/orm/test_new_with_django_comodel.py: 1 warning
+tests/unit/orm/test_compute_stored_fields_operation.py: 1 warning
+tests/unit/orm/test_registry_load_axis.py: 1 warning
+tests/unit/orm/test_field_conversion.py: 1 warning
+tests/unit/orm/test_field_triggers.py: 14 warnings
+tests/unit/orm/test_related_field_declaration.py: 1 warning
+tests/unit/orm/test_compute_wiring.py: 2 warnings
+tests/unit/orm/test_flush_manager_contract.py: 3 warnings
+tests/unit/orm/test_nonstored_compute_dispatch.py: 1 warning
+tests/unit/orm/test_record_environment_field_contract.py: 2 warnings
+tests/unit/orm/test_registry_field_axis.py: 3 warnings
+tests/unit/orm/test_res_groups_compute_contract.py: 1 warning
+tests/unit/orm/test_unsaved_modified.py: 1 warning
+tests/unit/orm/test_missing_recompute.py: 16 warnings
+  /home/user/kaupamex-api/src/orm/fields.py:4468: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_fields_related.py::TestResolveDepends::test_it_resolves_a_declared_chain_to_its_fields
+  /home/user/kaupamex-api/src/orm/fields.py:4442: UserWarning: Field base.ResPartner.name should be declared with recursive=True
+    warnings.warn(
+
+tests/unit/orm/test_contract_domains_reference.py: 216 warnings
+  /home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/domains.py:1267: DeprecationWarning: Operator '<>' is deprecated since 19.0, use '!=' directly
+    warnings.warn("Operator '<>' is deprecated since 19.0, use '!=' directly", DeprecationWarning)
+
+tests/unit/orm/test_contract_domains_reference.py: 216 warnings
+  /home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/domains.py:1275: DeprecationWarning: Operator '==' is deprecated since 19.0, use '=' directly
+    warnings.warn("Operator '==' is deprecated since 19.0, use '=' directly", DeprecationWarning)
+
+tests/unit/orm/test_contract_domains_reference.py: 108 warnings
+  /home/user/kaupamex-api/tests/unit/orm/test_contract_domains_reference.py:301: DeprecationWarning: El operador '<>' está obsoleto desde 19.0; usar '!=' directamente
+    f(condition('a', o, v), None))
+
+tests/unit/orm/test_contract_domains_reference.py: 108 warnings
+  /home/user/kaupamex-api/tests/unit/orm/test_contract_domains_reference.py:301: DeprecationWarning: El operador '==' está obsoleto desde 19.0; usar '=' directamente
+    f(condition('a', o, v), None))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+referencia: 39 de 53 pruebas marcadas se omitieron (el árbol está en /home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0; los motivos, con -rs); sus contratos NO se verificaron en esta ejecución
+2869 passed, 39 skipped, 848 warnings in 180.16s (0:03:00)
