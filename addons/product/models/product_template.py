@@ -107,7 +107,6 @@ from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.product.models.product_category import ProductCategory
 from addons.product.models.product_document import ProductDocument
 from addons.uom.models.uom_uom import Uom
-from orm.fields_company_dependent import table_index_name
 
 #: Claves de contexto que afectan al precio calculado — verbatim de la fuente.
 #: Se conservan aunque el cálculo de precio viva en ``product.pricelist``:
@@ -289,8 +288,8 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
             # ``migrate``: se acota como los demás índices declarados.
             models.Index(fields=['is_favorite'],
                          condition=models.Q(is_favorite=True),
-                         name=table_index_name('product_template',
-                                               'is_favorite')),
+                         name=fields.table_index_name('product_template',
+                                                      'is_favorite')),
         ]
         verbose_name = 'Producto'
         verbose_name_plural = 'Productos'

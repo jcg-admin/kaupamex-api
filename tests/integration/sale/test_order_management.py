@@ -367,7 +367,7 @@ class TestListadoOrdenes:
             'order_number',
             'status',
             'status_display',
-            'create_date',
+            'created_at',
             'total',
             'items_count',
         }

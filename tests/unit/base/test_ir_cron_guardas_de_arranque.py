@@ -89,7 +89,23 @@ def test_jobs_stuck_past_the_threshold_stop_blocking():
     """
     _module_in_transit()
     stale = _cron(nextcall_delta=-(MAX_FAIL_TIME + timedelta(minutes=1)))
+    # La fuente compara ``max(nextcall, write_date)`` (``odoo19c:
+    # ir_cron.py:269-273``): un trabajo atascado de verdad lleva también su
+    # última escritura en el pasado. El alta la sella ahora, así que se
+    # envejece la fila del dato de prueba.
+    IrCron.objects.filter(pk=stale.pk).update(write_date=stale.nextcall)
+    stale.refresh_from_db()
     IrCron._check_modules_state(jobs=[stale])
+
+
+def test_a_recent_write_keeps_a_stale_job_blocking():
+    """``max(nextcall, write_date)``: una escritura reciente cuenta aunque el
+    ``nextcall`` sea viejo (``odoo19c: ir_cron.py:269-273`` — *"to avoid the
+    cron to reset_module_state while an update is in progress"*)."""
+    _module_in_transit()
+    stale = _cron(nextcall_delta=-(MAX_FAIL_TIME + timedelta(minutes=1)))
+    with pytest.raises(BadModuleState):
+        IrCron._check_modules_state(jobs=[stale])
 
 
 # --- _check_version ---------------------------------------------------------

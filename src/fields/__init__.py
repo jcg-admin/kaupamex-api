@@ -84,6 +84,7 @@ from orm.fields_binary import Binary, Image
 from orm.commands import Command
 from orm.domains import Domain
 from orm.fields import Field
+from orm.fields_company_dependent import table_index_name
 from orm.models import NO_ACCESS
 from orm.utils import parse_field_expr
 

@@ -83,11 +83,16 @@ def test_the_template_declares_its_class_attributes():
 
 @pytest.mark.django_db
 def test_the_template_favorite_index_is_on_the_table():
+    # El nombre sale de ``Meta``: la fuente lo llama
+    # ``product_template__is_favorite_index`` y aquí se acota a los 30
+    # caracteres de ``models.E034`` (``fields.table_index_name``).
+    name = next(index.name for index in ProductTemplate._meta.indexes
+                if index.fields == ['is_favorite'])
     with connection.cursor() as cursor:
         cursor.execute(
             "SELECT indexdef FROM pg_indexes WHERE tablename = %s "
             "AND indexname = %s",
-            ['product_template', 'product_template_is_favorite_index'])
+            ['product_template', name])
         row = cursor.fetchone()
     assert row is not None
     assert 'is_favorite' in row[0]
