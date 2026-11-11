@@ -125,3 +125,24 @@ un tercer nombre volvería a abrir la ambigüedad.
 Antes, durante y después: la migración de renombre se prueba sobre una fila
 creada antes de aplicarla, y su fecha tiene que sobrevivir.
 
+
+## Extensión medida (2026-11-11): las columnas de autoría también toman el nombre de la fuente
+
+El gate completo de la unidad C (`04cd6f80`) falló en `check_fk_naming`.
+Los dos FK de autoría de `hr.employee.public` salían en forma D. La fuente no
+los declara en el archivo del modelo, sino en el metaclase (`odoo19c:
+odoo/orm/models.py:287-292`), y el gate sólo consultaba la contraparte del
+archivo. Se corrigió en dos sitios:
+
+- el gate conoce `create_uid`/`write_uid` como símbolos de la fuente para
+  todo modelo (`SOURCE_METACLASS_MANY2ONE`);
+- `hr.employee.public` los declara en forma C (`db_column='create_uid'`), y
+  su vista los selecciona con ese alias.
+
+**Lo que queda, y es de esta unidad:** las columnas `create_uid_id` y
+`write_uid_id` que creó la unidad A en las tablas. En la fuente la columna se
+llama `create_uid`. `LogAccessUserField` no es un constructor que
+`check_fk_naming` reconozca (`SINGLE_VALUED`), así que hoy el gate no las ve.
+Su renombre físico (`db_column` y `RENAME COLUMN`, el mismo mecanismo de las
+fechas) se añade a B para que las tres superficies coincidan con la fuente en
+las cuatro columnas. El gate también tiene que reconocer el constructor.
