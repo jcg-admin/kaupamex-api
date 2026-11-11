@@ -20,6 +20,9 @@ from django.db import IntegrityError, connection, models, transaction
 
 from addons.base.models.ir_actions import IrActionsActions, IrActionsTodo
 from addons.base.models.res_device import ResDeviceLog
+from addons.fleet.models import (FleetVehicle, FleetVehicleModel,
+                                 FleetVehicleModelBrand,
+                                 FleetVehicleOdometer)
 
 _MATRIX = (pathlib.Path(__file__).resolve().parents[3] / 'scripts'
            / 'workbench' / 'orm-continuation-plan-20261103T095630'
@@ -31,6 +34,9 @@ CORRECTED = {
     # designs/stock-quant-restrict-ondelete.md
     'stock.StockQuant.product', 'stock.StockQuant.location',
     'stock.StockQuant.lot',
+    # designs/country-and-todo-restrict-ondelete.md
+    'base.ResCountryState.country', 'base_address_extended.ResCity.country_id',
+    'base.IrActionsTodo.action',
 }
 
 #: Política de Django que corresponde al ``ondelete`` de la fuente.
@@ -98,26 +104,35 @@ def test_today_deleting_a_user_deletes_its_device_logs(user):
     assert not ResDeviceLog.objects.filter(pk=log.pk).exists()
 
 
+@pytest.fixture
+def vehicle():
+    brand = FleetVehicleModelBrand.objects.create(name='Marca')
+    model = FleetVehicleModel.objects.create(name='Modelo', brand=brand)
+    return FleetVehicle.objects.create(model=model)
+
+
 @pytest.mark.django_db
 @pytest.mark.xfail(strict=True, reason=(
-    'restrict -> CASCADE: la fuente rehúsa borrar la acción de un todo '
-    '(odoo19c: odoo/addons/base/models/ir_actions.py:1357); aquí se borra'))
-def test_deleting_an_action_with_a_wizard_step_is_refused():
-    action = IrActionsActions.objects.create(
-        name='probe', type='ir.actions.actions')
-    wizard_step = IrActionsTodo.objects.create(action=action)
+    'restrict -> CASCADE: la fuente rehúsa borrar un vehículo con lecturas '
+    'de odómetro (odoo19c: addons/fleet/models/'
+    'fleet_vehicle_odometer.py:15); aquí se borran'))
+def test_deleting_a_vehicle_with_odometer_readings_is_refused(vehicle):
+    reading = FleetVehicleOdometer.objects.create(vehicle=vehicle,
+                                                  value=10)
     with pytest.raises(models.ProtectedError):
-        IrActionsActions.objects.filter(pk=action.pk).delete()
-    assert IrActionsTodo.objects.filter(pk=wizard_step.pk).exists()
+        FleetVehicle.objects.filter(pk=vehicle.pk).delete()
+    assert FleetVehicleOdometer.objects.filter(pk=reading.pk).exists()
 
 
 @pytest.mark.django_db
-def test_today_deleting_an_action_deletes_its_wizard_steps():
-    action = IrActionsActions.objects.create(
-        name='probe', type='ir.actions.actions')
-    wizard_step = IrActionsTodo.objects.create(action=action)
-    IrActionsActions.objects.filter(pk=action.pk).delete()
-    assert not IrActionsTodo.objects.filter(pk=wizard_step.pk).exists()
+def test_today_deleting_a_vehicle_deletes_its_odometer_readings(vehicle):
+    """Lo observado hoy, para que el ``xfail`` no oculte otra causa. El
+    representante anterior de la familia, ``ir.actions.todo``, ya está
+    corregido (``designs/country-and-todo-restrict-ondelete.md``)."""
+    reading = FleetVehicleOdometer.objects.create(vehicle=vehicle,
+                                                  value=10)
+    FleetVehicle.objects.filter(pk=vehicle.pk).delete()
+    assert not FleetVehicleOdometer.objects.filter(pk=reading.pk).exists()
 
 
 # --- PostgreSQL: el DELETE crudo no cascada ---------------------------------

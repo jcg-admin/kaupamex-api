@@ -41,9 +41,11 @@ class ResCity(models.Model):
         default='',
         help_text='Código postal (Odoo zipcode).',
     )
+    #: Obligatorio sin ``ondelete`` en la fuente (``res_city.py:14``): su
+    #: defecto es ``restrict``; borrar un país con ciudades falla.
     country_id = fields.Many2one(
         'base.ResCountry',
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         related_name='cities',
         help_text='País (Odoo country_id, requerido).',
         db_column='country_id',

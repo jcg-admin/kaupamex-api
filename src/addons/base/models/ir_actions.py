@@ -2598,9 +2598,11 @@ class IrActionsTodo(TimeStampedModel):
         (STATE_DONE, 'Hecho'),
     ]
 
+    #: Obligatorio sin ``ondelete`` en la fuente (``ir_actions.py:1357``): su
+    #: defecto es ``restrict``; borrar una acción con pasos falla.
     action = fields.Many2one(
         IrActionsActions,
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         db_index=True,
         related_name='todos',
         verbose_name='Acción',

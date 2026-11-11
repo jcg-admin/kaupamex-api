@@ -288,9 +288,11 @@ class ResCountryState(models.Model):
     _order = 'code, id'
     _rec_names_search = ['name', 'code']
 
+    #: Obligatorio sin ``ondelete`` en la fuente (``res_country.py:204``):
+    #: su defecto es ``restrict``; borrar un país con estados falla.
     country = fields.Many2one(
         'base.ResCountry',
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         related_name='state_ids',
         help_text='País (Odoo country_id).',
     )

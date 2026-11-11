@@ -1,0 +1,16 @@
+  base  (depends: —)
+  authz  (depends: base)
+  authz_passkey  (depends: authz, base)
+.Catálogo técnico: 124 añadidos, 0 actualizados (alcance medido: 124 addon(s) en /home/user/kaupamex-api/src/addons, /home/user/kaupamex-api/addons).
+3 addon(s) declaran auto_install, tienen sus dependencias presentes y NO están instalados en esta base (alcance medido: 124 addon(s) con manifest de 124 en el árbol):
+  base  (depends: —)
+  authz  (depends: base)
+  authz_passkey  (depends: authz, base)
+.Catálogo técnico: 124 añadidos, 0 actualizados (alcance medido: 124 addon(s) en /home/user/kaupamex-api/src/addons, /home/user/kaupamex-api/addons).
+3 addon(s) declaran auto_install, tienen sus dependencias presentes y NO están instalados en esta base (alcance medido: 124 addon(s) con manifest de 124 en el árbol):
+  base  (depends: —)
+  authz  (depends: base)
+  authz_passkey  (depends: authz, base)
+                               [100%]
+42 passed in 321.70s (0:05:21)
+EXIT=0

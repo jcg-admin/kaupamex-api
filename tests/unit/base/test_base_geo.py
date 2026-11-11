@@ -19,6 +19,7 @@ from decimal import Decimal
 
 import pytest
 from django.db import IntegrityError, transaction
+from django.db.models import ProtectedError
 
 from addons.base.models import ResCountry, ResCountryState, ResCurrency
 
@@ -129,10 +130,16 @@ class TestResCountryState:
         )
         assert s1.pk != s2.pk
 
-    def test_cascade_delete_with_country(self):
+    def test_deleting_a_country_with_states_is_refused(self):
+        """``country_id`` es obligatorio y sin ``ondelete`` en la fuente
+        (``odoo19c: odoo/addons/base/models/res_country.py:204``): su
+        defecto es ``restrict``. Esta prueba afirmaba la cascada, que borraba
+        los estados; ver ``designs/country-and-todo-restrict-ondelete.md``."""
         mx = ResCountry.objects.get_or_create(
             code='MX', defaults={'name': 'México'}
         )[0]
-        ResCountryState.objects.create(country=mx, name='Jalisco', code='JAL')
-        mx.delete()
-        assert ResCountryState.objects.count() == 0
+        state = ResCountryState.objects.create(country=mx, name='Jalisco',
+                                               code='JAL')
+        with pytest.raises(ProtectedError):
+            mx.delete()
+        assert ResCountryState.objects.filter(pk=state.pk).exists()
