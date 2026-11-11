@@ -2263,6 +2263,45 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
         búsqueda recorre ``group_ids`` hasta la clausura de cada grupo."""
         return [('group_ids.all_implied_ids', operator, value)]
 
+    #: ≙ el regex de ``init`` en la fuente (``:287``): un valor con forma de
+    #: MCF extendido (``$esquema$...$...``) ya está cifrado.
+    _MCF_PATTERN = r'^\$[^$]+\$[^$]+\$.'
+
+    @classmethod
+    def init(cls, using=None):
+        """Cifra las contraseñas escritas en claro — ≙ ``:277-292``.
+
+        Permite fijar una contraseña por SQL y que quede cifrada al arrancar:
+        toda fila sin forma de MCF se pasa por :meth:`_crypt_context`.
+
+        DIVERGENCIA DE FILTRO, declarada: además del MCF se excluyen la cadena
+        vacía y el prefijo ``!`` de ``UNUSABLE_PASSWORD_PREFIX``. Aquí «sin
+        credencial» se guarda como ``!`` + caracteres aleatorios
+        (:meth:`set_unusable_password`), y ese valor no es MCF: el filtro
+        literal de la fuente lo cifraría y la cuenta —medido: la del
+        superusuario, única fila de la base de pruebas— quedaría con una
+        contraseña conocida. Diseño: ``scripts/workbench/
+        orm-continuation-plan-20261103T095630/designs/res-users-init.md``.
+
+        La fuente filtra también ``password IS NOT NULL``; aquí la columna es
+        ``NOT NULL`` y la condición sobra.
+
+        La escritura no pasa por :meth:`_set_encrypted_password` porque ese
+        método no recibe la base y ``init`` corre por base; su precondición
+        (que el valor no sea texto plano) se cumple por construcción: el
+        valor sale de ``context.hash``. ``db_manager(None)`` deja decidir al
+        router, igual que el resto del modelo.
+        """
+        manager = cls.objects.db_manager(using)
+        rows = (manager
+                .exclude(password='')
+                .exclude(password__startswith=hashers.UNUSABLE_PASSWORD_PREFIX)
+                .exclude(password__regex=cls._MCF_PATTERN)
+                .values_list('pk', 'password'))
+        context = cls._crypt_context()
+        for uid, raw in rows:
+            manager.filter(pk=uid).update(password=context.hash(raw))
+
 
 class ResUsersLog(TimeStampedModel):
     """``res.users.log`` — que hubo un acceso, no una auditoría.
