@@ -110,7 +110,8 @@ def main(out_dir):
     revision = subprocess.run(
         ['git', 'rev-parse', 'HEAD'], cwd=ROOT, capture_output=True,
         text=True).stdout.strip()
-    record = {'database': name, 'revision': revision}
+    record = {'database': name, 'revision': revision,
+              'second_base': env.get('MULTIDB_SECOND_BASE', 'provision')}
 
     owner, companies_before, server, role = catalog(env, name)
     assert owner is None, f'{name} ya existía: no se reutiliza'

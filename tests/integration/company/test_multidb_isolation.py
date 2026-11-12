@@ -1,11 +1,21 @@
 """Aislamiento físico y por fila con PostgreSQL propio (TASK-API-0383).
 
 El acceso a aliases dinámicos utiliza el fixture público django_db_blocker,
-sin solicitar db/transactional_db ni alterar restricciones privadas de TestCase.
+sin solicitar db/transactional_db ni alterar restricciones privadas de
+TestCase.
 Cada ejecución adquiere nombres impredecibles, migra con el aprovisionador real
 y elimina exclusivamente las bases cuya creación terminó correctamente.
-Las filas de empresa desaparecen con sus bases; el caso N=1 revierte su escritura.
+Las filas de empresa desaparecen con sus bases; el caso N=1 revierte su
+escritura.
 Esto verifica aislamiento de datos, no autenticación ni aceptación de la TASK.
+
+La base A se aprovisiona siempre desde cero. La B, según
+``MULTIDB_SECOND_BASE``: ``provision`` (por defecto) la aprovisiona también
+desde cero; ``clone`` la copia de A con ``duplicate_database`` (``CREATE
+DATABASE ... TEMPLATE``) y la pasa por ``provision_company_database``, que no
+debe aplicar ninguna migración. ``clone`` sirve para los contratos
+funcionales; un cambio de migraciones o de aprovisionamiento exige
+``provision``.
 """
 import os
 import secrets
@@ -16,10 +26,12 @@ from django.conf import settings
 from django.db import connections, transaction
 
 from addons.authz.models import Module
-from addons.base.models import (IrModelData, ReportPaperformat, ResCompany,
-                                ResUsers)
+from addons.base.models import (IrModel, IrModelData, ReportPaperformat,
+                                ResCompany, ResUsers)
 from addons.sale_subscription.models import CompanyModuleSubscription
 from orm.environments import Environment, company_scope
+from orm.registry import registry_for_alias
+from orm.utils import SUPERUSER_ID
 from service import db as svc
 
 pytestmark = pytest.mark.integration
@@ -28,6 +40,7 @@ _COMPANY_A_ID = secrets.randbits(48)
 _COMPANY_B_ID = _COMPANY_A_ID + 1
 _ALIAS_A = f'company_{_COMPANY_A_ID}_db'
 _ALIAS_B = f'company_{_COMPANY_B_ID}_db'
+_SECOND_BASE = os.environ.get('MULTIDB_SECOND_BASE', 'provision')
 
 
 def _require_disposable_default():
@@ -35,7 +48,9 @@ def _require_disposable_default():
     name = settings.DATABASES['default']['NAME']
     if (not name.startswith(('orm_bootstrap_', 'kaupamex_ci_'))
             or os.environ.get('CI_DATABASE_DISPOSABLE') != name):
-        raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+        raise RuntimeError(
+            'Isolation fixture requires an explicitly owned disposable '
+            'default')
 
 
 def _forget_alias(alias):
@@ -51,22 +66,35 @@ def _company_databases(aliases):
     """No adquiere ni elimina aliases o bases preexistentes."""
     for alias in aliases:
         if alias in settings.DATABASES or svc.database_exists(alias):
-            raise RuntimeError('Isolation fixture refuses an existing database or alias')
+            raise RuntimeError(
+                'Isolation fixture refuses an existing database or alias')
     with ExitStack() as resources:
         for alias in aliases:
             resources.callback(_forget_alias, alias)
         svc.install_company_aliases(settings.DATABASES, names=aliases)
-        for alias in aliases:
-            # CREATE DATABASE es exclusivo; las extensiones son best-effort del servicio.
-            svc.create_empty_database(alias)
-            resources.callback(svc.drop_database, alias)
-            svc.provision_company_database(alias)
+        first, *others = aliases
+        # CREATE DATABASE es exclusivo; las extensiones son best-effort del
+        # servicio.
+        svc.create_empty_database(first)
+        resources.callback(svc.drop_database, first)
+        svc.provision_company_database(first)
+        for alias in others:
+            if _SECOND_BASE == 'clone':
+                svc.duplicate_database(first, alias)
+                resources.callback(svc.drop_database, alias)
+                _name, created = svc.provision_company_database(alias)
+                assert not created
+            else:
+                svc.create_empty_database(alias)
+                resources.callback(svc.drop_database, alias)
+                svc.provision_company_database(alias)
         yield aliases
 
 
 @pytest.fixture(autouse=True)
 def isolation_database_access(django_db_blocker):
-    """Acceso explícito público; no se instala un TestCase para eludirlo después."""
+    """Acceso explícito público; no se instala un TestCase para eludirlo
+    después."""
     _require_disposable_default()
     with django_db_blocker.unblock():
         yield
@@ -89,14 +117,16 @@ class TestN1DegenerationRealWrite:
         with transaction.atomic(using='default'):
             with company_scope(999999):
                 Module.objects.create(code='n1-degenerate', name='N1')
-            assert Module.objects.using('default').filter(code='n1-degenerate').exists()
+            assert Module.objects.using('default').filter(
+                code='n1-degenerate').exists()
             transaction.set_rollback(True, using='default')
 
 
 class TestCrossCompanyIsolationByBase:
     """T-091-07 — aislamiento por BASE entre dos companies reales."""
 
-    def test_write_under_company_scope_lands_in_its_own_base(self, two_company_databases):
+    def test_write_under_company_scope_lands_in_its_own_base(
+            self, two_company_databases):
         alias_a, alias_b = two_company_databases
         with company_scope(_COMPANY_A_ID):
             Module.objects.create(code='iso-write-a', name='Aislado A')
@@ -105,10 +135,13 @@ class TestCrossCompanyIsolationByBase:
         # propio autoincrement (dos filas "primera de su base" comparten
         # pk=1 aunque vivan en bases distintas) — se compara por 'code'
         # (unico, valor de negocio), no por pk.
-        assert Module.objects.using(alias_a).filter(code='iso-write-a').exists()
-        assert not Module.objects.using(alias_b).filter(code='iso-write-a').exists()
+        assert Module.objects.using(alias_a).filter(
+            code='iso-write-a').exists()
+        assert not Module.objects.using(alias_b).filter(
+            code='iso-write-a').exists()
 
-    def test_rows_from_company_a_not_visible_under_company_b_scope(self, two_company_databases):
+    def test_rows_from_company_a_not_visible_under_company_b_scope(
+            self, two_company_databases):
         with company_scope(_COMPANY_A_ID):
             Module.objects.create(code='iso-a2', name='A2')
 
@@ -141,8 +174,10 @@ class TestSol085RowScopingIntraBase:
         alias_a, alias_b = two_company_databases
 
         with company_scope(_COMPANY_A_ID):
-            module = Module.objects.create(code='cat-intra-base', name='Catalogue')
-            # Dos ResCompany con FK ids explicitos, AMBAS escritas bajo el MISMO
+            module = Module.objects.create(code='cat-intra-base',
+                                           name='Catalogue')
+            # Dos ResCompany con FK ids explicitos, AMBAS escritas bajo el
+            # MISMO
             # company_scope(_COMPANY_A_ID) -> ambas ruteán a alias_a (D-091-2:
             # el FK 'company' de la suscripcion resuelve intra-base porque el
             # router las coloca a las dos en la misma base fisica).
@@ -150,7 +185,8 @@ class TestSol085RowScopingIntraBase:
                 id=_COMPANY_A_ID, code='acme-intra-base', name='Acme',
             )
             globex = ResCompany.objects.create(
-                id=_COMPANY_B_ID, code='globex-shadow-intra-base', name='Globex Shadow',
+                id=_COMPANY_B_ID, code='globex-shadow-intra-base',
+                name='Globex Shadow',
             )
             sub_acme = CompanyModuleSubscription.objects.create(
                 company=acme, module=module,
@@ -174,13 +210,15 @@ class TestSol085RowScopingIntraBase:
             # El manager default (L0, cross-company) SI ve ambas -- confirma
             # que ambas conviven fisicamente en la misma base (sin lo cual
             # el FK de sub_globex -> globex ni siquiera hubiera podido
-            # crearse: PostgreSQL exige claves foráneas dentro de la misma base).
+            # crearse: PostgreSQL exige claves foráneas dentro de la misma
+            # base).
             all_ids = set(
                 CompanyModuleSubscription.objects.values_list('pk', flat=True)
             )
             assert all_ids == {sub_acme.pk, sub_globex.pk}
 
-        # Confirmacion fisica fuera de cualquier scope: las 2 ResCompany + las 2
+        # Confirmacion fisica fuera de cualquier scope: las 2 ResCompany + las
+        # 2
         # suscripciones viven en alias_a; nada se filtro a alias_b (aislamiento
         # por base, T-091-07, sigue intacto pese a que ambas companies
         # conceptuales co-residen aqui).
@@ -197,16 +235,22 @@ class TestSol085RowScopingIntraBase:
 
 
 def test_company_schemas_and_native_connections(two_company_databases):
-    """Cada instalación conserva identidad física y FK locales sin overrides."""
+    """Cada instalación conserva identidad física y FK locales sin
+    overrides."""
     for alias in two_company_databases:
         connection = connections[alias]
         assert 'ensure_connection' not in connection.__dict__
         assert 'cursor' not in connection.__dict__
         with connection.cursor() as cursor:
-            cursor.execute("SELECT current_database(), to_regclass('res_users'), to_regclass('django_content_type')")
+            cursor.execute(
+                "SELECT current_database(), to_regclass('res_users'), "
+                "to_regclass('django_content_type')")
             name, users, metadata = cursor.fetchone()
             assert name == alias and users and metadata
-            cursor.execute("SELECT count(*) FROM pg_constraint c JOIN pg_class p ON p.oid=c.confrelid WHERE c.contype='f' AND p.relname='res_users'")
+            cursor.execute(
+                "SELECT count(*) FROM pg_constraint c JOIN pg_class p "
+                "ON p.oid=c.confrelid WHERE c.contype='f' "
+                "AND p.relname='res_users'")
             assert cursor.fetchone()[0] > 0
 
 
@@ -470,3 +514,34 @@ class TestStoredComputesStayInTheirBase:
             'name': '3->4', 'start': 3, 'end': 4}
         assert self._row(alias_b, created[alias_b]) == {
             'name': '6->8', 'start': 6, 'end': 8}
+
+
+def test_ormcache_entries_and_invalidation_stay_in_their_base(
+        two_company_databases):
+    """Las cachés de ``ormcache`` son del registro de cada base física.
+
+    ≙ ``Registry.__caches`` y ``_invalidation_flags`` por instancia
+    (``odoo19c: odoo/orm/registry.py:233,282``). Las dos bases comparten
+    identificadores de ``ir.model``; una entrada memorizada en A no se sirve
+    en B, y una invalidación en B no se anota en A.
+    """
+    alias_a, alias_b = two_company_databases
+    name = IrModel.objects.using(alias_a).order_by('pk').values_list(
+        'model', flat=True).first()
+    registry_a = registry_for_alias(alias_a)
+    registry_b = registry_for_alias(alias_b)
+    assert registry_a is not registry_b
+    with Environment(alias_a, SUPERUSER_ID, {}):
+        assert IrModel._get_id(name) is not None
+    with transaction.atomic(using=alias_b):
+        IrModel.objects.using(alias_b).filter(model=name).update(
+            model='probe.hidden')
+        with Environment(alias_b, SUPERUSER_ID, {}):
+            assert IrModel._get_id(name) is None
+        transaction.set_rollback(True, using=alias_b)
+    registry_a.cache_invalidated.clear()
+    registry_b.cache_invalidated.clear()
+    registry_b.clear_cache('stable')
+    assert registry_b.cache_invalidated == {'stable'}
+    assert 'stable' not in registry_a.cache_invalidated
+    assert len(registry_a._caches['stable'])
