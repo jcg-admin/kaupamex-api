@@ -1,0 +1,602 @@
+bringing up nodes...
+bringing up nodes...
+
+...........................sssssssss.sssss.ssss.ssssssss................ [  0%]
+........................................................................ [  1%]
+........................................................................ [  1%]
+........................................................................ [  2%]
+........................................................................ [  2%]
+........................................................................ [  3%]
+........................................................................ [  3%]
+........................................................................ [  4%]
+........................................................................ [  4%]
+........................................................................ [  5%]
+........................................................................ [  5%]
+........................................................................ [  6%]
+........................................................................ [  7%]
+........................................................................ [  7%]
+........................................................................ [  8%]
+........................................................................ [  8%]
+........................................................................ [  9%]
+........................................................................ [  9%]
+........................................................................ [ 10%]
+........................................................................ [ 10%]
+........................................................................ [ 11%]
+........................................................................ [ 11%]
+........................................................................ [ 12%]
+........................................................................ [ 13%]
+........................................................................ [ 13%]
+........................................................................ [ 14%]
+........................................................................ [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 15%]
+........................................................................ [ 16%]
+........................................................................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 17%]
+........................................................................ [ 18%]
+...........................................................xx........... [ 18%]
+........................................................................ [ 19%]
+......................................................................xx [ 20%]
+.xx..................................................................... [ 20%]
+........................................................................ [ 21%]
+........................................................................ [ 21%]
+........................................................................ [ 22%]
+........................................................................ [ 22%]
+........................................................................ [ 23%]
+........................................................................ [ 23%]
+........................................................................ [ 24%]
+........................................................................ [ 24%]
+........................................................................ [ 25%]
+........................................................................ [ 26%]
+........................................................................ [ 26%]
+........................................................................ [ 27%]
+........................................................................ [ 27%]
+........................................................F............... [ 28%]
+........................................................................ [ 28%]
+........................................................................ [ 29%]
+........................................................................ [ 29%]
+........................................................................ [ 30%]
+........................................................................ [ 30%]
+........................................................................ [ 31%]
+........................................................................ [ 31%]
+........................................................................ [ 32%]
+........................................................................ [ 33%]
+........................................................................ [ 33%]
+........................................................................ [ 34%]
+........................................................................ [ 34%]
+........................................................................ [ 35%]
+........................................................................ [ 35%]
+........................................................................ [ 36%]
+........................................................................ [ 36%]
+........................................................................ [ 37%]
+........................................................................ [ 37%]
+.....................................s...........ssssss...ssssssssss.... [ 38%]
+........................................................................ [ 39%]
+.......................................x................................ [ 39%]
+.........x.............................................................. [ 40%]
+........................................................................ [ 40%]
+........................................................................ [ 41%]
+........................................................................ [ 41%]
+........................................................................ [ 42%]
+........................................................................ [ 42%]
+........................................................................ [ 43%]
+......................................................................... [ 43%]
+........................................................................ [ 44%]
+........................................................................ [ 44%]
+........................................................................ [ 45%]
+........................................................................ [ 46%]
+........................................................................ [ 46%]
+........................................................................ [ 47%]
+........................................................................ [ 47%]
+........................................................................ [ 48%]
+........................................................................ [ 48%]
+........................................................................ [ 49%]
+........................................................................ [ 49%]
+........................................................................ [ 50%]
+........................................................................ [ 50%]
+........................................................................ [ 51%]
+........................................................................ [ 52%]
+........................................................................ [ 52%]
+........................................................................ [ 53%]
+........................................................................ [ 53%]
+........................................................................ [ 54%]
+........................................................................ [ 54%]
+........................................................................ [ 55%]
+........................................................................ [ 55%]
+........................................................................ [ 56%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 58%]
+........................................................................ [ 58%]
+........................................................................ [ 59%]
+......................................................................... [ 59%]
+........................................................................ [ 60%]
+........................................................................ [ 60%]
+........................................................................ [ 61%]
+....xx.x..x.xxxxxxxxxx.xx..xxxxxxx.x.xx..x...x..xxx.xxxxxxx.xxx.xxxxxxxx [ 61%]
+xx.xxxxxxxxxxxxx..xxxx...xxx.x.xx....................................... [ 62%]
+........................................................................ [ 62%]
+........................................................................ [ 63%]
+........................................................................ [ 63%]
+........................................................................ [ 64%]
+........................................................................ [ 65%]
+........................................................................ [ 65%]
+....................................................EEEE..EEEEE.EE.E.EE.. [ 66%]
+........................................................................ [ 66%]
+........................................................................ [ 67%]
+........................................................................ [ 67%]
+........................................................................ [ 68%]
+........................................................................ [ 68%]
+........................................................................ [ 69%]
+........................................................................ [ 69%]
+........................................................................ [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 71%]
+........................................................................ [ 72%]
+........................................................................ [ 72%]
+......................................................................... [ 73%]
+........................................................................ [ 73%]
+........................................................................ [ 74%]
+........................................................................ [ 74%]
+........................................................................ [ 75%]
+........................................................................ [ 75%]
+........................................................................ [ 76%]
+........................................................................ [ 76%]
+........................................................................ [ 77%]
+........................................................................ [ 78%]
+........................................................................ [ 78%]
+........................................................................ [ 79%]
+........................................................................ [ 79%]
+........................................................................ [ 80%]
+........................................................................ [ 80%]
+........................................................................ [ 81%]
+........................................................................ [ 81%]
+........................................................................ [ 82%]
+........................................................................ [ 82%]
+........................................................................ [ 83%]
+........................................................................ [ 84%]
+........................................................................ [ 84%]
+........................................................................ [ 85%]
+........................................................................ [ 85%]
+........................................................................ [ 86%]
+........................................................................ [ 86%]
+........................................................................ [ 87%]
+........................................................................ [ 87%]
+........................................................................ [ 88%]
+........................................................................ [ 88%]
+........................................................................ [ 89%]
+........................................................................ [ 89%]
+........................................................................ [ 90%]
+........................................................................ [ 91%]
+........................................................................ [ 91%]
+........................................................................ [ 92%]
+........................................................................ [ 92%]
+........................................................................ [ 93%]
+........................................................................ [ 93%]
+........................................................................ [ 94%]
+...............................................................Exception ignored in: <function Transport.__del__ at 0x7f5aad95f920>
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/zeep/transports.py", line 170, in __del__
+    self.session.close()
+AttributeError: 'object' object has no attribute 'close'
+...Exception ignored in: <function Transport.__del__ at 0x7f5aad95f920>
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/zeep/transports.py", line 170, in __del__
+    self.session.close()
+AttributeError: 'object' object has no attribute 'close'
+...... [ 94%]
+........................................................................ [ 95%]
+........................................................................ [ 95%]
+........................................................................ [ 96%]
+........................................................................ [ 97%]
+...........F............................................................ [ 97%]
+........................................................................ [ 98%]
+........................................................................ [ 98%]
+........................................................ssssssssssssssss [ 99%]
+..........ssssss........................................................ [ 99%]
+...........................xxxxx                                         [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of TestN1DegenerationRealWrite.test_domain_write_without_any_company_alias_lands_in_default _
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:70: in isolation_database_access
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_ ERROR at setup of TestCrossCompanyIsolationByBase.test_write_under_company_scope_lands_in_its_own_base _
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_ ERROR at setup of TestCrossCompanyIsolationByBase.test_rows_from_company_a_not_visible_under_company_b_scope _
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_ ERROR at setup of TestSol085RowScopingIntraBase.test_row_scoping_filters_by_row_and_fk_resolves_intra_base _
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+________ ERROR at setup of test_company_schemas_and_native_connections _________
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+__ ERROR at setup of test_init_creates_the_view_only_in_the_selected_database __
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+________ ERROR at setup of test_paperformat_xml_ids_exist_in_every_base ________
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+______ ERROR at setup of test_company_init_writes_only_the_selected_base _______
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_____ ERROR at setup of test_company_init_ignores_the_active_company_scope _____
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_ ERROR at setup of test_company_init_without_the_xml_id_assigns_nothing_and_rolls_back _
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_____ ERROR at setup of test_users_init_encrypts_only_in_the_selected_base _____
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+___ ERROR at setup of test_init_models_runs_both_inits_in_the_selected_base ____
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_ ERROR at setup of TestStoredComputesStayInTheirBase.test_django_creations_compute_in_their_own_base _
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_ ERROR at setup of TestStoredComputesStayInTheirBase.test_orm_creations_compute_in_their_own_base _
+[gw2] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+=================================== FAILURES ===================================
+_ TestTriggerRunsTheCron.test_trigger_produces_a_row_with_the_four_source_fields _
+[gw0] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/auto_backup/test_backups.py:121: in test_trigger_produces_a_row_with_the_four_source_fields
+    assert row['type'] == DbBackupDetails.TYPE_MANUAL
+E   AssertionError: assert 'AUTO' == 'MANUAL'
+E     - MANUAL
+E     + AUTO
+__________________ test_cron_command_sale_limpio_ante_sigterm __________________
+[gw3] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/unit/base/test_ir_cron_runner.py:317: in test_cron_command_sale_limpio_ante_sigterm
+    salida, error = proc.communicate(timeout=10)
+/usr/local/lib/python3.13/subprocess.py:1223: in communicate
+    stdout, stderr = self._communicate(input, endtime, timeout)
+/usr/local/lib/python3.13/subprocess.py:2156: in _communicate
+    self._check_timeout(endtime, orig_timeout, stdout, stderr)
+/usr/local/lib/python3.13/subprocess.py:1270: in _check_timeout
+    raise TimeoutExpired(
+E   subprocess.TimeoutExpired: Command '['/home/user/kaupamex-api/.venv/bin/python', 'manage.py', 'cron', '--interval', '30']' timed out after 10 seconds
+
+During handling of the above exception, another exception occurred:
+tests/unit/base/test_ir_cron_runner.py:320: in test_cron_command_sale_limpio_ante_sigterm
+    pytest.fail('cron no salio dentro de 10s tras SIGTERM')
+E   Failed: cron no salio dentro de 10s tras SIGTERM
+=============================== warnings summary ===============================
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:48: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/integration/test_orm/test_create_recordset.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:138
+src/addons/test_orm/models/test_orm.py:138
+src/addons/test_orm/models/test_orm.py:138
+src/addons/test_orm/models/test_orm.py:138
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:138: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_json_field.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:48: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/integration/test_orm/test_many2many_relation.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:138
+src/addons/test_orm/models/test_orm.py:138
+src/addons/test_orm/models/test_orm.py:138
+src/addons/test_orm/models/test_orm.py:138
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:138: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_many2many_relation.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:48: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/unit/base/test_log_access_user_columns.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:48: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/unit/orm/test_table_objects_reach_meta.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:138
+src/addons/test_orm/models/test_orm.py:138
+src/addons/test_orm/models/test_orm.py:138
+src/addons/test_orm/models/test_orm.py:138
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:138: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/unit/web/test_export_delegates_to_export_data.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:48: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/unit/web/test_export_many2many_meta.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:327
+src/addons/test_orm/models/test_orm.py:327
+src/addons/test_orm/models/test_orm.py:327
+src/addons/test_orm/models/test_orm.py:327
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:327: PytestCollectionWarning: cannot collect test class 'TestOrmModelActiveField' because it has a __init__ constructor (from: tests/unit/web/test_export_many2many_meta.py)
+    class TestOrmModelActiveField(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:296
+src/addons/test_orm/models/test_orm.py:296
+src/addons/test_orm/models/test_orm.py:296
+src/addons/test_orm/models/test_orm.py:296
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:296: PytestCollectionWarning: cannot collect test class 'TestOrmCountry' because it has a __init__ constructor (from: tests/unit/web/test_export_rec_name_fallback.py)
+    class TestOrmCountry(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:657
+src/addons/test_orm/models/test_orm.py:657
+src/addons/test_orm/models/test_orm.py:657
+src/addons/test_orm/models/test_orm.py:657
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:657: PytestCollectionWarning: cannot collect test class 'TestOrmMixed' because it has a __init__ constructor (from: tests/unit/web/test_export_rec_name_fallback.py)
+    class TestOrmMixed(TestOrmModel):
+
+tests/integration/base/test_report_engine.py: 1 warning
+tests/integration/test_herencia_modelos.py: 1 warning
+tests/integration/portal/test_portal_account.py: 1 warning
+tests/integration/test_orm/test_sort.py: 1 warning
+tests/unit/base_vat/test_extension_wiring.py: 1 warning
+tests/unit/l10n_mx/test_template_mx.py: 1 warning
+tests/unit/orm/test_compute_stored_fields_operation.py: 1 warning
+tests/unit/orm/test_environments_pooling_and_flush.py: 1 warning
+tests/unit/sale/test_sale_res_partner.py: 20 warnings
+tests/unit/orm/test_field_conversion.py: 1 warning
+tests/unit/orm/test_field_triggers.py: 14 warnings
+tests/unit/orm/test_flush_manager_contract.py: 3 warnings
+tests/unit/orm/test_models_item_access.py: 1 warning
+tests/unit/orm/test_modified_engine.py: 15 warnings
+tests/unit/orm/test_nonstored_compute_dispatch.py: 1 warning
+tests/unit/orm/test_record_environment_field_contract.py: 2 warnings
+tests/unit/orm/test_res_groups_compute_contract.py: 2 warnings
+tests/unit/orm/test_registry_field_axis.py: 2 warnings
+tests/unit/orm/test_unsaved_modified.py: 1 warning
+tests/unit/orm/test_new_with_django_comodel.py: 1 warning
+tests/unit/orm/test_registry_load_axis.py: 1 warning
+tests/unit/web/test_models_onchange.py: 1 warning
+tests/unit/orm/test_missing_recompute.py: 16 warnings
+tests/unit/orm/test_compute_wiring.py: 2 warnings
+  /home/user/kaupamex-api/src/orm/fields.py:4488: UserWarning: Field <django.db.models.fields.related.ForeignKey: target> in dependency of contenttypes.VirtualDeleteSource.echo should be searchable. This is necessary to determine which records to recompute when contenttypes.VirtualDeleteTarget.label is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/base/test_report_engine.py: 1 warning
+tests/integration/test_herencia_modelos.py: 1 warning
+tests/integration/portal/test_portal_account.py: 1 warning
+tests/integration/test_orm/test_sort.py: 1 warning
+tests/unit/base_vat/test_extension_wiring.py: 1 warning
+tests/unit/l10n_mx/test_template_mx.py: 1 warning
+tests/unit/orm/test_compute_stored_fields_operation.py: 1 warning
+tests/unit/orm/test_environments_pooling_and_flush.py: 1 warning
+tests/unit/sale/test_sale_res_partner.py: 20 warnings
+tests/unit/orm/test_field_conversion.py: 1 warning
+tests/unit/orm/test_field_triggers.py: 14 warnings
+tests/unit/orm/test_flush_manager_contract.py: 3 warnings
+tests/unit/orm/test_models_item_access.py: 1 warning
+tests/unit/orm/test_modified_engine.py: 15 warnings
+tests/unit/orm/test_nonstored_compute_dispatch.py: 1 warning
+tests/unit/orm/test_record_environment_field_contract.py: 2 warnings
+tests/unit/orm/test_res_groups_compute_contract.py: 2 warnings
+tests/unit/orm/test_registry_field_axis.py: 2 warnings
+tests/unit/orm/test_unsaved_modified.py: 1 warning
+tests/unit/orm/test_new_with_django_comodel.py: 1 warning
+tests/unit/orm/test_registry_load_axis.py: 1 warning
+tests/unit/web/test_models_onchange.py: 1 warning
+tests/unit/orm/test_missing_recompute.py: 16 warnings
+tests/unit/orm/test_compute_wiring.py: 2 warnings
+  /home/user/kaupamex-api/src/orm/fields.py:4488: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/base/test_report_engine.py: 1 warning
+tests/integration/test_herencia_modelos.py: 1 warning
+tests/integration/portal/test_portal_account.py: 1 warning
+tests/integration/test_orm/test_sort.py: 1 warning
+tests/unit/base_vat/test_extension_wiring.py: 1 warning
+tests/unit/l10n_mx/test_template_mx.py: 1 warning
+tests/unit/orm/test_compute_stored_fields_operation.py: 1 warning
+tests/unit/orm/test_environments_pooling_and_flush.py: 1 warning
+tests/unit/sale/test_sale_res_partner.py: 20 warnings
+tests/unit/orm/test_field_conversion.py: 1 warning
+tests/unit/orm/test_field_triggers.py: 14 warnings
+tests/unit/orm/test_flush_manager_contract.py: 3 warnings
+tests/unit/orm/test_models_item_access.py: 1 warning
+tests/unit/orm/test_modified_engine.py: 15 warnings
+tests/unit/orm/test_nonstored_compute_dispatch.py: 1 warning
+tests/unit/orm/test_record_environment_field_contract.py: 2 warnings
+tests/unit/orm/test_res_groups_compute_contract.py: 2 warnings
+tests/unit/orm/test_registry_field_axis.py: 2 warnings
+tests/unit/orm/test_unsaved_modified.py: 1 warning
+tests/unit/orm/test_new_with_django_comodel.py: 1 warning
+tests/unit/orm/test_registry_load_axis.py: 1 warning
+tests/unit/web/test_models_onchange.py: 1 warning
+tests/unit/orm/test_missing_recompute.py: 16 warnings
+tests/unit/orm/test_compute_wiring.py: 2 warnings
+  /home/user/kaupamex-api/src/orm/fields.py:4488: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_autovacuum.py::test_api_autovacuum
+  /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1670: RuntimeWarning: DateTimeField TestOrmAutovacuumed.expire_at received a naive datetime (2026-10-28 05:17:19.304117) while time zone support is active.
+    warnings.warn(
+
+tests/integration/test_orm/test_domain.py::test_condition_optimize_datetime
+  /home/user/kaupamex-api/src/orm/domains.py:2393: UserWarning: Usar datetimes ingenuos en los dominios
+    warnings.warn("Usar datetimes ingenuos en los dominios")
+
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-3]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-8]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-20]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<-7]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<=-7]
+  /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1670: RuntimeWarning: DateTimeField TestOrmMixed.moment received a naive datetime (2000-05-05 00:00:00) while time zone support is active.
+    warnings.warn(
+
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-3]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-8]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-20]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<-7]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<=-7]
+  /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1670: RuntimeWarning: DateTimeField TestOrmMixed.moment received a naive datetime (2000-05-06 00:00:00) while time zone support is active.
+    warnings.warn(
+
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-3]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-8]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-20]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<-7]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<=-7]
+  /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1670: RuntimeWarning: DateTimeField TestOrmMixed.moment received a naive datetime (2000-05-07 00:00:00) while time zone support is active.
+    warnings.warn(
+
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-3]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-8]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-20]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<-7]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<=-7]
+  /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1670: RuntimeWarning: DateTimeField TestOrmMixed.moment received a naive datetime (2000-05-08 00:00:00) while time zone support is active.
+    warnings.warn(
+
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-3]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-8]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-20]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<-7]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<=-7]
+  /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1670: RuntimeWarning: DateTimeField TestOrmMixed.moment received a naive datetime (2000-05-09 00:00:00) while time zone support is active.
+    warnings.warn(
+
+tests/integration/test_orm/test_index_method.py::test_index_rebuilt_when_method_changes
+  /home/user/kaupamex-api/src/orm/registry.py:2850: UserWarning: PostgreSQL function 'unaccent' is present but not immutable, therefore trigram indexes may not be effective.
+    warnings.warn(
+
+tests/unit/orm/test_fields_related.py::TestResolveDepends::test_it_resolves_a_declared_chain_to_its_fields
+  /home/user/kaupamex-api/src/orm/fields.py:4462: UserWarning: Field base.ResPartner.name should be declared with recursive=True
+    warnings.warn(
+
+tests/unit/tools/test_contract_misc_collections_reference.py::TestMiscBehavesLikeTheReference::test_only_the_expected_steps_raise_in_the_reference
+tests/unit/tools/test_contract_misc_collections_reference.py::TestMiscBehavesLikeTheReference::test_the_functions_match_the_reference
+  /home/user/kaupamex-api/tests/unit/tools/test_contract_misc_collections_reference.py:248: DeprecationWarning: Passed a non-str to `str2bool`: 1
+    step(f'str2bool {text!r}', lambda v=text: module.str2bool(v))
+
+tests/unit/tools/test_contract_misc_collections_reference.py::TestMiscBehavesLikeTheReference::test_only_the_expected_steps_raise_in_the_reference
+tests/unit/tools/test_contract_misc_collections_reference.py::TestMiscBehavesLikeTheReference::test_the_functions_match_the_reference
+  /home/user/kaupamex-api/tests/unit/tools/test_contract_misc_collections_reference.py:250: DeprecationWarning: Passed a non-str to `str2bool`: 1
+    lambda v=text: module.str2bool(v, default='d'))
+
+tests/unit/tools/test_contract_misc_collections_reference.py::TestMiscBehavesLikeTheReference::test_only_the_expected_steps_raise_in_the_reference
+tests/unit/tools/test_contract_misc_collections_reference.py::TestMiscBehavesLikeTheReference::test_the_functions_match_the_reference
+  /home/user/kaupamex-api/tests/unit/tools/test_contract_misc_collections_reference.py:248: DeprecationWarning: Passed a non-str to `str2bool`: 0
+    step(f'str2bool {text!r}', lambda v=text: module.str2bool(v))
+
+tests/unit/tools/test_contract_misc_collections_reference.py::TestMiscBehavesLikeTheReference::test_only_the_expected_steps_raise_in_the_reference
+tests/unit/tools/test_contract_misc_collections_reference.py::TestMiscBehavesLikeTheReference::test_the_functions_match_the_reference
+  /home/user/kaupamex-api/tests/unit/tools/test_contract_misc_collections_reference.py:250: DeprecationWarning: Passed a non-str to `str2bool`: 0
+    lambda v=text: module.str2bool(v, default='d'))
+
+tests/unit/tools/test_contract_misc_collections_reference.py::TestMiscBehavesLikeTheReference::test_only_the_expected_steps_raise_in_the_reference
+tests/unit/tools/test_contract_misc_collections_reference.py::TestMiscBehavesLikeTheReference::test_the_functions_match_the_reference
+  /home/user/kaupamex-api/tests/unit/tools/test_contract_misc_collections_reference.py:248: DeprecationWarning: Passed a non-str to `str2bool`: None
+    step(f'str2bool {text!r}', lambda v=text: module.str2bool(v))
+
+tests/unit/tools/test_contract_misc_collections_reference.py::TestMiscBehavesLikeTheReference::test_only_the_expected_steps_raise_in_the_reference
+tests/unit/tools/test_contract_misc_collections_reference.py::TestMiscBehavesLikeTheReference::test_the_functions_match_the_reference
+  /home/user/kaupamex-api/tests/unit/tools/test_contract_misc_collections_reference.py:250: DeprecationWarning: Passed a non-str to `str2bool`: None
+    lambda v=text: module.str2bool(v, default='d'))
+
+tests/unit/orm/test_contract_domains_reference.py: 216 warnings
+  /home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/domains.py:1267: DeprecationWarning: Operator '<>' is deprecated since 19.0, use '!=' directly
+    warnings.warn("Operator '<>' is deprecated since 19.0, use '!=' directly", DeprecationWarning)
+
+tests/unit/orm/test_contract_domains_reference.py: 216 warnings
+  /home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/domains.py:1275: DeprecationWarning: Operator '==' is deprecated since 19.0, use '=' directly
+    warnings.warn("Operator '==' is deprecated since 19.0, use '=' directly", DeprecationWarning)
+
+tests/unit/orm/test_contract_domains_reference.py: 108 warnings
+  /home/user/kaupamex-api/tests/unit/orm/test_contract_domains_reference.py:301: DeprecationWarning: El operador '<>' está obsoleto desde 19.0; usar '!=' directamente
+    f(condition('a', o, v), None))
+
+tests/unit/orm/test_contract_domains_reference.py: 108 warnings
+  /home/user/kaupamex-api/tests/unit/orm/test_contract_domains_reference.py:301: DeprecationWarning: El operador '==' está obsoleto desde 19.0; usar '=' directamente
+    f(condition('a', o, v), None))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+referencia: 39 de 314 pruebas marcadas se omitieron (el árbol está en /home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0; los motivos, con -rs); sus contratos NO se verificaron en esta ejecución
+=========================== short test summary info ============================
+FAILED tests/integration/auto_backup/test_backups.py::TestTriggerRunsTheCron::test_trigger_produces_a_row_with_the_four_source_fields
+FAILED tests/unit/base/test_ir_cron_runner.py::test_cron_command_sale_limpio_ante_sigterm
+ERROR tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default
+ERROR tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_write_under_company_scope_lands_in_its_own_base
+ERROR tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_rows_from_company_a_not_visible_under_company_b_scope
+ERROR tests/integration/company/test_multidb_isolation.py::TestSol085RowScopingIntraBase::test_row_scoping_filters_by_row_and_fk_resolves_intra_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_schemas_and_native_connections
+ERROR tests/integration/company/test_multidb_isolation.py::test_init_creates_the_view_only_in_the_selected_database
+ERROR tests/integration/company/test_multidb_isolation.py::test_paperformat_xml_ids_exist_in_every_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_init_writes_only_the_selected_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_init_ignores_the_active_company_scope
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_init_without_the_xml_id_assigns_nothing_and_rolls_back
+ERROR tests/integration/company/test_multidb_isolation.py::test_users_init_encrypts_only_in_the_selected_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_init_models_runs_both_inits_in_the_selected_base
+ERROR tests/integration/company/test_multidb_isolation.py::TestStoredComputesStayInTheirBase::test_django_creations_compute_in_their_own_base
+ERROR tests/integration/company/test_multidb_isolation.py::TestStoredComputesStayInTheirBase::test_orm_creations_compute_in_their_own_base
+2 failed, 13116 passed, 66 skipped, 87 xfailed, 1006 warnings, 14 errors in 906.83s (0:15:06)

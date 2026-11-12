@@ -1,0 +1,3 @@
+663aac8b14f27ec68acd9831055ad36ed4c9421f
+879894aedfde0a035d7d223c3a4ccffd50d3c3a9042a664c57d4b45d528bd6de  src/addons/base/models/ir_cron.py
+ffdc9074fd3b2753e98a0906a616f4aca5fbb4b3b2902eaaf6f4e2ca9a84be44  tests/unit/base/test_ir_cron_job_cursor.py
