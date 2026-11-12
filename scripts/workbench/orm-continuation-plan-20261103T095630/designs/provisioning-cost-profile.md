@@ -175,3 +175,35 @@ idénticos).
 *Métrica:* operaciones declaradas en los archivos de migración.
 *Ciega a:* el costo real de cada operación al aplicarla, que depende del
 tamaño del grafo de modelos relacionados en ese punto del historial.
+
+## Costo de los ganchos del ORM al renderizar el estado histórico (2026-11-12)
+
+Muestra controlada, sin base: `ProjectState.from_apps(apps).apps` sobre los
+450 modelos del árbol (`probes/historical_render_cost.py`,
+`probes/historical_render_profile.py`).
+
+- Un renderizado completo: **1.017 s** (media de 3). Saltar la instalación de
+  descriptores del ORM en modelos de `StateApps`: **0.988 s** (−3 %).
+- Perfil de un renderizado (1.78 s bajo cProfile): `Field.clone` 0.80 s, casi
+  todo de Django (`deconstruct` de ForeignKey 0.43 s, con
+  `swappable_setting`/`get_swappable_settings_name` 0.37 s);
+  `_field_contribute_to_class` 0.34 s; `_field_setup_attrs` 0.16 s;
+  `_field_deconstruct_without_copy` 0.17 s. El `deconstruct` de
+  `fields_temporal.py:651` (0.30 s, 756 llamadas) sólo delega en el de
+  ForeignKey: son `create_uid`/`write_uid` de 378 modelos.
+
+Conclusión medida: los ganchos propios del ORM son una minoría del costo de
+renderizar (del orden de un tercio bajo el perfilador, y saltar lo único que
+no hace falta en un modelo histórico rinde un 3 %). Los 15.2 s y 6.4 s de la
+medición anterior eran acumulados de todo un `migrate`, no de un
+renderizado. La palanca es el **número de renderizados** (≈179 modelos por
+operación relacional), no el costo de cada uno: la consolidación de
+migraciones, no la poda de ganchos. No se cambia el gancho.
+
+*Métrica:* reloj de pared de `StateApps` sobre el registro completo, y
+tiempo acumulado por función con cProfile. Medido con el gate completo
+ocupando la CPU: el valor absoluto varía (1.017 s y 1.344 s en dos
+ejecuciones de `base`); la comparación base/skip se hizo en ejecuciones
+consecutivas.
+*Ciega a:* el costo de las operaciones SQL de la migración, que se mide
+aparte con el perfil por migración.
