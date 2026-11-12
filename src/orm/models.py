@@ -1008,7 +1008,11 @@ class DefaultGetMixin:
                 # protect editable computed fields and precomputed fields
                 # against (re)computation
                 if compute and (not readonly or precompute):
-                    protected.add(field)
+                    protected.update(_computed_group(field))
+            # los precompute que ``vals`` no trae los añade
+            # ``_add_precomputed_values`` (``:4814-4846``) antes de esta
+            # condición, así que también quedan protegidos
+            protected.update(_protected_on_create(cls, frozenset()))
             data_list.append(data)
 
         # create or update parent records
@@ -1388,6 +1392,44 @@ def _creation_flags(field):
         return (field.store, field.inverse, field.compute, field.readonly,
                 field.precompute)
     return True, None, None, False, False
+
+
+def _computed_group(field):
+    """Los campos que calcula el mismo método que ``field``, él incluido.
+
+    ≙ ``self.pool.field_computed.get(field, [field])``
+    (``odoo19c: odoo/orm/models.py:4684``). El mapa no lleva los campos sin
+    ``compute``; la fuente cae entonces en ``[field]``.
+    """
+    if field in registry.field_computed:
+        return registry.field_computed[field]
+    return [field]
+
+
+def _protected_on_create(model, given):
+    """Los campos que un alta protege del recómputo.
+
+    ≙ la condición de ``create`` (``odoo19c: :4681-4684``): un campo
+    calculado que el llamador dio queda protegido si es editable o
+    precompute, y con él todo su grupo. Los precompute que el llamador no
+    dio también: ``_add_precomputed_values`` (``:4814-4846``) los añade a
+    ``vals`` antes de esa misma condición, así que la fuente los protege a
+    todos. ``given`` son los nombres que el llamador pasó (nombre o
+    ``attname``).
+    """
+    protected = set()
+    for name, field in model_field_registry(model).items():
+        if not isinstance(field, Field):
+            continue
+        (store, _inverse, compute, readonly,
+         precompute) = _creation_flags(field)
+        if not compute:
+            continue
+        explicit = (name in given
+                    or getattr(field, 'attname', name) in given)
+        if precompute and store or explicit and not readonly:
+            protected.update(_computed_group(field))
+    return protected
 
 
 def _create_field_lookup(model, name):
@@ -5834,9 +5876,9 @@ def _modified_on_django_create(sender, instance, created=False, raw=False,
     que trae ``vals``. Aquí lo hace ``BaseModel._create``; una fila creada con
     ``save()`` u ``objects.create`` no pasaba por ahí y sus cálculos
     almacenados sin ``precompute`` no se calculaban nunca
-    (designs/stored-computes-on-django-create.md). Los campos que el
-    llamador dio de forma explícita (``_explicit_values``) quedan protegidos,
-    como ``vals`` en la fuente.
+    (designs/stored-computes-on-django-create.md). Protege lo mismo que
+    ``create``: :func:`_protected_on_create` sobre los nombres que el
+    llamador dio (``_explicit_values``), que cumplen el papel de ``vals``.
     """
     if not created or raw or ORM_CREATE_INSERTING.get():
         return
@@ -5847,11 +5889,13 @@ def _modified_on_django_create(sender, instance, created=False, raw=False,
                                                            False)
                for field in registry.values()):
         return
+    if isinstance(instance, BaseModel) and instance._ids != (instance.pk,):
+        # ``post_save`` corre dentro de ``Model.save``, antes de que
+        # :meth:`BaseModel.save` rehaga la terna con el pk nuevo: sin esto
+        # ``record_ids`` devuelve ``(None,)`` y la protección no cubre la fila.
+        instance._install_singleton_triple()
     given = getattr(instance, '_explicit_values', None) or frozenset()
-    protected = [field for name, field in registry.items()
-                 if getattr(field, 'compute', None)
-                 and (name in given
-                      or getattr(field, 'attname', name) in given)]
+    protected = _protected_on_create(sender, given)
     with env().protecting(protected, instance):
         modified(instance, list(registry), create=True)
 

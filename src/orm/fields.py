@@ -1887,6 +1887,16 @@ class FieldDescriptor(DeferredAttribute):
         if type(instance)._meta.apps is not apps:
             return
 
+        # Una fila sin guardar cuyo constructor ya terminó (``post_init``
+        # colgó ``_explicit_values``) recibe aquí un valor del llamador: es
+        # tan explícito como uno del constructor, y en la fuente llegaría en
+        # ``vals``. El alta lo protege igual (``orm.models``,
+        # ``_protected_on_create``).
+        if (instance._state.adding
+                and '_explicit_values' in instance.__dict__):
+            instance._explicit_values = (instance._explicit_values
+                                         | {field.name})
+
         if instance.__dict__.get('_orm_building'):
             # **Construir NO es asignar, y esto lo decide la fuente.**
             #
@@ -5199,7 +5209,11 @@ def compute_value(self, records):
     protección y el canal de privilegios del Environment actual.
     """
     env = get_environment()
-    if self.compute_sudo and getattr(records, '_ids', None) is not None:
+    own_ids = getattr(records, '_ids', None)
+    # Una fila de Django sin guardar (id ``None``) no se puede reconstruir
+    # por id: ``sudo()`` devolvería otra fila vacía. Se queda como está, y el
+    # privilegio llega igual por ``elevate_privileges`` más abajo.
+    if self.compute_sudo and own_ids is not None and None not in own_ids:
         records = records.sudo()
     ids = record_ids(records)
     fields = registry_field_computed[self]
@@ -5381,6 +5395,14 @@ def _recompute_native_recordset(field, records):
     for record in records:
         record_id = record._ids[0]
         if record_id not in to_compute_ids:
+            continue
+        if record_id is None:
+            # Una fila de Django sin guardar se nombra con ``None``, no con
+            # un ``NewId``: ``browse`` no la recupera y daría otra fila vacía,
+            # cuyo cómputo leería valores por defecto en lugar de los que la
+            # fila ya lleva. La fuente calcula el registro nuevo sobre sí
+            # mismo (su ``NewId`` comparte la caché); aquí, sobre la fila.
+            field.compute_value(record)
             continue
         ids = expand_ids(record_id, to_compute_ids)
         batch = record.browse(itertools.islice(ids, PREFETCH_MAX))

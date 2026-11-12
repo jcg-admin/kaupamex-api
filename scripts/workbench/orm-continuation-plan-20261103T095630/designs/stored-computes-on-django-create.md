@@ -168,3 +168,52 @@ llame. Por eso el control mide la llamada.
 método de cómputo, marcas pendientes en la transacción.
 *Ciega a:* el alias de base de datos (ver obligación 3) y a los modelos que no
 declaran calculados almacenados.
+
+## Corrección de una afirmación y duplicado medido (2026-11-12)
+
+**La afirmación que se corrige.** El mensaje de `7f23c97c` y la primera
+versión de este diseño decían que los calculados almacenados de una fila
+creada por Django «no se calculaban nunca», con `CrmLead` como ejemplo. Lo
+cierto es más estrecho: no se **marcaban**. `CrmLead.save` llama él mismo
+`_compute_stored_fields()` antes del INSERT, y sus valores ya eran correctos.
+Medido: con el receptor anulado, los 22 calculados de una iniciativa con
+cliente salen iguales; sólo cambia `date_last_stage_update`, que es la hora.
+
+**El duplicado que eso produce.** Un barrido AST de los `save()` del árbol
+encuentra 35 que invocan métodos `_compute_*` por su cuenta. Ocho de ellos son
+modelos con calculados almacenados declarados, y en esos el marcado de
+creación vuelve a ejecutar el cálculo tras el INSERT:
+
+| Modelo | Cómputos que `save()` invoca |
+|---|---|
+| `account.AccountAccount` | `_compute_account_tags`, `_compute_account_type`, `_compute_internal_group` |
+| `account.AccountMoveLine` | `_compute_balance`, `_compute_partner_id`, `_compute_product_uom_id` |
+| `account.AccountPaymentMethodLine` | `_compute_name` |
+| `base.ResPartner` | `_compute_complete_name`, `_compute_lang`, `_compute_partner_share`, `_compute_user_id` |
+| `base_automation.BaseAutomation` | `_compute_action_server_ids` |
+| `crm.CrmLead` | `_compute_stored_fields` |
+| `sale.SaleOrder` | `_compute_validity_date` |
+| `sale.SaleOrderLine` | `_compute_amount`, `_compute_price_reduce_taxexcl`, `_compute_price_reduce_taxinc` |
+
+Los valores coinciden (el gate completo sale verde), pero la obligación 5 —el
+mecanismo no programa dos veces el mismo cálculo— no se cumple en estos ocho.
+Un campo editable asignado así queda protegido desde esta unidad, porque la
+asignación sobre una fila sin guardar cuenta como dada; los readonly no.
+
+**Sucesor: siguiente unidad.** En cada uno de los ocho, retirar del `save()`
+la llamada eager a los cómputos que el ORM ya declara, con prueba de conteo
+por modelo y su anulación. La vía de modificación ya está cubierta por el ORM:
+asignar sobre una fila guardada pasa por `FieldDescriptor.__set__`, que llama
+`modified` y marca los dependientes. Los otros 27 `save()` invocan cómputos de
+campos que no se declaran calculados; su veredicto es parte del porte de cada
+modelo.
+
+Matriz de los modelos con calculados almacenados:
+`outputs/stored-compute-models-20261112.tsv`, producida por
+`probes/stored_compute_matrix.py` (23 modelos hoy; las 21 de la medición
+anterior más modelos de `test_orm`).
+
+*Métrica:* llamadas `self._compute_*` en el cuerpo de cada `save()` (AST), y
+valores persistidos de `CrmLead` con y sin receptor.
+*Ciega a:* un cómputo invocado indirectamente desde `save()` por un método
+auxiliar con otro nombre.

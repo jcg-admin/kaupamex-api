@@ -44,7 +44,7 @@ además de su forma Django (``Meta.db_table`` / ``Meta.verbose_name``).
        ``@api.depends('sale_line.price_unit')``, ``store=True``.
    * - ``currency_id`` (:199)
      - **portado** — ``currency`` (FK ``base.ResCurrency``),
-       ``_compute_currency_id`` desde ``sale_line.currency``, como la fuente
+       ``_compute_currency_id`` desde ``sale_line.currency_id``, como la fuente
        (la línea declara ``currency_id`` desde que se midió de nuevo:
        ``addons/sale/models/sale_order_line.py:237``).
    * - ``cost`` (:200-201)
@@ -86,7 +86,7 @@ además de su forma Django (``Meta.db_table`` / ``Meta.verbose_name``).
    * - ``_compute_price_unit`` (:229-235)
      - **portado** — método del modelo con su ``@api.depends``.
    * - ``_compute_currency_id`` (:237-240)
-     - **portado** — ídem, desde ``sale_line.currency``.
+     - **portado** — ídem, desde ``sale_line.currency_id``.
    * - ``_compute_cost`` (:242-247)
      - **portado** — ídem, con ``remove_to_compute`` de ``is_cost_changed``.
    * - ``_compute_is_cost_changed`` (:288-291)
@@ -218,7 +218,7 @@ class ProjectSaleLineEmployeeMap(TimeStampedModel):
         fuente depende de ``sale_line_id.price_unit``, no de la moneda: se
         conserva su dependencia tal cual."""
         line = self.sale_line if self.sale_line_id else None
-        self.currency = line.currency if line is not None else None
+        self.currency = line.currency_id if line is not None else None
 
     @api.depends('employee.hourly_cost')
     def _compute_cost(self):

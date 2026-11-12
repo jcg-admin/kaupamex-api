@@ -16,6 +16,8 @@ from django.apps import apps
 
 from addons.project.models import Project
 from addons.sale.models import SaleOrderLine
+from orm.environments import env as current_env
+from orm.environments import transaction_scope
 from tests.factories.order_factory import make_order
 from tests.factories.product_factory import make_product
 
@@ -23,6 +25,7 @@ pytestmark = pytest.mark.django_db
 
 EmployeeMap = apps.get_model('sale_timesheet', 'ProjectSaleLineEmployeeMap')
 HrEmployee = apps.get_model('hr', 'HrEmployee')
+ResCurrency = apps.get_model('base', 'ResCurrency')
 
 
 @pytest.fixture
@@ -37,11 +40,18 @@ def employee():
 
 
 @pytest.fixture
-def sale_line(user):
+def currency():
+    record, _ = ResCurrency.objects.get_or_create(name='MXN',
+                                                  defaults={'symbol': '$'})
+    return record
+
+
+@pytest.fixture
+def sale_line(user, currency):
     product = make_product(name='Hora de consultoría')
     return SaleOrderLine.objects.create(
         order=make_order(user=user), product=product, name=product.name,
-        price_unit=Decimal('90.00'), product_uom_qty=1)
+        price_unit=Decimal('90.00'), product_uom_qty=1, currency_id=currency)
 
 
 def _map(project, employee, **values):
@@ -50,6 +60,10 @@ def _map(project, employee, **values):
 
 
 def _reload(entry):
+    # Vuelca antes de leer: la columna se mide persistida, no calculada al
+    # leer el atributo.
+    with transaction_scope():
+        current_env().flush_all()
     return EmployeeMap.objects.get(pk=entry.pk)
 
 
@@ -57,7 +71,8 @@ def test_the_price_and_currency_come_from_the_sale_line(project, employee,
                                                         sale_line):
     entry = _reload(_map(project, employee, sale_line=sale_line))
     assert entry.price_unit == pytest.approx(90.0)
-    assert entry.currency_id == sale_line.currency_id
+    assert sale_line.currency_id is not None
+    assert entry.currency == sale_line.currency_id
 
 
 def test_without_a_sale_line_the_price_is_zero(project, employee):
