@@ -1,0 +1,24 @@
+....FF                                                                   [100%]
+=================================== FAILURES ===================================
+___________ test_a_bulk_delete_of_an_xmlid_invalidates_its_database ____________
+tests/integration/test_orm/test_registry_caches_per_database.py:121: in test_a_bulk_delete_of_an_xmlid_invalidates_its_database
+    with pytest.raises(ValueError):
+E   Failed: DID NOT RAISE <class 'ValueError'>
+______________ test_saving_an_xmlid_row_invalidates_its_database _______________
+tests/integration/test_orm/test_registry_caches_per_database.py:134: in test_saving_an_xmlid_row_invalidates_its_database
+    assert IrModelData._xmlid_lookup(xmlid, using=probe_alias)[1] == (
+E   assert 63789 == (63789 + 1000000)
+=============================== warnings summary ===============================
+tests/integration/test_orm/test_registry_caches_per_database.py::test_a_failed_load_resets_the_registry_changes
+  /home/user/kaupamex-api/src/orm/fields.py:4488: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_registry_caches_per_database.py::test_a_failed_load_resets_the_registry_changes
+  /home/user/kaupamex-api/src/orm/fields.py:4488: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_orm/test_registry_caches_per_database.py::test_a_bulk_delete_of_an_xmlid_invalidates_its_database
+FAILED tests/integration/test_orm/test_registry_caches_per_database.py::test_saving_an_xmlid_row_invalidates_its_database
+2 failed, 4 passed, 2 warnings in 14.43s

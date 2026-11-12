@@ -1,0 +1,24 @@
+== N1 sin process_exception
+ERROR    django.request:log.py:249 Internal Server Error: /probe/fails
+FAILED tests/integration/test_orm/test_request_unit_of_work.py::test_through_the_real_handler_a_view_exception_rolls_back
+1 failed, 5 passed in 13.20s
+restored-diff-vs-HEAD-quiet=1
+== N2 sin set_rollback
+ERROR    django.request:log.py:249 Internal Server Error: /probe/fails
+FAILED tests/integration/test_orm/test_request_unit_of_work.py::test_a_drf_handled_exception_rolls_back_and_resets
+FAILED tests/integration/test_orm/test_request_unit_of_work.py::test_through_the_real_handler_a_view_exception_rolls_back
+2 failed, 4 passed in 15.22s
+restored-diff-vs-HEAD-quiet=1
+== N3 sin volcado
+FAILED tests/integration/test_orm/test_request_unit_of_work.py::test_pending_orm_work_reaches_the_row_before_commit
+1 failed, 5 passed in 15.51s
+restored-diff-vs-HEAD-quiet=1
+== N4 sin reintento
+FAILED tests/integration/test_orm/test_request_unit_of_work.py::test_a_serialization_failure_is_retried
+1 failed, 5 passed in 13.63s
+restored-diff-vs-HEAD-quiet=1
+== N5 sin reset en excepción
+FAILED tests/integration/test_orm/test_request_unit_of_work.py::test_an_exception_rolls_back_and_resets
+FAILED tests/integration/test_orm/test_request_unit_of_work.py::test_a_serialization_failure_is_retried
+2 failed, 4 passed in 14.79s
+restored-diff-vs-HEAD-quiet=1

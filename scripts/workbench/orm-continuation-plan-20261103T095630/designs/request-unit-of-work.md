@@ -76,3 +76,72 @@ un helper con otro nombre.
 Las siete de streaming sirven binarios y respaldos: la unidad las cierra antes
 de devolver la respuesta, y su generador no puede escribir en la base. Las 17
 con `atomic` propio quedan como savepoints dentro de la unidad.
+
+## Cadena medida y punto de inserción (2026-11-12T18:29:17 UTC)
+
+`MIDDLEWARE` (`src/config/settings/base.py`), en orden: Security,
+CorrelationId, CookieGovernance, Cors, Session, Common, Csrf, Authentication,
+CheckIdentity, **CompanyContext**, DeviceLog, Messages, XFrame, UtmCookie.
+`CompanyContextMiddleware` (`src/addons/base/models/ir_http.py:330`) fija el
+`ContextVar` de empresa desde `request.user.company_id`; el router elige con
+él la base de la petición. La unidad de trabajo va **justo después**: antes no
+se sabe qué base abrir, y después todo lo que escriba la vista ya tiene base.
+
+Lo que el árbol ya trae y la unidad reutiliza:
+
+- `_CURSOR_CUTS` (`src/orm/environments.py`): el `commit` de la conexión
+  vuelca la transacción del ORM y luego la vacía (≙ `sql_db.py:560-564`), el
+  `rollback` la vacía. Con un `transaction.atomic` por petición, su salida
+  correcta llama a `commit()` y el volcado ocurre en el momento de la fuente,
+  sin un `flush` propio del middleware.
+- `registry_for_alias`/`active_registry` (`c89eed08`): el registro de la
+  base de la petición, con su `cache_invalidated`.
+
+Lo que hoy falta, y por qué la unidad no duplica commits: en autocommit Django
+no llama a `commit()`, así que el corte no ocurre y lo pendiente del ORM
+queda a merced del siguiente volcado explícito. El `atomic` de la unidad es
+el único `COMMIT` de la petición; los `atomic` de las vistas pasan a ser
+savepoints (`DATABASES[...]['ATOMIC_REQUESTS']` no se activa, para no tener
+dos mecanismos que abren la misma transacción).
+
+Fuera de HTTP: el cron ya tiene su cursor por trabajo (`7f56d1dd`); los
+comandos de gestión y las migraciones no pasan por el middleware y se tratan
+aparte (`migrate` corre en su propia transacción por migración, como la
+instalación de la fuente).
+
+## Cuándo revierte la unidad (2026-11-12T18:29:52 UTC)
+
+En la fuente revierte **toda excepción** del despacho (`retrying`,
+`odoo/service/model.py:192-235`). Aquí la vista no propaga la excepción al
+middleware: Django la convierte en respuesta dentro de la cadena, y DRF la
+maneja y devuelve una `Response` con `response.exception = True`
+(`rest_framework/views.py:477`). Su `set_rollback` (`:66-69`) sólo actúa
+sobre bases con `ATOMIC_REQUESTS`, que aquí no se activa (abriría una
+transacción en **cada** alias instalado, una por empresa).
+
+Por eso la unidad decide así, sobre el alias de la petición:
+
+| Señal | Origen | Desenlace |
+|---|---|---|
+| `process_exception` recibió una excepción | Django, vista no DRF | rollback + `reset_changes()` |
+| `response.exception` es verdadero | DRF manejó una excepción | rollback + `reset_changes()` |
+| ninguna | respuesta normal (incluido un 4xx devuelto a propósito) | COMMIT (vuelca por `_CURSOR_CUTS`) + `signal_changes()` |
+
+Reintento: si la excepción es `SerializationFailure`, `DeadlockDetected` o
+`LockNotAvailable` de psycopg, se revierte, se llama a `reset_changes()` y se
+vuelve a servir hasta 5 veces con espera `uniform(0, 2**intento)`, salvo que
+la petición traiga archivos que no se puedan rebobinar (la fuente rehúsa igual,
+`model.py:197-206`). La traducción de `IntegrityError` a `ValidationError`
+(`model.py:207-214`) va en la misma unidad, como el 400 de DRF.
+
+## RED
+
+1. vista que escribe y responde bien → la fila queda, `signal_changes` una vez,
+   `reset_changes` cero;
+2. vista que escribe y lanza → la fila no queda, `reset_changes` una vez,
+   `signal_changes` cero;
+3. vista DRF que escribe y lanza `ValidationError` → igual que 2;
+4. `check_signaling` se llama antes de servir;
+5. una `SerializationFailure` en el primer intento → segundo intento confirma;
+6. lo pendiente del ORM se vuelca antes del COMMIT (un cómputo almacenado
+   marcado en la vista llega a la fila).

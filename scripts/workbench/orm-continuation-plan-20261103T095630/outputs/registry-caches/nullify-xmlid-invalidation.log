@@ -1,0 +1,8 @@
+== N1 save invalida el registro activo
+FAILED tests/integration/test_orm/test_registry_caches_per_database.py::test_saving_an_xmlid_row_invalidates_its_database
+1 failed, 9 passed in 15.39s
+restored-diff-vs-HEAD-quiet=1
+== N2 sin receptor post_delete
+FAILED tests/integration/test_orm/test_registry_caches_per_database.py::test_a_bulk_delete_of_an_xmlid_invalidates_its_database
+1 failed, 9 passed in 14.68s
+restored-diff-vs-HEAD-quiet=1

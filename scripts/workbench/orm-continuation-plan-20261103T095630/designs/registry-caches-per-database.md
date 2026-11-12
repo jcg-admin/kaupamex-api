@@ -204,3 +204,39 @@ esta unidad retira, no un defecto nuevo:
 Los siete archivos reescritos: 213 passed (`rerun-7.log`). En
 `test_ir_default.py` los nombres de campo de prueba (`'campo'`, `'mio'`…)
 pasaron a inglés porque el gate de idioma mide el archivo entero al tocarlo.
+
+## ci-multidb de `7b597391`: NO CONFORME, y la clase de defecto que destapó (2026-11-12T18:42:43 UTC)
+
+`test_company_init_without_the_xml_id_assigns_nothing_and_rolls_back` borra la
+fila `base.paperformat_euro` de B con `QuerySet.delete()` y llama a
+`ResCompany.init(using=B)`, que siguió resolviendo el xml-id desde la caché de B.
+Django no llama a `Model.delete()` en un borrado masivo, y la invalidación de
+`IrModelData` vivía sólo ahí. Con el contenedor del proceso, cualquier
+`clear_cache('default')` de cualquier sitio vaciaba también la entrada de B y
+ocultaba el hueco; con el contenedor por base, ya no.
+
+Reproducido en local con dos alias (`test_a_bulk_delete_of_an_xmlid_invalidates_its_database`,
+`test_saving_an_xmlid_row_invalidates_its_database`): RED 2 de 2.
+
+Dos defectos, la misma familia:
+
+1. **La invalidación del borrado no llegaba al borrado masivo.** En la fuente
+   todo borrado es `unlink` y vacía la caché (`ir_model.py:2328-2334`). Aquí
+   `IrModelData` invalida ahora en `post_delete`, que Django emite también
+   para cada fila de un `QuerySet.delete()`.
+2. **La invalidación de los ganchos de fila iba al registro activo.** En la
+   fuente es `self.env.registry`, el de la base del registro. Censo por AST
+   (`outputs/clear-cache-call-sites.tsv`): 22 llamadas en `save`, `delete` y
+   receptores de señal; las 22 pasan a `registry.registry_of_row(row, using)`.
+
+Anulación: `save` contra el registro activo → cae 1; sin el receptor
+`post_delete` → cae 1.
+
+**Lo que esta corrección no cierra.** Otros siete modelos invalidan sólo en su
+`delete()` (`DecimalPrecision`, `IrConfigParameter`, `IrDefault`,
+`IrRule`, `PropertiesBaseDefinition`, `ResGroups`, `ResLang`, más
+`IrModel`/`IrModelFields`): un borrado masivo de cualquiera deja su caché
+sin vaciar, igual que en `IrModelData`. Unidad sucesora:
+`bulk-delete-invalidation-0485`, con la misma forma (`post_delete`) y su
+prueba por modelo. Tampoco cubre `QuerySet.update()`, que no emite señal y
+que en la fuente es `write` (con invalidación): queda medido aparte.
