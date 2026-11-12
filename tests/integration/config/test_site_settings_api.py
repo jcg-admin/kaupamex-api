@@ -17,7 +17,7 @@ import pytest
 from decimal import Decimal
 from addons.base.models.ir_config_parameter import SystemParameter
 
-pytestmark = pytest.mark.api
+pytestmark = [pytest.mark.api, pytest.mark.django_db]
 
 
 class TestSiteSettingsEndpointGet:

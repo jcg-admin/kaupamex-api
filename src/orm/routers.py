@@ -133,28 +133,7 @@ class CompanyDatabaseRouter:
         meta = model._meta
         if _is_control_plane(meta.app_label, meta.model_name):
             return DEFAULT_DB_ALIAS
-        # El entorno activo declaró su base: ≙ ``env.cr`` de la fuente, que
-        # manda sobre la empresa porque es la conexión de sus recordsets.
-        cr_alias = get_current_cr()
-        if cr_alias is not None:
-            return cr_alias
-        company_id = get_current_company()
-        if company_id is None:
-            # Sin empresa activa -> None (N=1 cae a default; N>1 fail-closed en
-            # ``_route``).
-            return None
-        alias = company_db_alias(company_id)
-        # Degeneración N=1 (H-API-091-06): si la base de la empresa aún NO está
-        # provisionada/registrada en ``settings.DATABASES``, el dominio vive en
-        # ``default`` y el **row-scoping SOL-085** (filtro por columna
-        # ``company_id``) aísla intra-base. El routing DB-per-company
-        # sólo activa
-        # cuando la base existe (N>1). Sin este guard, una query bajo
-        # ``company_scope(X)`` en N=1 iría a un alias inexistente y rompería
-        # SOL-085 (regresión observada al cablear ``DATABASE_ROUTERS``).
-        if alias in settings.DATABASES:
-            return alias
-        return None
+        return domain_alias()
 
     def _route(self, model):
         """
@@ -206,3 +185,30 @@ class CompanyDatabaseRouter:
         return db == DEFAULT_DB_ALIAS or bool(
             _COMPANY_ALIAS_RE.fullmatch(db) and db in settings.DATABASES
         )
+
+
+def domain_alias():
+    """La base donde lee y escribe ahora un modelo de dominio, o ``None``.
+
+    El entorno activo declaró su base: ≙ ``env.cr`` de la fuente, que manda
+    sobre la empresa porque es la conexión de sus recordsets. Si no, la base
+    de la empresa activa. Sin empresa activa -> ``None`` (N=1 cae a
+    ``default``; N>1 fail-closed en ``_route``).
+
+    Degeneración N=1 (H-API-091-06): si la base de la empresa aún NO está
+    provisionada/registrada en ``settings.DATABASES``, el dominio vive en
+    ``default`` y el **row-scoping SOL-085** (filtro por columna
+    ``company_id``) aísla intra-base. Sin este guard, una query bajo
+    ``company_scope(X)`` en N=1 iría a un alias inexistente y rompería
+    SOL-085 (regresión observada al cablear ``DATABASE_ROUTERS``).
+    """
+    cr_alias = get_current_cr()
+    if cr_alias is not None:
+        return cr_alias
+    company_id = get_current_company()
+    if company_id is None:
+        return None
+    alias = company_db_alias(company_id)
+    if alias in settings.DATABASES:
+        return alias
+    return None

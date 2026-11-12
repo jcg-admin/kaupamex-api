@@ -112,14 +112,23 @@ Qué NO se porta, con su medición
 
 import logging
 import os
+import random
 import re
+import time
 import unicodedata
 from contextvars import ContextVar
 
+from django.db import DEFAULT_DB_ALIAS, OperationalError, transaction
+from psycopg import errors as pg_errors
+
 import models
 
-from orm.environments import activate_companies, set_current_uid
-from tools.logging_context import clear_correlation_id, new_correlation_id
+from orm.environments import (activate_companies, set_current_uid,
+                              transaction_scope)
+from orm.registry import registry_for_alias
+from orm.routers import domain_alias
+from tools.logging_context import (clear_correlation_id, close_postrollback,
+                                   new_correlation_id, open_postrollback)
 
 _logger = logging.getLogger(__name__)
 
@@ -461,6 +470,116 @@ class CompanyContextMiddleware:
             activate_companies((), ())
             set_current_uid(None)
             set_current_request(None)
+
+
+#: ≙ ``MAX_TRIES_ON_CONCURRENCY_FAILURE`` (``odoo/service/model.py:30``).
+MAX_TRIES_ON_CONCURRENCY_FAILURE = 5
+
+#: Las faltas de concurrencia que la fuente reintenta
+#: (``PG_CONCURRENCY_EXCEPTIONS_TO_RETRY``, ``odoo/service/model.py``).
+_RETRYABLE = (pg_errors.SerializationFailure, pg_errors.DeadlockDetected,
+              pg_errors.LockNotAvailable)
+
+
+def _retry_wait(attempt):
+    """La espera antes del intento siguiente ≙ ``model.py:228``."""
+    return random.uniform(0.0, 2 ** attempt)
+
+
+def _concurrency_failure(exc):
+    """¿Es ``exc`` (o una de sus causas) una falta reintentable?"""
+    while exc is not None:
+        if isinstance(exc, _RETRYABLE):
+            return True
+        exc = exc.__cause__
+    return False
+
+
+class UnitOfWorkMiddleware:
+    """Una unidad de trabajo por petición ≙ ``service.model.retrying``.
+
+    En la fuente toda petición con base corre en un cursor: el registro
+    comprueba la señalización (``odoo/http.py:2267-2280``), la vista se sirve
+    con ``retrying`` (``odoo/service/model.py:160-240``), lo pendiente se
+    vuelca y la petición termina en ``commit`` + ``signal_changes()`` o en
+    ``rollback`` + ``reset_changes()``; una falta de concurrencia se reintenta.
+
+    Aquí la base es la del dominio de la petición
+    (``routers.domain_alias``), que ya fijó :class:`CompanyContextMiddleware`;
+    por eso va después de él. La transacción es un ``transaction.atomic``
+    sobre esa base: su salida llama a ``commit()``, y el corte de la conexión
+    vuelca la transacción del ORM antes del ``COMMIT``
+    (``orm.environments._CURSOR_CUTS``); antes, como la fuente, se vuelca
+    explícitamente lo pendiente. No se activa ``ATOMIC_REQUESTS``:
+    abriría una transacción en cada alias instalado.
+
+    La vista no propaga su excepción hasta aquí: Django la convierte en
+    respuesta dentro de la cadena y DRF la maneja. La reversión se decide con
+    las dos señales que sí llegan: ``process_exception`` y el
+    ``response.exception`` de DRF (``rest_framework/views.py:477``).
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def process_exception(self, request, exception):
+        """Anota la excepción de la vista; la respuesta la pone Django."""
+        request._unit_of_work_exception = exception
+
+    def _may_retry(self, request, exc, attempt):
+        return (_concurrency_failure(exc)
+                and attempt < MAX_TRIES_ON_CONCURRENCY_FAILURE
+                and not request.FILES)
+
+    def __call__(self, request):
+        alias = domain_alias() or DEFAULT_DB_ALIAS
+        registry = registry_for_alias(alias).check_signaling()
+        attempt = 0
+        while True:
+            attempt += 1
+            request._unit_of_work_exception = None
+            postrollback, token = open_postrollback()
+            try:
+                with transaction.atomic(using=alias), \
+                        transaction_scope(alias) as orm_transaction:
+                    response = self.get_response(request)
+                    failed = (request._unit_of_work_exception is not None
+                              or getattr(response, 'exception', False))
+                    if failed:
+                        transaction.set_rollback(True, using=alias)
+                    else:
+                        # ≙ ``env.cr.flush()`` tras servir (``model.py:189``)
+                        orm_transaction.flush()
+            except Exception as exc:
+                close_postrollback(token)
+                self._rolled_back(registry, alias, postrollback)
+                if not (isinstance(exc, OperationalError)
+                        and self._may_retry(request, exc, attempt)):
+                    raise
+                time.sleep(_retry_wait(attempt))
+                continue
+            close_postrollback(token)
+            if not failed:
+                registry.signal_changes()
+                return response
+            self._rolled_back(registry, alias, postrollback)
+            if not self._may_retry(
+                    request, request._unit_of_work_exception, attempt):
+                return response
+            time.sleep(_retry_wait(attempt))
+
+    @staticmethod
+    def _rolled_back(registry, alias, postrollback):
+        """Lo que sigue a la reversión ≙ ``BaseCursor.rollback``.
+
+        ``reset_changes`` (``model.py:200``) y después ``postrollback.run()``
+        (``odoo/sql_db.py``), en una transacción nueva: lo encolado durante la
+        petición sobrevive a su reversión.
+        """
+        registry.reset_changes()
+        if postrollback:
+            with transaction.atomic(using=alias):
+                postrollback.run()
 
 
 class CorrelationIdMiddleware:

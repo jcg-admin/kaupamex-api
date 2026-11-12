@@ -1885,6 +1885,10 @@ class Registry(Mapping):
         alias = registry._alias()
         if (db_name == alias or connections[alias].settings_dict.get('NAME')
                 == db_name):
+            # ≙ ``registry.setup_signaling()`` (``registry.py:159``): nace
+            # con las secuencias de su base, o el primer ``check_signaling``
+            # lo reconstruiría.
+            registry.setup_signaling()
             with registry.cursor() as cr, orm.environments.Environment(
                     cr.alias, SUPERUSER_ID, {}):
                 _call_hooks(registry, '_register_hook')

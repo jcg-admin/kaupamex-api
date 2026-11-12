@@ -12,7 +12,7 @@ from django.core import signing
 from addons.mass_mailing import services as mm
 from addons.website.models import StaticPage
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 
 # ─── URLs v2 F5 ──────────────────────────────────────────────────────────────
 V2_SHIPMENTS         = '/api/v2/shipments/'

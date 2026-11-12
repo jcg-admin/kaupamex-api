@@ -56,7 +56,7 @@ from django.apps import apps as django_apps
 from django.db import connection
 
 from tools.log_scrubber import scrub
-from tools.logging_context import get_correlation_id
+from tools.logging_context import get_correlation_id, request_postrollback
 
 _reentrancy = threading.local()
 _exc_formatter = logging.Formatter()
@@ -113,18 +113,24 @@ class DatabaseLogHandler(logging.Handler):
                 dbname = connection.settings_dict.get('NAME', '') or ''
             except Exception:
                 dbname = ''
-            ir_logging.objects.create(
-                name=(record.name or '')[:255],
-                type=ir_logging.TYPE_SERVER,
-                dbname=str(dbname)[:255],
-                level=(record.levelname or '')[:20],
-                message=scrub(record.getMessage()) or '',
-                path=(getattr(record, 'pathname', '') or '')[:255],
-                func=(getattr(record, 'funcName', '') or '')[:255],
-                line=str(getattr(record, 'lineno', '') or ''),
-                trace=trace or '',
-                correlation_id=get_correlation_id() or '',
-            )
+            values = {
+                'name': (record.name or '')[:255],
+                'type': ir_logging.TYPE_SERVER,
+                'dbname': str(dbname)[:255],
+                'level': (record.levelname or '')[:20],
+                'message': scrub(record.getMessage()) or '',
+                'path': (getattr(record, 'pathname', '') or '')[:255],
+                'func': (getattr(record, 'funcName', '') or '')[:255],
+                'line': str(getattr(record, 'lineno', '') or ''),
+                'trace': trace or '',
+                'correlation_id': get_correlation_id() or '',
+            }
+            ir_logging.objects.create(**values)
+            # ≙ el cursor propio de ``PostgreSQLHandler`` (``netsvc.py``): el
+            # error que revierte la petición conserva su fila
+            postrollback = request_postrollback()
+            if postrollback is not None:
+                postrollback.add(lambda: ir_logging.objects.create(**values))
         except Exception:
             # silent OK because DEC-LOG-04: el logging es no-bloqueante. Un
             # fallo al escribir IrLogging (DB caida, tabla ausente en un

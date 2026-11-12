@@ -50,7 +50,7 @@ from addons.authz_totp.services import begin_setup, confirm_setup
 
 User = get_user_model()
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 
 AUTHENTICATE = '/api/v2/web/session/authenticate/'
 SESSION = '/api/v2/web/session/'

@@ -96,3 +96,18 @@ fallido.
 | Suite integral | `full-caches-9ed09c06`: 13 134 passed, 0 failed, 14 errors multidb |
 | Commit | `c89eed08` |
 | Multidb | pendiente sobre la revisión publicada |
+
+## Unidad `request-unit-of-work-0485` (en verificación, 2026-11-12T19:08:28)
+
+| Campo | Valor |
+|---|---|
+| Contrato | `_serve_db` (`odoo/http.py:2267-2335`): `registry.check_signaling(cr)` en toda petición con base; `service.model.retrying` (`odoo/service/model.py:160-240`): `flush`, `commit` + `signal_changes` o `rollback` + `reset_changes`, reintento de faltas de concurrencia; `BaseCursor.postrollback` (`odoo/sql_db.py`); `PostgreSQLHandler` con cursor propio (`odoo/netsvc.py`) |
+| Símbolos cambiados | `UnitOfWorkMiddleware` (+ `_rolled_back`), `routers.domain_alias`, `Registry.new` (`setup_signaling`), `logging_context.open_postrollback`/`close_postrollback`/`request_postrollback`, `audit_authz_event`, `DatabaseLogHandler.emit`, `MIDDLEWARE` |
+| Consumidores afectados | toda petición HTTP (vistas DRF y Django), auditoría DENY (5 sitios), `ir.logging` |
+| Pruebas focalizadas | `test_request_unit_of_work.py` (9), `test_registry_new_flushes_its_own_cursor.py`, `test_reauth_session.py` |
+| Anulación | N1-N5 (`outputs/request-unit-of-work/`); sin `postrollback.run()` caen exactamente 3 (`nullify-postrollback.log`) |
+| Regresión derivada | no aplica sola: el middleware es transversal |
+| Suite integral | obligatoria. `full-uow-47b60765` **fallo** (782 failed, 37 errors: `Registry.new` sin `setup_signaling` → cursor RW dentro del RO). Repetición de las 804: 774 pasan; las 30 restantes: 28 pruebas anónimas sin `django_db` (la fuente consulta la base en toda petición: se marcan), 1 borrado por ORM en una prueba que decía «por SQL» (ahora SQL), 1 auditoría DENY revertida (diseño `request-unit-of-work-durable-writes.md`). En curso: `fullgate-uow2` |
+| Multidb | obligatorio tras integrar (la base de la petición sale de `domain_alias`) |
+| Aprovisionamiento | no: sin migraciones |
+| Coste esperado | suite integral ≈ 1 h + ci-multidb |

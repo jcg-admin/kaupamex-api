@@ -30,6 +30,8 @@ logging y ``DatabaseLogHandler`` lo persiste en ``ir.logging`` — ver
 import contextvars
 import uuid
 
+from tools.misc import Callbacks
+
 # Default None: fuera de un request (management commands, tests unitarios sin
 # request) no hay correlacion — el consumidor debe tolerar None.
 _correlation_id_var = contextvars.ContextVar("correlation_id", default=None)
@@ -66,3 +68,37 @@ def clear_correlation_id():
     anterior.
     """
     _correlation_id_var.set(None)
+
+
+#: La cola ``postrollback`` de la unidad de trabajo de la petición en curso
+#: (``UnitOfWorkMiddleware``); ``None`` fuera de una petición.
+_postrollback_var = contextvars.ContextVar('postrollback', default=None)
+
+
+def open_postrollback():
+    """Abre la cola ``postrollback`` de una unidad de trabajo.
+
+    ≙ ``BaseCursor.postrollback`` (``odoo/sql_db.py``): lo que debe
+    sobrevivir a la reversión de la petición —la auditoría de una
+    denegación, el ``ir.logging`` del error— se encola aquí y la unidad de
+    trabajo lo ejecuta en una transacción nueva tras revertir
+    (``designs/request-unit-of-work-durable-writes.md``). Vive en este
+    módulo y no en ``orm.environments`` porque lo consume el handler de
+    logging, que ``sql_db`` importa a través de ``tools.profiler``.
+
+    Devuelve ``(callbacks, token)``; :func:`close_postrollback` recibe el
+    token. La cola se cierra antes de ejecutarse, así que lo que escriba no
+    vuelve a encolarse.
+    """
+    callbacks = Callbacks()
+    return callbacks, _postrollback_var.set(callbacks)
+
+
+def close_postrollback(token):
+    """Cierra la cola que abrió :func:`open_postrollback`."""
+    _postrollback_var.reset(token)
+
+
+def request_postrollback():
+    """La cola ``postrollback`` de la petición en curso, o ``None``."""
+    return _postrollback_var.get()

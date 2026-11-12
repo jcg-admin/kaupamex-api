@@ -20,7 +20,7 @@ from tests.factories.product_factory import make_category, make_product
 from addons.mail.models import Notification
 from addons.website_sale_wishlist.models import WishlistItem
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 
 # ─── URLs v2 ────────────────────────────────────────────────────────────────
 V2_CART_URL = '/api/v2/cart/'

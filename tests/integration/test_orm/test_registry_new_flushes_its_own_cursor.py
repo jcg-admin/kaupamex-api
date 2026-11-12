@@ -31,3 +31,13 @@ def test_building_a_registry_leaves_the_callers_marks_pending():
     with preserved_registries():
         Registry.new('default')
     assert _pending(row.pk) == {'start', 'end'}
+
+
+def test_a_new_registry_starts_from_the_database_signaling():
+    """≙ ``registry.setup_signaling()`` en ``Registry.new``
+    (``odoo19c: odoo/orm/registry.py:159``): el registro nace con las
+    secuencias de su base, así que ``check_signaling`` no lo reconstruye."""
+    with preserved_registries():
+        built = Registry.new('default')
+        assert built.registry_sequence != -1
+        assert built.check_signaling() is built

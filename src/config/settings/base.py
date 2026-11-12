@@ -208,6 +208,10 @@ MIDDLEWARE = [
     # la excepcion suba como 500.
     'addons.authz_timeout.models.ir_http.CheckIdentityMiddleware',
     'addons.base.models.ir_http.CompanyContextMiddleware',
+    # UnitOfWorkMiddleware: una transaccion por peticion sobre la base del
+    # dominio (retrying de la fuente): COMMIT + signal_changes, o rollback +
+    # reset_changes. Despues de CompanyContext, que fija esa base.
+    'addons.base.models.ir_http.UnitOfWorkMiddleware',
     # DeviceLogMiddleware: el punto donde la referencia registra el dispositivo
     # de la peticion (check_session -> res.device.log._update_device,
     # odoo19c: odoo/service/security.py:23,31). Va DESPUES de Session y
@@ -262,7 +266,8 @@ WSGI_APPLICATION = 'config.wsgi.application'
 #                          no hay modo laxo que endurecer.
 _DB_OPTIONS = {}
 # SSL: por defecto verifica el cert del server contra CAs publicas (certifi),
-# valido para la DB productiva (Let's Encrypt; VM3 TCP + require_secure_transport).
+# valido para la DB productiva (Let's Encrypt; VM3 TCP +
+# require_secure_transport).
 # DB_SSL_MODE=disable apaga TLS para entornos con cert self-signed, sin SSL
 # compilado, o socket local (contenedor/CI) sin afectar produccion. El literal
 # es ``disable`` — uno de los seis de libpq (disable, allow, prefer, require,
@@ -273,7 +278,8 @@ _DB_OPTIONS = {}
 #
 # DB_SSL_MODE y DB_SOCKET son TOGGLES OPCIONALES: su ausencia tiene un
 # significado definido (verificar cert contra CAs publicas / fallback TCP), por
-# el guard ``if _X:`` de abajo. Llevan ``default=''`` a proposito — a diferencia
+# el guard ``if _X:`` de abajo. Llevan ``default=''`` a proposito — a
+# diferencia
 # de las claves de CONEXION (NAME/USER/PASSWORD/HOST/PORT) que SI son sin
 # ``default=`` por SOL-087 (fail-loud). Requerir estos toggles rompia el import
 # de settings en cualquier entorno sin la envvar (CI sin ``.env``: base.py
@@ -313,7 +319,8 @@ DATABASES = {
 # Multi-DB DB-per-company (SOL-091, T-091-05). Roster EXPLÍCITO de bases de
 # empresa: vacío = N=1 (sólo ``default``). NO se descubre por
 # ``information_schema`` en el import de settings (chicken-and-egg con
-# ``connections``; una DB fresca/CI aún no existe) — el roster es 12-factor y el
+# ``connections``; una DB fresca/CI aún no existe) — el roster es 12-factor y
+# el
 # descubrimiento runtime vive en ``service.db.list_company_db_names``. El
 # ``default=''`` es de un roster opcional (feature-off), no de un secreto de
 # conexión (SOL-087 aplica al bloque ``default`` de arriba).
@@ -323,13 +330,15 @@ _MULTIDB_COMPANY_DBS = opt('MULTIDB_COMPANY_DATABASES')
 install_company_aliases(DATABASES, list(_MULTIDB_COMPANY_DBS))
 
 # Router DB-per-company: enruta dominio→company_<N>_db, control L0→default. El
-# fail-closed duro (dominio sin empresa bajo N>1) se activa solo cuando el roster
+# fail-closed duro (dominio sin empresa bajo N>1) se activa solo cuando el
+# roster
 # de arriba puebla aliases ``company_*`` (ver ``orm.routers``).
 DATABASE_ROUTERS = ['orm.routers.CompanyDatabaseRouter']
 
 # Las sesiones conservan su almacenamiento central. Contenttypes sigue a los
 # modelos locales: base.0060 y auth mantienen FK dentro de cada instalación.
-# Propuesta revisable bajo TASK-API-0383; no acredita el ciclo auth multiempresa.
+# Propuesta revisable bajo TASK-API-0383; no acredita el ciclo auth
+# multiempresa.
 MULTIDB_CONTROL_PLANE_APPS = ('sessions',)
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -392,7 +401,8 @@ DEFAULT_FROM_EMAIL = 'noreply@kaupamex.com'
 # addons.base.models.CompanySetting y
 # hallazgos-implementar-systemparameter-l2.
 
-# Bootstrap de la primera empresa L1 (DEC-3 de ``tenants-sin-clases-en-codigo``).
+# Bootstrap de la primera empresa L1 (DEC-3 de
+# ``tenants-sin-clases-en-codigo``).
 # La app NO nombra "el founder" por código en runtime: la empresa inicial se
 # declara aquí (12-factor, ``.env``) y la crea ``company_create``. Vacío = la
 # instalación no siembra ninguna empresa por sí sola.
@@ -644,8 +654,10 @@ SPECTACULAR_SETTINGS = {
 CORS_ALLOWED_ORIGINS = opt('CORS_ALLOWED_ORIGINS')
 CORS_ALLOW_CREDENTIALS = True
 
-# H-09: ensure logs directory exists on fresh checkouts before RotatingFileHandler
-# tries to open the file. Using mkdir(parents=True, exist_ok=True) is idempotent
+# H-09: ensure logs directory exists on fresh checkouts before
+# RotatingFileHandler
+# tries to open the file. Using mkdir(parents=True, exist_ok=True) is
+# idempotent
 # and keeps the existing deployment assumption (logs live under BASE_DIR/logs).
 LOG_DIR = BASE_DIR / 'logs'
 LOG_DIR.mkdir(parents=True, exist_ok=True)
@@ -696,7 +708,8 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 
 # Cache — DatabaseCache (cnst-arquitectura T4/T5).
 # UC-SRCH-02 (autocomplete) usa la clave "autocomplete:<prefijo>" con TTL 60s.
-# UC-CAT-08 (árbol de categorías) usará la clave "categories:tree" con TTL 300s.
+# UC-CAT-08 (árbol de categorías) usará la clave "categories:tree" con TTL
+# 300s.
 # La tabla se crea con: python manage.py createcachetable
 # En testing.py se sobrescribe con LocMemCache para evitar dependencia de BD.
 CACHES = {

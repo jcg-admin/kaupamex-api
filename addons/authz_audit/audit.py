@@ -6,6 +6,7 @@ audit jamás rompe la request original (DEC-LOG-04).
 """
 
 from addons.authz_audit.models import AuthzEvent
+from tools.logging_context import request_postrollback
 
 
 def _client_ip(request):
@@ -27,15 +28,20 @@ def audit_authz_event(request, action, code, extra=None):
         actor = getattr(request, 'user', None)
         if not getattr(actor, 'is_authenticated', False):
             actor = None
-        AuthzEvent.objects.create(
-            actor=actor,
-            action=action,
-            capability_code=code or '',
-            ip_addr=_client_ip(request),
-            correlation_id=getattr(request, 'correlation_id', '') or '',
-            extra_json=extra,
-        )
+        values = {
+            'actor': actor,
+            'action': action,
+            'capability_code': code or '',
+            'ip_addr': _client_ip(request),
+            'correlation_id': getattr(request, 'correlation_id', '') or '',
+            'extra_json': extra,
+        }
+        AuthzEvent.objects.create(**values)
+        # un 403 revierte la petición: el evento se repite tras revertirla
+        postrollback = request_postrollback()
+        if postrollback is not None:
+            postrollback.add(lambda: AuthzEvent.objects.create(**values))
     except Exception:
-        # silent OK because DEC-LOG-04: sellar la auditoría nunca debe romper el
-        # flujo de autorización ni la respuesta al cliente.
+        # silent OK because DEC-LOG-04: sellar la auditoría nunca debe romper
+        # el flujo de autorización ni la respuesta al cliente.
         pass

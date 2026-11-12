@@ -115,7 +115,10 @@ class TestSetupSignaling:
     """≙ ``setup_signaling`` (``:1036-1064``)."""
 
     def test_it_loads_the_sequences_into_the_registry(self, registry):
-        assert registry.registry_sequence == -1
+        # ``Registry.new`` ya señaliza (``registry.py:159``): se parte de un
+        # registro sin señalizar para medir la carga
+        registry.registry_sequence = -1
+        registry.cache_sequences = {}
         registry.setup_signaling()
         assert registry.registry_sequence >= 1
         assert len(registry.cache_sequences) == 6

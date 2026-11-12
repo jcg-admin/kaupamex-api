@@ -12,7 +12,7 @@ import pytest
 from decimal import Decimal
 from addons.delivery.models import ShippingMethod
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 
 URL = '/api/v2/shipping-methods/'
 

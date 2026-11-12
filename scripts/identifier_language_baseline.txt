@@ -1685,6 +1685,7 @@ tests/integration/company/test_multidb_isolation.py::TestSol085RowScopingIntraBa
 tests/integration/company/test_org_catalog.py::mxn
 tests/integration/company/test_org_catalog.py::test_branch_hereda_moneda_de_la_raiz
 tests/integration/company/test_org_catalog.py::test_parent_path_materializada
+tests/integration/config/test_site_settings_api.py::iva_rate
 tests/integration/config/test_site_settings_api.py::test_admin_can_update_iva_rate
 tests/integration/config/test_site_settings_api.py::test_invalid_iva_rate_returns_400
 tests/integration/config/test_site_settings_api.py::test_respuesta_no_incluye_campos_eliminados

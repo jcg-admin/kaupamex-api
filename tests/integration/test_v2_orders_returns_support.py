@@ -16,7 +16,7 @@ sobre el carrito, no sobre la orden).
 import pytest
 from addons.helpdesk.models import SupportTicket
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 
 # ─── URLs v2 ────────────────────────────────────────────────────────────────
 V2_ORDERS_BASE = '/api/v2/orders/'

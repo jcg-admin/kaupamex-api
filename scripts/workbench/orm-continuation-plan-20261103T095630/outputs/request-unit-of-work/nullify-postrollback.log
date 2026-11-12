@@ -1,0 +1,4 @@
+FAILED tests/integration/test_orm/test_request_unit_of_work.py::test_a_denial_audit_survives_the_rollback
+FAILED tests/integration/test_orm/test_request_unit_of_work.py::test_the_error_log_survives_the_rollback
+FAILED tests/integration/authz/test_reauth_session.py::test_sensitive_mutation_without_reauth_403
+3 failed, 20 passed, 2 warnings in 25.40s
