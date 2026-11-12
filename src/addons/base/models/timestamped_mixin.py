@@ -61,6 +61,7 @@ from orm.fields_temporal import (
     LogAccessUserField,
     TransactionClockSaveMixin,
     TransactionDateTimeField,
+    record_transaction_now,
     transaction_now,
 )
 from orm.models import (
@@ -77,7 +78,7 @@ from orm.models import (
 __all__ = [
     'SAVE_NOW', 'SAVE_USING', 'TimeStampedModel',
     'TransactionClockSaveMixin', 'TransactionDateTimeField',
-    'transaction_now',
+    'record_transaction_now', 'transaction_now',
 ]
 
 

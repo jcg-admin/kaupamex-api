@@ -558,6 +558,17 @@ def _write_alias(instance):
             or router.db_for_write(type(instance), instance=instance))
 
 
+def record_transaction_now(record):
+    """La hora de la transacción de la base donde se escribe ``record``.
+
+    ≙ ``self.env.cr.now()`` (``odoo19c: odoo/sql_db.py:271-278``) sobre la
+    base de la fila: la misma regla con que ``create_date`` y ``write_date``
+    eligen su base (:func:`_write_alias`), así que una fecha que el modelo
+    pone a mano coincide con las de acceso de la misma transacción.
+    """
+    return transaction_now(_write_alias(record))
+
+
 class TransactionDateTimeField(models.DateTimeField):
     """``auto_now``/``auto_now_add`` con la hora de la transacción.
 

@@ -44,7 +44,8 @@ import models
 from exceptions import UserError, ValidationError
 from orm.domains import Domain, to_q
 
-from addons.base.models import TimeStampedModel
+from addons.base.models.timestamped_mixin import (TimeStampedModel,
+                                                  record_transaction_now)
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.res_company import ResCompany
 from addons.base.models.res_country import ResCountry, ResCountryState
@@ -700,13 +701,13 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     def _compute_date_open(self):
         """≙ ``_compute_date_open`` (:359-363)."""
         if not self.date_open and self.user_id_id:
-            self.date_open = datetime.now(timezone.utc)
+            self.date_open = record_transaction_now(self)
 
     @api.depends('stage_id')
     def _compute_date_last_stage_update(self):
         """≙ ``_compute_date_last_stage_update`` (:365-369)."""
         if not self.date_last_stage_update:
-            self.date_last_stage_update = datetime.now(timezone.utc)
+            self.date_last_stage_update = record_transaction_now(self)
 
     #: ``create_date`` de la fuente es ``create_date`` aqui — la columna de
     #: auditoria de ``TimeStampedModel``. El decorador la nombraba con el
@@ -1280,7 +1281,7 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         if self.website:
             self.website = ResPartner._clean_website(self.website)
 
-        now = datetime.now(timezone.utc)
+        now = record_transaction_now(self)
         stage_updated, stage_is_won = False, False
         previous = None
 
@@ -1319,7 +1320,14 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
                 'is_won': previous['won_status'] == 'won',
             }}
 
-        self._compute_stored_fields()
+        # En alta los calculados almacenados los resuelve el ORM, como en la
+        # fuente: el precompute en ``pre_save`` y el resto con el marcado de
+        # creación y el volcado. Calcularlos aquí además los repetía, en
+        # cascada, una vez por cada dependencia asignada
+        # (designs/eager-computes-in-save.md). En modificación se conservan:
+        # su escritura descarta la marca y no duplica.
+        if not es_alta:
+            self._compute_stored_fields()
         res = super().save(*args, **kwargs)
 
         # alta directamente en etapa ganada: sella la fecha de cierre
@@ -1431,7 +1439,7 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         """
         default = dict(default or {})
         vals = super().copy_data(default=default) if hasattr(super(), 'copy_data') else dict(default)
-        now = datetime.now(timezone.utc)
+        now = record_transaction_now(self)
         vals.setdefault('type', self.type)
         vals.setdefault('team_id', self.team_id_id)
         is_active = bool(self.user_id_id and getattr(self.user_id, 'is_active', True))
@@ -2128,7 +2136,7 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         new_team_id = team_id if team_id else self.team_id_id
         upd_values = {
             'type': self.TYPE_OPPORTUNITY,
-            'date_conversion': datetime.now(timezone.utc),
+            'date_conversion': record_transaction_now(self),
         }
         if customer is not None and customer != self.partner_id:
             upd_values['partner_id'] = customer
