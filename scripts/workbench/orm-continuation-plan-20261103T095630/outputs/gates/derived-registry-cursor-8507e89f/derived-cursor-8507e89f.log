@@ -1,0 +1,284 @@
+bringing up nodes...
+bringing up nodes...
+
+........................................................................ [  1%]
+........................................................................ [  2%]
+........................................................................ [  3%]
+........................................................................ [  4%]
+.....s.............ss.ssss...........ssssssssss......................... [  5%]
+........................................................................ [  6%]
+........................................................................ [  7%]
+...................x.....x.............................................. [  8%]
+........................................................................ [  9%]
+........................................................................ [ 11%]
+........................................................................ [ 12%]
+........................................................................ [ 13%]
+........................................................................ [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 18%]
+........................................................................ [ 19%]
+........................................................................ [ 21%]
+........................................................................ [ 22%]
+...............................xx....................................... [ 23%]
+........................................................................ [ 24%]
+........................................................................ [ 25%]
+........................................................................ [ 26%]
+........................................................................ [ 27%]
+........................................................................ [ 28%]
+...............................xx..x.x.................................. [ 29%]
+......................................................................... [ 31%]
+........................................................................ [ 32%]
+........................................................................ [ 33%]
+........................................................................ [ 34%]
+........................................................................ [ 35%]
+................................................................ssssssss [ 36%]
+s.sssssssss..ssssssss................................................... [ 37%]
+........................................................................ [ 38%]
+........................................................................ [ 39%]
+........................................................................ [ 40%]
+........................................................................ [ 42%]
+........ssssssssssssssss..........ssssss................................ [ 43%]
+........................................................................ [ 44%]
+........................................................................ [ 45%]
+...................................................x.xxxxxx.x.x.xxxxxxxx [ 46%]
+xxxx..xxxxxxxxxxx..x..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx...xxx.x.x [ 47%]
+x....................................................................... [ 48%]
+........................................................................ [ 49%]
+........................................................................ [ 50%]
+........................................................................ [ 52%]
+........................................................................ [ 53%]
+........................................................................ [ 54%]
+........................................................................ [ 55%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 58%]
+........................................................................ [ 59%]
+........................................................................ [ 60%]
+........................................................................ [ 62%]
+........................................................................ [ 63%]
+........................................................................ [ 64%]
+........................................................................ [ 65%]
+........................................................................ [ 66%]
+........................................................................ [ 67%]
+........................................................................ [ 68%]
+........................................................................ [ 69%]
+........................................................................ [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 73%]
+........................................................................ [ 74%]
+........................................................................ [ 75%]
+........................................................................ [ 76%]
+........................................................................ [ 77%]
+........................................................................ [ 78%]
+........................................................................ [ 79%]
+........................................................................ [ 80%]
+........................................................................ [ 81%]
+........................................................................ [ 83%]
+........................................................................ [ 84%]
+........................................................................ [ 85%]
+........................................................................ [ 86%]
+........................................................................ [ 87%]
+......................................................................... [ 88%]
+........................................................................ [ 89%]
+........................................................................ [ 90%]
+........................................................................ [ 91%]
+........................................................................ [ 93%]
+........................................................................ [ 94%]
+........................................................................ [ 95%]
+........................................................................ [ 96%]
+........................................................................ [ 97%]
+........................................................................ [ 98%]
+........................................................................ [ 99%]
+....................                                                     [100%]
+=============================== warnings summary ===============================
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:48: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/unit/orm/test_table_objects_reach_meta.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:48: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/integration/test_orm/test_create_recordset.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:138
+src/addons/test_orm/models/test_orm.py:138
+src/addons/test_orm/models/test_orm.py:138
+src/addons/test_orm/models/test_orm.py:138
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:138: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_json_field.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:48: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/integration/test_orm/test_many2many_relation.py)
+    class TestOrmCategory(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:138
+src/addons/test_orm/models/test_orm.py:138
+src/addons/test_orm/models/test_orm.py:138
+src/addons/test_orm/models/test_orm.py:138
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:138: PytestCollectionWarning: cannot collect test class 'TestOrmDiscussion' because it has a __init__ constructor (from: tests/integration/test_orm/test_many2many_relation.py)
+    class TestOrmDiscussion(TestOrmModel):
+
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+src/addons/test_orm/models/test_orm.py:48
+  /home/user/kaupamex-api/src/addons/test_orm/models/test_orm.py:48: PytestCollectionWarning: cannot collect test class 'TestOrmCategory' because it has a __init__ constructor (from: tests/unit/base/test_log_access_user_columns.py)
+    class TestOrmCategory(TestOrmModel):
+
+tests/integration/test_orm/test_invalidate_cache.py: 1 warning
+tests/unit/orm/test_access_manager.py: 1 warning
+tests/unit/orm/test_field_update_db.py: 1 warning
+tests/unit/orm/test_compute_stored_fields_operation.py: 1 warning
+tests/unit/orm/test_record_loader.py: 1 warning
+tests/unit/orm/test_registry_load_axis.py: 1 warning
+tests/unit/orm/test_related_field_declaration.py: 1 warning
+tests/unit/orm/test_environments_pooling_and_flush.py: 1 warning
+tests/unit/orm/test_modified_engine.py: 15 warnings
+tests/unit/orm/test_new_with_django_comodel.py: 1 warning
+tests/unit/orm/test_compute_wiring.py: 2 warnings
+tests/unit/orm/test_field_conversion.py: 1 warning
+tests/unit/orm/test_field_triggers.py: 14 warnings
+tests/unit/orm/test_flush_manager_contract.py: 3 warnings
+tests/unit/orm/test_models_item_access.py: 1 warning
+tests/unit/orm/test_nonstored_compute_dispatch.py: 1 warning
+tests/unit/orm/test_record_environment_field_contract.py: 2 warnings
+tests/unit/orm/test_registry_field_axis.py: 2 warnings
+tests/unit/orm/test_res_groups_compute_contract.py: 1 warning
+tests/unit/orm/test_unsaved_modified.py: 1 warning
+tests/unit/orm/test_missing_recompute.py: 16 warnings
+  /home/user/kaupamex-api/src/orm/fields.py:4488: UserWarning: Field <django.db.models.fields.related.ForeignKey: target> in dependency of contenttypes.VirtualDeleteSource.echo should be searchable. This is necessary to determine which records to recompute when contenttypes.VirtualDeleteTarget.label is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_invalidate_cache.py: 1 warning
+tests/unit/orm/test_access_manager.py: 1 warning
+tests/unit/orm/test_field_update_db.py: 1 warning
+tests/unit/orm/test_compute_stored_fields_operation.py: 1 warning
+tests/unit/orm/test_record_loader.py: 1 warning
+tests/unit/orm/test_registry_load_axis.py: 1 warning
+tests/unit/orm/test_related_field_declaration.py: 1 warning
+tests/unit/orm/test_environments_pooling_and_flush.py: 1 warning
+tests/unit/orm/test_modified_engine.py: 15 warnings
+tests/unit/orm/test_new_with_django_comodel.py: 1 warning
+tests/unit/orm/test_compute_wiring.py: 2 warnings
+tests/unit/orm/test_field_conversion.py: 1 warning
+tests/unit/orm/test_field_triggers.py: 14 warnings
+tests/unit/orm/test_flush_manager_contract.py: 3 warnings
+tests/unit/orm/test_models_item_access.py: 1 warning
+tests/unit/orm/test_nonstored_compute_dispatch.py: 1 warning
+tests/unit/orm/test_record_environment_field_contract.py: 2 warnings
+tests/unit/orm/test_registry_field_axis.py: 2 warnings
+tests/unit/orm/test_res_groups_compute_contract.py: 1 warning
+tests/unit/orm/test_unsaved_modified.py: 1 warning
+tests/unit/orm/test_missing_recompute.py: 16 warnings
+  /home/user/kaupamex-api/src/orm/fields.py:4488: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_invalidate_cache.py: 1 warning
+tests/unit/orm/test_access_manager.py: 1 warning
+tests/unit/orm/test_field_update_db.py: 1 warning
+tests/unit/orm/test_compute_stored_fields_operation.py: 1 warning
+tests/unit/orm/test_record_loader.py: 1 warning
+tests/unit/orm/test_registry_load_axis.py: 1 warning
+tests/unit/orm/test_related_field_declaration.py: 1 warning
+tests/unit/orm/test_environments_pooling_and_flush.py: 1 warning
+tests/unit/orm/test_modified_engine.py: 15 warnings
+tests/unit/orm/test_new_with_django_comodel.py: 1 warning
+tests/unit/orm/test_compute_wiring.py: 2 warnings
+tests/unit/orm/test_field_conversion.py: 1 warning
+tests/unit/orm/test_field_triggers.py: 14 warnings
+tests/unit/orm/test_flush_manager_contract.py: 3 warnings
+tests/unit/orm/test_models_item_access.py: 1 warning
+tests/unit/orm/test_nonstored_compute_dispatch.py: 1 warning
+tests/unit/orm/test_record_environment_field_contract.py: 2 warnings
+tests/unit/orm/test_registry_field_axis.py: 2 warnings
+tests/unit/orm/test_res_groups_compute_contract.py: 1 warning
+tests/unit/orm/test_unsaved_modified.py: 1 warning
+tests/unit/orm/test_missing_recompute.py: 16 warnings
+  /home/user/kaupamex-api/src/orm/fields.py:4488: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/orm/test_fields_related.py::TestResolveDepends::test_it_resolves_a_declared_chain_to_its_fields
+  /home/user/kaupamex-api/src/orm/fields.py:4462: UserWarning: Field base.ResPartner.name should be declared with recursive=True
+    warnings.warn(
+
+tests/integration/test_orm/test_autovacuum.py::test_api_autovacuum
+  /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1670: RuntimeWarning: DateTimeField TestOrmAutovacuumed.expire_at received a naive datetime (2026-10-28 04:47:47.033467) while time zone support is active.
+    warnings.warn(
+
+tests/integration/test_orm/test_domain.py::test_condition_optimize_datetime
+  /home/user/kaupamex-api/src/orm/domains.py:2393: UserWarning: Usar datetimes ingenuos en los dominios
+    warnings.warn("Usar datetimes ingenuos en los dominios")
+
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-3]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-8]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-20]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<-7]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<=-7]
+  /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1670: RuntimeWarning: DateTimeField TestOrmMixed.moment received a naive datetime (2000-05-05 00:00:00) while time zone support is active.
+    warnings.warn(
+
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-3]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-8]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-20]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<-7]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<=-7]
+  /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1670: RuntimeWarning: DateTimeField TestOrmMixed.moment received a naive datetime (2000-05-06 00:00:00) while time zone support is active.
+    warnings.warn(
+
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-3]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-8]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-20]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<-7]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<=-7]
+  /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1670: RuntimeWarning: DateTimeField TestOrmMixed.moment received a naive datetime (2000-05-07 00:00:00) while time zone support is active.
+    warnings.warn(
+
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-3]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-8]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-20]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<-7]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<=-7]
+  /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1670: RuntimeWarning: DateTimeField TestOrmMixed.moment received a naive datetime (2000-05-08 00:00:00) while time zone support is active.
+    warnings.warn(
+
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-3]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-8]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[>-20]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<-7]
+tests/integration/test_orm/test_domain.py::test_inequalities_datetime[<=-7]
+  /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1670: RuntimeWarning: DateTimeField TestOrmMixed.moment received a naive datetime (2000-05-09 00:00:00) while time zone support is active.
+    warnings.warn(
+
+tests/integration/test_orm/test_index_method.py::test_index_rebuilt_when_method_changes
+  /home/user/kaupamex-api/src/orm/registry.py:2850: UserWarning: PostgreSQL function 'unaccent' is present but not immutable, therefore trigram indexes may not be effective.
+    warnings.warn(
+
+tests/unit/orm/test_contract_domains_reference.py: 216 warnings
+  /home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/domains.py:1267: DeprecationWarning: Operator '<>' is deprecated since 19.0, use '!=' directly
+    warnings.warn("Operator '<>' is deprecated since 19.0, use '!=' directly", DeprecationWarning)
+
+tests/unit/orm/test_contract_domains_reference.py: 216 warnings
+  /home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0/odoo/orm/domains.py:1275: DeprecationWarning: Operator '==' is deprecated since 19.0, use '=' directly
+    warnings.warn("Operator '==' is deprecated since 19.0, use '=' directly", DeprecationWarning)
+
+tests/unit/orm/test_contract_domains_reference.py: 108 warnings
+  /home/user/kaupamex-api/tests/unit/orm/test_contract_domains_reference.py:301: DeprecationWarning: El operador '<>' está obsoleto desde 19.0; usar '!=' directamente
+    f(condition('a', o, v), None))
+
+tests/unit/orm/test_contract_domains_reference.py: 108 warnings
+  /home/user/kaupamex-api/tests/unit/orm/test_contract_domains_reference.py:301: DeprecationWarning: El operador '==' está obsoleto desde 19.0; usar '=' directamente
+    f(condition('a', o, v), None))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+referencia: 39 de 57 pruebas marcadas se omitieron (el árbol está en /home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0; los motivos, con -rs); sus contratos NO se verificaron en esta ejecución
+6350 passed, 65 skipped, 87 xfailed, 905 warnings in 360.71s (0:06:00)
