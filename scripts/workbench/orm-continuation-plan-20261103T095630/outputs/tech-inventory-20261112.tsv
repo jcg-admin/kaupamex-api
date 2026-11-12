@@ -1,0 +1,11 @@
+component	distribution	version	location	symbols
+cpython	CPython	3.13.18	/home/user/kaupamex-api/.venv/bin/python	
+django	Django	6.0.5	/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/__init__.py	db.migrations.executor.MigrationExecutor=present;db.migrations.state.ProjectState=present;db.migrations.operations.SeparateDatabaseAndState=present;db.migrations.operations.RenameField=present;db.backends.base.schema.BaseDatabaseSchemaEditor=present;db.models.deletion.Collector=present;db.models.GeneratedField=present;db.models.CompositePrimaryKey=present;core.management.commands.squashmigrations.Command=present
+djangorestframework	djangorestframework	3.16.1	/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/rest_framework/__init__.py	serializers.ModelSerializer=present;viewsets.ModelViewSet=present
+psycopg	psycopg	3.3.4	/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/psycopg/__init__.py	sql.SQL=present;types.json.Jsonb=present
+lxml	lxml	6.1.1	/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/lxml/__init__.py	etree.XMLParser=present;etree.RelaxNG=present
+gunicorn	gunicorn	26.0.0	/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/gunicorn/__init__.py	
+pypdf	pypdf	absent		
+postgresql	client	psql (PostgreSQL) 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)	/usr/bin/psql	
+libharu	system libhpdf	absent		
+libharu	vendored	2.4.6	src/tools/pdf/vendor/libharu	pdf_receipt=not-built;pdf_report=not-built
