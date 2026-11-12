@@ -51,3 +51,61 @@ Se elige entre tres alternativas sólo con el perfil delante:
 2. consolidar migraciones con el mecanismo de Django sin romper las rutas
    de actualización;
 3. mantener la secuencia cuando la operación sea contractual.
+
+## Resultado (2026-11-12, revisión 32085975, base desechable)
+
+Salidas: `outputs/provisioning-profile-32085975-20261112T002155/` (`migrations.tsv`, `phases.tsv`,
+`slow_statements.tsv`).
+
+| Fase | Pared (s) | SQL (s) |
+|---|---|---|
+| arranque de Django | 1.5 | — |
+| 710 migraciones aplicadas (`Migration.apply`) | 2599.6 | 17.5 |
+| `post_migrate` (carga de módulos) | 7.2 | 3.0 |
+| fuera de `apply` (estado, `createcachetable`) | 0.0 | 5.6 |
+| **`migrate` total** | **2621.4** | — |
+
+**El 99.3 % del costo es Python, no SQL**: 2582 s de 2600 en las
+migraciones. Las 12 974 sentencias SQL suman 17.5 s.
+
+**La hipótesis queda refutada.** Las 230 migraciones del log-access cuestan
+1875 s (72 %), y de ellos 7 s son SQL; sus 752 `ADD CONSTRAINT … FOREIGN
+KEY` suman menos de un segundo por migración. El costo no está en borrar y
+recrear las FK sino en la maquinaria de estado de Django.
+
+Por tipo de operación (Python atribuido al tipo dominante de la migración):
+
+| Operación | Operaciones | Python (s) | s/op |
+|---|---|---|---|
+| AddField | 1476 | 911 | 0.62 |
+| AlterField | 1194 | 838 | 0.70 |
+| RenameField | 822 | 613 | 0.75 |
+| CreateModel | 453 | 161 | 0.36 |
+
+Las tres migraciones más caras son de `test_orm` (164, 119 y 112 s, 106
+operaciones cada una); la app de pruebas suma 437 s en sus 48 migraciones.
+
+**Causa inferida, no medida todavía:** cada operación sobre un campo que
+apunta a `res.users` recarga en el `ProjectState` los modelos
+relacionados, y con cientos de FK hacia el usuario el costo por operación
+es alto. Condición de cierre: un `cProfile` de una sola migración del
+log-access que muestre el tiempo en `StateApps`/`reload_model`.
+
+ci-multidb construye la base de pruebas y las de empresa: tres
+instalaciones de unos 2600 s explican los 8142 s observados (estimación).
+
+## Decisión
+
+Con el costo en el número de operaciones de estado, no en el SQL:
+
+1. **Descartada** la corrección del DDL (alternativa 1): no hay DDL caro.
+2. **Elegida para medir primero** la consolidación del trío del log-access
+   por app (`*_log_access_user_columns`, `*_date_names`,
+   `*_user_column_names`) con `squashmigrations`: el optimizador de Django
+   funde `AddField` + `AlterField` en un `AddField` y `AddField` +
+   `RenameField` en uno, de unas tres operaciones por campo a una. Las bases
+   ya migradas siguen la historia por `replaces`. Antes de adoptarla: medir
+   la reducción en una app (`stock`, 150 s hoy) y probar las dos rutas
+   (instalación nueva y base en la revisión anterior).
+3. Medir aparte si `test_orm` tiene que migrarse en una instalación de
+   producción.

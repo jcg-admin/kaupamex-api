@@ -1,0 +1,6 @@
+phase	wall_seconds	sql_seconds	statements
+boot	1.471		
+migrations_apply	2599.59	17.533	
+post_migrate	7.24	3.003	7476
+migrate_outside_apply	0.0	5.643	3037
+migrate_total	2621.392		

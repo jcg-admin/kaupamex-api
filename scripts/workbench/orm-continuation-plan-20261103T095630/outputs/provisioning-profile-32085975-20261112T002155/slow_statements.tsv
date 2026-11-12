@@ -1,0 +1,2 @@
+bucket	class	seconds	sql
+migrate_outside_apply	create_index	0.511	"CREATE INDEX ""auth_passkey_key_credential_identifier_65bbda65_like"" ON ""auth_passkey_key"" (""credential_identifier"" varchar_pattern_ops)"
