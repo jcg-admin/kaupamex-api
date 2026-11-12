@@ -29,10 +29,13 @@ misma cadena de llamadas se salta.
 """
 
 import threading
+from contextlib import nullcontext
 
 from django.db import DEFAULT_DB_ALIAS, connections
 from django.db.models.signals import post_save, pre_delete, pre_save
 from django.dispatch import receiver
+
+from orm.environments import Environment
 
 from addons.base_automation.models.base_automation import (
     CREATE_TRIGGERS,
@@ -92,48 +95,51 @@ def _capture_old_values(sender, instance, **kwargs):
     if _skip(sender) or instance.pk is None:
         instance._base_automation_old_values = None
         return
-    instance._base_automation_old_values = (
-        sender.objects.filter(pk=instance.pk).values().first()
-    )
+    with _record_environment(kwargs.get('using')):
+        instance._base_automation_old_values = (
+            sender.objects.filter(pk=instance.pk).values().first()
+        )
 
 
 @receiver(post_save, dispatch_uid='base_automation.dispatch_create_write')
 def _dispatch_create_write(sender, instance, created, **kwargs):
     if _skip(sender) or not _rules_table_exists(kwargs.get('using')):
         return
-    model_name = _model_name(sender)
-    triggers = CREATE_TRIGGERS if created else WRITE_TRIGGERS
-    automations = BaseAutomation._get_actions(model_name, triggers)
-    if not automations:
-        return
+    with _record_environment(kwargs.get('using')):
+        model_name = _model_name(sender)
+        triggers = CREATE_TRIGGERS if created else WRITE_TRIGGERS
+        automations = BaseAutomation._get_actions(model_name, triggers)
+        if not automations:
+            return
 
-    old_row = getattr(instance, '_base_automation_old_values', None)
-    old_values = {instance.pk: old_row} if old_row is not None else None
-    processing = _processing_set()
+        old_row = getattr(instance, '_base_automation_old_values', None)
+        old_values = {instance.pk: old_row} if old_row is not None else None
+        processing = _processing_set()
 
-    for automation in automations:
-        key = (automation.pk, instance.pk)
-        if key in processing:
-            continue
-        processing.add(key)
-        try:
-            if created:
-                pks, domain_post = automation._filter_post_export_domain(
-                    sender, [instance.pk]
-                )
-            else:
-                pre_pks = automation._filter_pre(sender, [instance.pk])
-                if not pre_pks:
-                    continue
-                pks, domain_post = automation._filter_post_export_domain(
-                    sender, pre_pks
-                )
-            if pks:
-                automation._process(
-                    sender, pks, domain_post=domain_post, old_values=old_values
-                )
-        finally:
-            processing.discard(key)
+        for automation in automations:
+            key = (automation.pk, instance.pk)
+            if key in processing:
+                continue
+            processing.add(key)
+            try:
+                if created:
+                    pks, domain_post = automation._filter_post_export_domain(
+                        sender, [instance.pk]
+                    )
+                else:
+                    pre_pks = automation._filter_pre(sender, [instance.pk])
+                    if not pre_pks:
+                        continue
+                    pks, domain_post = automation._filter_post_export_domain(
+                        sender, pre_pks
+                    )
+                if pks:
+                    automation._process(
+                        sender, pks, domain_post=domain_post,
+                        old_values=old_values
+                    )
+            finally:
+                processing.discard(key)
 
 
 @receiver(pre_delete, dispatch_uid='base_automation.dispatch_unlink')
@@ -144,22 +150,23 @@ def _dispatch_unlink(sender, instance, **kwargs):
     ``_filter_post`` (que re-consulta la base) siempre daría vacío."""
     if _skip(sender) or not _rules_table_exists(kwargs.get('using')):
         return
-    model_name = _model_name(sender)
-    automations = BaseAutomation._get_actions(model_name, ['on_unlink'])
-    if not automations:
-        return
-    processing = _processing_set()
-    for automation in automations:
-        key = (automation.pk, instance.pk)
-        if key in processing:
-            continue
-        processing.add(key)
-        try:
-            pks = automation._filter_post(sender, [instance.pk])
-            if pks:
-                automation._process(sender, pks)
-        finally:
-            processing.discard(key)
+    with _record_environment(kwargs.get('using')):
+        model_name = _model_name(sender)
+        automations = BaseAutomation._get_actions(model_name, ['on_unlink'])
+        if not automations:
+            return
+        processing = _processing_set()
+        for automation in automations:
+            key = (automation.pk, instance.pk)
+            if key in processing:
+                continue
+            processing.add(key)
+            try:
+                pks = automation._filter_post(sender, [instance.pk])
+                if pks:
+                    automation._process(sender, pks)
+            finally:
+                processing.discard(key)
 
 
 #: Alias cuya tabla ``base_automation`` ya existe. Una vez creada no
@@ -188,3 +195,15 @@ def _rules_table_exists(using):
         _RULES_TABLE_SEEN.add(alias)
         return True
     return False
+
+
+def _record_environment(using):
+    """El entorno de la base donde se escribe la fila.
+
+    La fuente consulta las automatizaciones, filtra y procesa con
+    ``self.env`` del registro (``base_automation.py:909-1015``): el cursor de
+    la base de la fila. Aquí la señal trae esa base en ``using``; sin entrar
+    en ella, el enrutador resuelve por la empresa activa y, con varias bases
+    y ninguna empresa, rechaza la consulta (ci-multidb ``5dc2e8c1``).
+    """
+    return Environment(using) if using else nullcontext()
