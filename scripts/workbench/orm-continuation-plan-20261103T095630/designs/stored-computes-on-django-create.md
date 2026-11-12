@@ -77,3 +77,94 @@ Controles que faltan y se añaden con la corrección: valores explícitos
 editables protegidos y `readonly` no protegidos; grupo de un mismo
 `compute`; sin duplicado por el camino de `_create`; rollback sin marcas
 huérfanas; alias.
+
+## Corrección del conjunto protegido (segunda unidad)
+
+Las tres desviaciones de arriba se cierran con una sola regla,
+`_protected_on_create(model, given)` en `src/orm/models.py`, que usan las dos
+vías de alta:
+
+- un calculado dado queda protegido sólo si es editable o precompute;
+- con él, todo su grupo (`_computed_group`, ≙ `field_computed.get(field,
+  [field])`);
+- los precompute que el llamador no dio también, porque
+  `_add_precomputed_values` los añade a `vals` antes de la condición.
+
+`BaseModel.create` tenía la misma desviación (`protected.add(field)` sin
+grupo y sin los precompute añadidos): ahora usa el grupo y la regla.
+
+### Cuatro defectos que la medición destapó por el camino
+
+1. **Terna caducada en `post_save`.** `post_save` corre dentro de
+   `Model.save`, antes de que `BaseModel.save` rehaga `_ids` con el pk nuevo.
+   `record_ids(instance)` daba `(None,)` y la protección no cubría la fila.
+   El receptor rehace la terna antes de proteger.
+2. **Valores asignados antes del primer `save()`.** `_explicit_values` se
+   captura en `post_init`; `r = M(); r.start = 5; r.save()` no contaba
+   `start` como dado y el cómputo de creación lo pisaba (medido: 5 → 0).
+   `FieldDescriptor.__set__` añade el nombre cuando la fila está sin guardar
+   y su constructor ya terminó.
+3. **Recómputo de una fila sin guardar.** Una fila de Django sin guardar se
+   nombra con id `None`, no con `NewId`. `_recompute_native_recordset`
+   armaba el lote con `browse(None)` y `compute_value` llamaba `sudo()`; las
+   dos reconstruyen por id y devolvían otra fila vacía, así que el cómputo
+   leía valores por defecto y los dejaba en la caché compartida de `None`.
+   Ahora la fila se calcula sobre sí misma, y el privilegio llega por
+   `elevate_privileges`, como ya hacía la rama de filas Django.
+4. **Verde falso en `test_employee_map_computes`.** La prueba leía con
+   `objects.get` sin volcar, y comparaba `currency_id` cuando las dos
+   monedas eran `None`. `_compute_currency_id` leía `line.currency`, que
+   `SaleOrderLine` no tiene (su campo es `currency_id`). Corregidos el
+   cómputo y la prueba: vuelca antes de leer y usa una moneda real.
+
+### Pendiente registrado, fuera de esta unidad
+
+`SaleOrderLine.save` invoca `_compute_amount` y los dos `_compute_price_reduce_*`
+por su cuenta antes de `super().save()`, además del precompute de `pre_save`:
+el cálculo corre dos veces antes del INSERT. Es del porte de `sale.order.line`,
+no del marcado de creación; la prueba de duplicados mide sólo lo posterior al
+INSERT y lo declara.
+
+### Las doce obligaciones y su control
+
+| # | Obligación | Control |
+|---|---|---|
+| 1 | corre cuando corresponde | `test_employee_map_computes` (cinco casos, volcando) |
+| 2 | no actúa sobre modelos históricos | `test_a_historical_creation_is_not_marked` (mide la llamada) |
+| 3 | alias correcto | sin control propio: la transacción del ORM es una por proceso; el aislamiento entre bases lo miden `tests/integration/multidb` (declarado en la cabecera del archivo de pruebas) |
+| 4 | sin transacciones mezcladas | `test_a_rolled_back_creation_leaves_no_pending_marks` |
+| 5 | sin duplicados vía `_create` | `test_orm_create_marks_the_creation_once` |
+| 6 | respeta los valores explícitos | `test_an_explicit_editable_computed_value_is_kept`, `..._readonly_..._is_recomputed`, `test_a_value_assigned_before_the_first_save_counts_as_given` |
+| 7 | dependencias relacionales | `test_changing_the_line_price_recomputes_the_stored_price`, `test_the_cost_follows_the_employee_hourly_cost` |
+| 8 | orden | grupo antes que dependientes: `test_*_protects_the_whole_computed_group` |
+| 9 | rollback | igual que 4 |
+| 10 | sin efectos laterales en precompute | `test_django_create_computes_a_precompute_once` |
+| 11 | sin omisiones | `test_the_rule_protects_every_precompute_even_when_not_given` |
+| 12 | caché y lecturas coherentes | `test_construction_values_are_not_recorded_twice` y el volcado previo a cada lectura |
+
+### Anulaciones
+
+Cada guarda se retiró y cayeron exactamente sus casos (`nullify.sh`):
+
+| Guarda retirada | Casos que caen |
+|---|---|
+| expansión al grupo | los dos de grupo + la regla de grupo (3) |
+| precompute en la regla | duplicado Django + regla de precompute (2) |
+| `not readonly` | readonly recalculado + regla readonly (2) |
+| `ORM_CREATE_INSERTING` | marcado único vía `_create` (1) |
+| rehacer la terna | grupo por Django (1): sólo un `BaseModel` lleva `_ids` |
+| guarda de modelo histórico | histórico no marcado (1) |
+| `line.currency_id` | precio y moneda desde la línea (1) |
+| asignación tras `__init__` como dada | asignación antes del primer `save` (1) |
+| sin `sudo()` para id `None` | ídem (1) |
+| recómputo en sitio para id `None` | ídem (1) |
+
+La guarda de modelo histórico no se veía midiendo el resultado: el modelo
+histórico declara los mismos calculados, pero sus campos clonados no tienen
+disparadores en el registro vivo y `modified` no deja marcas aunque se le
+llame. Por eso el control mide la llamada.
+
+*Métrica:* valores persistidos tras el volcado, llamadas a `modified` y al
+método de cómputo, marcas pendientes en la transacción.
+*Ciega a:* el alias de base de datos (ver obligación 3) y a los modelos que no
+declaran calculados almacenados.
