@@ -33,9 +33,12 @@ model_field_registry = orm_models.model_field_registry
 CP = 'tests/unit/orm/test_create_protection.py'
 EM = 'tests/unit/sale_timesheet/test_employee_map_computes.py'
 AL = 'tests/integration/test_orm/test_creation_marks_on_alias.py'
+CB = 'tests/unit/orm/test_compute_before_insert.py'
+MD = 'tests/integration/company/test_multidb_isolation.py'
 CONTROLS = {
     ('test_orm.TestOrmSharedCompute', 'start'): (
-        f'{CP} grupo (Django y ORM), asignación previa al save; {AL}',
+        f'{CP} grupo (Django y ORM), asignación previa al save; {AL}; '
+        f'{MD} dos bases reales',
         'grupo, terna, asignación, recómputo en sitio, sudo, alias'),
     ('test_orm.TestOrmSharedCompute', 'end'): (
         f'{CP} grupo (Django y ORM); {AL}', 'grupo, alias'),
@@ -51,8 +54,34 @@ CONTROLS = {
     ('sale_timesheet.ProjectSaleLineEmployeeMap', 'is_cost_changed'): (
         f'{EM} costo escrito a mano', '-'),
     ('sale.SaleOrderLine', 'price_subtotal'): (
-        f'{CP} precompute protegido, sin recálculo tras el INSERT',
-        'precompute en la regla'),
+        f'{CP} precompute protegido; {CB} una invocación en alta',
+        'precompute en la regla; cálculo en alta de save()'),
+    ('crm.CrmLead', 'won_status'): (
+        f'{CB} una invocación en alta (antes 12); dependencia posterior',
+        'volcado por save(); cálculo en alta de save()'),
+    ('crm.CrmLead', 'team_id'): (
+        f'{CB} una invocación en alta (antes 12)',
+        'volcado por save(); cálculo en alta de save()'),
+    ('crm.CrmLead', 'prorated_revenue'): (
+        f'{CB} valor tras el volcado y recálculo al cambiar probability',
+        '-'),
+    ('account.AccountAccount', 'internal_group'): (
+        f'{CB} una invocación en alta (antes 3)',
+        'volcado por save(); cálculo en alta de save()'),
+    ('account.AccountAccount', 'account_type'): (
+        f'{CB} dado en alta: cero invocaciones y valor conservado',
+        'cálculo en alta de save()'),
+    ('account.AccountMoveLine', 'balance'): (
+        f'{CB} una invocación en alta', 'la asignación cuenta como dada'),
+    ('sale.SaleOrder', 'validity_date'): (
+        f'{CB} una invocación en alta (pase de precompute)', '-'),
+}
+
+#: Huecos conocidos que no son falta de control, sino defecto medido.
+KNOWN_GAPS = {
+    ('account.AccountPaymentMethodLine', 'name'): (
+        'sin dependencias en el registro: la extensión de account_payment '
+        'pierde @api.depends (plan orm-extension-depends-merge-0485)'),
 }
 
 COLUMNS = ['model', 'field', 'compute_method', 'dependencies', 'precompute',
@@ -92,8 +121,9 @@ def rows():
             depends = registry.field_depends[field]
             control, nullification = CONTROLS.get(
                 (label, field.name), ('-', '-'))
-            gap = ('-' if control != '-'
-                   else 'sin control propio del cálculo en alta')
+            gap = KNOWN_GAPS.get((label, field.name)) or (
+                '-' if control != '-'
+                else 'sin control propio del cálculo en alta')
             yield [label, field.name, field.compute,
                    ', '.join(depends) or '-',
                    'sí' if getattr(field, 'precompute', False) else 'no',
