@@ -5896,7 +5896,14 @@ def _modified_on_django_create(sender, instance, created=False, raw=False,
         instance._install_singleton_triple()
     given = getattr(instance, '_explicit_values', None) or frozenset()
     protected = _protected_on_create(sender, given)
-    with env().protecting(protected, instance):
+    # La fila cayó en ``instance._state.db``: el marcado va a la transacción
+    # de ESE cursor, como ``self.env`` en ``_create`` de la fuente. Un
+    # ``objects.using(alias).create`` fuera de todo ``with <entorno>:``
+    # marcaba en ``default`` y el volcado escribía por la conexión ajena.
+    current = env()
+    alias = instance._state.db or DEFAULT_DB_ALIAS
+    target = current if current.db_alias == alias else current(cr=alias)
+    with target, target.protecting(protected, instance):
         modified(instance, list(registry), create=True)
 
 

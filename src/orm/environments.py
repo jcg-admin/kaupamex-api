@@ -614,8 +614,14 @@ def get_transaction():
     ``odoo19c: odoo/orm/environments.py:70-72``. Una transacción por cursor,
     perezosa, compartida por todo ``Environment`` que use ese cursor. Aquí el
     cursor es ``django.db.connections[alias]``, que el stack ya trae hecho.
+
+    El cursor en curso es el del ``with <entorno>:`` activo (canal ``_cr``,
+    :func:`get_current_cr`); fuera de todo bloque, ``default``. Sin esto la
+    transacción era siempre la de ``default`` y un entorno sobre otro alias
+    marcaba, protegía y volcaba en la transacción ajena
+    (``tests/integration/test_orm/test_creation_marks_on_alias.py``).
     """
-    return _connection_transaction()
+    return _connection_transaction(get_current_cr())
 
 
 @contextmanager
@@ -1189,8 +1195,13 @@ class Environment(abc.Mapping):
 
     @property
     def transaction(self):
-        """≙ ``env.transaction`` — la transacción del ORM en curso."""
-        return get_transaction()
+        """≙ ``env.transaction`` — la transacción del cursor de ESTE entorno.
+
+        La fuente la fija en ``__new__`` desde ``cr.transaction``
+        (``odoo19c: odoo/orm/environments.py:70-80``): un entorno sobre otro
+        cursor tiene otra transacción. Aquí el cursor es :attr:`db_alias`.
+        """
+        return _connection_transaction(self.db_alias)
 
     # --- las vistas de la transacción y del registro -----------------------
     #
