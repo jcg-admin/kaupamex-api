@@ -36,6 +36,19 @@ from addons.mail.models import MailThread
 class AccountAnalyticAccount(MailThread, models.Model):
     """``account.analytic.account`` — cuenta analítica (centro de costo)."""
 
+    #: ≙ la cabecera de ``odoo19c: addons/analytic/models/
+    #: analytic_account.py:11-18``, verbatim. Sin ``_name`` propio la clase
+    #: heredaba el de ``MailThread`` (``'mail.thread'``) y el registro no la
+    #: resolvía por su nombre.
+    _name = 'account.analytic.account'
+    _inherit = ['mail.thread']
+    _description = 'Analytic Account'
+    #: ``Meta.ordering`` es su forma en Django; los dos conviven.
+    _order = 'plan_id, name asc'
+    _check_company_auto = True
+    _check_company_domain = models.check_company_domain_parent_of
+    _rec_names_search = ['name', 'code']
+
     name = fields.Char(
         max_length=255,
         db_index=True,
