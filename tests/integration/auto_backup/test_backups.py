@@ -134,7 +134,7 @@ class TestTriggerRunsTheCron:
         """Sin la clave de contexto, la misma corrida sale ``AUTO``.
 
         Es la mitad que hace útil el discriminador: ``type`` distingue quién
-        disparó, y sólo ``action_run_cron`` pone ``CONTEXT_MANUAL``.
+        disparó, y sólo ``action_run_cron`` pone ``MANUAL_RUN``.
         """
         with mock.patch.object(DbBackup, '_take_dump') as dump:
             dump.side_effect = lambda db_name, stream, model, backup_format='zip': (

@@ -199,7 +199,8 @@ from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.ir_module import IrModule
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import LockError, UserError
-from orm.environments import context_scope, get_context, sudo, user_scope
+from orm.environments import (Environment, context_scope, get_context,
+                              sudo, user_scope)
 from tools.constants import GC_UNLINK_LIMIT
 
 _logger = logging.getLogger(__name__)
@@ -404,7 +405,8 @@ class IrCron(models.DefaultGetMixin, models.RecordLoaderMixin,
     # Los cinco atributos de clase que la fuente declara
     # (``odoo19c: ir_cron.py:99-104``). Se portan verbatim y NO sustituyen a
     # su forma Django: ``_description`` convive con ``Meta.verbose_name``,
-    # ``_order`` con ``Meta.ordering``. Ver ``atributos-de-clase-de-modelo.md``.
+    # ``_order`` con ``Meta.ordering``. Ver
+    # ``atributos-de-clase-de-modelo.md``.
     _name = 'ir.cron'
     _order = 'cron_name, id'
     _description = 'Scheduled Actions'
@@ -868,12 +870,13 @@ class IrCron(models.DefaultGetMixin, models.RecordLoaderMixin,
         "fallo habiendo comiteado avance" (sigue), y "termino" de "quedan
         registros" (PARTIALLY_DONE).
 
-        DIVERGENCIA declarada: la fuente abre un **cursor propio**
-        (``cls.pool.cursor()``) para que el job comitee sin tocar la
-        transaccion del planificador. Aqui el job corre en la conexion en
-        curso; ``_commit_progress`` comitea sobre ella. La consecuencia es
-        real y se declara: un ``rollback`` del llamador se lleva el avance
-        comiteado, cosa que en la fuente no pasaria. Sucesor: tarea #42.
+        Como la fuente, cada trabajo corre en un **cursor propio**
+        (``cls.pool.cursor()``, ``ir_cron.py:480-486``): el job comitea su
+        avance sin tocar la transaccion del planificador, y lo que deja
+        pendiente lo vuelca su COMMIT como el usuario del job. Antes corria en
+        la conexion en curso y el COMMIT del planificador volcaba como el
+        ``default_env`` que hubiera en ella
+        (``designs/registry-cursor-unit-of-work.md``).
         """
         timed_out_counter = job.timed_out_counter
         start_time = time.monotonic()
@@ -883,58 +886,72 @@ class IrCron(models.DefaultGetMixin, models.RecordLoaderMixin,
         _logger.info('Job %r (%s) arranca', job.cron_name, job.pk)
 
         cron_end_time = start_time + MIN_TIME_PER_JOB
-        while status is None and (loop_count < MIN_RUNS_PER_JOB
-                                  or time.monotonic() < cron_end_time):
-            cron, progress = job._add_progress(
-                timed_out_counter=timed_out_counter)
+        using = job._state.db or DEFAULT_DB_ALIAS
+        # ≙ ``with cls.pool.cursor() as job_cr`` y ``api.Environment(job_cr,
+        # job['user_id'], {...})`` (``ir_cron.py:480-486``): el trabajo tiene
+        # su cursor y su transacción del ORM; lo que deja pendiente lo vuelca
+        # el COMMIT de ese cursor y como su usuario, no el del planificador.
+        with Environment(using).registry.cursor() as job_cr, Environment(
+                job_cr.alias, job.user_id,
+                {'lastcall': job.lastcall, 'cron_id': job.pk,
+                 'cron_end_time': cron_end_time}):
+            while status is None and (loop_count < MIN_RUNS_PER_JOB
+                                      or time.monotonic() < cron_end_time):
+                cron, progress = job._add_progress(
+                    timed_out_counter=timed_out_counter)
+                job_cr.commit()
 
-            success = False
-            try:
-                with context_scope(ir_cron_progress_id=progress.pk,
-                                   cron_end_time=cron_end_time):
-                    cron._callback()
-                success = True
-            except Exception:  # noqa: BLE001 — un job no tumba al planificador
-                _logger.exception(
-                    'Job %r (%s) fallo en su accion servidor #%s',
-                    job.cron_name, job.pk, job.ir_actions_server_id)
-            finally:
-                progress.refresh_from_db()
-                done, remaining = progress.done, progress.remaining
-                match (success, done, remaining):
-                    case (False, d, r) if d and r:
-                        # Fallo, pero alcanzo a comitear avance. Con suerte
-                        # el fallo es temporal.
-                        pass
-                    case (False, _, _):
-                        # Fallo sin comitear nada esta vez: fallido, aunque
-                        # hubiera avanzado en una vuelta previa.
-                        status = CompletionStatus.FAILED
-                    case (True, _, 0):
-                        # Termino: o no usa la API de progreso, o dijo que no
-                        # le queda nada.
-                        status = CompletionStatus.FULLY_DONE
-                        if progress.deactivate:
-                            job.active = False
-                    case (True, 0, _) if loop_count == 0:
-                        # Supo que quedan registros pero no proceso ninguno.
-                        status = CompletionStatus.PARTIALLY_DONE
-                        _logger.warning('Job %r (%s) no proceso ningun registro',
-                                        job.cron_name, job.pk)
-                    case (True, 0, _):
-                        # Avanzo en una vuelta previa, en esta no.
-                        status = CompletionStatus.PARTIALLY_DONE
-                    case (True, _, _):
-                        # Proceso algunos pero no todos. Sigue el bucle.
-                        pass
+                success = False
+                try:
+                    with context_scope(ir_cron_progress_id=progress.pk,
+                                       cron_end_time=cron_end_time):
+                        cron._callback()
+                    success = True
+                except Exception:  # un job no tumba al planificador
+                    _logger.exception(
+                        'Job %r (%s) fallo en su accion servidor #%s',
+                        job.cron_name, job.pk, job.ir_actions_server_id)
+                finally:
+                    progress.refresh_from_db()
+                    done, remaining = progress.done, progress.remaining
+                    match (success, done, remaining):
+                        case (False, d, r) if d and r:
+                            # Fallo, pero alcanzo a comitear avance. Con suerte
+                            # el fallo es temporal.
+                            pass
+                        case (False, _, _):
+                            # Fallo sin comitear nada esta vez: fallido, aunque
+                            # hubiera avanzado en una vuelta previa.
+                            status = CompletionStatus.FAILED
+                        case (True, _, 0):
+                            # Termino: o no usa la API de progreso, o dijo
+                            # que no
+                            # le queda nada.
+                            status = CompletionStatus.FULLY_DONE
+                            if progress.deactivate:
+                                job.active = False
+                        case (True, 0, _) if loop_count == 0:
+                            # Supo que quedan registros pero no proceso
+                            # ninguno.
+                            status = CompletionStatus.PARTIALLY_DONE
+                            _logger.warning(
+                                'Job %r (%s) no proceso ningun registro',
+                                job.cron_name, job.pk)
+                        case (True, 0, _):
+                            # Avanzo en una vuelta previa, en esta no.
+                            status = CompletionStatus.PARTIALLY_DONE
+                        case (True, _, _):
+                            # Proceso algunos pero no todos. Sigue el bucle.
+                            pass
 
-                loop_count += 1
-                IrCronProgress.objects.filter(pk=progress.pk).update(
-                    timed_out_counter=0)
-                timed_out_counter = 0
-                _logger.debug(
-                    'Job %r (%s) proceso %s registros, quedan %s',
-                    job.cron_name, job.pk, done, remaining)
+                    loop_count += 1
+                    IrCronProgress.objects.filter(pk=progress.pk).update(
+                        timed_out_counter=0)
+                    timed_out_counter = 0
+                    job_cr.commit()  # sin restos de esta vuelta
+                    _logger.debug(
+                        'Job %r (%s) proceso %s registros, quedan %s',
+                        job.cron_name, job.pk, done, remaining)
 
         status = status or CompletionStatus.PARTIALLY_DONE
         _logger.info(

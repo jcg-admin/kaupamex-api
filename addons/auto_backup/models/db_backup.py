@@ -105,19 +105,20 @@ from addons.base.models import SystemParameter, TimeStampedModel
 from addons.base.models.ir_cron import IrCron
 from addons.base.models.ir_module import IrModule
 from addons.mail.models.email_executor import dispatch_email
-from orm.environments import context_scope, get_context, get_current_uid
+from orm.environments import ContextVar, get_current_uid
 from service.db import _pg_env, database_exists
 
 _logger = logging.getLogger(__name__)
 
-#: Clave de contexto que distingue una corrida disparada a mano de una
-#: programada. La pone ``action_run_cron`` alrededor de
-#: ``method_direct_trigger``; la lee ``schedule_backup`` para sellar el campo
-#: propio ``type``. Es el idioma de la fuente —``with_context`` +
-#: ``self.env.context.get(...)``— sobre nuestro espejo ``context_scope``, y
-#: mantiene a ``ir.cron`` genérico: el addon declara su propia clave en vez de
-#: que el disparador sepa de respaldos. Ver :ref:`h-api-768`.
-CONTEXT_MANUAL = 'backup_manual'
+#: Marca de un respaldo disparado a mano. La pone ``action_run_cron`` alrededor
+#: de ``method_direct_trigger`` y la lee ``schedule_backup`` para sellar el
+#: campo propio ``type``, que la fuente no tiene. No viaja por el contexto del
+#: ORM: el trabajo del cron corre con el contexto que le da su propio entorno
+#: (``{'lastcall', 'cron_id', 'cron_end_time'}``, ``ir_cron.py:480-486``), no
+#: con el de quien lo dispara. El disparo es síncrono en el mismo hilo, así que
+#: un ``ContextVar`` del addon llega al trabajo sin tocar ``ir.cron``. Ver
+#: :ref:`h-api-768`.
+MANUAL_RUN = ContextVar('auto_backup_manual_run', default=False)
 
 
 def notify_backup_failed(backup_name, error_detail):
@@ -329,11 +330,11 @@ class DbBackup(TimeStampedModel):
         El disparo bajo demanda no es un camino paralelo: re-dispara este
         mismo cron por ``action_run_cron`` → ``method_direct_trigger``, que
         es lo que hace la fuente (``:355-360``). Lo único que distingue a las
-        dos corridas es la clave de contexto ``CONTEXT_MANUAL``, que sella el
+        dos ejecuciones es la marca ``MANUAL_RUN``, que sella el
         campo propio ``type``.
         """
         run_type = (DbBackupDetails.TYPE_MANUAL
-                    if get_context().get(CONTEXT_MANUAL)
+                    if MANUAL_RUN.get()
                     else DbBackupDetails.TYPE_AUTO)
         for rec in cls.objects.all():
             if not os.path.isdir(rec.folder):
@@ -645,6 +646,9 @@ class DbBackup(TimeStampedModel):
         ).first()
         if cron is None:
             return False
-        with context_scope(**{CONTEXT_MANUAL: True}):
+        token = MANUAL_RUN.set(True)
+        try:
             cron.method_direct_trigger()
+        finally:
+            MANUAL_RUN.reset(token)
         return True
