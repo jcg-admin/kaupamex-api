@@ -111,3 +111,25 @@ fallido.
 | Multidb | obligatorio tras integrar (la base de la petición sale de `domain_alias`) |
 | Aprovisionamiento | no: sin migraciones |
 | Coste esperado | suite integral ≈ 1 h + ci-multidb |
+
+## Integración de la noche del 2026-11-12 (cerrado 2026-11-12T21:35:59)
+
+| Commit | Unidad | Verificación |
+|---|---|---|
+| `ea4e91a9` | invalidación en la base de la fila (`registry_of_row`, 22 sitios, `post_delete` de `IrModelData`) | `full-uow2-47b60765` |
+| `7fa471df` | unidad de trabajo por petición + `postrollback` + `setup_signaling` en `Registry.new` | `full-uow2-47b60765` (1 fallo de prueba, corregido y ejecutado aparte) |
+| `fd324cca` | `MULTIDB_SECOND_BASE=clone` | ci-multidb `d10ae3ad` |
+| `d10ae3ad` | registro sin señalizar sobre base sin migrar | RED/GREEN, anulación inversa, derivada 5 434 passed |
+| `332c2b41` | `post_delete` en seis modelos | RED 6/7, GREEN 7/7, anulación exacta 6, `full-seed2-d10ae3ad` |
+| `3342b8b2` | siembra de `base.public_user` + `_get_email_domain` vacío | anulación (sin filas, el respaldo lanza), `full-seed2-d10ae3ad` verde: 13 158 passed, 0 failed |
+
+ci-multidb conservados como **no conformes**: `fd324cca` (15 errores de fixture, `--create-db` antes de `migrate`) y `d10ae3ad` (4 errores: falta `base.public_user`). En curso: `3342b8b2` en `provision`, obligatorio por la migración `0113`.
+
+### Medición del modo `clone` (§5)
+
+| Revisión | Modo | Total | Fixture de dos bases | Resultado |
+|---|---|---|---|---|
+| `0e674aed` | provision | 2:17:30 | ≈ 5 200-5 600 s | 14 passed |
+| `d10ae3ad` | clone | 1:22:15 | 2 501 s | 12 passed, 4 errors |
+
+La reducción (≈ 55 min, el fixture a menos de la mitad) está medida, pero **no es admisible todavía**: la ejecución en `clone` no fue conforme. Se repite `clone` sobre la revisión que cierre `provision`.
