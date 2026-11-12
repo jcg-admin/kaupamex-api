@@ -42,3 +42,20 @@ la prueba de conducta del tramo, que comprueba:
 ## Lo que no cierra
 
 Las otras 79 filas pendientes del censo, que seguirán por tramos.
+
+## Resultado (2026-11-12)
+
+- `addons/fleet/migrations/0009_vehicle_children_restrict.py`: dos
+  `AlterField` de `on_delete`. `sqlmigrate` da `(no-op)` en las dos: la
+  política vive en el `Collector` de Django y la FK física sigue
+  `NO ACTION DEFERRABLE`, así que no hay DDL ni costo de instalación.
+- `tests/unit/fleet/test_vehicle_restrict_ondelete.py`: 3 passed (lecturas,
+  historial de conductor y el control sin hijos). En rojo antes del cambio:
+  2 failed, 1 passed.
+- Prueba de contrato: las dos filas entran en `CORRECTED`; el representante
+  ORM de `restrict` pasa a `stock.StockRule.picking_type`
+  (`odoo19c: addons/stock/models/stock_rule.py:87`; `stock.picking.type` no
+  sobreescribe `unlink` —el de `stock_picking.py:1170` es de
+  `stock.picking`—). Contrato + fleet: 75 passed, 81 xfailed.
+- Anulación (el odómetro vuelve a `CASCADE`): caen exactamente el caso de
+  lecturas y la fila declarativa del odómetro; el historial sigue verde.

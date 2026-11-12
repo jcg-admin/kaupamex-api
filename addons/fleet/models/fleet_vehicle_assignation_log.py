@@ -17,7 +17,7 @@ class FleetVehicleAssignationLog(TimeStampedModel):
 
     vehicle = fields.Many2one(
         'fleet.FleetVehicle',
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         related_name='assignation_logs',
         help_text='Odoo vehicle_id (required).',
     )

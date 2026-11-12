@@ -20,9 +20,8 @@ from django.db import IntegrityError, connection, models, transaction
 
 from addons.base.models.ir_actions import IrActionsActions, IrActionsTodo
 from addons.base.models.res_device import ResDeviceLog
-from addons.fleet.models import (FleetVehicle, FleetVehicleModel,
-                                 FleetVehicleModelBrand,
-                                 FleetVehicleOdometer)
+from addons.stock.models import (StockLocation, StockPickingType,
+                                 StockRoute, StockRule)
 
 _MATRIX = (pathlib.Path(__file__).resolve().parents[3] / 'scripts'
            / 'workbench' / 'orm-continuation-plan-20261103T095630'
@@ -43,6 +42,9 @@ CORRECTED = {
     'hr_work_entry.HrWorkEntry.employee', 'hr_work_entry.HrWorkEntry.version',
     'hr_work_entry.HrUserWorkEntryEmployee.employee',
     'mrp.MrpWorkorder.production',
+    # designs/fleet-restrict-ondelete.md
+    'fleet.FleetVehicleOdometer.vehicle',
+    'fleet.FleetVehicleAssignationLog.vehicle',
 }
 
 #: Política de Django que corresponde al ``ondelete`` de la fuente.
@@ -111,34 +113,40 @@ def test_today_deleting_a_user_deletes_its_device_logs(user):
 
 
 @pytest.fixture
-def vehicle():
-    brand = FleetVehicleModelBrand.objects.create(name='Marca')
-    model = FleetVehicleModel.objects.create(name='Modelo', brand=brand)
-    return FleetVehicle.objects.create(model=model)
+def picking_type():
+    return StockPickingType.objects.create(name='Recepciones',
+                                           code='incoming')
+
+
+def _rule_using(picking_type):
+    return StockRule.objects.create(
+        name='Regla', action=StockRule.ACTION_PULL,
+        route=StockRoute.objects.create(name='Ruta'),
+        location_dest=StockLocation.objects.create(name='WH/Stock',
+                                                   usage='internal'),
+        picking_type=picking_type)
 
 
 @pytest.mark.django_db
 @pytest.mark.xfail(strict=True, reason=(
-    'restrict -> CASCADE: la fuente rehúsa borrar un vehículo con lecturas '
-    'de odómetro (odoo19c: addons/fleet/models/'
-    'fleet_vehicle_odometer.py:15); aquí se borran'))
-def test_deleting_a_vehicle_with_odometer_readings_is_refused(vehicle):
-    reading = FleetVehicleOdometer.objects.create(vehicle=vehicle,
-                                                  value=10)
+    'restrict -> CASCADE: la fuente rehúsa borrar un tipo de operación con '
+    'reglas (odoo19c: addons/stock/models/stock_rule.py:87, required sin '
+    'ondelete; stock.picking.type no sobreescribe unlink); aquí se borran'))
+def test_deleting_a_picking_type_with_rules_is_refused(picking_type):
+    rule = _rule_using(picking_type)
     with pytest.raises(models.ProtectedError):
-        FleetVehicle.objects.filter(pk=vehicle.pk).delete()
-    assert FleetVehicleOdometer.objects.filter(pk=reading.pk).exists()
+        StockPickingType.objects.filter(pk=picking_type.pk).delete()
+    assert StockRule.objects.filter(pk=rule.pk).exists()
 
 
 @pytest.mark.django_db
-def test_today_deleting_a_vehicle_deletes_its_odometer_readings(vehicle):
+def test_today_deleting_a_picking_type_deletes_its_rules(picking_type):
     """Lo observado hoy, para que el ``xfail`` no oculte otra causa. El
-    representante anterior de la familia, ``ir.actions.todo``, ya está
-    corregido (``designs/country-and-todo-restrict-ondelete.md``)."""
-    reading = FleetVehicleOdometer.objects.create(vehicle=vehicle,
-                                                  value=10)
-    FleetVehicle.objects.filter(pk=vehicle.pk).delete()
-    assert not FleetVehicleOdometer.objects.filter(pk=reading.pk).exists()
+    representante anterior, el odómetro de ``fleet``, ya está corregido
+    (``designs/fleet-restrict-ondelete.md``)."""
+    rule = _rule_using(picking_type)
+    StockPickingType.objects.filter(pk=picking_type.pk).delete()
+    assert not StockRule.objects.filter(pk=rule.pk).exists()
 
 
 # --- PostgreSQL: el DELETE crudo no cascada ---------------------------------
