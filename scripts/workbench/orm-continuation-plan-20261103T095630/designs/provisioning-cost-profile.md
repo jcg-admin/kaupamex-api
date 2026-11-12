@@ -151,3 +151,27 @@ medible, independiente de cuántas operaciones haya.
   un modelo histórico— se mide aparte antes de tocarlo: los modelos
   históricos no necesitan la maquinaria del ORM vivo (la guarda de
   `640628ce` ya los separa de la transacción).
+
+## Operaciones por app, sin base (2026-11-12)
+
+`MigrationLoader(None)` sobre el árbol, sin conexión:
+
+| App | Migraciones | Operaciones | `AddField`/`AlterField` relacionales | `RenameField` |
+|---|---|---|---|---|
+| `base` | 112 | 860 | 351 | 136 |
+| `stock` | 29 | 360 | 172 | 50 |
+| `account` | 36 | 226 | 79 | 21 |
+| `sale` | 18 | 120 | 43 | 14 |
+
+Cada operación relacional obliga a `ProjectState` a recargar los modelos
+relacionados (medido antes: ~179 modelos por operación, 8950 renderizados en
+50 operaciones). Por ese criterio el candidato a consolidar con más peso es
+`base` (351), no `stock` (172). El experimento con `squashmigrations` se hace
+primero sobre `stock` porque su grafo es más pequeño y sus migraciones no
+llevan `RunPython`; la medición de `base` queda para después de validar el
+procedimiento (instalación nueva, actualización histórica y esquema final
+idénticos).
+
+*Métrica:* operaciones declaradas en los archivos de migración.
+*Ciega a:* el costo real de cada operación al aplicarla, que depende del
+tamaño del grafo de modelos relacionados en ese punto del historial.

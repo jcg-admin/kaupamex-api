@@ -217,3 +217,25 @@ anterior más modelos de `test_orm`).
 valores persistidos de `CrmLead` con y sin receptor.
 *Ciega a:* un cómputo invocado indirectamente desde `save()` por un método
 auxiliar con otro nombre.
+
+## Auditoría de las cinco pruebas: columnas que faltaban
+
+| Prueba | Estado inicial que necesita | Operación aislada | Cuándo vuelca la fuente | Defecto que detectaba antes | Defecto que detecta ahora |
+|---|---|---|---|---|---|
+| `…_touching_debit_recomputes…` | línea con `balance` ya calculado y sin pendientes | `modified(['debit'])` tras forzar 0 por SQL | tras `create` (alta) y tras la marca | que la marca no moviera el valor | lo mismo, y además que el alta deje `balance` sin calcular (sin el volcado previo el valor sale del alta, no de la marca) |
+| `…_without_touching_it…` | ídem | volcado sin marca | ídem | que el volcado escribiera sin marca | ídem; sin el volcado previo pasaría por la razón equivocada: el pendiente del alta reescribe 60 |
+| `test_compute_writes_m2m::…_relation_is_left_alone` | cuenta con `tags` ya calculado | volcado sin marca sobre un M2M calculado | ídem | que el volcado tocara la relación | ídem |
+| `…only_the_probes_of_that_owner…` | dos sondas sin pendientes | `modified` sobre un dueño | ídem | que se marcaran sondas de otro dueño | ídem; sin el volcado previo la otra sonda aparece por su alta |
+| `…backward_walk_is_skipped` | sonda sin pendientes | `modified(create=True)` | ídem | que el recorrido hacia atrás corriera en alta | ídem |
+
+Ninguna de las cinco debería observar el valor calculado inmediatamente
+después del alta: las cinco miden una operación posterior y presuponen un
+punto de partida estable, que en la fuente es `create` seguido del volcado de
+la transacción. El volcado previo reproduce ese estado; no oculta un valor
+incorrecto.
+
+**Control pendiente** (se ejecuta cuando la base esté libre): retirar
+`_settle_creation()` de cada una y comprobar que el fallo resultante nombra el
+pendiente del alta (el campo calculado de la fila creada) y no otro valor.
+Si alguna fallara por otra causa, el volcado estaría ocultando un defecto y
+la prueba se corrige en el ORM, no en la prueba.
