@@ -135,3 +135,22 @@ Los tres propios derivan el nombre de su tabla, que es la identidad que
 `check_table_matches_name` ya exige (`_table == _name.replace('.', '_')`), y
 declaran el `_inherit` de los mixins que heredan. La sección «Lo que este
 diseño no cierra» de arriba queda cerrada por esta decisión.
+
+### Verificación de la causa (2026-11-12)
+
+`orm.model_classes.refuse_inherited_name`, receptor de `class_prepared`
+junto a los demás chequeos de construcción. Primero se colgó de
+`registry._register`, pero ahí cambiaba la posición en el módulo de la
+importación tardía con `# noqa: E402` y la admisión de estilo la tomaba por
+una supresión nueva; `model_classes` no tiene supresiones. `tests/unit/orm/test_inherited_name_refused.py`, 5 casos
+sobre clases desechables en `isolate_apps()`:
+
+- RED: el concreto que hereda el nombre no se rehusaba (1 failed, 3 passed).
+- GREEN: 5 passed; con la compuerta, 233 passed: el árbol vivo carga sin
+  ningún modelo rehusado.
+- Anulaciones, una por mitad: sin la llamada cae sólo el caso de rechazo;
+  sin la exención de proxy cae sólo el del proxy; sin la de `StateApps` no
+  se puede construir la base de pruebas, porque 4 modelos históricos heredan
+  un nombre por las bases que el estado conserva (medido sobre
+  `ProjectState.from_apps(apps)`), y el caso que renderiza el estado lo mide
+  de forma directa.

@@ -82,7 +82,8 @@ import importlib
 import inspect
 import logging
 
-from django.core.exceptions import FieldDoesNotExist, ValidationError
+from django.core.exceptions import (FieldDoesNotExist, ImproperlyConfigured,
+                                    ValidationError)
 from django.db import models
 from django.db.models import CASCADE, ForeignKey, Model, PROTECT
 from django.db.models.fields import NOT_PROVIDED
@@ -91,6 +92,7 @@ from django.db.models.signals import class_prepared
 from django.dispatch import receiver
 
 from django.apps import apps
+from django.db.migrations.state import StateApps
 
 from orm.method_chain import chain_method, wrap_method
 from orm.table_objects import Constraint as TableConstraint
@@ -1847,3 +1849,33 @@ def ensure_log_access():
     if adopted:
         apps.clear_cache()
     return adopted
+
+
+@receiver(class_prepared,
+          dispatch_uid='orm.model_classes.refuse_inherited_name')
+def refuse_inherited_name(sender, **kwargs):
+    """Un modelo concreto no hereda la identidad de un mixin.
+
+    En la fuente un modelo con ``_name`` propio es un modelo y uno sin él
+    extiende el de su ``_inherit`` (``odoo19c: odoo/orm/model_classes.py``):
+    nunca nace uno nuevo con la identidad de otro. Aquí ``ModelBase`` hereda
+    el atributo por MRO, y la clase concreta que no declara el suyo leía el
+    del mixin (``'mail.thread'``) en toda lectura por atributo. Se rehúsa al
+    prepararla, antes de que ningún consumidor lo lea
+    (designs/analytic-account-header.md).
+
+    Quedan fuera las abstractas (son mixins), los proxy (comparten la
+    identidad de su modelo) y los modelos históricos de una migración, cuyo
+    ``StateApps`` reconstruye clases que no se registran.
+    """
+    model = sender
+    meta = getattr(model, '_meta', None)
+    if (meta is None or meta.abstract or meta.proxy
+            or isinstance(meta.apps, StateApps)
+            or '_name' in model.__dict__):
+        return
+    inherited = getattr(model, '_name', None)
+    if inherited:
+        raise ImproperlyConfigured(
+            f'{meta.label} hereda _name={inherited!r} sin declarar el suyo: '
+            f'un modelo concreto declara su propia identidad.')
