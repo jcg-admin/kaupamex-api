@@ -239,3 +239,36 @@ incorrecto.
 pendiente del alta (el campo calculado de la fila creada) y no otro valor.
 Si alguna fallara por otra causa, el volcado estaría ocultando un defecto y
 la prueba se corrige en el ORM, no en la prueba.
+
+## La protección también cubre los inversos (pendiente, medido 2026-11-12)
+
+En la fuente, `create` llama los métodos inversos **dentro** de
+`env.protecting(protected_fields)` (`odoo19c: odoo/orm/models.py:4713-4735`),
+con el mismo conjunto protegido que después usa `_create` para el marcado.
+Un inverso que escribe una dependencia —`CrmLead._inverse_email_from`
+escribe `partner_id.email`, del que depende `email_from`— no vuelve a marcar
+el campo que el llamador dio.
+
+En el árbol, una fila creada por Django despacha sus inversos en
+`RecordLoaderMixin.save` (`src/orm/models.py`, tras `super().save()`), es
+decir **después** de que el receptor de `post_save` cerró su bloque de
+protección. El inverso corre sin protección y puede volver a marcar, y
+recalcular, el valor dado.
+
+Corrección (cuando el gate libere `src/orm/models.py`):
+
+- `RecordLoaderMixin.save` toma `creating = self._state.adding` antes de
+  `super().save()`;
+- en alta, despacha los inversos bajo
+  `env.protecting(_protected_on_create(type(self), self._explicit_values),
+  self)`, en el entorno del alias de la fila.
+
+Prueba RED: una iniciativa creada con `partner_id` y un `email_from` distinto
+del correo del cliente conserva el `email_from` dado tras el volcado, y el
+inverso escribe el correo en el cliente. Anulación: despachar el inverso
+fuera de la protección hace caer exactamente esa prueba.
+
+*Métrica:* valor persistido del campo dado y del campo escrito por el
+inverso.
+*Ciega a:* inversos de `BaseModel.create`, que ya corren bajo protección
+(`src/orm/models.py:1058`).
