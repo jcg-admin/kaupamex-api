@@ -187,3 +187,20 @@ invalidación del módulo ya pasaban. Quedan como guardas.
 
 *Ciega a:* dos bases físicas distintas — las pruebas usan dos alias sobre la
 misma base, cada uno en su transacción; eso lo cubre ci-multidb.
+
+## Regresión derivada (2026-11-12T14:19:00 UTC)
+
+`outputs/registry-caches/derived-caches.log` (`-n 2`, once directorios
+consumidores): 7 failed, 7 907 passed. Los siete afirmaban el contrato que
+esta unidad retira, no un defecto nuevo:
+
+| Prueba | Afirmaba | Ahora (contrato de la fuente) |
+|---|---|---|
+| `test_ir_default`, `test_ir_config_parameter`, `test_ir_model_data_loader`, `test_properties_base_definition` (claves) | `using` en la clave | la clave de la fuente; `using` elige el registro |
+| `test_system_parameter::test_get_param_populates_cache` | la clave con `'default'` | la clave sin la base |
+| `test_environment_registry::test_env_registry_clears_caches_like_the_reference` | `Registry.clear_cache` delega en el módulo | vacía sus contenedores y anota en su registro (`registry.py:971-987`) |
+| `test_registry_invalidation_scope::test_shared_cache_invalidator_remains_connected` | un registro de invalidación compartido | uno por registro (`registry.py:282`) |
+
+Los siete archivos reescritos: 213 passed (`rerun-7.log`). En
+`test_ir_default.py` los nombres de campo de prueba (`'campo'`, `'mio'`…)
+pasaron a inglés porque el gate de idioma mide el archivo entero al tocarlo.
