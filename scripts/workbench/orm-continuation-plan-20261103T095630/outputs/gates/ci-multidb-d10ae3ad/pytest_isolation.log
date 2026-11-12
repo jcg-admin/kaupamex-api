@@ -1,0 +1,242 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.18, pytest-7.4.4, pluggy-1.6.0 -- /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-d10ae3ad/.venv/bin/python3
+django: version: 6.0.5, settings: config.settings.testing (from env)
+rootdir: /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-d10ae3ad
+configfile: pytest.ini
+plugins: Faker-40.20.0, xdist-3.6.1, django-4.7.0
+collecting ... collected 15 items
+
+tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default PASSED [  6%]
+tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_write_under_company_scope_lands_in_its_own_base PASSED [ 13%]
+tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_rows_from_company_a_not_visible_under_company_b_scope PASSED [ 20%]
+tests/integration/company/test_multidb_isolation.py::TestSol085RowScopingIntraBase::test_row_scoping_filters_by_row_and_fk_resolves_intra_base PASSED [ 26%]
+tests/integration/company/test_multidb_isolation.py::test_company_schemas_and_native_connections PASSED [ 33%]
+tests/integration/company/test_multidb_isolation.py::test_init_creates_the_view_only_in_the_selected_database PASSED [ 40%]
+tests/integration/company/test_multidb_isolation.py::test_paperformat_xml_ids_exist_in_every_base PASSED [ 46%]
+tests/integration/company/test_multidb_isolation.py::test_company_init_writes_only_the_selected_base PASSED [ 53%]
+tests/integration/company/test_multidb_isolation.py::test_company_init_writes_only_the_selected_base ERROR [ 53%]
+tests/integration/company/test_multidb_isolation.py::test_company_init_ignores_the_active_company_scope ERROR [ 60%]
+tests/integration/company/test_multidb_isolation.py::test_company_init_without_the_xml_id_assigns_nothing_and_rolls_back ERROR [ 66%]
+tests/integration/company/test_multidb_isolation.py::test_users_init_encrypts_only_in_the_selected_base PASSED [ 73%]
+tests/integration/company/test_multidb_isolation.py::test_init_models_runs_both_inits_in_the_selected_base ERROR [ 80%]
+tests/integration/company/test_multidb_isolation.py::TestStoredComputesStayInTheirBase::test_django_creations_compute_in_their_own_base PASSED [ 86%]
+tests/integration/company/test_multidb_isolation.py::TestStoredComputesStayInTheirBase::test_orm_creations_compute_in_their_own_base PASSED [ 93%]
+tests/integration/company/test_multidb_isolation.py::test_ormcache_entries_and_invalidation_stay_in_their_base PASSED [100%]
+
+==================================== ERRORS ====================================
+_____ ERROR at teardown of test_company_init_writes_only_the_selected_base _____
+tests/integration/company/test_multidb_isolation.py:355: in company_without_format_per_base
+    ResCompany.objects.db_manager(alias).filter(pk=pk).delete()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1238: in delete
+    num_deleted, num_deleted_per_model = collector.delete()
+.venv/lib/python3.13/site-packages/django/db/models/deletion.py:458: in delete
+    with transaction.atomic(using=self.using, savepoint=False):
+.venv/lib/python3.13/site-packages/django/db/transaction.py:263: in __exit__
+    connection.commit()
+src/orm/environments.py:733: in cut
+    current.flush()
+src/orm/environments.py:535: in flush
+    public_user = environment.ref('base.public_user')
+src/orm/environments.py:1628: in ref
+    return model.ref(xml_id, raise_if_not_found=raise_if_not_found,
+src/addons/base/models/ir_model.py:3138: in ref
+    model_label, res_id = cls._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3107: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:141: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:241: in lookup
+    value = self.method(*args, **kwargs)
+src/addons/base/models/ir_model.py:3095: in _xmlid_lookup
+    raise ValueError('Identificador externo no encontrado: %s' % xmlid)
+E   ValueError: Identificador externo no encontrado: base.public_user
+---------------------------- Captured log teardown -----------------------------
+WARNING  orm.environments:environments.py:534 Missing default_env, flushing as public user
+_____ ERROR at setup of test_company_init_ignores_the_active_company_scope _____
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UniqueViolation: duplicate key value violates unique constraint "res_company_code_key"
+E   DETAIL:  Key (code)=(init-company_162141270757708_db) already exists.
+
+The above exception was the direct cause of the following exception:
+tests/integration/company/test_multidb_isolation.py:350: in company_without_format_per_base
+    rows = {alias: _company_without_format(alias, f'init-{alias}')
+tests/integration/company/test_multidb_isolation.py:332: in _company_without_format
+    company = ResCompany.objects.db_manager(alias).create(name=code,
+src/addons/base/models/res_company.py:256: in create
+    return super().create(**kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/method_chain.py:233: in chained
+    else previous(first, *args, **kwargs))
+src/addons/base/models/res_company.py:1043: in save
+    super().save(*args, **kwargs)
+src/orm/fields_temporal.py:616: in save
+    return super().save(*args, **kwargs)
+src/orm/models.py:3311: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1834: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: duplicate key value violates unique constraint "res_company_code_key"
+E   DETAIL:  Key (code)=(init-company_162141270757708_db) already exists.
+_ ERROR at setup of test_company_init_without_the_xml_id_assigns_nothing_and_rolls_back _
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UniqueViolation: duplicate key value violates unique constraint "res_company_code_key"
+E   DETAIL:  Key (code)=(init-company_162141270757708_db) already exists.
+
+The above exception was the direct cause of the following exception:
+tests/integration/company/test_multidb_isolation.py:350: in company_without_format_per_base
+    rows = {alias: _company_without_format(alias, f'init-{alias}')
+tests/integration/company/test_multidb_isolation.py:332: in _company_without_format
+    company = ResCompany.objects.db_manager(alias).create(name=code,
+src/addons/base/models/res_company.py:256: in create
+    return super().create(**kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/method_chain.py:233: in chained
+    else previous(first, *args, **kwargs))
+src/addons/base/models/res_company.py:1043: in save
+    super().save(*args, **kwargs)
+src/orm/fields_temporal.py:616: in save
+    return super().save(*args, **kwargs)
+src/orm/models.py:3311: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1834: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: duplicate key value violates unique constraint "res_company_code_key"
+E   DETAIL:  Key (code)=(init-company_162141270757708_db) already exists.
+___ ERROR at setup of test_init_models_runs_both_inits_in_the_selected_base ____
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   psycopg.errors.UniqueViolation: duplicate key value violates unique constraint "res_company_code_key"
+E   DETAIL:  Key (code)=(init-company_162141270757708_db) already exists.
+
+The above exception was the direct cause of the following exception:
+tests/integration/company/test_multidb_isolation.py:350: in company_without_format_per_base
+    rows = {alias: _company_without_format(alias, f'init-{alias}')
+tests/integration/company/test_multidb_isolation.py:332: in _company_without_format
+    company = ResCompany.objects.db_manager(alias).create(name=code,
+src/addons/base/models/res_company.py:256: in create
+    return super().create(**kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:669: in create
+    obj.save(force_insert=True, using=self.db)
+src/orm/method_chain.py:233: in chained
+    else previous(first, *args, **kwargs))
+src/addons/base/models/res_company.py:1043: in save
+    super().save(*args, **kwargs)
+src/orm/fields_temporal.py:616: in save
+    return super().save(*args, **kwargs)
+src/orm/models.py:3311: in save
+    super().save(*args, **kwargs)
+src/orm/models.py:1834: in save
+    super().save(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/base.py:874: in save
+    self.save_base(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:966: in save_base
+    updated = self._save_table(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1169: in _save_table
+    results = self._do_insert(
+.venv/lib/python3.13/site-packages/django/db/models/base.py:1220: in _do_insert
+    return manager._insert(
+.venv/lib/python3.13/site-packages/django/db/models/manager.py:87: in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1918: in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+.venv/lib/python3.13/site-packages/django/db/models/sql/compiler.py:1925: in execute_sql
+    cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:79: in execute
+    return self._execute_with_wrappers(
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:92: in _execute_with_wrappers
+    return executor(sql, params, many, context)
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:100: in _execute
+    with self.db.wrap_database_errors:
+.venv/lib/python3.13/site-packages/django/db/utils.py:94: in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+.venv/lib/python3.13/site-packages/django/db/backends/utils.py:105: in _execute
+    return self.cursor.execute(sql, params)
+.venv/lib/python3.13/site-packages/psycopg/cursor.py:117: in execute
+    raise ex.with_traceback(None)
+E   django.db.utils.IntegrityError: duplicate key value violates unique constraint "res_company_code_key"
+E   DETAIL:  Key (code)=(init-company_162141270757708_db) already exists.
+=============================== warnings summary ===============================
+tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-d10ae3ad/src/orm/fields.py:4488: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-d10ae3ad/src/orm/fields.py:4488: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/multidb-d10ae3ad/junit_isolation.xml -
+=========================== short test summary info ============================
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_init_writes_only_the_selected_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_init_ignores_the_active_company_scope
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_init_without_the_xml_id_assigns_nothing_and_rolls_back
+ERROR tests/integration/company/test_multidb_isolation.py::test_init_models_runs_both_inits_in_the_selected_base
+============ 12 passed, 2 warnings, 4 errors in 4935.56s (1:22:15) =============

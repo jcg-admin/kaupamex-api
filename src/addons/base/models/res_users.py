@@ -2065,8 +2065,15 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
         delegación (``orm/inherits.py``) resuelve **atributos**, no lookups de
         consulta: ``user.email`` lee, pero ``Q(email=…)`` no resuelve. El
         equivalente que sí consulta es recorrer la FK — ``partner__email``.
+
+        Sin correo no casa nadie. Allá un contacto sin correo guarda ``NULL``
+        y ``=ilike ''`` no lo alcanza; aquí guarda ``''`` (``email`` no admite
+        nulo), y ``__iexact=''`` casaba con cada usuario sin correo —el
+        público el primero (``designs/public-user-seed.md``)—.
         """
-        return Q(partner__email__iexact=email or '')
+        if not email:
+            return Q(pk__in=[])
+        return Q(partner__email__iexact=email)
 
     @classmethod
     def _get_login_order(cls):

@@ -63,3 +63,36 @@ def seed(using=DEFAULT_DB_ALIAS):
     los datos de seguridad de ``hr`` falla al validar sus dominios.
     """
     return seed_root_user(apps, using)
+
+
+def seed_public_user(apps, alias):
+    """Crea o señala el usuario público y su contacto, con sus XML-ID.
+
+    ≙ ``res_users_data.xml:28-37`` y ``res_partner_data.xml:27-30``: el
+    contacto ``Public user`` archivado y el usuario ``public`` archivado y
+    sin grupos (``Command.set([])``). Lo consume el respaldo de
+    ``Transaction.flush`` (``odoo/orm/environments.py:591-597``), que vuelca
+    como este usuario lo que no tiene ``default_env``.
+
+    Divergencias, las mismas que el superusuario: sin empresa y con una
+    contraseña inutilizable en vez de vacía. Sin la imagen (``image_1920``).
+    Si ya hay una fila ``login='public'``, recibe los XML-ID y no se toca.
+    """
+    IrModelData = apps.get_model('base', 'IrModelData')
+    ResPartner = apps.get_model('base', 'ResPartner')
+    ResUsers = apps.get_model('base', 'ResUsers')
+    user = ResUsers.objects.using(alias).filter(login='public').first()
+    if user is None:
+        partner = ResPartner.objects.using(alias).create(
+            name='Public user', active=False)
+        user = ResUsers.objects.using(alias).create(
+            login='public', partner=partner,
+            password=make_password(None), active=False)
+    _xmlid_row(IrModelData, alias, 'public_partner', user.partner)
+    _xmlid_row(IrModelData, alias, 'public_user', user)
+    return user
+
+
+def public_user_seed(using=DEFAULT_DB_ALIAS):
+    """Siembra sobre los modelos vivos — entrada de ``_SEEDERS``."""
+    return seed_public_user(apps, using)
