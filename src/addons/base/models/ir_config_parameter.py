@@ -39,12 +39,10 @@ Correspondencia Odoo -> Django (adaptación sin azúcar sintáctica):
   su nombre, y los enganches de Django (``save``/``delete``) delegan en ellos:
   así la guarda protege también a quien escriba por la vía del ORM de Django.
 
-DIVERGENCIA DE CLAVE, declarada: la referencia decora con
-``@ormcache('key', cache='stable')`` y **no** nombra la base, porque su
-``Registry`` es por base de datos y esa dimensión va implícita en él. Aquí el
-registry es el módulo (divergencia de enlace declarada en ``tools/cache.py``),
-así que el alias entra en la clave: ``@ormcache('key', 'using', ...)``. Sin él
-dos bases compartirían entrada, que es un defecto que la fuente no tiene.
+La clave es la de la referencia, ``@ormcache('key', cache='stable')``, sin la
+base: el contenedor es el del ``Registry`` de la base que ``using`` designa
+(``ormcache.registry_of`` en ``tools/cache.py``), como allá lo es el de
+``self.env``.
 """
 
 import api
@@ -159,7 +157,7 @@ class SystemParameter(models.Model):
         return cls._get_param(key, using=using) or default
 
     @classmethod
-    @ormcache('key', 'using', cache='stable')
+    @ormcache('key', cache='stable')
     def _get_param(cls, key, using=DEFAULT_DB_ALIAS):
         """Lee el valor crudo, memorizado en la familia ``stable``.
 

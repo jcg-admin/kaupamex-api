@@ -4,12 +4,12 @@ Se carga ``odoo19c: odoo/tools/cache.py`` por ruta —su ``LRU`` sólo se import
 para anotaciones— y se decora **la misma función** con el ``ormcache`` de cada
 módulo, de modo que las claves, que contienen el método, son comparables.
 
-Cada lado recibe su contenedor por su vía, que es la divergencia de enlace que
-el puerto declara: la fuente lo busca en ``model.pool._Registry__caches`` y las
-claves de transacción en ``model.env.cr.cache``; el puerto, en
-``registry.cache_of`` y ``_tx_lookups``, que aquí se sustituyen por
-contenedores frescos. Los contadores se leen de ``_COUNTERS`` con la clave de
-cada lado: ``(base, método)`` en la fuente, ``método`` en el puerto.
+Cada lado recibe su contenedor por su vía: la fuente lo busca en
+``model.pool._Registry__caches`` y las claves de transacción en
+``model.env.cr.cache``; el puerto, en el registro que devuelve
+``registry.registry_of`` y en ``_tx_lookups``, que aquí se sustituyen por
+contenedores frescos. Los contadores se leen de ``_COUNTERS`` con la misma
+clave en los dos lados: ``(base, método)``.
 
 ``get_cache_size`` importa ``odoo.models`` y ``odoo.api`` en cada llamada; la
 fuente recibe sustitutos durante la llamada.
@@ -102,7 +102,9 @@ def side(module, monkeypatch):
     transaction = {}
     if module is ported:
         lookups = set()
-        monkeypatch.setattr(ported.registry, 'cache_of', caches.__getitem__)
+        pool = types.SimpleNamespace(_caches=caches, db_name='probe')
+        monkeypatch.setattr(ported.registry, 'registry_of',
+                            lambda receiver=None: pool)
         monkeypatch.setattr(ported, '_tx_lookups', lambda: lookups)
 
         def new_transaction():
@@ -116,7 +118,7 @@ def side(module, monkeypatch):
 
 def counter_of(module, deco):
     method = deco.__cache__.method
-    key = method if module is ported else ('probe', method)
+    key = ('probe', method)
     counter = module._COUNTERS[key]
     return tuple(getattr(counter, name) for name in COUNTER_FIELDS)
 

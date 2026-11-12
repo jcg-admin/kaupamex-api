@@ -3061,7 +3061,7 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
     # formato — de modo que la ida y la vuelta usan la misma llave.
 
     @classmethod
-    @ormcache('xmlid', 'using', cache='default')
+    @ormcache('xmlid', cache='default')
     def _xmlid_lookup(cls, xmlid, using=DEFAULT_DB_ALIAS):
         """``_xmlid_lookup`` — ``(model, res_id)`` o ``ValueError``.
 
@@ -3073,18 +3073,18 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
         dice: *"small optimisation … set the correct value in the cache to
         avoid a bunch of query"*.
 
-        DIVERGENCIA DE CLAVE, la misma que ``ir_config_parameter.py`` y
-        ``properties_base_definition.py`` declaran: ``using`` entra en la clave
-        porque aquí el registry es el módulo y no hay uno por base.
+        La clave es la de la fuente; la base la fija ``using``, que elige el
+        contenedor del ``Registry`` de esa base (``ormcache.registry_of``).
 
-        El identificador es ``modulo.nombre``; el ``split`` es por el **primer**
-        punto porque el nombre puede llevar más (``l10n_mx.tax12`` frente a
-        ``account.1_tax_group_16``).
+        El identificador es ``modulo.nombre``; el ``split`` es por el
+        **primer** punto porque el nombre puede llevar más
+        (``l10n_mx.tax12`` frente a ``account.1_tax_group_16``).
         """
         module, _, name = xmlid.partition('.')
         if not name:
             raise ValueError(
-                'Identificador externo mal formado (falta el módulo): %s' % xmlid)
+                'Identificador externo mal formado (falta el módulo): %s'
+                % xmlid)
         # ≙ ``SELECT model, res_id FROM ir_model_data WHERE module=%s AND
         # name=%s``: sólo esas dos columnas. Un default de campo que resuelve
         # un XML-ID corre también dentro de una migración histórica, cuando
@@ -3328,12 +3328,13 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
                     cls, f'{module}.{name}', using,
                     cache_value=(model, res_id))
                 if created != written:
-                    registry.Registry(using).cache_invalidated.add('default')
+                    registry.registry_for_alias(using).cache_invalidated.add(
+                        'default')
 
         registry.loaded_xmlids.update(f'{row[0]}.{row[1]}' for row in rows)
 
         if any(row[2] == 'base.ResGroups' for row in rows):
-            registry.clear_cache('groups')
+            registry.registry_for_alias(using).clear_cache('groups')
 
     @classmethod
     def _build_insert_xmlids_values(cls):

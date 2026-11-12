@@ -75,7 +75,7 @@ from psycopg import sql as pg_sql
 import orm.environments
 
 from modules import db as modules_db
-from sql_db import Cursor
+from sql_db import Cursor, origin_alias
 from orm.utils import FIELD_REGISTRY_HOOKS, SUPERUSER_ID, model_field_registry
 from tools.func import locked, reset_cached_properties
 from tools.lru import LRU
@@ -96,8 +96,8 @@ __all__ = [
     'MODELS_BY_NAME', 'name_of', 'model_by_name', 'model_by_key',
     'resolve_model_key', 'check_table_matches_name',
     'registrants_without_table',
-    'clear_cache', 'clear_all_caches', 'cache_of',
-    'cache_invalidated_names', 'reset_invalidation_record',
+    'clear_cache', 'clear_all_caches', 'cache_of', 'registry_of',
+    'registry_for_alias', 'active_registry', 'cache_invalidated_names',
     'signaling_table_names',
     'many2one_company_dependents', 'loaded_xmlids',
     'not_null_fields', 'is_not_null',
@@ -164,59 +164,45 @@ def signaling_table_names():
             *(f'orm_signaling_{cache_name}' for cache_name in _CACHES_BY_KEY))
 
 
-#: Los contenedores vivos. La referencia los cuelga de la instancia de
-#: ``Registry`` (``self.__caches``, ``:233``) porque allá hay un registry por
-#: base de datos; aquí el registry es el módulo —la dimensión por-DB la cubre
-#: el router de ``orm/routers.py``, como declara el encabezado— así que los
-#: contenedores son estado de módulo. Es la misma estructura, en el único
-#: singleton que este árbol tiene.
-_CACHES = {name: LRU(size) for name, size in _REGISTRY_CACHES.items()}
+def registry_of(receiver=None):
+    """El ``Registry`` de la base de ``receiver`` ≙ ``model.pool``.
 
-#: Los nombres de caché invalidados por este hilo. Sus contenedores son del
-#: proceso y el invalidator de módulo debe escribir lo que señalización lee.
-#: La bandera de cambios de Registry pertenece, en cambio, a cada instancia:
-#: construir o modificar otro registro no debe borrarla ni propagarla.
-#:
-#: Vive en el módulo por la misma razón que :data:`_CACHES`, y es la mitad que
-#: faltaba: los contenedores son estado de proceso, así que su registro de
-#: invalidación también lo es. Antes de reconciliarlo había **dos estructuras
-#: paralelas y disjuntas** — un conjunto de módulo que ``clear_cache`` escribía
-#: y nadie leía, y un ``threading.local`` de instancia que la property
-#: ``Registry.cache_invalidated`` leía y nadie escribía. El eje de señalización
-#: se habría portado entero y habría señalizado siempre cero: un verde que no
-#: discrimina (``metrica-decide-la-conclusion.md``, sub-patrón D).
-#:
-#: **Por hilo, no por proceso**, igual que la fuente: la invalidación es del
-#: hilo que la hizo, y ``signal_changes`` corre al cerrar la petición en ese
-#: mismo hilo. Propagarla a los demás anunciaría un cambio que ellos no ven.
-_invalidation = threading.local()
+    La fuente cuelga los contenedores de ``ormcache`` del registro de cada
+    base (``self.__caches``, ``odoo19c: odoo/orm/registry.py:233``) y el
+    decorador los pide a ``model.pool`` (``odoo/tools/cache.py:101,127``).
+    Aquí un método portado como ``classmethod`` recibe la clase, que no lleva
+    entorno: su base es la del entorno activo, la misma que su router elige.
+    Un recordset trae la suya.
+    """
+    environment = getattr(receiver, 'env', None)
+    if not isinstance(environment, orm.environments.Environment):
+        return active_registry()
+    return registry_for_alias(environment.db_alias)
+
+
+def active_registry():
+    """El ``Registry`` de la base del entorno activo ≙ ``self.env.registry``
+    de quien llama."""
+    return registry_for_alias(orm.environments.env().db_alias)
 
 
 def cache_invalidated_names():
-    """Los nombres de caché que **este hilo** vació desde la última señal.
+    """Los nombres de caché que este hilo invalidó en el registro de la
+    base activa ≙ ``self.env.registry.cache_invalidated``."""
+    return active_registry().cache_invalidated
 
-    ≙ el conjunto que la fuente devuelve en ``Registry.cache_invalidated``
-    (``:1026-1033``). Devuelve **el mismo** conjunto en cada llamada del hilo:
-    quien lo pide lo hace para añadirle un nombre, y uno nuevo por llamada
-    perdería lo anotado.
+
+def registry_for_alias(alias):
+    """El ``Registry`` de la base que designa ``alias`` ≙
+    ``Registry(cr.dbname)`` (``odoo19c: odoo/orm/environments.py:72``).
+
+    La fuente lo pide por la base, no por la conexión. Aquí la conexión de una
+    unidad de trabajo es un alias efímero (``<alias>__cursor_<n>``); su
+    registro es el del alias de origen, no uno nuevo por cursor.
     """
-    try:
-        return _invalidation.cache
-    except AttributeError:
-        # silent OK because la ausencia del atributo ES la respuesta «este hilo
-        # aún no ha anotado nada», y el cuerpo que sigue lo crea. La fuente lo
-        # escribe igual (``:1030-1032``).
-        names = _invalidation.cache = set()
-        return names
-
-
-def reset_invalidation_record():
-    """Reset this thread's shared cache record, called by Registry.init.
-
-    Registry.init separately creates its own thread-local registry flag.
-    Cache containers and their invalidator keep the process-level contract.
-    """
-    _invalidation.cache = set()
+    alias = origin_alias(alias)
+    registry = Registry.registries.get(alias)
+    return Registry(alias) if registry is None else registry
 
 
 #: ¿Envuelve el ``ilike`` sus dos lados en ``unaccent(...)``?
@@ -305,40 +291,23 @@ def _unaccent(x):
     return f'unaccent({x})'
 
 
-def cache_of(cache_name):
-    """El contenedor vivo de ``cache_name`` ≙ ``Registry.__caches[name]``."""
-    return _CACHES[cache_name]
+def cache_of(cache_name, receiver=None):
+    """El contenedor vivo de ``cache_name`` en el registro de la base de
+    ``receiver`` ≙ ``model.pool._Registry__caches[cache_name]``."""
+    return registry_of(receiver)._caches[cache_name]
 
 
 def clear_cache(*cache_names):
-    """Vacía las cachés de los métodos decorados con ``tools.ormcache`` cuyo
-    nombre esté en ``cache_names`` ≙ ``Registry.clear_cache``
-    (``odoo19c: odoo/orm/registry.py:971-987``).
-    """
-    cache_names = cache_names or ('default',)
-    assert not any('.' in cache_name for cache_name in cache_names)
-    for cache_name in cache_names:
-        for cache in _CACHES_BY_KEY[cache_name]:
-            _CACHES[cache].clear()
-        cache_invalidated_names().add(cache_name)
-
-    # información sobre la causa de la invalidación
-    if _logger.isEnabledFor(logging.DEBUG):
-        # podría interesar en info, pero antes hay que minimizar la
-        # invalidación, sobre todo en setup de tests y crons
-        _logger.debug('Invalidating %s model caches', ','.join(cache_names))
+    """Vacía las cachés de esos nombres en el registro de la base activa ≙
+    ``self.env.registry.clear_cache(...)``: la fuente no tiene una función de
+    módulo, cada consumidor llega a ella por su entorno."""
+    active_registry().clear_cache(*cache_names)
 
 
 def clear_all_caches():
-    """Vacía todas las cachés de los métodos decorados con ``tools.ormcache``
-    ≙ ``Registry.clear_all_caches`` (``odoo19c: odoo/orm/registry.py:989-1001``).
-    """
-    for cache_name, caches in _CACHES_BY_KEY.items():
-        for cache in caches:
-            _CACHES[cache].clear()
-        cache_invalidated_names().add(cache_name)
-
-    _logger.debug('Invalidating all model caches')
+    """Vacía todas las cachés del registro de la base activa ≙
+    ``self.env.registry.clear_all_caches()``."""
+    active_registry().clear_all_caches()
 
 
 #: ``'product.removal' -> <class ProductRemoval>``. Ver :func:`_ensure_seeded`
@@ -1975,8 +1944,10 @@ class Registry(Mapping):
 
         self.registry_sequence = -1
         self.cache_sequences = {}
+        #: ≙ ``self.__caches`` (``:233``): los contenedores de esta base.
+        self._caches = {name: LRU(size)
+                        for name, size in _REGISTRY_CACHES.items()}
         self._invalidation_flags = threading.local()
-        reset_invalidation_record()
 
         #: ≙ ``Registry._assertion_report`` (``:227-231``). Alla guarda un
         #: ``OdooTestResult`` de su propio corredor de pruebas; aqui el
@@ -2179,14 +2150,18 @@ class Registry(Mapping):
         """Que caches ha modificado este hilo — ≙ ``:1026-1033``.
 
         Docstring de la fuente, verbatim: *"Determine whether the current
-        thread has modified the cache"*.
-
-        Es **el mismo** registro que escribe :func:`clear_cache`, y ahi esta
-        el trabajo del tramo 5: antes eran dos estructuras disjuntas y el eje
-        de senalizacion habria leido siempre un conjunto vacio. Ver el
-        docstring de :data:`_invalidation`.
+        thread has modified the cache"*. Es el registro **de esta base**: lo
+        que otra base invalida no se anuncia en las tablas de señalización de
+        ésta.
         """
-        return cache_invalidated_names()
+        try:
+            return self._invalidation_flags.cache
+        except AttributeError:
+            # silent OK because la ausencia del atributo ES la respuesta «este
+            # hilo aún no ha anotado nada», y el cuerpo que sigue lo crea, como
+            # la fuente (``:1030-1032``).
+            names = self._invalidation_flags.cache = set()
+            return names
 
     # -- Carga y setup -------------------------------------------------------
     #
@@ -2221,7 +2196,7 @@ class Registry(Mapping):
         name = getattr(module, 'name', module)
 
         # vacia el cache para dejarlo consistente, sin senalizarlo
-        for cache in _CACHES.values():
+        for cache in self._caches.values():
             cache.clear()
 
         reset_cached_properties(self)
@@ -2264,7 +2239,7 @@ class Registry(Mapping):
         if self.ready:
             _call_hooks(self, '_unregister_hook')
 
-        for cache in _CACHES.values():
+        for cache in self._caches.values():
             cache.clear()
 
         reset_cached_properties(self)
@@ -2561,13 +2536,16 @@ class Registry(Mapping):
         loop"*—, porque anotar la invalidacion la reenviaria a los demas
         procesos y el ciclo no pararia.
         """
-        with nullcontext(cr) if cr is not None else closing(self.cursor(readonly=True)) as cr:
+        cr_context = (nullcontext(cr) if cr is not None
+                      else closing(self.cursor(readonly=True)))
+        with cr_context as cr:
             assert cr is not None
             db_registry_sequence, db_cache_sequences = self.get_sequences(cr)
             changes = ''
             # ¿hay que recargar el registro de modelos?
             if self.registry_sequence != db_registry_sequence:
-                _logger.info("Reloading the model registry after database signaling.")
+                _logger.info(
+                    "Reloading the model registry after database signaling.")
                 self = Registry.new(self.db_name)
                 self.registry_sequence = db_registry_sequence
                 if _logger.isEnabledFor(logging.DEBUG):
@@ -2582,14 +2560,15 @@ class Registry(Mapping):
                         for cache in _CACHES_BY_KEY[cache_name]:
                             if cache not in invalidated:
                                 invalidated.append(cache)
-                                cache_of(cache).clear()
+                                self._caches[cache].clear()
                         self.cache_sequences[cache_name] = expected_sequence
                         if _logger.isEnabledFor(logging.DEBUG):
                             changes += "[Cache %s - %s -> %s]" % (
                                 cache_name, cache_sequence, expected_sequence)
                 if invalidated:
-                    _logger.info("Invalidating caches after database signaling: %s",
-                                 sorted(invalidated))
+                    _logger.info(
+                        "Invalidating caches after database signaling: %s",
+                        sorted(invalidated))
             if changes:
                 _logger.debug("Multiprocess signaling check: %s", changes)
         return self
@@ -2648,7 +2627,7 @@ class Registry(Mapping):
         if self.cache_invalidated:
             for cache_name in self.cache_invalidated:
                 for cache in _CACHES_BY_KEY[cache_name]:
-                    cache_of(cache).clear()
+                    self._caches[cache].clear()
             self.cache_invalidated.clear()
 
     @contextmanager
@@ -3148,11 +3127,30 @@ class Registry(Mapping):
 
         Docstring de la fuente, verbatim: *"Clear the caches associated to
         methods decorated with ``tools.ormcache`` if cache is in
-        `cache_name` subset."* Las cachés son del proceso, no de la base,
-        así que delega en :func:`clear_cache` del módulo, que es el eje que
-        ya llaman los consumidores por ``registry.clear_cache``.
+        `cache_name` subset."*
         """
-        clear_cache(*cache_names)
+        cache_names = cache_names or ('default',)
+        assert not any('.' in cache_name for cache_name in cache_names)
+        for cache_name in cache_names:
+            for cache in _CACHES_BY_KEY[cache_name]:
+                self._caches[cache].clear()
+            self.cache_invalidated.add(cache_name)
+
+        # información sobre la causa de la invalidación
+        if _logger.isEnabledFor(logging.DEBUG):
+            # podría interesar en info, pero antes hay que minimizar la
+            # invalidación, sobre todo en setup de tests y crons
+            _logger.debug('Invalidating %s model caches',
+                          ','.join(cache_names))
+
+    def clear_all_caches(self):
+        """Vacía todas las cachés de ``tools.ormcache`` — ≙ ``:989-1001``."""
+        for cache_name, caches in _CACHES_BY_KEY.items():
+            for cache in caches:
+                self._caches[cache].clear()
+            self.cache_invalidated.add(cache_name)
+
+        _logger.debug('Invalidating all model caches')
 
 
 def _call_hooks(registry, name):

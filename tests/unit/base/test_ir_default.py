@@ -186,14 +186,15 @@ class TestGetModelDefaultsIsMemoized:
     def test_it_is_decorated(self):
         assert isinstance(IrDefault._get_model_defaults.__func__.__cache__, ormcache)
 
-    def test_the_key_carries_the_model_name_and_the_db_alias(self):
-        # La divergencia de clave que `tools/cache.py` declara: el alias de
-        # base entra porque aquí el registry es el módulo, no la base.
-        key = IrDefault._get_model_defaults.__func__.__cache__.key(
-            IrDefault, 'base.ResPartner', '', 1, 2, 'otra_base')
+    def test_the_key_is_the_reference_one_without_the_db_alias(self):
+        # odoo19c: ir_default.py:171 — la base no entra en la clave: el
+        # contenedor es el del registro de la base que `using` designa.
+        cache = IrDefault._get_model_defaults.__func__.__cache__
+        assert cache.args == ('model_name', 'condition', 'user_id',
+                              'company_id')
+        key = cache.key(IrDefault, 'base.ResPartner', '', 1, 2, 'otra_base')
         assert key[0] == 'ir.default'
-        assert key[2] == 'base.ResPartner'
-        assert key[-1] == 'otra_base'
+        assert key[2:] == ('base.ResPartner', '', 1, 2)
 
 
 @pytest.mark.django_db
@@ -206,16 +207,16 @@ class TestGetModelDefaults:
 
     def test_it_returns_every_field_of_the_model_in_one_dict(self):
         self._clear()
-        IrDefault.set('base.ResPartner', 'campo_a', 'uno')
-        IrDefault.set('base.ResPartner', 'campo_b', 2)
+        IrDefault.set('base.ResPartner', 'field_a', 'uno')
+        IrDefault.set('base.ResPartner', 'field_b', 2)
         assert IrDefault._get_model_defaults('base.ResPartner') == {
-            'campo_a': 'uno', 'campo_b': 2}
+            'field_a': 'uno', 'field_b': 2}
 
     def test_it_ignores_other_models(self):
         self._clear()
-        IrDefault.set('base.ResPartner', 'mio', 1)
-        IrDefault.set('base.ResUsers', 'ajeno', 2)
-        assert IrDefault._get_model_defaults('base.ResPartner') == {'mio': 1}
+        IrDefault.set('base.ResPartner', 'mine', 1)
+        IrDefault.set('base.ResUsers', 'other', 2)
+        assert IrDefault._get_model_defaults('base.ResPartner') == {'mine': 1}
 
     def test_an_empty_model_gives_an_empty_dict(self):
         self._clear()
@@ -224,41 +225,41 @@ class TestGetModelDefaults:
     def test_the_user_default_wins_over_the_global_one(self):
         self._clear()
         user = UserFactory()
-        IrDefault.set('base.ResPartner', 'campo', 'global')
-        IrDefault.set('base.ResPartner', 'campo', 'del_usuario', user=user)
+        IrDefault.set('base.ResPartner', 'field', 'global')
+        IrDefault.set('base.ResPartner', 'field', 'del_usuario', user=user)
         assert IrDefault._get_model_defaults(
-            'base.ResPartner', user_id=user.pk)['campo'] == 'del_usuario'
+            'base.ResPartner', user_id=user.pk)['field'] == 'del_usuario'
 
     def test_another_user_still_sees_the_global_one(self):
         self._clear()
         user, other = UserFactory(), UserFactory()
-        IrDefault.set('base.ResPartner', 'campo', 'global')
-        IrDefault.set('base.ResPartner', 'campo', 'del_usuario', user=user)
+        IrDefault.set('base.ResPartner', 'field', 'global')
+        IrDefault.set('base.ResPartner', 'field', 'del_usuario', user=user)
         assert IrDefault._get_model_defaults(
-            'base.ResPartner', user_id=other.pk)['campo'] == 'global'
+            'base.ResPartner', user_id=other.pk)['field'] == 'global'
 
     def test_the_company_default_wins_over_the_global_one(self):
         self._clear()
         company = ResCompany.objects.create(name='Empresa 111', code='e111')
-        IrDefault.set('base.ResPartner', 'campo', 'global')
-        IrDefault.set('base.ResPartner', 'campo', 'de_empresa',
-                              company=company)
+        IrDefault.set('base.ResPartner', 'field', 'global')
+        IrDefault.set('base.ResPartner', 'field', 'de_empresa',
+                      company=company)
         assert IrDefault._get_model_defaults(
-            'base.ResPartner', company_id=company.pk)['campo'] == 'de_empresa'
+            'base.ResPartner', company_id=company.pk)['field'] == 'de_empresa'
 
     def test_user_and_company_wins_over_either_alone(self):
         self._clear()
         user = UserFactory()
         company = ResCompany.objects.create(name='Empresa 111b', code='e111b')
-        IrDefault.set('base.ResPartner', 'campo', 'global')
-        IrDefault.set('base.ResPartner', 'campo', 'solo_usuario', user=user)
-        IrDefault.set('base.ResPartner', 'campo', 'solo_empresa',
-                              company=company)
-        IrDefault.set('base.ResPartner', 'campo', 'ambos',
-                              user=user, company=company)
+        IrDefault.set('base.ResPartner', 'field', 'global')
+        IrDefault.set('base.ResPartner', 'field', 'solo_usuario', user=user)
+        IrDefault.set('base.ResPartner', 'field', 'solo_empresa',
+                      company=company)
+        IrDefault.set('base.ResPartner', 'field', 'ambos',
+                      user=user, company=company)
         assert IrDefault._get_model_defaults(
             'base.ResPartner', user_id=user.pk,
-            company_id=company.pk)['campo'] == 'ambos'
+            company_id=company.pk)['field'] == 'ambos'
 
     def test_the_precedence_matches_get_default(self):
         # La fuente resuelve las dos por el mismo ORDER BY; aquí son dos
@@ -267,36 +268,36 @@ class TestGetModelDefaults:
         # el mismo campo tendría dos defaults según por dónde se pregunte.
         self._clear()
         user = UserFactory()
-        IrDefault.set('base.ResPartner', 'campo', 'global')
-        IrDefault.set('base.ResPartner', 'campo', 'del_usuario', user=user)
+        IrDefault.set('base.ResPartner', 'field', 'global')
+        IrDefault.set('base.ResPartner', 'field', 'del_usuario', user=user)
         assert (IrDefault._get_model_defaults('base.ResPartner',
-                                              user_id=user.pk)['campo']
-                == IrDefault._get('base.ResPartner', 'campo', user=user))
+                                              user_id=user.pk)['field']
+                == IrDefault._get('base.ResPartner', 'field', user=user))
 
     def test_the_condition_scopes_the_lookup(self):
         self._clear()
-        IrDefault.set('base.ResPartner', 'campo', 'sin_condicion')
-        IrDefault.set('base.ResPartner', 'campo', 'con_condicion',
-                              condition='x=1')
+        IrDefault.set('base.ResPartner', 'field', 'sin_condicion')
+        IrDefault.set('base.ResPartner', 'field', 'con_condicion',
+                      condition='x=1')
         assert IrDefault._get_model_defaults('base.ResPartner') == \
-            {'campo': 'sin_condicion'}
+            {'field': 'sin_condicion'}
         assert IrDefault._get_model_defaults('base.ResPartner', 'x=1') == \
-            {'campo': 'con_condicion'}
+            {'field': 'con_condicion'}
 
     def test_writing_a_default_invalidates_what_was_memoized(self):
         # El defecto que esto cierra es invisible sin el caso: el dict caduco
         # se ve bien formado, sólo trae el valor viejo.
         self._clear()
-        IrDefault.set('base.ResPartner', 'campo', 'primero')
+        IrDefault.set('base.ResPartner', 'field', 'primero')
         assert IrDefault._get_model_defaults('base.ResPartner') == \
-            {'campo': 'primero'}
-        IrDefault.set('base.ResPartner', 'campo', 'segundo')
+            {'field': 'primero'}
+        IrDefault.set('base.ResPartner', 'field', 'segundo')
         assert IrDefault._get_model_defaults('base.ResPartner') == \
-            {'campo': 'segundo'}
+            {'field': 'segundo'}
 
     def test_the_family_it_clears_is_the_one_it_reads(self):
         self._clear()
-        IrDefault.set('base.ResPartner', 'campo', 'x')
+        IrDefault.set('base.ResPartner', 'field', 'x')
         IrDefault._get_model_defaults('base.ResPartner')
         registry.cache_of('default')['centinela'] = 1
         IrDefault.set('base.ResPartner', 'otro', 'y')
@@ -517,12 +518,12 @@ class TestWriteSurface:
         assert IrDefault._get('base.ResPartner', 'a') == 1
 
     def test_write_updates_the_row(self):
-        row = IrDefault.set('base.ResPartner', 'campo', 'viejo')
+        row = IrDefault.set('base.ResPartner', 'field', 'viejo')
         row.write({'json_value': '"nuevo"'})
-        assert IrDefault._get('base.ResPartner', 'campo') == 'nuevo'
+        assert IrDefault._get('base.ResPartner', 'field') == 'nuevo'
 
     def test_unlink_removes_the_row(self):
-        row = IrDefault.set('base.ResPartner', 'campo', 'x')
+        row = IrDefault.set('base.ResPartner', 'field', 'x')
         row.unlink()
         assert not IrDefault.objects.filter(pk=row.pk).exists()
 
@@ -533,19 +534,19 @@ class TestWriteSurface:
         un ``instancia.save()``, y el dict caduco no se ve caduco.
         """
         self._clear()
-        row = IrDefault.set('base.ResPartner', 'campo', 'primero')
-        assert IrDefault._get_model_defaults('base.ResPartner')['campo'] == \
+        row = IrDefault.set('base.ResPartner', 'field', 'primero')
+        assert IrDefault._get_model_defaults('base.ResPartner')['field'] == \
             'primero'
 
         row.json_value = '"segundo"'
         row.save()
 
-        assert IrDefault._get_model_defaults('base.ResPartner')['campo'] == \
+        assert IrDefault._get_model_defaults('base.ResPartner')['field'] == \
             'segundo'
 
     def test_a_plain_delete_also_invalidates(self):
         self._clear()
-        row = IrDefault.set('base.ResPartner', 'campo', 'x')
-        assert 'campo' in IrDefault._get_model_defaults('base.ResPartner')
+        row = IrDefault.set('base.ResPartner', 'field', 'x')
+        assert 'field' in IrDefault._get_model_defaults('base.ResPartner')
         row.delete()
-        assert 'campo' not in IrDefault._get_model_defaults('base.ResPartner')
+        assert 'field' not in IrDefault._get_model_defaults('base.ResPartner')

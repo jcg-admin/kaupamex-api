@@ -4002,6 +4002,8 @@ class RecordLoaderMixin(FieldSqlMixin):
         if any(message['type'] == 'error' for message in messages):
             savepoint.rollback()
             ids = False
+            # deshace lo anotado en el registro y en sus cachés
+            registry.registry_for_alias(using).reset_changes()
         savepoint.close(rollback=False)
 
         nextrow = info['rows']['to'] + 1

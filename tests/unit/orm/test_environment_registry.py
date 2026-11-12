@@ -41,12 +41,13 @@ def test_env_registry_rejects_an_unknown_model(env):
         env.registry['test_orm.no.such.model']
 
 
-def test_env_registry_clears_caches_like_the_reference(env, monkeypatch):
-    """``Registry.clear_cache(*cache_names)`` (``registry.py:971-987``) es
-    método de la instancia; aquí delega en el eje de proceso del módulo."""
+def test_env_registry_clears_caches_like_the_reference(env):
+    """``Registry.clear_cache(*cache_names)`` (``registry.py:971-987``)
+    vacía los contenedores de ESE registro y anota en ESE registro."""
     assert 'clear_cache' in vars(Registry)
-    seen = []
-    monkeypatch.setattr(registry_module, 'clear_cache',
-                        lambda *names: seen.append(names))
-    env.registry.clear_cache('default', 'stable')
-    assert seen == [('default', 'stable')]
+    env.registry._caches['stable']['sentinel'] = 1
+    env.registry.cache_invalidated.clear()
+    env.registry.clear_cache('stable')
+    assert 'sentinel' not in env.registry._caches['stable']
+    assert env.registry.cache_invalidated == {'stable'}
+    env.registry.cache_invalidated.clear()

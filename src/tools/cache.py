@@ -6,12 +6,11 @@ trae el mecanismo: ``functools.lru_cache`` no expone el mapa (no se puede
 vaciar por familia ni sembrar una entrada), y ``django.core.cache`` es caché
 de aplicación con backend ``DatabaseCache`` — otro sujeto.
 
-DIVERGENCIA DE ENLACE, declarada: la referencia busca el contenedor en
-``model.pool._Registry__caches[nombre]``, porque allá hay un ``Registry`` por
-base de datos. Aquí el registry es **el módulo** ``orm/registry.py`` (su
-encabezado ya declara por qué: la dimensión por-DB la cubre el router de
-``orm/routers.py``), así que el contenedor se pide con ``registry.cache_of``.
-La clave, la firma y el comportamiento de acierto/fallo son los de la fuente.
+El contenedor es el del ``Registry`` de la base del receptor, como
+``model.pool._Registry__caches[nombre]`` en la fuente. Un método portado como
+``classmethod`` recibe la clase, que no lleva entorno: su base es la del
+entorno activo (``registry.registry_of``). La clave, la firma y el
+comportamiento de acierto/fallo son los de la fuente.
 
 Adaptado de Odoo Community ``odoo/tools/cache.py`` (LGPL-3) — atribución y
 aviso de licencia preservados (DEC-KX-03).
@@ -85,15 +84,10 @@ class ormcache_counter:
         return self.tx_hit + self.tx_miss
 
 
-_COUNTERS: defaultdict[Callable, ormcache_counter] = defaultdict(
+_COUNTERS: defaultdict[tuple[str, Callable], ormcache_counter] = defaultdict(
     ormcache_counter
 )
-"""Diccionario de contadores; mapea el método a su contador.
-
-La referencia lo indexa por ``(dbname, method)`` porque su ``Registry``
-es por base de datos. Aquí el registry es de proceso, así que la clave
-es el método.
-"""
+"""Diccionario de contadores; mapea ``(dbname, method)`` a su contador."""
 
 
 class ormcache:
@@ -150,15 +144,39 @@ class ormcache:
         return lookup
 
     def add_value(self, *args, cache_value=None, **kwargs) -> None:
-        d: LRU = registry.cache_of(self.cache_name)
+        d: LRU = self.registry_of(args, kwargs)._caches[self.cache_name]
         key = self.key(*args, **kwargs)
         d[key] = cache_value
+
+    def registry_of(self, args, kwargs):
+        """El ``Registry`` cuyo contenedor guarda esta llamada ≙
+        ``model.pool`` (``odoo19c: odoo/tools/cache.py:101,127``).
+
+        Un método portado que recibe la base en ``using`` —la fuente la toma
+        de ``self.env``— la declara ahí: ése es su registro. Si no, el del
+        receptor (``registry.registry_of``).
+        """
+        if self.using_position is not None:
+            if 'using' in kwargs:
+                alias = kwargs['using']
+            elif len(args) > self.using_position:
+                alias = args[self.using_position]
+            else:
+                alias = self.using_default
+            return registry.registry_for_alias(alias)
+        return registry.registry_of(args[0] if args else None)
 
     def determine_key(self) -> None:
         """
         Determina la función que computa la clave a partir de los argumentos.
         """
         assert self.method is not None
+        names = list(signature(self.method).parameters)
+        self.using_position = (names.index('using') if 'using' in names
+                               else None)
+        self.using_default = (
+            signature(self.method).parameters['using'].default
+            if 'using' in names else None)
         if self.skiparg is not None:
             # función retrocompatible que usa self.skiparg
             self.key = lambda *args, **kwargs: (
@@ -190,9 +208,10 @@ class ormcache:
         self.key = unsafe_eval(code, {'method': self.method})
 
     def lookup(self, *args, **kwargs):
-        d: LRU = registry.cache_of(self.cache_name)
+        pool = self.registry_of(args, kwargs)
+        d: LRU = pool._caches[self.cache_name]
         key = self.key(*args, **kwargs)
-        counter = _COUNTERS[self.method]
+        counter = _COUNTERS[pool.db_name, self.method]
 
         # tx: ¿es la primera llamada de la transacción para esa clave?
         tx_lookups = _tx_lookups()
@@ -295,22 +314,24 @@ def log_ormcache_stats() -> None:
 
     DIVERGENCIA DE MECANISMO, declarada: la referencia la cuelga de los
     manejadores de ``SIGUSR1``/``SIGUSR2`` y recorre ``Registry.registries``
-    —un registry por base—. Aquí el registry es de proceso y bajo Gunicorn las
-    dos señales las consume el propio servidor (``setup/gunicorn.conf.py``),
-    así que la función se invoca directamente y recorre los contenedores del
-    módulo. El cuerpo del informe —entradas, aciertos, fallos, tiempo de
-    generación y razón de acierto— es el de la fuente.
+    —un registry por base—. Bajo Gunicorn las dos señales las consume el propio
+    servidor (``setup/gunicorn.conf.py``), así que la función se invoca
+    directamente; recorre igual los registros de cada base. El cuerpo del
+    informe —entradas, aciertos, fallos, tiempo de generación y razón de
+    acierto— es el de la fuente.
     """
     log_msgs = ['Caches stats:']
-    for cache_name, cache in registry._CACHES.items():
-        log_msgs.append(f' * {cache_name}: {len(cache)}/{cache.count}')
+    for dbname, pool in sorted(registry.Registry.registries.snapshot.items()):
+        for cache_name, cache in pool._caches.items():
+            log_msgs.append(
+                f' * {dbname}: {cache_name}: {len(cache)}/{cache.count}')
     log_msgs.append(
         f"{'Cache Name':>25},{'Hit':>6},{'Miss':>6},{'Err':>6},"
         f"{'Gen Time [s]':>13},{'Hit Ratio':>10},{'TX Hit Ratio':>13},"
         f"{'TX Call':>8},  Method"
     )
-    for method, counter in sorted(
-        _COUNTERS.items(), key=lambda kv: kv[0].__qualname__
+    for (dbname, method), counter in sorted(
+        _COUNTERS.items(), key=lambda kv: (kv[0][0], kv[0][1].__qualname__)
     ):
         log_msgs.append(
             f'{counter.cache_name:>25},'
@@ -321,7 +342,7 @@ def log_ormcache_stats() -> None:
             f'{counter.ratio:9.1f}%,'
             f'{counter.tx_ratio:12.1f}%,'
             f'{counter.tx_calls:8d},'
-            f'  {method.__qualname__}'
+            f'  {dbname}: {method.__qualname__}'
         )
     _logger.info('\n'.join(log_msgs))
 
@@ -332,9 +353,10 @@ def get_cache_key_counter(
     """Devuelve la caché, la clave y el contador de la llamada dada."""
     model = bound_method.__self__  # type: ignore
     ormcache_instance: ormcache = bound_method.__cache__  # type: ignore
-    cache: LRU = registry.cache_of(ormcache_instance.cache_name)
+    pool = ormcache_instance.registry_of((model, *args), kwargs)
+    cache: LRU = pool._caches[ormcache_instance.cache_name]
     key = ormcache_instance.key(model, *args, **kwargs)
-    counter = _COUNTERS[ormcache_instance.method]
+    counter = _COUNTERS[pool.db_name, ormcache_instance.method]
     return cache, key, counter
 
 

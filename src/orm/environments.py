@@ -1195,7 +1195,7 @@ class Environment(abc.Mapping):
         proceso; la instancia las expone donde la fuente las tiene
         (``clear_cache``, ``field_depends``…).
         """
-        return registry.Registry(self.db_alias)
+        return registry.registry_for_alias(self.db_alias)
 
     @property
     def transaction(self):

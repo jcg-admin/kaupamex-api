@@ -75,12 +75,10 @@ class TestOrmcacheAdoption:
         assert not hasattr(definition_module, '_DEFINITION_CACHE')
         assert not hasattr(definition_module, '_clear_definition_cache')
 
-    def test_the_key_carries_the_model_name_and_the_db_alias(self):
-        # DIVERGENCIA DE CLAVE declarada en la cabecera del módulo: 'using'
-        # entra en la clave porque aquí el registry es el módulo.
+    def test_the_key_is_the_reference_one(self):
+        # La base no entra en la clave: `using` elige el registro.
         lookup = PropertiesBaseDefinition._get_definition_id_for_property_field
-        assert lookup.__func__.__cache__.args == (
-            'model_name', 'field_name', 'using')
+        assert lookup.__func__.__cache__.args == ('model_name', 'field_name')
 
 
 class TestPortedMethodNames:

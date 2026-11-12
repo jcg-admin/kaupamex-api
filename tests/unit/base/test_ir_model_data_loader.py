@@ -92,11 +92,10 @@ class TestPortedSymbolNames:
             IrModelData._xmlid_lookup.__func__.__cache__, ormcache
         )
 
-    def test_the_key_carries_the_db_alias(self):
-        # DIVERGENCIA DE CLAVE declarada: aquí el registry es el módulo.
+    def test_the_key_is_the_reference_one(self):
+        # odoo19c: :2273 — @tools.ormcache('xmlid'); `using` elige el registro.
         assert IrModelData._xmlid_lookup.__func__.__cache__.args == (
             'xmlid',
-            'using',
         )
 
 

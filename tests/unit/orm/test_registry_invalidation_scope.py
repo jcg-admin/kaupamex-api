@@ -9,7 +9,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from orm.registry import Registry, clear_cache
+from orm.registry import Registry
 
 
 @pytest.fixture
@@ -87,12 +87,14 @@ def test_existing_singleton_lookup_preserves_flag(registries):
     assert first.registry_invalidated is True
 
 
-def test_shared_cache_invalidator_remains_connected(registries):
+def test_each_registry_records_its_own_cache_invalidation(registries):
+    """≙ ``self._invalidation_flags`` por instancia (``registry.py:282``)."""
     first, second = registries
-    assert first.cache_invalidated is second.cache_invalidated
-    clear_cache('default')
+    assert first.cache_invalidated is not second.cache_invalidated
+    second.cache_invalidated.clear()
+    first.clear_cache('default')
     assert 'default' in first.cache_invalidated
-    assert 'default' in second.cache_invalidated
+    assert 'default' not in second.cache_invalidated
 
 
 @pytest.mark.parametrize('operation', ['signal_changes', 'reset_changes'])

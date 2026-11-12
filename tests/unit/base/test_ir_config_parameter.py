@@ -101,17 +101,14 @@ class TestOrmcacheAdoption:
         assert not hasattr(config_module, '_PARAM_CACHE')
         assert not hasattr(config_module, '_clear_cache')
 
-    def test_the_key_carries_the_model_name_and_the_db_alias(self):
-        # La referencia declara ('key',) y su Registry es POR BASE, asi que la
-        # dimension de base va implicita. Aqui el registry es el modulo
-        # (divergencia de enlace ya declarada en tools/cache.py), asi que el
-        # alias entra en la clave: sin el, dos bases compartirian entrada.
-        key = SystemParameter._get_param.__func__.__cache__.key(
-            SystemParameter, 'k', 'otra_base'
-        )
+    def test_the_key_is_the_reference_one_and_using_picks_the_registry(self):
+        # odoo19c: ir_config_parameter.py:72 — @ormcache('key'); la base la
+        # pone el registro, que aqui designa `using`.
+        cache = SystemParameter._get_param.__func__.__cache__
+        key = cache.key(SystemParameter, 'k', 'otra_base')
         assert key[0] == 'ir.config_parameter'
-        assert key[2] == 'k'
-        assert key[3] == 'otra_base'
+        assert key[2:] == ('k',)
+        assert cache.using_position == 2
 
 
 @pytest.mark.django_db

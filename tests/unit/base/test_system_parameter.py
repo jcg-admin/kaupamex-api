@@ -101,7 +101,6 @@ class TestCache:
             'ir.config_parameter',
             SystemParameter._get_param.__func__.__cache__.method,
             'k',
-            'default',
         )
         assert key not in registry.cache_of('stable').snapshot
         SystemParameter.get_param('k')

@@ -59,6 +59,15 @@ sql_counter = 0
 #: Secuencia de los alias efímeros: uno por cursor, nunca reutilizado.
 _cursor_aliases = itertools.count(1)
 
+#: ``{alias efímero: alias de origen}`` de los cursores abiertos.
+_origins = {}
+
+
+def origin_alias(alias):
+    """El alias de la base de ``alias``: el de origen si es el de un cursor
+    abierto con :class:`Cursor`, si no el propio alias."""
+    return _origins.get(alias, alias)
+
 
 class Savepoint:
     """≙ ``Savepoint`` (``odoo19c: odoo/sql_db.py:87-129``).
@@ -198,6 +207,7 @@ class Cursor:
     def __init__(self, using=DEFAULT_DB_ALIAS, readonly=False):
         origin = connections[using]
         self.alias = f'{using}__cursor_{next(_cursor_aliases)}'
+        _origins[self.alias] = origin_alias(using)
         connections.settings[self.alias] = copy.deepcopy(
             origin.settings_dict)
         self._cnx = connections[self.alias]
@@ -453,6 +463,7 @@ class Cursor:
             finally:
                 del connections[self.alias]
                 connections.settings.pop(self.alias, None)
+                _origins.pop(self.alias, None)
         if leak:
             _logger.warning("Cursor %s closed by the garbage collector",
                             self.alias)

@@ -101,12 +101,9 @@ decorador real (H-API-865), y el mecanismo —``tools/cache.py``,
 ``@ormcache("model_name", "field_name", cache='stable')`` y la invalidación
 deja de ser global para ser la de la familia ``stable``.
 
-DIVERGENCIA DE CLAVE, declarada (la misma que ``ir_config_parameter.py``): la
-referencia no nombra la base porque su ``Registry`` es por base de datos y esa
-dimensión va implícita en él. Aquí el registry es el módulo —divergencia de
-enlace declarada en ``tools/cache.py``—, así que el alias entra en la clave:
-``@ormcache('model_name', 'field_name', 'using', ...)``. Sin él dos bases
-compartirían entrada, que es un defecto que la fuente no tiene.
+La clave es la de la referencia, ``('model_name', 'field_name')``, sin la
+base: el contenedor es el del ``Registry`` de la base que ``using`` designa
+(``ormcache.registry_of`` en ``tools/cache.py``).
 """
 
 import logging
@@ -279,7 +276,7 @@ class PropertiesBaseDefinition(TimeStampedModel):
         )
 
     @classmethod
-    @ormcache('model_name', 'field_name', 'using', cache='stable')
+    @ormcache('model_name', 'field_name', cache='stable')
     def _get_definition_id_for_property_field(
         cls, model_name, field_name, using=DEFAULT_DB_ALIAS
     ):

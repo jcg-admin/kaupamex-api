@@ -410,7 +410,6 @@ class IrDefault(models.Model):
         'condition',
         'user_id',
         'company_id',
-        'using',
         cache='default',
     )
     def _get_model_defaults(
