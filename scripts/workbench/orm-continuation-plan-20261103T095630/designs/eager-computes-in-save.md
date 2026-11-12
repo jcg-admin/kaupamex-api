@@ -159,3 +159,76 @@ lector directo. Lo que sobra no es el cálculo previo al INSERT: es el
 
 Anulación: sin la anotación en el marcado de creación vuelven a 2 los
 readonly; sin el salto en el pase de precompute vuelven a 2 los precompute.
+
+## Causa medida y corrección aplicada (sobre `f77418eb`)
+
+### La causa no era sólo el `save()` del modelo: era el volcado
+
+Conteos RED (`tests/unit/orm/test_compute_before_insert.py`, espía sobre la
+clase, alta por `objects.create` seguida de `flush_all`):
+
+| Método | Antes | Después |
+|---|---|---|
+| `SaleOrderLine._compute_amount` (precompute) | 2 | 1 |
+| `CrmLead._compute_won_status` (readonly) | **12** | 1 |
+| `CrmLead._compute_team_id` (precompute) | **12** | 1 |
+| `AccountAccount._compute_internal_group` (readonly) | 3 | 1 |
+| `AccountAccount._compute_account_type` (precompute dado) | 2 | 0 (dado: la fuente no lo calcula) |
+| `AccountMoveLine._compute_balance` (precompute editable) | 1 | 1 |
+| `SaleOrder._compute_validity_date` (precompute) | 1 | 1 |
+
+Retirar el cálculo de `CrmLead.save` en alta bajó el conteo de 12 a **11**,
+no a 1. La traza de las diez restantes salía de `flush_all → flush_model →
+_flush → _write_rows`, y `_write_rows` guardaba cada fila con
+`row.save(update_fields=...)`: **cada volcado ejecutaba la sobrescritura de
+`save()` del modelo**. En `CrmLead`, esa sobrescritura en modificación corre
+los 24 cómputos, sus asignaciones vuelven a ensuciar campos, y el volcado da
+otra vuelta: diez vueltas.
+
+En la fuente, `_flush` escribe por `_write`/`_write_multi`
+(`odoo19c: odoo/orm/models.py:4520-4526`, *"Low-level implementation of
+write()"*): SQL más `write_date`/`write_uid`, sin la lógica de negocio que
+vive en `write`. `designs/write-multi-flush.md` había declarado ese
+`save(update_fields)` como divergencia porque «el `save()` y sus señales
+alojan cómputos y automatizaciones que la referencia aloja en el grafo de
+dependencias». El grafo ya existe y aloja esos cómputos: la justificación
+caducó y la divergencia producía exactamente la cascada.
+
+### Corrección en el núcleo
+
+`_persist_columns(row, names)` (`src/orm/models.py`): el volcado escribe con
+`row.save_base(update_fields=names)`, la capa de persistencia de Django sin la
+sobrescritura de `save()`, que conserva `auto_now` y las señales. Mantiene lo
+que el volcado necesita de la cadena: una sola lectura de reloj por escritura
+(`SAVE_NOW`) y, en un `BaseModel`, retirar las marcas de sucio de lo escrito.
+Deja fuera, como `_write` en la fuente, el chequeo de compañía, el despacho de
+inversos y la lógica de negocio de cada `save()`.
+
+### En los modelos: el alta de los calculados es del ORM
+
+`CrmLead.save`, `SaleOrderLine.save` y `AccountAccount.save` ya no calculan
+en alta los campos que el ORM resuelve (precompute en `pre_save`, el resto con
+el marcado de creación); en modificación se conservan. `CrmLead` lo
+justificaba con «aquí ese motor no existe», que dejó de ser cierto.
+`SaleOrder` ya sólo recalculaba al cambiar la empresa, y `AccountMoveLine`
+no duplica porque la asignación de `save()` cuenta como dada y el pase no
+recalcula un precompute editable dado.
+
+Anulaciones, cada una tumba exactamente su prueba: volcar por `save()`
+(lead y cuenta), cálculo en alta de `CrmLead` (lead), de `SaleOrderLine`
+(línea), de `AccountAccount` (cuenta); retirar «la asignación cuenta como
+dada» (línea de asiento).
+
+### Defecto vecino destapado: las extensiones pierden `@api.depends`
+
+`AccountPaymentMethodLine._compute_name` declara
+`@api.depends('payment_method.name')`, pero `account_payment` lo sustituye
+con `setattr` por una función sin decorador, y el registro le da cero
+dependencias: el campo no se recalcula ni en alta ni cuando cambia el nombre
+del método. La fuente une las dependencias de todas las sobrescrituras del
+MRO (`odoo19c: odoo/orm/fields.py:584-599`). Aquí las extensiones se instalan
+con `setattr`, `chain_method` o `wrap_method`, y ninguno las une: los dos
+últimos usan `functools.wraps`, que copia sólo las de la función nueva. Es un
+contrato del núcleo; queda como unidad propia (`plan.jsonl`,
+`orm-extension-depends-merge-0485`). Por eso la prueba de conteo de esa línea
+se retiró de esta unidad: no medía el mecanismo de alta.
