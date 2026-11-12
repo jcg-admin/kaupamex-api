@@ -16,6 +16,7 @@ Tres bloques:
    ``_field_to_sql`` (tarea #127).
 """
 import pytest
+from django.db import connection
 from django.core.exceptions import PermissionDenied, ValidationError
 
 import orm.models as orm_models
@@ -141,7 +142,10 @@ class TestDefinitionBehaviour:
         self._properties_field()
         first = PropertiesBaseDefinition._get_definition_id_for_property_field(
             'base.Probe', 'properties')
-        PropertiesBaseDefinition.objects.filter(pk=first).delete()
+        # Por SQL: el borrado del ORM vacía la caché (``post_delete``).
+        with connection.cursor() as cr:
+            cr.execute('DELETE FROM properties_base_definition WHERE id = %s',
+                       [first])
         # La fila ya no está; si la respuesta sigue siendo la misma, salió de
         # la caché y no de la base.
         assert PropertiesBaseDefinition._get_definition_id_for_property_field(

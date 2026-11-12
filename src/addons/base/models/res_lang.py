@@ -193,7 +193,7 @@ class ResLang(models.Model):
         """Enganche de Django: vacía la familia ``stable``, como el
         ``unlink`` de la fuente (``:403``)."""
         result = super().delete(*args, **kwargs)
-        registry.registry_of_row(self).clear_cache('stable')
+        # vacía la caché: _clear_caches_after_unlink
         return result
 
     @classmethod
@@ -340,3 +340,18 @@ def intersperse(string, counts, separator=''):
     splits = split(rest[::-1], counts)
     res = separator.join(s[::-1] for s in reversed(splits))
     return left + res + right, max(len(splits) - 1, 0)
+
+
+def _clear_caches_after_unlink(sender, instance, using, **kwargs):
+    """≙ el vaciado de ``unlink`` en el registro de la base de la fila.
+
+    Va en ``post_delete`` y no en ``delete()``: Django emite la señal también
+    por cada fila de un ``QuerySet.delete()``, que no llama a ``delete()``.
+    """
+    registry.registry_of_row(instance, using).clear_cache('stable')
+
+
+models.signals.post_delete.connect(
+    _clear_caches_after_unlink, sender=ResLang,
+    dispatch_uid='res_lang_unlink_caches')
+

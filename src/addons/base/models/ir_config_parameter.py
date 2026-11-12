@@ -317,5 +317,20 @@ class SystemParameter(models.Model):
         """Enganche de Django. Corre :meth:`unlink_default_parameters` y vacía
         la familia ``stable``."""
         self.unlink_default_parameters()
-        registry.registry_of_row(self).clear_cache('stable')
+        # vacía la caché: _clear_caches_after_unlink
         return super().delete(*args, **kwargs)
+
+
+def _clear_caches_after_unlink(sender, instance, using, **kwargs):
+    """≙ el vaciado de ``unlink`` en el registro de la base de la fila.
+
+    Va en ``post_delete`` y no en ``delete()``: Django emite la señal también
+    por cada fila de un ``QuerySet.delete()``, que no llama a ``delete()``.
+    """
+    registry.registry_of_row(instance, using).clear_cache('stable')
+
+
+models.signals.post_delete.connect(
+    _clear_caches_after_unlink, sender=SystemParameter,
+    dispatch_uid='ir_config_parameter_unlink_caches')
+

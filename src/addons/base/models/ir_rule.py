@@ -339,7 +339,7 @@ class IrRule(TimeStampedModel):
     def delete(self, *args, **kwargs):
         """Borra e invalida — ≙ ``unlink`` (``:184-188``)."""
         result = super().delete(*args, **kwargs)
-        registry.registry_of_row(self).clear_cache()
+        # vacía la caché: _clear_caches_after_unlink
         return result
 
     # === el contexto de evaluación y la clave de caché =====================
@@ -884,4 +884,18 @@ class RuleScopedManager(models.AccessManager):
             user=user,
         )
         return self.get_queryset().filter(domain._to_q(self.model))
+
+
+def _clear_caches_after_unlink(sender, instance, using, **kwargs):
+    """≙ el vaciado de ``unlink`` en el registro de la base de la fila.
+
+    Va en ``post_delete`` y no en ``delete()``: Django emite la señal también
+    por cada fila de un ``QuerySet.delete()``, que no llama a ``delete()``.
+    """
+    registry.registry_of_row(instance, using).clear_cache()
+
+
+models.signals.post_delete.connect(
+    _clear_caches_after_unlink, sender=IrRule,
+    dispatch_uid='ir_rule_unlink_caches')
 

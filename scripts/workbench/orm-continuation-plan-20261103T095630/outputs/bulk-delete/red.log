@@ -1,0 +1,7 @@
+FAILED tests/integration/test_orm/test_unlink_invalidates_its_database.py::test_post_delete_clears_the_registry_of_the_row[DecimalPrecision]
+FAILED tests/integration/test_orm/test_unlink_invalidates_its_database.py::test_post_delete_clears_the_registry_of_the_row[SystemParameter]
+FAILED tests/integration/test_orm/test_unlink_invalidates_its_database.py::test_post_delete_clears_the_registry_of_the_row[IrDefault]
+FAILED tests/integration/test_orm/test_unlink_invalidates_its_database.py::test_post_delete_clears_the_registry_of_the_row[IrRule]
+FAILED tests/integration/test_orm/test_unlink_invalidates_its_database.py::test_post_delete_clears_the_registry_of_the_row[PropertiesBaseDefinition]
+FAILED tests/integration/test_orm/test_unlink_invalidates_its_database.py::test_post_delete_clears_the_registry_of_the_row[ResLang]
+6 failed, 1 passed, 2 warnings in 14.22s
