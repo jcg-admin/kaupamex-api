@@ -5365,7 +5365,12 @@ def _write_rows(model, ids, vals_list, using):
                 _flush_m2m(row, field, value)
                 continue
             attname = getattr(field, 'attname', field.name)
-            setattr(row, attname, value)
+            # Al almacén de la fila, no por el descriptor: volcar es escribir
+            # columnas, sin ``modified`` ni marca de sucio. Por el descriptor,
+            # volcar ``start`` marcaba ``name`` y su cómputo volvía a marcar
+            # ``start``: el mismo cómputo corría dos veces
+            # (``test_environment_ownership_extended``).
+            row.__dict__[attname] = value
             names.append(attname)
         if names:
             # ≙ ``log_vals | vals``: la fecha la pone ``auto_now`` en
