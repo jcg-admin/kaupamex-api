@@ -144,6 +144,46 @@ def _already_in_chain(current, func):
     return False
 
 
+def chain_links(func):
+    """Las funciones de una cadena, de la más derivada a la base.
+
+    ``chain_method`` y ``wrap_method`` instalan la extensión **en el sitio**:
+    no añaden una clase al MRO, así que ``resolve_mro`` sólo ve el eslabón de
+    arriba. Este recorrido devuelve, para cada envoltorio, la función de
+    usuario que lo originó (``_chain_origin``) y sigue por ``_chain_previous``
+    hasta la implementación sin envolver. Es el orden que ``resolve_mro`` daría
+    si cada extensión fuera una subclase: la más derivada primero.
+
+    El enlace se lee del ``__dict__`` de la función, que es donde
+    ``chain_method`` y ``wrap_method`` lo escriben: un objeto que responde a
+    cualquier atributo (un ``Mock`` que sustituye al cálculo en una prueba)
+    devolvería un enlace nuevo en cada paso y el recorrido no terminaría.
+    """
+    links = []
+    current = getattr(func, '__func__', func)
+    while current is not None:
+        marks = getattr(current, '__dict__', {})
+        links.append(marks.get(_ORIGIN, current))
+        current = marks.get(_PREVIOUS)
+    return links
+
+
+def chain_depends(func, model=None):
+    """La unión ordenada y sin repetidos del ``_depends`` de una cadena.
+
+    ≙ el bucle de ``Field.get_depends`` sobre ``resolve_mro``
+    (``odoo19c: odoo/orm/fields.py:592-596``) aplicado a los eslabones de
+    :func:`chain_links`. Un ``_depends`` invocable recibe ``model``, como allá.
+    """
+    depends = []
+    for link in chain_links(func):
+        deps = getattr(link, '_depends', ())
+        for dep in (deps(model) if callable(deps) else deps):
+            if dep not in depends:
+                depends.append(dep)
+    return depends
+
+
 def chain_method(cls, name, func, combine=None):
     """Instala ``func`` como ``cls.name`` preservando la implementación previa.
 
@@ -198,9 +238,10 @@ def chain_method(cls, name, func, combine=None):
     setattr(cls, name, wrapper(chained) if wrapper else chained)
 
 
-
 def wrap_method(cls, name, func):
-    """Instala ``func`` con la implementación previa EN LA MANO — ≙ ``super()``.
+    """Instala ``func`` con la implementación previa EN LA MANO.
+
+    ≙ ``super()``.
 
     Es la tercera semántica de este módulo, y la que las otras dos no pueden
     expresar. :func:`chain_method` decide **por el resultado** cuándo invocar
@@ -232,7 +273,8 @@ def wrap_method(cls, name, func):
 
     **La firma de ``func`` lleva ``previous`` justo después del primer
     argumento**, y llega ya ligada al receptor: el cuerpo la invoca con los
-    mismos argumentos que la fuente le pasa a ``super()``, sin repetir ``self``::
+    mismos argumentos que la fuente le pasa a ``super()``, sin repetir
+    ``self``::
 
         def create(cls, previous, vals_list, using=DEFAULT_DB_ALIAS):
             configs = previous(vals_list, using=using)   # ≙ super().create(…)
@@ -245,9 +287,9 @@ def wrap_method(cls, name, func):
     preserva el descriptor previo igual que él.
 
     :raises TypeError: si no hay implementación previa. ``super()`` sobre un
-        método que la base no declara es un error en la fuente también; callarlo
-        dejaría a ``func`` con una ``previous`` que revienta al invocarse, y el
-        fallo aparecería lejos de su causa.
+        método que la base no declara es un error en la fuente también;
+        callarlo dejaría a ``func`` con una ``previous`` que revienta al
+        invocarse, y el fallo aparecería lejos de su causa.
     """
     new_wrapper = None
     if isinstance(func, (classmethod, staticmethod)):
@@ -296,7 +338,9 @@ def extend_list(new, previous):
 
 
 def first_truthy(new, previous):
-    """``combine`` de disyunción — ≙ ``return <lo propio> or super().metodo()``.
+    """``combine`` de disyunción.
+
+    ≙ ``return <lo propio> or super().metodo()``.
 
     Es el idioma de los **predicados** de la referencia: cada eslabón aporta su
     razón para decir que sí, y basta una para que el conjunto la diga. Medido
@@ -305,7 +349,8 @@ def first_truthy(new, previous):
 
         # odoo19c: auth_totp_mail/models/res_users.py:136
         def _rpc_api_keys_only(self):
-            return self._mfa_type() == 'totp_mail' or super()._rpc_api_keys_only()
+            return (self._mfa_type() == 'totp_mail'
+                    or super()._rpc_api_keys_only())
 
     **Sin él, el relevo por defecto rompe la cadena de tres.** Ese relevo sólo
     cae en el eslabón previo cuando el nuevo devuelve ``None``, y aquí el
@@ -325,7 +370,9 @@ def first_truthy(new, previous):
 
 
 def keep_previous(new, previous):
-    """``combine`` de relevo INVERSO — ≙ ``r = super()(); if r is not None: return r``.
+    """``combine`` de relevo INVERSO.
+
+    ≙ ``r = super()(); if r is not None: return r``.
 
     El relevo por defecto de :func:`chain_method` da la precedencia al addon
     que se instala **después**: corre ``func`` primero y sólo cae en la previa
@@ -342,12 +389,14 @@ def keep_previous(new, previous):
 
     Con ese idioma la precedencia la gana el addon **más interno** —el que se
     instaló antes— y el orden lo fija la cadena de ``depends``. Ejemplo medido:
-    ``auth_totp`` declara ``'totp'`` y ``auth_totp_mail`` declara ``'totp_mail'``;
-    un usuario con la app configurada **y** la política activa obtiene ``'totp'``,
+    ``auth_totp`` declara ``'totp'`` y ``auth_totp_mail`` declara
+    ``'totp_mail'``; un usuario con la app configurada **y** la política
+    activa obtiene ``'totp'``,
     porque ``auth_totp_mail`` depende de ``auth_totp`` y por tanto va después.
 
-    Sin este ``combine`` la cadena devolvería ``'totp_mail'`` — misma población,
-    precedencia invertida, y ningún gate lo vería: los dos valores son válidos.
+    Sin este ``combine`` la cadena devolvería ``'totp_mail'`` — misma
+    población, precedencia invertida, y ningún gate lo vería: los dos
+    valores son válidos.
 
     **Divergencia declarada:** un ``combine`` invoca las dos implementaciones,
     así que el cuerpo del eslabón externo corre aunque el interno ya haya

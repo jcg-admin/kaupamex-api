@@ -108,6 +108,7 @@ from orm.fields_selection import Selection                     # noqa: F401
 from orm.fields_temporal import Date, Datetime                 # noqa: F401
 from orm.fields_textual import Char, Html, Text                # noqa: F401
 from orm.fields_company_dependent import declared_index_name
+from orm.method_chain import chain_links
 from django.contrib.postgres.indexes import GinIndex, OpClass
 from orm.utils import (COLLECTION_TYPES, SQL_OPERATORS, as_record_list,
                        browse, expand_ids, model_field_registry, model_of,
@@ -4619,6 +4620,10 @@ def get_depends(self, model):
 
     depends = []
     depends_context = list(self._depends_context or ())
+    # Una función cuenta una vez: ``resolve_mro`` ya devuelve la base desde la
+    # clase padre, y el recorrido de la cadena del envoltorio la vuelve a
+    # alcanzar por ``_chain_previous``.
+    seen = set()
     for func in funcs:
         # DIVERGENCIA DE STACK: ``resolve_mro`` lee el ``__dict__`` de cada
         # clase en crudo, asi que un computo declarado ``@staticmethod`` o
@@ -4626,10 +4631,18 @@ def get_depends(self, model):
         # y el marcador que ``@api.depends`` puso vive en la funcion. La fuente
         # no lo necesita porque sus computos son funciones llanas; aqui se
         # desenvuelve, que es lo que ``getattr(model, compute)`` hacia gratis.
-        func = getattr(func, '__func__', func)
-        deps = getattr(func, '_depends', ())
-        depends.extend(deps(model) if callable(deps) else deps)
-        depends_context.extend(getattr(func, '_depends_context', ()))
+        #
+        # Una extensión de addon instalada con ``chain_method``/
+        # ``wrap_method`` no es una clase del MRO: la implementación previa
+        # cuelga del envoltorio en ``_chain_previous``. Cada eslabón cuenta
+        # como una función sobreescrita más, en el orden derivada → base.
+        for link in chain_links(getattr(func, '__func__', func)):
+            if id(link) in seen:
+                continue
+            seen.add(id(link))
+            deps = getattr(link, '_depends', ())
+            depends.extend(deps(model) if callable(deps) else deps)
+            depends_context.extend(getattr(link, '_depends_context', ()))
 
     return depends, depends_context
 

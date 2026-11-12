@@ -1,7 +1,8 @@
 """``account.payment.method.line`` — lo que ``account_payment`` le cuelga
 (≙ ``_inherit``).
 
-Adaptación de ``odoo19c: account_payment/models/account_payment_method_line.py``
+Adaptación de
+``odoo19c: account_payment/models/account_payment_method_line.py``
 (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``, LGPL-3, 86 líneas)
 — atribución y aviso de licencia preservados (DEC-KX-03).
 
@@ -10,15 +11,17 @@ Adaptación de ``odoo19c: account_payment/models/account_payment_method_line.py`
 Portado
 ========
 
-===================================  ==================================================
-Símbolo de la referencia              Aquí
-===================================  ==================================================
-``payment_provider_id``               propiedad ``payment_provider`` (get/set), vía
-                                       ``AccountPaymentMethodLineProvider``
-``payment_provider_state``            propiedad ``payment_provider_state``
-``_compute_name``                     override (patrón captura-y-llama, ver abajo)
-``_unlink_except_active_provider``    receptor ``pre_delete``
-===================================  ==================================================
+==================================  ======================================
+Símbolo de la referencia            Aquí
+==================================  ======================================
+``payment_provider_id``             propiedad ``payment_provider``
+                                    (get/set), vía
+                                    ``AccountPaymentMethodLineProvider``
+``payment_provider_state``          propiedad ``payment_provider_state``
+``_compute_name``                   ``wrap_method`` (la base primero, ver
+                                    abajo)
+``_unlink_except_active_provider``  receptor ``pre_delete``
+==================================  ======================================
 
 Divergencia en ``payment_provider_state``: la referencia es
 ``related='payment_provider_id.state'`` (``enabled``/``test``/``disabled``,
@@ -29,20 +32,23 @@ no tiene contraparte (``PaymentGateway`` no distingue sandbox por fila, el
 propio gateway ``TEST`` ES el sandbox — ver ``models/account_payment_
 method.py``).
 
-``_compute_name`` usa el patrón de captura-y-llama (no ``chain_method``)
-------------------------------------------------------------------------
+``_compute_name`` se instala con ``wrap_method``
+------------------------------------------------
 
-La referencia hace ``super()._compute_name()`` PRIMERO, luego aplica su
-propia lógica encima. ``chain_method`` con relevo por ``None`` NO sirve
-aquí: ``_compute_name`` es un mutador de efecto (no devuelve nada, siempre
-``None``), así que el relevo por ``None`` SIEMPRE delegaría a la cadena
-previa además de ejecutar la propia — lo cual da el orden correcto por
-casualidad en este caso (ambas corren), pero invertido: la propia correría
-ANTES que la base, cuando la referencia exige lo contrario (``super()``
-primero). Se usa el mismo patrón manual que
-``account_debit_note/models/account_move_sequence.py``: capturar la
-implementación base como variable de módulo al importar, y la nueva versión
-la llama explícitamente primero.
+La referencia hace ``super()._compute_name()`` PRIMERO y luego aplica su
+lógica encima. ``wrap_method`` es ese ``super()``: la extensión recibe la
+implementación previa ligada y la llama antes de su cuerpo. Además deja la
+previa enlazada en ``_chain_previous``, y ``Field.get_depends`` recorre ese
+enlace: el campo conserva el ``@api.depends('payment_method.name')`` de la
+base. El patrón anterior —capturar la base en una variable de módulo y
+sustituir el atributo con ``setattr``— no dejaba enlace, y el campo quedaba
+sin ninguna dependencia (``registry.field_depends[name] == ()``).
+
+La dependencia propia de la referencia, ``payment_provider_id.name``, no se
+declara: aquí ``payment_provider`` es una ``property`` sobre el vínculo
+``AccountPaymentMethodLineProvider``, no un campo, y el grafo no puede
+recorrerla. // pendiente: declararla cuando ``payment_provider_id`` se porte
+como ``Many2one`` (sucesor en el plan, ``orm-extension-depends-merge-0485``).
 
 No portado (declarado, no improvisado)
 =========================================
@@ -62,15 +68,10 @@ No portado (declarado, no improvisado)
 from addons.account.models.account_payment_method import AccountPaymentMethodLine
 from addons.account_payment.models.links import AccountPaymentMethodLineProvider
 from exceptions import UserError
+from orm.method_chain import wrap_method
 from tools.translate import _
 from django.db.models.signals import pre_delete
 from django.dispatch import receiver
-
-#: Implementación base, capturada UNA vez al importar este módulo — el
-#: equivalente funcional de ``super()._compute_name()`` (ver el docstring
-#: de arriba). ``sys.modules`` cachea el import, así que una segunda
-#: llamada a ``apply_account_payment_extensions()`` no re-captura.
-_base_compute_name = AccountPaymentMethodLine._compute_name
 
 
 def _get_link(method_line):
@@ -123,12 +124,12 @@ def _get_payment_provider_state(self):
     return 'enabled' if provider.is_active else 'disabled'
 
 
-# -- _compute_name (captura-y-llama, no chain_method) -------------------------
+# -- _compute_name (wrap_method: la base primero) -----------------------------
 
-def _compute_name(self):
+def _compute_name(self, previous):
     """≙ ``odoo19c: account_payment/models/account_payment_method_line.py:
     21-26``: nombre del método si aún vacío tras la base."""
-    _base_compute_name(self)
+    previous()
     provider = _get_payment_provider(self)
     if provider is not None and not self.name:
         self.name = provider.name
@@ -164,4 +165,4 @@ def apply_account_payment_extensions():
         AccountPaymentMethodLine.payment_provider_state = property(
             _get_payment_provider_state)
 
-    AccountPaymentMethodLine._compute_name = _compute_name
+    wrap_method(AccountPaymentMethodLine, '_compute_name', _compute_name)
