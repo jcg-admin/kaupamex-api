@@ -51,3 +51,44 @@ se pueden hacer con lo que ya existe.
 *Métrica:* `grep` de cada símbolo en `addons/` y `src/`, sin pruebas.
 *Ciega a:* que un símbolo presente tenga el comportamiento de la fuente;
 eso lo deciden las pruebas de cada paso.
+
+## `display_cost` y su inverso: dependencias medidas (2026-11-12)
+
+La fuente (`addons/sale_timesheet/models/project_sale_line_employee_map.py`,
+odoo-tools `abe4040ec1`) declara `display_cost` como Monetary **no
+almacenado** con `compute`/`inverse`, `@api.depends('cost',
+'employee_id.resource_calendar_id')` y `@api.depends_context('company')`. La
+conversión a costo diario depende de
+`env.ref('uom.product_uom_day') == env.company.timesheet_encode_uom_id` y de
+`resource.calendar.hours_per_day` leído con `_read_group`.
+
+| Dependencia | Estado en el árbol | Fuente de verdad |
+|---|---|---|
+| `hr.employee.resource_calendar_id` | **existe** (el docstring del puerto dice que no: estado heredado incorrecto) | registro de modelos, medido |
+| `res.company.timesheet_encode_uom_id` | existe (`addons/hr_timesheet/models/res_company.py`) | ídem |
+| `resource.calendar.hours_per_day` | **property**, no columna; la fuente lo declara `store=True, compute='_compute_hours_per_day', readonly=False` (`resource/models/resource_calendar.py:102`) | `_read_group` sobre él no es posible |
+| `uom.product_uom_day` | **ausente**: el manifiesto de `uom` no declara `data` y `uom_data.xml` (31 registros) no está portado; `env.ref` no lo resuelve | `addons/uom/__manifest__.py` |
+
+Consecuencia: el porte fiel de `display_cost` exige antes dos piezas de
+otros addons, las dos del contrato de la fuente:
+
+1. **`uom_data.xml`** (LGPL-3, copia y adaptación): los campos de sus
+   registros (`name`, `relative_factor`, `relative_uom_id`, `active`)
+   coinciden con `uom.Uom`, `decimal.precision` existe en `base`, y el
+   cargador ya procesa `data` de un manifiesto (`src/modules/loading.py:90`,
+   usado por `hr` y `hr_skills`). Cierra también el default de
+   `timesheet_encode_uom_id`, que hoy busca `name='Hours'` y resuelve `None`.
+2. **`resource.calendar.hours_per_day`** como calculado almacenado editable.
+
+Sin la primera, un `env.ref('uom.product_uom_day')` con su
+`raise_if_not_found=True` de la fuente rompería toda lectura de
+`display_cost`; con `False` compararía `None == None` cuando la compañía no
+tiene unidad y tomaría la rama de días. Ninguna de las dos es el contrato.
+
+Orden: `uom_data.xml` → `hours_per_day` → `display_cost`/`_inverse_display_cost`
+→ `existing_employee_ids` (Many2many calculado sobre
+`project.sale_line_employee_ids.employee_id`).
+
+*Métrica:* registro de modelos tras `django.setup()` y lectura de la fuente.
+*Ciega a:* el comportamiento de `convert_file` con `noupdate="1"` y
+`forcecreate`, que se mide al portar el XML.
