@@ -1,0 +1,355 @@
+bringing up nodes...
+bringing up nodes...
+
+........................................................................ [  0%]
+...sssssssss.sssssssss..ssssssss........................................ [  1%]
+........................................................................ [  1%]
+........................................................................ [  2%]
+........................................................................ [  2%]
+........................................................................ [  3%]
+........................................................................ [  3%]
+........................................................................ [  4%]
+........................................................................ [  4%]
+........................................................................ [  5%]
+........................................................................ [  5%]
+........................................................................ [  6%]
+........................................................................ [  7%]
+........................................................................ [  7%]
+........................................................................ [  8%]
+........................................................................ [  8%]
+........................................................................ [  9%]
+........................................................................ [  9%]
+........................................................................ [ 10%]
+........................................................................ [ 10%]
+........................................................................ [ 11%]
+........................................................................ [ 11%]
+........................................................................ [ 12%]
+........................................................................ [ 13%]
+........................................................................ [ 13%]
+........................................................................ [ 14%]
+........................................................................ [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 15%]
+........................................................................ [ 16%]
+........................................................................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 17%]
+..........................xx............................................ [ 18%]
+........................................................................ [ 18%]
+........................................................................ [ 19%]
+..............................................x.x.xx.................... [ 20%]
+........................................................................ [ 20%]
+........................................................................ [ 21%]
+........................................................................ [ 21%]
+........................................................................ [ 22%]
+........................................................................ [ 22%]
+........................................................................ [ 23%]
+........................................................................ [ 23%]
+........................................................................ [ 24%]
+........................................................................ [ 24%]
+........................................................................ [ 25%]
+........................................................................ [ 25%]
+........................................................................ [ 26%]
+........................................................................ [ 27%]
+........................................................................ [ 27%]
+........................................................................ [ 28%]
+........................................................................ [ 28%]
+........................................................................ [ 29%]
+........................................................................ [ 29%]
+........................................................................ [ 30%]
+......................................................................... [ 30%]
+........................................................................ [ 31%]
+........................................................................ [ 31%]
+........................................................................ [ 32%]
+........................................................................ [ 33%]
+........................................................................ [ 33%]
+........................................................................ [ 34%]
+........................................................................ [ 34%]
+........................................................................ [ 35%]
+........................................................................ [ 35%]
+................................................................s....... [ 36%]
+....ssssss..ssssssssss.................................................. [ 36%]
+........................................................................ [ 37%]
+........................................................................ [ 37%]
+........................................................................ [ 38%]
+........................................................................ [ 39%]
+.......x..........x..................................................... [ 39%]
+......................................................................... [ 40%]
+........................................................................ [ 40%]
+........................................................................ [ 41%]
+........................................................................ [ 41%]
+........................................................................ [ 42%]
+........................................................................ [ 42%]
+........................................................................ [ 43%]
+........................................................................ [ 43%]
+........................................................................ [ 44%]
+........................................................................ [ 44%]
+........................................................................ [ 45%]
+........................................................................ [ 46%]
+......................................................................... [ 46%]
+......................................................................... [ 47%]
+........................................................................ [ 47%]
+........................................................................ [ 48%]
+........................................................................ [ 48%]
+........................................................................ [ 49%]
+...................EEEEEEEEEEEEE.E...................................... [ 49%]
+........................................................................ [ 50%]
+........................................................................ [ 50%]
+........................................................................ [ 51%]
+......................................................................... [ 52%]
+........................................................................ [ 52%]
+........................................................................ [ 53%]
+........................................................................ [ 53%]
+........................................................................ [ 54%]
+........................................................................ [ 54%]
+........................................................................ [ 55%]
+........................................................................ [ 55%]
+........................................................................ [ 56%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 57%]
+........................................................................ [ 58%]
+........................................................................ [ 59%]
+........................................................................ [ 59%]
+........................................................................ [ 60%]
+.........................................ssssssssssssssss..........sssss [ 60%]
+s....................................................................... [ 61%]
+........................................................................ [ 61%]
+........................................................................ [ 62%]
+........................................................................ [ 62%]
+........................................................................ [ 63%]
+........................................................................ [ 63%]
+........................................................................ [ 64%]
+........................................................................ [ 65%]
+........................................................................ [ 65%]
+........................................................................ [ 66%]
+........................................................................ [ 66%]
+........................................................................ [ 67%]
+........................................................................ [ 67%]
+.............................x.xxxxxx...x.x.xx.xxxxx.xxxxx...xxxxxxxx.xx [ 68%]
+x..x...xx.xx.x...x.x.....xx..x..x......xx.x..x....x.x..x..x...x...x..... [ 68%]
+......xxxx..x...x...x..xxxxx.xxxxxx.x...xx.x.x.xx....................... [ 69%]
+........................................................................ [ 69%]
+........................................................................ [ 70%]
+........................................................................ [ 70%]
+........................................................................ [ 71%]
+........................................................................ [ 72%]
+........................................................................ [ 72%]
+........................................................................ [ 73%]
+........................................................................ [ 73%]
+........................................................................ [ 74%]
+........................................................................ [ 74%]
+........................................................................ [ 75%]
+........................................................................ [ 75%]
+........................................................................ [ 76%]
+........................................................................ [ 76%]
+........................................................................ [ 77%]
+........................................................................ [ 78%]
+........................................................................ [ 78%]
+........................................................................ [ 79%]
+........................................................................ [ 79%]
+........................................................................ [ 80%]
+........................................................................ [ 80%]
+........................................................................ [ 81%]
+...............................................F........................ [ 81%]
+........................................................................ [ 82%]
+........................................................................ [ 82%]
+........................................................................ [ 83%]
+........................................................................ [ 83%]
+........................................................................ [ 84%]
+........................................................................ [ 85%]
+........................................................................ [ 85%]
+........................................................................ [ 86%]
+........................................................................ [ 86%]
+........................................................................ [ 87%]
+........................................................................ [ 87%]
+........................................................................ [ 88%]
+........................................................................ [ 88%]
+........................................................................ [ 89%]
+........................................................................ [ 89%]
+........................................................................ [ 90%]
+........................................................................ [ 91%]
+........................................................................ [ 91%]
+........................................................................ [ 92%]
+........................................................................ [ 92%]
+........................................................................ [ 93%]
+........................................................................ [ 93%]
+........................................................................ [ 94%]
+........................................................................ [ 94%]
+........................................................................ [ 95%]
+........................................................................ [ 95%]
+........................................................................ [ 96%]
+............................................................Exception ignored in: <function Transport.__del__ at 0x7fce58290040>
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/zeep/transports.py", line 170, in __del__
+    self.session.close()
+AttributeError: 'object' object has no attribute 'close'
+Exception ignored in: <function Transport.__del__ at 0x7fce58290040>
+Traceback (most recent call last):
+  File "/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/zeep/transports.py", line 170, in __del__
+    self.session.close()
+AttributeError: 'object' object has no attribute 'close'
+............ [ 96%]
+........................................................................ [ 97%]
+........................................................................ [ 98%]
+........................................................................ [ 98%]
+........................................................................ [ 99%]
+........................................................................ [ 99%]
+.......................................                                  [100%]
+==================================== ERRORS ====================================
+_ ERROR at setup of TestN1DegenerationRealWrite.test_domain_write_without_any_company_alias_lands_in_default _
+[gw0] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:70: in isolation_database_access
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_ ERROR at setup of TestCrossCompanyIsolationByBase.test_write_under_company_scope_lands_in_its_own_base _
+[gw0] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_ ERROR at setup of TestCrossCompanyIsolationByBase.test_rows_from_company_a_not_visible_under_company_b_scope _
+[gw0] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_ ERROR at setup of TestSol085RowScopingIntraBase.test_row_scoping_filters_by_row_and_fk_resolves_intra_base _
+[gw0] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+________ ERROR at setup of test_company_schemas_and_native_connections _________
+[gw0] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+__ ERROR at setup of test_init_creates_the_view_only_in_the_selected_database __
+[gw0] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+________ ERROR at setup of test_paperformat_xml_ids_exist_in_every_base ________
+[gw0] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+______ ERROR at setup of test_company_init_writes_only_the_selected_base _______
+[gw0] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_____ ERROR at setup of test_company_init_ignores_the_active_company_scope _____
+[gw0] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_ ERROR at setup of test_company_init_without_the_xml_id_assigns_nothing_and_rolls_back _
+[gw0] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_____ ERROR at setup of test_users_init_encrypts_only_in_the_selected_base _____
+[gw0] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+___ ERROR at setup of test_init_models_runs_both_inits_in_the_selected_base ____
+[gw0] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_ ERROR at setup of TestStoredComputesStayInTheirBase.test_django_creations_compute_in_their_own_base _
+[gw0] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+_ ERROR at setup of TestStoredComputesStayInTheirBase.test_orm_creations_compute_in_their_own_base _
+[gw0] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+tests/integration/company/test_multidb_isolation.py:78: in two_company_databases
+    _require_disposable_default()
+tests/integration/company/test_multidb_isolation.py:38: in _require_disposable_default
+    raise RuntimeError('Isolation fixture requires an explicitly owned disposable default')
+E   RuntimeError: Isolation fixture requires an explicitly owned disposable default
+=================================== FAILURES ===================================
+___________________ test_first_and_second_reads_compute_once ___________________
+[gw3] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+src/orm/registry.py:1856: in __new__
+    return cls.registries[db_name]
+src/tools/lru.py:74: in __getitem__
+    val = self._values[key]
+E   KeyError: 'default'
+
+During handling of the above exception, another exception occurred:
+tests/unit/orm/test_res_groups_compute_contract.py:34: in test_first_and_second_reads_compute_once
+    assert group.full_name == 'Operations'
+src/orm/fields.py:5370: in operate
+    return method(self, instance, *args, **kwargs)
+src/orm/fields.py:1637: in __get__
+    field_cache = field._get_cache(environment)
+src/orm/fields.py:4918: in _get_cache
+    context_key = env.cache_key(self) if _has_context_buckets(self) else None
+src/orm/environments.py:1570: in cache_key
+    for name in self.registry.field_depends_context[field]:
+src/orm/environments.py:1198: in registry
+    return registry.Registry(self.db_alias)
+src/orm/registry.py:1858: in __new__
+    return cls.new(db_name)
+src/tools/func.py:191: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1919: in new
+    with registry.cursor() as cr, orm.environments.Environment(
+tests/conftest.py:643: in <lambda>
+    lambda self, readonly=False: TestCursor(self._alias(), readonly))
+tests/cursor_support.py:68: in __init__
+    self._obj = self._cnx.cursor()
+.venv/lib/python3.13/site-packages/django/utils/asyncio.py:26: in inner
+    return func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/db/backends/base/base.py:320: in cursor
+    return self._cursor()
+.venv/lib/python3.13/site-packages/django/db/backends/base/base.py:296: in _cursor
+    self.ensure_connection()
+E   RuntimeError: Database access not allowed, use the "django_db" mark, or the "db" or "transactional_db" fixtures to enable it.
+referencia: 39 de 314 pruebas marcadas se omitieron (el árbol está en /home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0; los motivos, con -rs); sus contratos NO se verificaron en esta ejecución
+=========================== short test summary info ============================
+FAILED tests/unit/orm/test_res_groups_compute_contract.py::test_first_and_second_reads_compute_once
+ERROR tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default
+ERROR tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_write_under_company_scope_lands_in_its_own_base
+ERROR tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_rows_from_company_a_not_visible_under_company_b_scope
+ERROR tests/integration/company/test_multidb_isolation.py::TestSol085RowScopingIntraBase::test_row_scoping_filters_by_row_and_fk_resolves_intra_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_schemas_and_native_connections
+ERROR tests/integration/company/test_multidb_isolation.py::test_init_creates_the_view_only_in_the_selected_database
+ERROR tests/integration/company/test_multidb_isolation.py::test_paperformat_xml_ids_exist_in_every_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_init_writes_only_the_selected_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_init_ignores_the_active_company_scope
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_init_without_the_xml_id_assigns_nothing_and_rolls_back
+ERROR tests/integration/company/test_multidb_isolation.py::test_users_init_encrypts_only_in_the_selected_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_init_models_runs_both_inits_in_the_selected_base
+ERROR tests/integration/company/test_multidb_isolation.py::TestStoredComputesStayInTheirBase::test_django_creations_compute_in_their_own_base
+ERROR tests/integration/company/test_multidb_isolation.py::TestStoredComputesStayInTheirBase::test_orm_creations_compute_in_their_own_base
+1 failed, 13125 passed, 66 skipped, 87 xfailed, 14 errors in 813.00s (0:13:33)
+EXIT=1

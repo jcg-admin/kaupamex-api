@@ -62,3 +62,101 @@ comentario. La unicidad de `decimal.precision.name` la sigue verificando el
 mismo archivo (`decimal_precision_name_uniq` y el `IntegrityError` de las
 líneas 146-150). Los datos de referencia (`addons/uom/data/uom_data.xml`) no
 se tocaron.
+
+## Corrección medida 2026-11-12T13:37:56 (UTC): sí hay lectura cruzada
+
+El párrafo «Las entradas de `ormcache` llevan el alias en la clave … no hay
+lectura cruzada» es **falso** para la mayoría de los métodos. Censo por AST de
+los decoradores `ormcache`/`ormcache_context` de `src/` y `addons/`
+(`outputs/ormcache-key-census.tsv`): **15** métodos, **4** con el alias en la
+clave (`_get_param`, `_get_model_defaults`, `_xmlid_lookup`,
+`_get_definition_id_for_property_field`) y **11** sin él. La clave que arma
+`ormcache.determine_key` es `(receptor._name, method, *args)`, igual que la
+fuente; la fuente no necesita el alias porque el **contenedor** es del
+registro de la base (`model.pool._Registry__caches`,
+`odoo19c: odoo/tools/cache.py:101,127`). Aquí el contenedor es del proceso,
+así que dos bases comparten la entrada:
+
+| Método sin alias | Qué devolvería a la otra base |
+|---|---|
+| `IrModel._get_id`, `_get_ids` | ids de `ir.model` de la primera base que los pidió |
+| `IrRule._compute_domain` | el dominio de reglas de registro calculado con los grupos de la otra base: **es de seguridad** |
+| `IrModelAccess._get_access_groups`, `_allowed_models_for_groups` | los grupos con acceso de la otra base |
+| `DecimalPrecision.precision_get` | la precisión configurada en la otra base |
+| `ResLang._get_active_by`, `ResGroups._get_group_definitions`/`_get_view_group_hierarchy`, `IrDefault._get_field_column_fallbacks`, `ResCompany._get_zeep_cache__` | datos de la otra base |
+
+*Métrica:* decoradores `ormcache` por AST y si alguno de sus argumentos de
+clave nombra `using`/`alias`/`db`. *Ciega a:* una clave que lleve la base
+por otro nombre (p. ej. un id de compañía que en la práctica identifica la
+base) y a cachés manuales fuera del decorador.
+
+Por eso la unidad no se resuelve añadiendo `using` a 11 claves —eso sería
+apartarse de la fuente método por método— sino con el contenedor por registro,
+que es la forma de la fuente:
+
+1. `Registry.__init__` crea `self._caches = {nombre: LRU(tamaño)}` y
+   `self._invalidation_flags`; `cache_invalidated` lee
+   `self._invalidation_flags.cache` (`registry.py:233,282,1026-1033`).
+2. `Registry.clear_cache`/`clear_all_caches` vacían **sus** contenedores y
+   anotan en **su** registro de invalidación (`:970-1001`); `load`,
+   `_setup_models__`, `check_signaling` y `reset_changes` usan
+   `self._caches`.
+3. `ormcache.lookup`/`add_value` resuelven el registro del receptor:
+   `receptor.env.registry` si es un recordset, si no el del entorno activo
+   (`orm.environments.env().registry`) — los receptores `classmethod` no
+   llevan entorno propio.
+4. Las funciones de módulo `cache_of`/`clear_cache`/`clear_all_caches`
+   delegan en el registro del entorno activo; `cache_invalidated_names` y
+   `reset_invalidation_record` se retiran y sus 7 consumidores leen la
+   instancia.
+
+## Pruebas, escritas antes (RED)
+
+- lectura: una entrada sembrada bajo el registro de `default` **no** se
+  sirve bajo el registro de otro alias (el segundo `lookup` es un fallo de
+  caché y ejecuta el método);
+- invalidación: `clear_cache('default')` bajo un alias no vacía el
+  contenedor ni anota en el registro del otro;
+- señalización: `signal_changes` de un registro sólo inserta lo que **ese**
+  registro invalidó;
+- §4 de la instrucción: reasignación de xml-id (`created != written`),
+  `ref` tras reasignar, idempotencia de la recarga y rollback de la
+  reasignación sin caché sembrada con el destino deshecho.
+
+## Precondición medida 2026-11-12T13:41:51 (UTC): el registro se pide por la base, no por el cursor
+
+`Environment.registry` devuelve `registry.Registry(self.db_alias)`
+(`src/orm/environments.py:1188-1199`), y desde `663aac8b` el alias de un
+`sql_db.Cursor` es efímero: `<alias>__cursor_<n>` (`src/sql_db.py:200`).
+Un entorno sobre el cursor de una unidad de trabajo —el de cada trabajo del
+cron, el de `Registry.new`— pide entonces `Registry('default__cursor_7')`,
+que no está en `Registry.registries` y se **construye** con
+`Registry.new`: un registro por cursor, en un LRU de 42 entradas que puede
+desalojar al de la base. En la fuente la clave es `cr.dbname`
+(`odoo19c: odoo/orm/environments.py:72`: la transacción nace con
+`Transaction(Registry(cr.dbname))` y el entorno lee `transaction.registry`),
+que es la base y no la conexión.
+
+Con cachés por registro esto deja de ser sólo coste: un `clear_cache` hecho
+dentro de un trabajo del cron caería en el registro del cursor y el de la base
+seguiría sirviendo lo invalidado. Por eso la unidad lo corrige primero:
+
+- `sql_db` recuerda el alias de origen de cada cursor efímero y
+  `origin_alias(alias)` lo devuelve (el propio alias si no es efímero);
+- `registry.registry_for_alias(alias)` resuelve el registro por el origen;
+  `Environment.registry` y `registry_of` lo usan.
+
+RED: un entorno sobre el cursor real de `Registry('default').cursor()` tiene
+`env.registry is Registry('default')`.
+
+## Frontera abierta: nadie señaliza ni deshace
+
+En este árbol ningún llamador ejecuta `Registry.signal_changes()` ni
+`reset_changes()` (sólo el `manage_changes` deprecado). En la fuente los
+llaman el ciclo de `retrying`/`execute_cr`
+(`odoo/service/model.py:134-136,197,235-240`), el despacho HTTP y `load`
+(`odoo/orm/models.py:1061-1063`, *"cancel all changes done to the
+registry/ormcache"*). Sin ellos la invalidación anotada no llega a los demás
+procesos y un rollback no la deshace. Esta unidad porta el de `load`, que vive
+en el ORM; el del ciclo de petición (middleware de Django, comando de
+gestión, cron) es una unidad propia: `registry-signaling-lifecycle-0485`.

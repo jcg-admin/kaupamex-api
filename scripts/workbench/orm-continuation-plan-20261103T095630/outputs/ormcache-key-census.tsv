@@ -1,0 +1,16 @@
+archivo	linea	funcion	args_de_clave	lleva_alias
+src/addons/base/models/decimal_precision.py	69	precision_get	application	no
+src/addons/base/models/ir_config_parameter.py	163	_get_param	key,using	si
+src/addons/base/models/ir_default.py	416	_get_model_defaults	model_name,condition,user_id,company_id,using	si
+src/addons/base/models/ir_default.py	558	_get_field_column_fallbacks	model_name,field_name	no
+src/addons/base/models/ir_model.py	736	_get_id	name	no
+src/addons/base/models/ir_model.py	1315	_get_ids	model_name	no
+src/addons/base/models/ir_model.py	2727	_allowed_models_for_groups	group_ids,access_mode	no
+src/addons/base/models/ir_model.py	2833	_get_access_groups	model_name,access_mode	no
+src/addons/base/models/ir_model.py	3065	_xmlid_lookup	xmlid,using	si
+src/addons/base/models/ir_rule.py	453	_compute_domain	model_name,mode,tuple(group_ids),user.pk if user is not None else None,tuple(cls._compute_domain_context_values())	no
+src/addons/base/models/properties_base_definition.py	283	_get_definition_id_for_property_field	model_name,field_name,using	si
+src/addons/base/models/res_company.py	1050	_get_zeep_cache__	self.id	no
+src/addons/base/models/res_groups.py	618	_get_view_group_hierarchy		no
+src/addons/base/models/res_groups.py	805	_get_group_definitions		no
+src/addons/base/models/res_lang.py	230	_get_active_by	field	no

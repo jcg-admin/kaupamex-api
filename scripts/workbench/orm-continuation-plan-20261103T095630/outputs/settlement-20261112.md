@@ -58,3 +58,21 @@ RED: `test_ir_cron_job_cursor` vuelca con `write_uid` 1 en lugar del usuario
 del trabajo. GREEN tras portar `_run_job` con `job_cr` por trabajo. La
 anulación (conexión compartida sin COMMIT propio) tumba exactamente esa
 prueba. Suite completa en curso sobre la instantánea `fullgate-cron`.
+
+## Unidad del cron con cursor por trabajo — integrada
+
+Commit `7f56d1dd` (con `852b7a69`, volcado al almacén de la fila). Suite
+integral `full-flush-store-1c4f41f2`: 13 124 passed, 0 failed, 14 errors
+multidb. ci-multidb `5dc2e8c1`: **NO CONFORME** (13 passed, 1 failed) — se
+conserva así; su fallo lo corrige la unidad siguiente.
+
+## Unidades `base_automation` por base y `Registry.new` en su cursor (2026-11-12T13:55:07)
+
+| Campo | `base_automation` | `Registry.new` |
+|---|---|---|
+| Contrato | reglas en el entorno del registro escrito | `load_modules`: `with registry.cursor() as cr` + `Environment(cr, SUPERUSER_ID, {})` (`odoo/modules/loading.py:588-595`) |
+| RED | `test_automation_signals_use_record_database` (`CompanyContextRequired`, el fallo de ci-multidb `5dc2e8c1`) | `test_registry_new_flushes_its_own_cursor` |
+| Suite integral | `full-automation2-d9b37dc1` **fallo** (1: registro `default` desalojado por fixtures) → `full-automation3-d9b37dc1` verde: 13 126 passed, 0 failed, 14 errors multidb | idem |
+| Commit | `3fa51e36` | `a90cc34f` |
+| Diferencia con la instantánea | ninguna | `tests/unit/orm/test_registry_load_axis.py`: claves `'clave'`→`'key'` y dos firmas envueltas, exigidas por los gates de idioma y de admisión al commitear; sin cambio de lógica. Archivo ejecutado aparte: 26 passed (`load-axis-after-key.log`) |
+| Multidb | pendiente: ci-multidb sobre la revisión publicada | idem |
