@@ -641,3 +641,31 @@ def _test_mode_registry_cursor(monkeypatch):
     monkeypatch.setattr(
         Registry, 'cursor',
         lambda self, readonly=False: TestCursor(self._alias(), readonly))
+
+
+@contextmanager
+def preserved_registries():
+    """Vacía ``Registry.registries`` durante el bloque y lo restaura después.
+
+    Las pruebas del ciclo de vida del registro parten del mapa vacío. Sin
+    restaurarlo, la prueba siguiente del mismo worker reconstruía el registro
+    de ``default`` —con su volcado en un cursor propio, como
+    ``load_modules`` de la fuente—, aunque no tuviera acceso a la base.
+    """
+    saved = {name: Registry.registries[name]
+             for name in list(Registry.registries)}
+    Registry.delete_all()
+    try:
+        yield
+    finally:
+        Registry.delete_all()
+        for name, registry in saved.items():
+            Registry.registries[name] = registry
+
+
+@pytest.fixture
+def registries_preserved():
+    """:func:`preserved_registries` como fixture, para los módulos de prueba
+    que no lo importan."""
+    with preserved_registries():
+        yield

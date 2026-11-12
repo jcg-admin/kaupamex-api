@@ -1907,8 +1907,21 @@ class Registry(Mapping):
         # ≙ STEP 9 de ``load_modules`` (``odoo19c: odoo/modules/loading.py:
         # 588-595``): los ganchos se instalan una sola vez, con el registro
         # todavía sin ``ready``, así que ``_setup_models__`` no los toca.
-        _call_hooks(registry, '_register_hook')
-        orm.environments.env().flush_all()
+        #
+        # El volcado es el del entorno de SU cursor (``load_modules`` abre
+        # ``with registry.cursor() as cr`` y ``Environment(cr, SUPERUSER_ID,
+        # {})``): con el entorno activo se volcaban las marcas pendientes de
+        # quien pidió el registro. Un registro de metadatos sobre un nombre
+        # sin conexión declarada no tiene cursor ni nada propio que volcar.
+        alias = registry._alias()
+        if (db_name == alias or connections[alias].settings_dict.get('NAME')
+                == db_name):
+            with registry.cursor() as cr, orm.environments.Environment(
+                    cr.alias, SUPERUSER_ID, {}):
+                _call_hooks(registry, '_register_hook')
+                orm.environments.env().flush_all()
+        else:
+            _call_hooks(registry, '_register_hook')
         registry._init = False
         registry.ready = True
         _logger.debug("Registry loaded in %.3fs", time.time() - t0)

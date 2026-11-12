@@ -29,14 +29,13 @@ from django.apps import apps
 from django.db import connection
 
 from orm.registry import Registry
+from tests.conftest import preserved_registries
 
 
 @pytest.fixture
 def registry(db):
-    Registry.delete_all()
-    built = Registry('default')
-    yield built
-    Registry.delete_all()
+    with preserved_registries():
+        yield Registry('default')
 
 
 @pytest.fixture

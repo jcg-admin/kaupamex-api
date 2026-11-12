@@ -24,6 +24,7 @@ from collections.abc import Mapping
 import pytest
 
 from orm.registry import DummyRLock, Registry
+from tests.conftest import preserved_registries
 
 
 class _Model:
@@ -37,10 +38,9 @@ class _Model:
 
 @pytest.fixture(autouse=True)
 def clean_registries():
-    """Cada caso arranca con el mapa vacio y lo deja vacio."""
-    Registry.delete_all()
-    yield
-    Registry.delete_all()
+    """Cada caso arranca con el mapa vacio y deja el de antes."""
+    with preserved_registries():
+        yield
 
 
 class TestSingletonPerDatabase:

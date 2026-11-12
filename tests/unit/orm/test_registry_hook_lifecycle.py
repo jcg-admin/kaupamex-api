@@ -22,6 +22,7 @@ import pytest
 from orm.environments import Environment
 from orm.models import BaseModel
 from orm.registry import Registry
+from tests.conftest import preserved_registries
 
 NAME = 'hooks'
 
@@ -43,9 +44,8 @@ def calls(monkeypatch):
                         recorder('unregister'))
     monkeypatch.setattr(Environment, 'flush_all',
                         lambda self: seen.append(('flush', None, True, None)))
-    Registry.delete_all()
-    yield seen
-    Registry.delete_all()
+    with preserved_registries():
+        yield seen
 
 
 def _hook_calls(calls):
@@ -66,7 +66,9 @@ def test_loading_registers_each_model_once_before_ready(calls):
     assert {call[0] for call in hooks} == {'register'}
     assert all(call[2] for call in hooks)
     assert {call[3] for call in hooks} == {False}
-    assert calls[-1][0] == 'flush'
+    # ``hooks`` no nombra ninguna conexión: el registro no tiene cursor ni
+    # nada propio que volcar, y el entorno de quien lo pide no es suyo.
+    assert 'flush' not in {call[0] for call in calls}
 
 
 def test_setup_on_a_ready_registry_unregisters_then_registers(calls):

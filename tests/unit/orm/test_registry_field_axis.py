@@ -37,15 +37,14 @@ from orm.registry import (
     field_depends,
     field_inverses,
 )
+from tests.conftest import preserved_registries
 
 
 @pytest.fixture
 def registry():
     """Un registro construido, con su mapa de proceso intacto."""
-    Registry.delete_all()
-    built = Registry('alfa')
-    yield built
-    Registry.delete_all()
+    with preserved_registries():
+        yield Registry('alfa')
 
 
 @pytest.fixture

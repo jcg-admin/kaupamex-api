@@ -41,18 +41,18 @@ from orm.registry import (
     clear_cache,
     signaling_table_names,
 )
+from tests.conftest import preserved_registries
 
 
 @pytest.fixture
 def registry(db):
-    Registry.delete_all()
-    built = Registry('default')
-    built.cache_invalidated.clear()
-    built.registry_invalidated = False
-    yield built
-    built.cache_invalidated.clear()
-    built.registry_invalidated = False
-    Registry.delete_all()
+    with preserved_registries():
+        built = Registry('default')
+        built.cache_invalidated.clear()
+        built.registry_invalidated = False
+        yield built
+        built.cache_invalidated.clear()
+        built.registry_invalidated = False
 
 
 @pytest.fixture

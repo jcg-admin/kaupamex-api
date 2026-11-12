@@ -17,6 +17,7 @@ import pytest
 from django.db import connection
 
 from orm.registry import Registry
+from tests.conftest import preserved_registries
 from tools import sql
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]
@@ -24,10 +25,8 @@ pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 
 @pytest.fixture
 def registry(db):
-    Registry.delete_all()
-    built = Registry('default')
-    yield built
-    Registry.delete_all()
+    with preserved_registries():
+        yield Registry('default')
 
 
 @pytest.fixture

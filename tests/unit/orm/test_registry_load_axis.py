@@ -34,11 +34,8 @@ from orm.registry import Registry
 
 
 @pytest.fixture
-def registry(db):
-    Registry.delete_all()
-    built = Registry('default')
-    yield built
-    Registry.delete_all()
+def registry(db, registries_preserved):
+    yield Registry('default')
 
 
 class TestTheInvalidationFlags:
@@ -113,37 +110,38 @@ class TestPostConstraint:
 
     def test_a_working_constraint_runs_now(self, registry, db):
         seen = []
-        registry.post_constraint(None, lambda cr: seen.append('ran'), 'clave')
+        registry.post_constraint(None, lambda cr: seen.append('ran'), 'key')
         assert seen == ['ran']
         assert registry._constraint_queue == {}
 
-    def test_a_failing_constraint_is_queued_not_raised(self, registry, db, caplog):
+    def test_a_failing_constraint_is_queued_not_raised(
+            self, registry, db, caplog):
         """El control: la fuente atrapa; dejar propagar rompe la instalacion."""
         caplog.set_level(logging.INFO, logger='kaupamex.schema')
 
         def boom(cr):
             raise RuntimeError('la restriccion no aplica todavia')
 
-        registry.post_constraint(None, boom, 'clave')
-        assert 'clave' in registry._constraint_queue
+        registry.post_constraint(None, boom, 'key')
+        assert 'key' in registry._constraint_queue
 
     def test_an_already_queued_key_is_only_replaced(self, registry, db):
         """La fuente no la vuelve a aplicar: ya esta marcada como pendiente."""
         seen = []
-        registry._constraint_queue['clave'] = lambda cr: None
-        registry.post_constraint(None, lambda cr: seen.append('ran'), 'clave')
+        registry._constraint_queue['key'] = lambda cr: None
+        registry.post_constraint(None, lambda cr: seen.append('ran'), 'key')
         assert seen == []
-        assert 'clave' in registry._constraint_queue
+        assert 'key' in registry._constraint_queue
 
-    def test_during_an_install_it_logs_error_and_does_not_queue(self, registry, db,
-                                                               caplog):
+    def test_during_an_install_it_logs_error_and_does_not_queue(
+            self, registry, db, caplog):
         caplog.set_level(logging.ERROR, logger='kaupamex.schema')
         registry._is_install = True
 
         def boom(cr):
             raise RuntimeError('fallo de instalacion')
 
-        registry.post_constraint(None, boom, 'clave')
+        registry.post_constraint(None, boom, 'key')
         assert registry._constraint_queue == {}
         assert 'fallo de instalacion' in caplog.text
 
@@ -153,12 +151,12 @@ class TestFinalizeConstraints:
 
     def test_it_runs_what_was_queued(self, registry, db):
         seen = []
-        registry._constraint_queue = {'clave': lambda cr: seen.append('ran')}
+        registry._constraint_queue = {'key': lambda cr: seen.append('ran')}
         registry.finalize_constraints(None)
         assert seen == ['ran']
 
     def test_it_empties_the_queue(self, registry, db):
-        registry._constraint_queue = {'clave': lambda cr: None}
+        registry._constraint_queue = {'key': lambda cr: None}
         registry.finalize_constraints(None)
         assert registry._constraint_queue == {}
 
@@ -169,7 +167,7 @@ class TestFinalizeConstraints:
         def boom(cr):
             raise RuntimeError('sigue sin aplicar')
 
-        registry._constraint_queue = {'clave': boom}
+        registry._constraint_queue = {'key': boom}
         registry.finalize_constraints(None)
         assert 'sigue sin aplicar' in caplog.text
         assert registry._constraint_queue == {}
