@@ -35,6 +35,8 @@ EM = 'tests/unit/sale_timesheet/test_employee_map_computes.py'
 AL = 'tests/integration/test_orm/test_creation_marks_on_alias.py'
 CB = 'tests/unit/orm/test_compute_before_insert.py'
 MD = 'tests/integration/company/test_multidb_isolation.py'
+FW = 'tests/unit/orm/test_flush_write_contract.py'
+MC = 'tests/unit/orm/test_method_chain_depends.py'
 CONTROLS = {
     ('test_orm.TestOrmSharedCompute', 'start'): (
         f'{CP} grupo (Django y ORM), asignación previa al save; {AL}; '
@@ -63,8 +65,18 @@ CONTROLS = {
         f'{CB} una invocación en alta (antes 12)',
         'volcado por save(); cálculo en alta de save()'),
     ('crm.CrmLead', 'prorated_revenue'): (
-        f'{CB} valor tras el volcado y recálculo al cambiar probability',
-        '-'),
+        f'{CB} valor tras el volcado y recálculo al cambiar probability; '
+        f'{FW} volcado sin señales, sin save() y con write_date',
+        'UPDATE -> save_base (cae señales); -> save (cae señales y '
+        'sobrescritura); sin Field.pre_save (cae write_date)'),
+    ('sale.SaleOrderLine', 'price_tax'): (
+        f'{CB} valor del mismo cálculo (_compute_amount) en alta', '-'),
+    ('sale.SaleOrderLine', 'price_total'): (
+        f'{CB} valor del mismo cálculo (_compute_amount) en alta', '-'),
+    ('account.AccountPaymentMethodLine', 'name'): (
+        f'{MC} dependencia de la base en el registro y marca de recálculo '
+        'al renombrar el método',
+        'get_depends sin la cadena; extensión con setattr (caen 2 cada una)'),
     ('account.AccountAccount', 'internal_group'): (
         f'{CB} una invocación en alta (antes 3)',
         'volcado por save(); cálculo en alta de save()'),
@@ -78,11 +90,7 @@ CONTROLS = {
 }
 
 #: Huecos conocidos que no son falta de control, sino defecto medido.
-KNOWN_GAPS = {
-    ('account.AccountPaymentMethodLine', 'name'): (
-        'sin dependencias en el registro: la extensión de account_payment '
-        'pierde @api.depends (plan orm-extension-depends-merge-0485)'),
-}
+KNOWN_GAPS = {}
 
 COLUMNS = ['model', 'field', 'compute_method', 'dependencies', 'precompute',
            'explicit_value_protection', 'creation_path', 'computed_when',
