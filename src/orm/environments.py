@@ -884,7 +884,11 @@ class Environment(abc.Mapping):
             # entorno sigue heredando los tres ejes del canal.
             su = False
 
-        transaction = get_transaction()
+        # ≙ ``transaction = cr.transaction`` (``:70-72``): la del cursor del
+        # entorno. Con el canal ambiental, un entorno sobre otro alias se
+        # agrupaba y fijaba ``default_env`` en la transacción ajena.
+        transaction = (get_transaction() if cr is None
+                       else _connection_transaction(cr))
 
         for environment in _live_envs(transaction):
             if (environment._using == cr

@@ -14,78 +14,15 @@ from contextlib import contextmanager
 import psycopg
 from django.conf import settings
 from django.core.management import call_command
-from django.db import DEFAULT_DB_ALIAS, connections, router, transaction
+from django.db import DEFAULT_DB_ALIAS, connections, router
 from django.db.migrations.loader import MigrationLoader
 
-from orm.environments import _connection_transaction, company_scope
+from orm.environments import company_scope
+from sql_db import Savepoint, _FlushingSavepoint, savepoint
 from tools import config
 from tools.misc import _pg_environ_for, find_pg_tool
 
 _logger = logging.getLogger(__name__)
-
-
-class Savepoint:
-    """≙ ``Savepoint`` (``odoo19c: odoo/sql_db.py:87-129``).
-
-    «Reifies an active breakpoint, allows ``BaseCursor.savepoint`` users to
-    internally rollback the savepoint (as many times as they want) without
-    having to implement their own savepointing, or triggering exceptions.»
-
-    Lo consume :meth:`orm.models.RecordLoaderMixin.load`: abre uno al empezar y
-    **vuelve a él** cada vez que una fila del archivo revienta. Sin ese retorno
-    la transacción de PostgreSQL queda en estado abortado y el resto del
-    archivo ya no se puede importar — de ahí que el cargador lo necesite y no
-    le baste con capturar la excepción.
-
-    DIVERGENCIA DE MECANISMO, declarada: la fuente emite ``SAVEPOINT "<uuid>"``
-    a mano sobre su cursor. Aquí lo emite la **API pública de Django**
-    (``transaction.savepoint`` / ``savepoint_rollback`` /
-    ``savepoint_commit``),
-    que hace exactamente eso mismo y además mantiene coherente el estado que
-    ``atomic`` lleva de la conexión. El nombre del punto lo genera Django y se
-    guarda en :attr:`name`, igual que allá.
-
-    El que vacía la transacción del ORM al abrir y al cerrar es
-    :class:`_FlushingSavepoint`, y el que la fuente abre por defecto es ése
-    (:func:`savepoint`). Esta clase es el ``Savepoint`` llano.
-    """
-
-    def __init__(self, connection):
-        self._connection = connection
-        self.name = transaction.savepoint(using=connection.alias)
-        self.closed = False
-
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.close(rollback=exc_type is not None)
-
-    def close(self, *, rollback=True):
-        if not self.closed:
-            self._close(rollback)
-
-    def rollback(self):
-        """Vuelve al punto de retorno, también tras un error de la base.
-
-        ≙ ``ROLLBACK TO SAVEPOINT``, que en PostgreSQL recupera una
-        transacción abortada: es lo que la fuente hace tras un INSERT
-        rechazado (``odoo19c: odoo/orm/models.py:985-1022``). Django marca la
-        conexión (``needs_rollback``) cuando una consulta falla dentro de
-        ``atomic`` y desde ahí rechaza toda consulta, este ``ROLLBACK``
-        incluido. Su propio ``Atomic.__exit__`` limpia la marca antes de
-        volver a su punto de retorno (``django/db/transaction.py:273-283``);
-        aquí se hace lo mismo, porque el punto se abrió en este mismo nivel
-        y deshace todo lo que vino después de él, el error incluido.
-        """
-        self._connection.needs_rollback = False
-        transaction.savepoint_rollback(self.name, using=self._connection.alias)
-
-    def _close(self, rollback):
-        if rollback:
-            self.rollback()
-        transaction.savepoint_commit(self.name, using=self._connection.alias)
-        self.closed = True
 
 
 class DatabaseManagementDisabled(Exception):
@@ -690,45 +627,3 @@ def migrate_all_company_databases(names=None, using=DEFAULT_DB_ALIAS):
             # error queda en el resultado, no se traga en silencio.
             results.append({'db': name, 'status': 'failed', 'error': str(exc)})
     return results
-
-
-class _FlushingSavepoint(Savepoint):
-    """≙ ``_FlushingSavepoint`` (``odoo19c: odoo/sql_db.py:132-151``).
-
-    Al abrir vacía la transacción del ORM (``cr.flush()``: cómputos y
-    escrituras pendientes); al cerrar sin retorno vuelve a vaciarla, y si ese
-    vaciado lanza, el punto se deshace y la excepción sube. El ``cr.clear()``
-    del retorno (``:137-140``) no se repite aquí: ``savepoint_rollback`` de la
-    conexión ya vacía la transacción del ORM
-    (``orm.environments._CURSOR_CUTS``),
-    que es el mismo corte de la fuente portado al cursor.
-
-    Esta clase decía antes que no tenía contraparte porque Django escribe cada
-    ``save()`` en el acto. Era cierto de las escrituras y falso de los
-    cómputos: el ORM sí encola recálculos (``env.fields_to_compute()``), y un
-    ``@api.constrains`` sobre un calculado almacenado sólo salta cuando esa
-    cola se vacía.
-    """
-
-    def __init__(self, connection):
-        self._transaction = _connection_transaction(connection.alias)
-        self._transaction.flush()
-        super().__init__(connection)
-
-    def _close(self, rollback):
-        try:
-            if not rollback:
-                self._transaction.flush()
-        except Exception:
-            rollback = True
-            raise
-        finally:
-            super()._close(rollback)
-
-
-def savepoint(connection, flush=True):
-    """≙ ``BaseCursor.savepoint`` (``odoo19c: odoo/sql_db.py:217-226``): con
-    ``flush`` (el defecto) el punto vacía y limpia la transacción del ORM."""
-    if flush:
-        return _FlushingSavepoint(connection)
-    return Savepoint(connection)

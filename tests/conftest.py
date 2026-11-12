@@ -66,7 +66,8 @@ from orm.environments import get_transaction
 from orm.utils import SUPERUSER_ID
 from service.db import savepoint
 from orm.environments import _discard_connection_transaction, get_transaction
-from orm.registry import clear_cache
+from orm.registry import Registry, clear_cache
+from tests.cursor_support import TestCursor
 from pytest_django.plugin import blocking_manager_key
 
 # ─── Pruebas que dependen del árbol de referencia ───────────────────────────
@@ -620,3 +621,23 @@ def empty_module_catalog(db):
     restricciones reflejadas, y la transacción lo deshace al terminar.
     """
     IrModule.objects.all().delete()
+
+
+#: El ``Registry.cursor`` del núcleo, para las pruebas que ejercen la conexión
+#: propia del cursor real fuera del modo de pruebas.
+REAL_REGISTRY_CURSOR = Registry.cursor
+
+
+@pytest.fixture(autouse=True)
+def _test_mode_registry_cursor(monkeypatch):
+    """Durante la prueba, ``Registry.cursor()`` devuelve un ``TestCursor``.
+
+    ≙ ``odoo19c: odoo/tests/common.py:800-806``: la fuente sustituye
+    ``registry.cursor`` mientras corre la prueba, para que lo que una unidad
+    de trabajo confirma lo deshaga la prueba y no escape a la base. El cursor
+    real abre una conexión propia (``sql_db.Cursor``), que un ``TestCase`` de
+    Django rechaza y que confirmaría fuera de la transacción de la prueba.
+    """
+    monkeypatch.setattr(
+        Registry, 'cursor',
+        lambda self, readonly=False: TestCursor(self._alias(), readonly))

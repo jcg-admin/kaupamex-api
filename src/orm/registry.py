@@ -75,13 +75,15 @@ from psycopg import sql as pg_sql
 import orm.environments
 
 from modules import db as modules_db
+from sql_db import Cursor
 from orm.utils import FIELD_REGISTRY_HOOKS, SUPERUSER_ID, model_field_registry
 from tools.func import locked, reset_cached_properties
 from tools.lru import LRU
 from tools.misc import Collector, OrderedSet, remove_accents
-from tools.sql import (SQL, _CONFDELTYPES, create_index, drop_constraint, drop_index,
-                       existing_tables, get_foreign_keys, make_index_name)
-from tools.sql import add_foreign_key as sql_add_foreign_key
+from tools.sql import (SQL, _CONFDELTYPES, create_index, drop_constraint,
+                       drop_index, existing_tables, get_foreign_keys,
+                       make_index_name,
+                       add_foreign_key as sql_add_foreign_key)
 
 _logger = logging.getLogger('kaupamex.registry')
 
@@ -2666,24 +2668,30 @@ class Registry(Mapping):
         read/write cursor on the primary database in case no replica exists or
         that no readonly cursor could be acquired"*.
 
+        **Nuevo de verdad**: :class:`sql_db.Cursor` abre su propia conexión
+        con su propia transacción del ORM, así que lo que confirma no arrastra
+        el trabajo del llamador y su ``default_env`` muere con él. Antes
+        devolvía un cursor DB-API de la conexión compartida, y cada unidad de
+        trabajo heredaba la transacción del ORM de la anterior
+        (``designs/registry-cursor-unit-of-work.md``).
+
         **La replica se busca por alias, no por atributo.** La fuente guarda
         dos conexiones (``self._db`` y ``self._db_readonly``); aqui las
         conexiones las declara ``DATABASES``, asi que la replica es el alias
         ``<alias>_readonly`` si esta declarado. Sin el, el fallback de la
-        fuente es el camino unico — que es lo que este arbol tiene hoy, y por
-        eso ``readonly=True`` devuelve el cursor de escritura.
+        fuente es el camino unico.
         """
         alias = self._alias()
         if readonly:
             replica = f'{alias}_readonly'
             if replica in connections:
                 try:
-                    return connections[replica].cursor()
+                    return Cursor(replica, readonly=True)
                 except DatabaseError:
                     _logger.warning(
                         "Failed to open a readonly cursor, falling back to "
                         "read-write cursor")
-        return connections[alias].cursor()
+        return Cursor(alias)
 
     # -- El eje de schema ----------------------------------------------------
     #
