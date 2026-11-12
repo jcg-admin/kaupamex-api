@@ -31,6 +31,18 @@ SaleOrderLine = apps.get_model('sale', 'SaleOrderLine')
 CrmLead = apps.get_model('crm', 'CrmLead')
 
 
+def _settle_creation():
+    """Vuelca lo que un alta dejó pendiente.
+
+    Crear marca los cálculos almacenados de la fila nueva, como
+    ``modified(..., create=True)`` en la fuente
+    (designs/stored-computes-on-django-create.md). El caso controla una marca
+    posterior, así que parte de un estado sin pendientes.
+    """
+    with transaction_scope():
+        env().flush_all()
+
+
 @pytest.fixture
 def move(db):
     """Un asiento real al que colgar la linea.
@@ -232,6 +244,7 @@ class TestTheCycleReachesTheColumn:
             debit=Decimal('100.00'),
             credit=Decimal('40.00'),
         )
+        _settle_creation()
         AccountMoveLine.objects.filter(pk=line.pk).update(
             balance=Decimal('0.00')
         )
@@ -257,6 +270,7 @@ class TestTheCycleReachesTheColumn:
             debit=Decimal('100.00'),
             credit=Decimal('40.00'),
         )
+        _settle_creation()
         AccountMoveLine.objects.filter(pk=line.pk).update(
             balance=Decimal('0.00')
         )

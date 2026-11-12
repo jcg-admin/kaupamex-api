@@ -69,7 +69,8 @@ from django.db.models import (  # noqa: F401
 from django.db.models.base import ModelState, checks
 from django.db.models.fields import related_descriptors as _related_descriptors
 from django.db.models.signals import (class_prepared, m2m_changed, post_init,
-                                      pre_delete, pre_init, pre_save)
+                                      post_save, pre_delete, pre_init,
+                                      pre_save)
 from django.dispatch import receiver
 from psycopg import errors as pg_errors
 import uuid
@@ -1204,38 +1205,48 @@ class DefaultGetMixin:
         """
         assert data_list
         ids = []
-        for data in data_list:
-            split = cls._load_records_split_relational
-            scalar, relational = split(data['stored'])
-            # Lo que exige la fila ya real: el muchos-a-muchos por su cara
-            # directa y toda relación inversa (el ``One2many``/``Many2many``
-            # reverso de la fuente) — ≙ ``other_fields`` de ``_create``.
-            deferred = {}
-            registry = model_field_registry(cls)
-            for name in list(scalar):
-                field = registry.get(name)
-                if field is None:
-                    continue
-                if field.many_to_many or not isinstance(field, Field):
-                    deferred[name] = scalar.pop(name)
-            record = cls._create_row_from_values(
-                cls._load_records_coerce_vals(scalar))
-            if relational:
-                record._load_records_apply_relational(relational)
-            for name, value in deferred.items():
-                field = registry.get(name)
-                if getattr(field, 'many_to_many', False):
-                    # ≙ ``Many2many.write_real``: los triples de ``Command``
-                    # y sus abreviaturas (TASK-API-0190).
-                    apply_many2many_commands(record, field, value)
-                elif (getattr(field, 'one_to_many', False)
-                      and is_command_list(value)):
-                    # ≙ ``One2many.write_real(..., create=True)``.
-                    apply_one2many_commands(record, field, value, create=True)
-                else:
-                    related_manager(record, name).set(value)
-            data['record'] = record
-            ids.append(record.pk)
+        # La fila la inserta ``save()``: el receptor ``post_save`` que marca
+        # los cálculos de un alta por Django no actúa aquí, donde
+        # ``modified(..., create=True)`` corre más abajo con sus campos
+        # protegidos (designs/stored-computes-on-django-create.md).
+        token = ORM_CREATE_INSERTING.set(True)
+        try:
+            for data in data_list:
+                split = cls._load_records_split_relational
+                scalar, relational = split(data['stored'])
+                # Lo que exige la fila ya real: el muchos-a-muchos por su
+                # cara directa y toda relación inversa (el
+                # ``One2many``/``Many2many`` reverso de la fuente) — ≙
+                # ``other_fields`` de ``_create``.
+                deferred = {}
+                registry = model_field_registry(cls)
+                for name in list(scalar):
+                    field = registry.get(name)
+                    if field is None:
+                        continue
+                    if field.many_to_many or not isinstance(field, Field):
+                        deferred[name] = scalar.pop(name)
+                record = cls._create_row_from_values(
+                    cls._load_records_coerce_vals(scalar))
+                if relational:
+                    record._load_records_apply_relational(relational)
+                for name, value in deferred.items():
+                    field = registry.get(name)
+                    if getattr(field, 'many_to_many', False):
+                        # ≙ ``Many2many.write_real``: los triples de
+                        # ``Command`` y sus abreviaturas (TASK-API-0190).
+                        apply_many2many_commands(record, field, value)
+                    elif (getattr(field, 'one_to_many', False)
+                          and is_command_list(value)):
+                        # ≙ ``One2many.write_real(..., create=True)``.
+                        apply_one2many_commands(record, field, value,
+                                                create=True)
+                    else:
+                        related_manager(record, name).set(value)
+                data['record'] = record
+                ids.append(record.pk)
+        finally:
+            ORM_CREATE_INSERTING.reset(token)
 
         records = browse(cls, ids)
         if _maintains_parent_store(cls):
@@ -5805,6 +5816,44 @@ def _add_precomputed_values(self):
     done = set()
     for name in list(pending):
         _run_precompute_field(self, name, pending, done, ())
+
+
+#: Verdadera mientras ``BaseModel._create`` inserta sus filas con ``save()``:
+#: ahí ``modified(..., create=True)`` corre después con sus campos
+#: protegidos, y el receptor de abajo no tiene que hacerlo.
+ORM_CREATE_INSERTING = ContextVar('orm_create_inserting', default=False)
+
+
+@receiver(post_save, dispatch_uid='orm.models.modified_on_django_create')
+def _modified_on_django_create(sender, instance, created=False, raw=False,
+                               **_ignored):
+    """Marca los cálculos almacenados de una fila creada por Django.
+
+    ≙ ``records.modified(self._fields, create=True)`` de ``_create``
+    (``odoo19c: odoo/orm/models.py``), bajo ``env.protecting`` de los campos
+    que trae ``vals``. Aquí lo hace ``BaseModel._create``; una fila creada con
+    ``save()`` u ``objects.create`` no pasaba por ahí y sus cálculos
+    almacenados sin ``precompute`` no se calculaban nunca
+    (designs/stored-computes-on-django-create.md). Los campos que el
+    llamador dio de forma explícita (``_explicit_values``) quedan protegidos,
+    como ``vals`` en la fuente.
+    """
+    if not created or raw or ORM_CREATE_INSERTING.get():
+        return
+    if getattr(sender._meta, 'apps', apps) is not apps:
+        return
+    registry = model_field_registry(sender)
+    if not any(getattr(field, 'compute', None) and getattr(field, 'store',
+                                                           False)
+               for field in registry.values()):
+        return
+    given = getattr(instance, '_explicit_values', None) or frozenset()
+    protected = [field for name, field in registry.items()
+                 if getattr(field, 'compute', None)
+                 and (name in given
+                      or getattr(field, 'attname', name) in given)]
+    with env().protecting(protected, instance):
+        modified(instance, list(registry), create=True)
 
 
 @receiver(pre_save, dispatch_uid='orm.models.run_precompute')

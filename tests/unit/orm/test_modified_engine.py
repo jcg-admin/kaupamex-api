@@ -40,6 +40,18 @@ from orm import registry
 from orm.environments import env, transaction_scope
 
 
+def _settle_creation():
+    """Vuelca lo que un alta dejó pendiente.
+
+    Crear marca los cálculos almacenados de la fila nueva, como
+    ``modified(..., create=True)`` en la fuente
+    (designs/stored-computes-on-django-create.md). El caso controla una marca
+    posterior, así que parte de un estado sin pendientes.
+    """
+    with transaction_scope():
+        env().flush_all()
+
+
 class EngineOwner(django_models.Model):
     """El lado uno: su etiqueta es la dependencia lejana."""
 
@@ -189,6 +201,7 @@ class TestTheFarDependencyWalksBackwards:
         second = EngineOwner.objects.create(label='dos')
         mine = EngineProbe.objects.create(source=1, owner=first)
         other = EngineProbe.objects.create(source=2, owner=second)
+        _settle_creation()
         with transaction_scope():
             first.modified(['label'])
             pending = env().records_to_compute(
@@ -204,6 +217,7 @@ class TestCreateSkipsTheManyToOneReturn:
     def test_on_create_the_backward_walk_is_skipped(self, db, tables):
         owner = EngineOwner.objects.create(label='uno')
         EngineProbe.objects.create(source=1, owner=owner)
+        _settle_creation()
         with transaction_scope():
             owner.modified(['label'], create=True)
             assert not env().records_to_compute(

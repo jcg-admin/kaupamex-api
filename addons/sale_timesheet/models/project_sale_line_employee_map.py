@@ -40,17 +40,17 @@ además de su forma Django (``Meta.db_table`` / ``Meta.verbose_name``).
        ninguno de los dos en este árbol (0 hits). El campo es escribible
        directo — mismo criterio que ``hr_timesheet`` para ``task``/``project``.
    * - ``price_unit`` (:198)
-     - **portado** — ``price_unit`` (Float, ``compute`` + ``store``),
-       sincronizado en ``pre_save`` desde ``sale_line.price_unit``.
+     - **portado** — ``price_unit`` (Float), ``_compute_price_unit`` con
+       ``@api.depends('sale_line.price_unit')``, ``store=True``.
    * - ``currency_id`` (:199)
-     - **portado** — ``currency`` (FK ``base.ResCurrency``), sincronizado en
-       el mismo receptor. La referencia lo deriva de
-       ``sale_line_id.currency_id``; aquí de ``sale_line.order.company.currency``
-       (``sale.SaleOrderLine`` no declara ``currency``: 0 hits).
+     - **portado** — ``currency`` (FK ``base.ResCurrency``),
+       ``_compute_currency_id`` desde ``sale_line.currency``, como la fuente
+       (la línea declara ``currency_id`` desde que se midió de nuevo:
+       ``addons/sale/models/sale_order_line.py:237``).
    * - ``cost`` (:200-201)
-     - **portado** — ``cost`` (Monetary), sincronizado desde
-       ``employee.hourly_cost`` mientras ``is_cost_changed`` sea falso, ≙
-       ``_compute_cost``.
+     - **portado** — ``cost`` (Monetary), ``_compute_cost`` con
+       ``@api.depends('employee.hourly_cost')``; respeta el costo escrito a
+       mano y retira el recálculo pendiente de ``is_cost_changed``.
    * - ``is_cost_changed`` (:204)
      - **portado** — Boolean, ≙ ``_compute_is_cost_changed``.
    * - ``existing_employee_ids`` (:189)
@@ -59,7 +59,8 @@ además de su forma Django (``Meta.db_table`` / ``Meta.verbose_name``).
      - **BLOQUEADO** — ``related='project_id.sale_order_id'``, y
        ``Project.sale_order_id`` lo declara ``sale_project``
        (``odoo19c: sale_project/models/project_project.py:35``), addon cuyo
-       puerto en este árbol es PARCIAL declarado. Hogar ``addons/sale_project``,
+       puerto en este árbol es PARCIAL declarado. Hogar
+       ``addons/sale_project``,
        fuera del write-set. Sucesor: tarea PENDIENTE DE ASIGNAR.
    * - ``company_id`` (:196) / ``partner_id`` (:197)
      - **portados** como ``property`` (``related='project_id.*'``;
@@ -83,11 +84,11 @@ además de su forma Django (``Meta.db_table`` / ``Meta.verbose_name``).
    * - Método de la referencia (línea)
      - Desenlace aquí
    * - ``_compute_price_unit`` (:229-235)
-     - **portado** — dentro del receptor ``pre_save``.
+     - **portado** — método del modelo con su ``@api.depends``.
    * - ``_compute_currency_id`` (:237-240)
-     - **portado** — ídem (con la divergencia de origen declarada arriba).
+     - **portado** — ídem, desde ``sale_line.currency``.
    * - ``_compute_cost`` (:242-247)
-     - **portado** — ídem.
+     - **portado** — ídem, con ``remove_to_compute`` de ``is_cost_changed``.
    * - ``_compute_is_cost_changed`` (:288-291)
      - **portado** — ídem.
    * - ``_compute_existing_employee_ids`` (:211-218)
@@ -96,7 +97,8 @@ además de su forma Django (``Meta.db_table`` / ``Meta.verbose_name``).
      - **portado** — :func:`working_hours_per_calendar`, sin el ``_read_group``
        del ORM de la fuente (agregación equivalente en Python sobre el
        queryset). ``ResourceCalendar.hours_per_day`` ya es property aquí.
-   * - ``_compute_display_cost`` (:266-276) / ``_inverse_display_cost`` (:278-286)
+   * - ``_compute_display_cost`` (
+       :266-276) / ``_inverse_display_cost`` (:278-286)
      - **parcial declarado** — :func:`display_cost_for` /
        :func:`cost_from_display_cost` llevan la aritmética; quién decide
        ``is_uom_day`` es el llamador, porque la fuente lo lee de la compañía
@@ -127,15 +129,15 @@ portada verbatim como ``Meta.constraints`` con el nombre de la referencia
 """
 from decimal import Decimal
 
+import api
 import fields
 import models
-from django.db.models.signals import pre_save
-from django.dispatch import receiver
 
 from addons.base.models import ResCurrency, TimeStampedModel
 from addons.hr.models import HrEmployee
 from addons.project.models import Project
 from addons.sale.models import SaleOrderLine
+from orm.environments import env
 
 
 class ProjectSaleLineEmployeeMap(TimeStampedModel):
@@ -165,23 +167,26 @@ class ProjectSaleLineEmployeeMap(TimeStampedModel):
     )
     price_unit = fields.Float(
         default=0.0, verbose_name='Precio unitario',
-        help_text='Odoo price_unit (compute, store) — se sincroniza desde '
-                  'sale_line.price_unit en pre_save.',
+        help_text='Odoo price_unit (compute, store, readonly).',
+        compute='_compute_price_unit', store=True, readonly=True,
     )
     currency = fields.Many2one(
         ResCurrency, on_delete=models.SET_NULL, null=True, blank=True,
         related_name='project_sale_line_maps', verbose_name='Moneda',
         help_text='Odoo currency_id (compute, store).',
+        compute='_compute_currency_id', store=True, readonly=False,
     )
     cost = fields.Monetary(
         max_digits=14, decimal_places=2, default=Decimal('0.00'),
         verbose_name='Costo por hora',
         help_text='Odoo cost. Sustituye al hourly_cost por defecto del '
                   'empleado en los apuntes de este proyecto.',
+        compute='_compute_cost', store=True, readonly=False,
     )
     is_cost_changed = fields.Boolean(
         default=False, verbose_name='Costo modificado a mano',
         help_text='Odoo is_cost_changed (compute, store).',
+        compute='_compute_is_cost_changed', store=True,
     )
 
     class Meta:
@@ -198,6 +203,45 @@ class ProjectSaleLineEmployeeMap(TimeStampedModel):
     def __str__(self):
         return f'{self.project} / {self.employee}'
 
+    # -- cálculos almacenados (≙ ``odoo19c: …/project_sale_line_employee_map.py
+    # :64-126``) ---------------------------------------------------------
+
+    @api.depends('sale_line.price_unit')
+    def _compute_price_unit(self):
+        """≙ ``_compute_price_unit``: el precio de la línea de venta, o 0."""
+        line = self.sale_line if self.sale_line_id else None
+        self.price_unit = line.price_unit if line is not None else 0
+
+    @api.depends('sale_line.price_unit')
+    def _compute_currency_id(self):
+        """≙ ``_compute_currency_id``: la moneda de la línea de venta. La
+        fuente depende de ``sale_line_id.price_unit``, no de la moneda: se
+        conserva su dependencia tal cual."""
+        line = self.sale_line if self.sale_line_id else None
+        self.currency = line.currency if line is not None else None
+
+    @api.depends('employee.hourly_cost')
+    def _compute_cost(self):
+        """≙ ``_compute_cost``: el costo horario del empleado mientras el
+        costo no se haya escrito a mano. Como la fuente, retira antes el
+        recálculo pendiente de ``is_cost_changed``, que si no se evaluaría
+        sobre el costo nuevo y borraría la marca."""
+        if self.pk is not None:
+            env().remove_to_compute(
+                type(self)._meta.get_field('is_cost_changed'), [self.pk])
+        if not self.is_cost_changed:
+            employee = self.employee if self.employee_id else None
+            self.cost = (employee.hourly_cost if employee is not None
+                         else None) or 0
+
+    @api.depends('cost')
+    def _compute_is_cost_changed(self):
+        """≙ ``_compute_is_cost_changed``: hay empleado y el costo difiere
+        de su costo horario."""
+        employee = self.employee if self.employee_id else None
+        self.is_cost_changed = bool(
+            employee is not None and self.cost != employee.hourly_cost)
+
     # -- related sin columna → property (≙ compute sin store) --------------
 
     @property
@@ -212,7 +256,8 @@ class ProjectSaleLineEmployeeMap(TimeStampedModel):
 
     @property
     def cost_currency(self):
-        """≙ ``cost_currency_id`` (``related='employee_id.currency_id'``, :203).
+        """≙ ``cost_currency_id``
+        (``related='employee_id.currency_id'``, :203).
 
         ``HrEmployee.currency`` ya es property en este árbol.
         """
@@ -227,7 +272,8 @@ class ProjectSaleLineEmployeeMap(TimeStampedModel):
         """
         if not self.project_id:
             return HrEmployee.objects.none()
-        return HrEmployee.objects.filter(project_sale_line_maps__project=self.project)
+        return HrEmployee.objects.filter(
+            project_sale_line_maps__project=self.project)
 
     # -- métodos de negocio -------------------------------------------------
 
@@ -314,42 +360,6 @@ def update_project_timesheet(entry):
     llamada desde ``save()`` ya replica el orden de la fuente.
     """
     return None
-
-
-@receiver(pre_save, sender=ProjectSaleLineEmployeeMap,
-          dispatch_uid='sale_timesheet.sync_employee_map_derived_fields')
-def _sync_employee_map_derived_fields(sender, instance, **kwargs):
-    """Sincroniza ``price_unit``/``currency``/``cost``/``is_cost_changed`` —
-    ≙ ``_compute_price_unit`` (:229-235) + ``_compute_currency_id`` (:237-240)
-    + ``_compute_cost`` (:242-247) + ``_compute_is_cost_changed`` (:288-291).
-
-    Un ``pre_save`` corre en cada ``.save()``, el mismo disparador que
-    ``@api.depends`` sin el motor que decide QUÉ recomputar. Mismo patrón que
-    ``hr_timesheet/models/hr_timesheet.py``.
-    """
-    line = instance.sale_line if instance.sale_line_id else None
-
-    # ≙ _compute_price_unit
-    instance.price_unit = line.price_unit if line is not None else 0.0
-
-    # ≙ _compute_currency_id. La fuente lee `sale_line_id.currency_id`;
-    # `sale.SaleOrderLine` de este árbol no declara moneda propia, así que se
-    # deriva de la compañía del pedido (divergencia declarada en el módulo).
-    if line is not None and line.order_id and line.order.company_id:
-        instance.currency = line.order.company.currency
-    else:
-        instance.currency = None
-
-    employee = instance.employee if instance.employee_id else None
-    hourly_cost = getattr(employee, 'hourly_cost', None) if employee else None
-
-    # ≙ _compute_cost: sólo se pisa mientras el costo no se haya tocado a mano.
-    if not instance.is_cost_changed:
-        instance.cost = hourly_cost if hourly_cost is not None else Decimal('0.00')
-
-    # ≙ _compute_is_cost_changed. La fuente lo evalúa DESPUÉS de _compute_cost
-    # (por eso su `env.remove_to_compute`); aquí el orden es explícito.
-    instance.is_cost_changed = bool(employee) and instance.cost != hourly_cost
 
 
 __all__ = [

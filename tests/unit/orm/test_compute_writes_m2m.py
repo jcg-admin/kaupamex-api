@@ -109,6 +109,18 @@ ResCompany = apps.get_model('base', 'ResCompany')
 pytestmark = pytest.mark.django_db
 
 
+def _settle_creation():
+    """Vuelca lo que un alta dejó pendiente.
+
+    Crear marca los cálculos almacenados de la fila nueva, como
+    ``modified(..., create=True)`` en la fuente
+    (designs/stored-computes-on-django-create.md). El caso controla una marca
+    posterior, así que parte de un estado sin pendientes.
+    """
+    with transaction_scope():
+        env().flush_all()
+
+
 def field_of(model, name):
     return model._meta.get_field(name)
 
@@ -269,6 +281,7 @@ class TestTheCycleReachesTheJoinTable:
             account_type='income',
             company=company,
         )
+        _settle_creation()
         second.tags.clear()
 
         with transaction_scope():
