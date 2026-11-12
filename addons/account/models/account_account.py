@@ -302,8 +302,13 @@ class AccountAccount(models.Model):
         # El orden importa y es el de la referencia: el tipo se computa antes
         # que el grupo, que lo deriva; y las etiquetas después de guardar,
         # porque una relación M2M necesita la fila creada.
-        self._compute_account_type()
-        self._compute_internal_group()
+        # En alta el tipo es precompute (pase de ``pre_save``) y el grupo lo
+        # calcula el marcado de creación tras el INSERT, como en la fuente;
+        # invocarlos aquí además los repetía
+        # (designs/eager-computes-in-save.md). En modificación se conservan.
+        if not self._state.adding:
+            self._compute_account_type()
+            self._compute_internal_group()
         result = super().save(*args, **kwargs)
         self._compute_account_tags()
         return result

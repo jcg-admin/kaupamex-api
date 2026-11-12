@@ -86,10 +86,13 @@ es un método de instancia sobre el usuario — misma firma que
 import fields
 from django.db.models import Sum
 
+from addons.account.models.account_account import AccountAccount
+from addons.account.models.account_move import AccountMove
 from addons.account.models.account_move_line import AccountMoveLine
 from exceptions import AccessError
 from orm.environments import get_current_company, get_current_user
 from orm.model_classes import extend_model
+from orm.models import flush_model
 from tools.translate import _
 
 #: El identificador externo que la fuente consulta, verbatim (``:15``).
@@ -126,6 +129,16 @@ def _compute_kpi_account_total_revenue_value(self, start, end):
     _assert_invoicing_user()
     company = self.company_id or get_current_company()
     companies = [company.pk] if company is not None else []
+    # La fuente consulta con ``_read_group``, y su SQL lleva ``to_flush`` de
+    # cada campo que lee: ``execute_query`` vuelca esos campos antes de
+    # ejecutar (``odoo19c: odoo/orm/environments.py:517-523``). Un queryset
+    # de Django no vuelca, así que aquí se vuelcan los mismos campos de forma
+    # explícita.
+    # Sin esto, el ``internal_group`` de una cuenta recién creada —calculado
+    # tras el INSERT, como en la fuente— aún no estaría en la tabla.
+    flush_model(AccountAccount, ['internal_group'])
+    flush_model(AccountMoveLine, ['company_id', 'account_id', 'balance'])
+    flush_model(AccountMove, ['date', 'state'])
     total = AccountMoveLine.objects.filter(
         company_id__in=companies,
         move__date__gt=start,

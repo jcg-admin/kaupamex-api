@@ -699,9 +699,15 @@ class SaleOrderLine(AnalyticMixin, TimeStampedModel):
 
     def save(self, *args, **kwargs):
         self._coerce_amount_operands()
-        self._compute_amount()
-        self._compute_price_reduce_taxexcl()
-        self._compute_price_reduce_taxinc()
+        # En alta los cinco importes son precompute y los calcula el pase de
+        # ``pre_save`` (≙ ``_add_precomputed_values``); invocarlos aquí los
+        # calculaba dos veces. En modificación se conservan:
+        # ``update_fields`` necesita la columna en este mismo ``save``
+        # (designs/eager-computes-in-save.md).
+        if not self._state.adding:
+            self._compute_amount()
+            self._compute_price_reduce_taxexcl()
+            self._compute_price_reduce_taxinc()
         update_fields = kwargs.get('update_fields')
         if update_fields is not None:
             kwargs['update_fields'] = [
