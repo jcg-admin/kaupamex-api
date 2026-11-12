@@ -12,6 +12,15 @@
     'depends': [
         'base',  # ResCompany, DecimalPrecision, los mixins
     ],
+    # Datos de la fuente (``odoo19c: uom/__manifest__.py:13-18``), por
+    # ``load_data`` en el ciclo de instalación, en el mismo orden. Los tres
+    # son copia fiel. ``views/uom_uom_views.xml`` no se carga: este árbol no
+    # sirve el cliente web, como en el resto de los addons portados.
+    'data': [
+        'data/uom_data.xml',
+        'security/uom_security.xml',
+        'security/ir.model.access.csv',
+    ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',
     'application': False,

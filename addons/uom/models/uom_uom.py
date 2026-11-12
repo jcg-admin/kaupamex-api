@@ -104,7 +104,23 @@ def _as_float(value):
 
 
 class Uom(TimeStampedModel):
-    """``uom.uom`` — unidad de medida de producto."""
+    """``uom.uom`` — unidad de medida de producto.
+
+    Cabecera — los cinco atributos de clase que la referencia declara
+    (``odoo19c: addons/uom/models/uom_uom.py:18-22``), verbatim junto a su
+    forma Django (``Meta.ordering``). ``_parent_store`` en un modelo que no es
+    ``BaseModel`` no activa el mantenimiento del núcleo
+    (``_maintains_parent_store``): ``parent_path`` lo calcula ``save()``, como
+    en ``hr.department``; lo que sí habilita es ``child_of`` por ruta.
+    Sin ``_name`` la reflexión no le daba ``model_uom_uom``, y el
+    ``ir.model.access.csv`` de la fuente no podía nombrarlo.
+    """
+
+    _name = 'uom.uom'
+    _description = 'Product Unit of Measure'
+    _parent_name = 'relative_uom_id'
+    _parent_store = True
+    _order = 'sequence, relative_uom_id, id'
 
     name = fields.Char(
         max_length=100,

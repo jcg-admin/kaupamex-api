@@ -3328,7 +3328,7 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
                     cls, f'{module}.{name}', using,
                     cache_value=(model, res_id))
                 if created != written:
-                    registry.cache_invalidated.add('default')
+                    registry.Registry(using).cache_invalidated.add('default')
 
         registry.loaded_xmlids.update(f'{row[0]}.{row[1]}' for row in rows)
 

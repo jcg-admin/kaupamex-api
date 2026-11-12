@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Adaptado de Odoo Community 19 `uom/security/uom_security.xml` (LGPL-3,
+    odoo-tools@abe4040ec1). Copia fiel, sin omisiones.
+-->
+<odoo>
+<data noupdate="0">
+    <record id="group_uom" model="res.groups">
+        <field name="name">Manage Multiple Units of Measure</field>
+    </record>
+</data>
+</odoo>

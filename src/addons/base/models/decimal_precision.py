@@ -19,7 +19,8 @@ from tools.cache import ormcache
 from tools.translate import _
 
 
-class DecimalPrecision(models.OriginMixin, models.Model):
+class DecimalPrecision(models.RecordLoaderMixin, models.OriginMixin,
+                       models.Model):
     """``decimal.precision`` — dígitos decimales para un uso nombrado.
 
     Cabecera — los dos atributos de clase que la referencia declara

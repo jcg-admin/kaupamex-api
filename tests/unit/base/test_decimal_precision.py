@@ -85,15 +85,17 @@ class TestCreate:
     def test_it_takes_a_list_and_returns_the_records(self):
         creados = DecimalPrecision.create(
             [
-                {'name': 'Product Price', 'digits': 4},
-                {'name': 'Product Unit', 'digits': 3},
+                {'name': 'Probe Price', 'digits': 4},
+                {'name': 'Probe Unit', 'digits': 3},
             ]
         )
-        assert [r.name for r in creados] == ['Product Price', 'Product Unit']
+        assert [r.name for r in creados] == ['Probe Price', 'Probe Unit']
         # Sólo los creados aquí: la tabla trae el registro que siembra
-        # ``test_orm`` (``ORM Precision``, como ``test_orm_data.xml``).
+        # ``test_orm`` (``ORM Precision``, como ``test_orm_data.xml``) y el
+        # que siembra ``uom`` (``Product Unit``, ``uom_data.xml``); los nombres
+        # de la prueba no coinciden con ninguna precisión de datos maestros.
         assert DecimalPrecision.objects.filter(
-            name__in=['Product Price', 'Product Unit']).count() == 2
+            name__in=['Probe Price', 'Probe Unit']).count() == 2
 
     def test_a_single_dict_also_works(self):
         creados = DecimalPrecision.create({'name': 'Account', 'digits': 6})
