@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites><testsuite name="pytest" errors="0" failures="1" skipped="0" tests="12" time="7916.669" timestamp="2026-11-12T01:29:38.953272" hostname="vm"><testcase classname="tests.integration.company.test_multidb_isolation.TestN1DegenerationRealWrite" name="test_domain_write_without_any_company_alias_lands_in_default" time="2676.268" /><testcase classname="tests.integration.company.test_multidb_isolation.TestCrossCompanyIsolationByBase" name="test_write_under_company_scope_lands_in_its_own_base" time="5234.088" /><testcase classname="tests.integration.company.test_multidb_isolation.TestCrossCompanyIsolationByBase" name="test_rows_from_company_a_not_visible_under_company_b_scope" time="0.007" /><testcase classname="tests.integration.company.test_multidb_isolation.TestSol085RowScopingIntraBase" name="test_row_scoping_filters_by_row_and_fk_resolves_intra_base" time="0.110" /><testcase classname="tests.integration.company.test_multidb_isolation" name="test_company_schemas_and_native_connections" time="0.012" /><testcase classname="tests.integration.company.test_multidb_isolation" name="test_init_creates_the_view_only_in_the_selected_database" time="0.024" /><testcase classname="tests.integration.company.test_multidb_isolation" name="test_paperformat_xml_ids_exist_in_every_base" time="0.023" /><testcase classname="tests.integration.company.test_multidb_isolation" name="test_company_init_writes_only_the_selected_base" time="1.983" /><testcase classname="tests.integration.company.test_multidb_isolation" name="test_company_init_ignores_the_active_company_scope" time="0.469" /><testcase classname="tests.integration.company.test_multidb_isolation" name="test_company_init_without_the_xml_id_assigns_nothing_and_rolls_back" time="0.470" /><testcase classname="tests.integration.company.test_multidb_isolation" name="test_users_init_encrypts_only_in_the_selected_base" time="0.489" /><testcase classname="tests.integration.company.test_multidb_isolation" name="test_init_models_runs_both_inits_in_the_selected_base" time="1.784"><failure message="orm.routers.CompanyContextRequired: operacion de dominio base.respartner sin empresa activa bajo multi-DB (N&gt;1); fijar company_scope antes de leer/escribir">tests/integration/company/test_multidb_isolation.py:415: in test_init_models_runs_both_inits_in_the_selected_base
+    registry.init_models(cr, ['res.company', 'res.users'],
+src/orm/registry.py:2393: in init_models
+    self._reflect_all(model_names, context)
+src/orm/registry.py:2456: in _reflect_all
+    constraint._reflect_constraints(model_classes, using=using)
+src/addons/base/models/ir_model.py:2372: in _reflect_constraints
+    cls._reflect_model(model_cls, using=using)
+src/addons/base/models/ir_model.py:2396: in _reflect_model
+    with connections[using].schema_editor(collect_sql=True) as editor:
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:172: in __exit__
+    self.atomic.__exit__(exc_type, exc_value, traceback)
+.venv/lib/python3.13/site-packages/django/db/transaction.py:263: in __exit__
+    connection.commit()
+src/orm/environments.py:733: in cut
+    current.flush()
+src/orm/environments.py:524: in flush
+    self.default_env.flush_all()
+src/orm/environments.py:1435: in flush_all
+    model.objects.none().flush_model()
+src/orm/models.py:5404: in flush_model
+    _flush(self)
+src/orm/models.py:5322: in _flush
+    _write_rows(model, ids, vals_list)
+src/orm/models.py:5341: in _write_rows
+    for row in model._base_manager.filter(pk__in=list(ids))}
+.venv/lib/python3.13/site-packages/django/db/models/query.py:390: in __iter__
+    self._fetch_all()
+.venv/lib/python3.13/site-packages/django/db/models/query.py:2000: in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+.venv/lib/python3.13/site-packages/django/db/models/query.py:91: in __iter__
+    db = queryset.db
+.venv/lib/python3.13/site-packages/django/db/models/query.py:1887: in db
+    return self._db or router.db_for_read(self.model, **self._hints)
+.venv/lib/python3.13/site-packages/django/db/utils.py:231: in _route_db
+    chosen_db = method(model, **hints)
+src/orm/routers.py:180: in db_for_read
+    return self._route(model)
+src/orm/routers.py:171: in _route
+    raise CompanyContextRequired(
+E   orm.routers.CompanyContextRequired: operacion de dominio base.respartner sin empresa activa bajo multi-DB (N&gt;1); fijar company_scope antes de leer/escribir</failure></testcase></testsuite></testsuites>
