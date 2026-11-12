@@ -207,3 +207,17 @@ ejecuciones de `base`); la comparación base/skip se hizo en ejecuciones
 consecutivas.
 *Ciega a:* el costo de las operaciones SQL de la migración, que se mide
 aparte con el perfil por migración.
+
+## Medición del 2026-11-12 (ci-multidb f77418eb)
+
+Provisionar una base de empresa aplicando las 714 migraciones tomó ~45 min por
+base: `orm_bootstrap_22e8de223dbc` terminó a las 08:13:38,
+`company_121641925711806_db` a las 08:58:07 y la segunda iba en 613/714 a las
+09:29:49 (`django_migrations`, conteo y `max(applied)`). El proceso pasa el
+tiempo en Python al 97 % de CPU con PostgreSQL ocioso; la pila tomada con
+`faulthandler` (gdb, `PyRun_SimpleString`) está en
+`migrations.state.reload_model` → `render_multiple` → `Field.clone` de cada
+`AlterField`: es el re-renderizado del estado de Django, no un bucle. Las
+ejecuciones verdes anteriores de ci-multidb duraron 27-36 min en total
+(`record.json`, `pytest_seconds`), así que el costo por base creció; la
+palanca sigue siendo renderizar menos (consolidar migraciones, experimental).
