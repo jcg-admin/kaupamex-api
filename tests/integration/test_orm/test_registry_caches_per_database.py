@@ -17,7 +17,7 @@ import pytest
 from django.conf import settings
 from django.db import connections, transaction
 
-from addons.base.models import IrModel
+from addons.base.models import IrModel, IrModelData
 from addons.base.models.ir_module import IrModuleCategory
 from orm import registry as orm_registry
 from orm.environments import Environment
@@ -99,3 +99,37 @@ def test_a_failed_load_resets_the_registry_changes(monkeypatch):
         ['name', 'sequence'], [['Probe', 'no-soy-un-entero']])
     assert result['ids'] is False
     assert calls == [orm_registry.Registry('default')]
+
+
+def _first_xmlid(alias):
+    row = IrModelData.objects.using(alias).order_by('pk').values_list(
+        'module', 'name').first()
+    return '%s.%s' % row
+
+
+def test_a_bulk_delete_of_an_xmlid_invalidates_its_database(probe_alias):
+    """≙ ``unlink`` (``odoo19c: ir_model.py:2328-2334``): todo borrado vacía
+    la caché. ``QuerySet.delete`` no llama a ``Model.delete``; el vaciado
+    tiene que llegar igual, y al registro de la base de la fila."""
+    xmlid = _first_xmlid(probe_alias)
+    module, name = xmlid.split('.', 1)
+    with Environment(probe_alias, SUPERUSER_ID, {}):
+        assert IrModelData._xmlid_lookup(xmlid, using=probe_alias)
+    with Environment('default', SUPERUSER_ID, {}):
+        IrModelData.objects.using(probe_alias).filter(
+            module=module, name=name).delete()
+    with pytest.raises(ValueError):
+        IrModelData._xmlid_lookup(xmlid, using=probe_alias)
+
+
+def test_saving_an_xmlid_row_invalidates_its_database(probe_alias):
+    xmlid = _first_xmlid(probe_alias)
+    module, name = xmlid.split('.', 1)
+    with Environment(probe_alias, SUPERUSER_ID, {}):
+        model, res_id = IrModelData._xmlid_lookup(xmlid, using=probe_alias)
+    row = IrModelData.objects.using(probe_alias).get(module=module, name=name)
+    row.res_id = res_id + 1000000
+    with Environment('default', SUPERUSER_ID, {}):
+        row.save(using=probe_alias)
+    assert IrModelData._xmlid_lookup(xmlid, using=probe_alias)[1] == (
+        res_id + 1000000)

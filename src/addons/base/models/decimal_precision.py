@@ -131,13 +131,13 @@ class DecimalPrecision(models.RecordLoaderMixin, models.OriginMixin,
         ``write`` la dejaría esquivable.
         """
         res = super().save(*args, **kwargs)
-        registry.clear_cache('stable')
+        registry.registry_of_row(self).clear_cache('stable')
         return res
 
     def delete(self, *args, **kwargs):
         """Vacía la caché ``stable`` en todo borrado — mismo criterio."""
         res = super().delete(*args, **kwargs)
-        registry.clear_cache('stable')
+        registry.registry_of_row(self).clear_cache('stable')
         return res
 
     @api.onchange('digits')

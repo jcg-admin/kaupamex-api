@@ -333,13 +333,13 @@ class IrRule(TimeStampedModel):
         self._check_model_name()
         self._check_domain()
         result = super().save(*args, **kwargs)
-        registry.clear_cache()
+        registry.registry_of_row(self).clear_cache()
         return result
 
     def delete(self, *args, **kwargs):
         """Borra e invalida — ≙ ``unlink`` (``:184-188``)."""
         result = super().delete(*args, **kwargs)
-        registry.clear_cache()
+        registry.registry_of_row(self).clear_cache()
         return result
 
     # === el contexto de evaluación y la clave de caché =====================

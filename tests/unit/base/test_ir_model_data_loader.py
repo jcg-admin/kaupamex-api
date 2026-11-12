@@ -12,6 +12,7 @@ el barrido de fin de carga.
 """
 
 import pytest
+from django.db import connection
 
 from addons.base.models import ResCompany
 from addons.base.models.ir_model import IrModelData
@@ -199,9 +200,9 @@ class TestUpdateXmlids:
         )
         # La row se borra por SQL para que el resolutor no pueda volver a
         # leerla; si responde, salió de la caché sembrada.
-        IrModelData.objects.filter(
-            module='base', name='imd_probe_seed'
-        ).delete()
+        with connection.cursor() as cr:
+            cr.execute("DELETE FROM ir_model_data "
+                       "WHERE module = 'base' AND name = 'imd_probe_seed'")
         assert IrModelData._xmlid_lookup('base.imd_probe_seed') == (
             'base.ResCompany',
             company.pk,

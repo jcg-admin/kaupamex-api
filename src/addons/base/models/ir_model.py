@@ -209,7 +209,7 @@ import fields
 import models
 from django.apps import apps
 from django.core.exceptions import FieldDoesNotExist, ValidationError
-from django.db.models import NOT_PROVIDED, F
+from django.db.models import NOT_PROVIDED, F, signals
 from django.utils import timezone
 
 from addons.base.models.ir_module import IrModule
@@ -665,7 +665,7 @@ class IrModel(models.OriginMixin, TimeStampedModel):
                             'El campo %s no se puede modificar en un modelo.'
                             % field_name)
         result = super().save(*args, **kwargs)
-        registry.clear_cache('stable')
+        registry.registry_of_row(self).clear_cache('stable')
         return result
 
     def delete(self, *args, at_uninstall=False, **kwargs):
@@ -712,7 +712,7 @@ class IrModel(models.OriginMixin, TimeStampedModel):
             ir_actions_server__model_name=model_name).delete()
         IrModelData.objects.filter(model=model_name).delete()
         result = super().delete(*args, **kwargs)
-        registry.clear_cache('stable')
+        registry.registry_of_row(self).clear_cache('stable')
         return result
 
     @classmethod
@@ -1630,7 +1630,7 @@ class IrModelFields(models.OriginMixin, TimeStampedModel):
                         'Cambiar el tipo de un campo no está soportado. '
                         'Bórralo y créalo de nuevo.')
         result = super().save(*args, **kwargs)
-        registry.clear_cache('stable')
+        registry.registry_of_row(self).clear_cache('stable')
         return result
 
     def delete(self, *args, **kwargs):
@@ -1643,7 +1643,7 @@ class IrModelFields(models.OriginMixin, TimeStampedModel):
         """
         self._prepare_update()
         result = super().delete(*args, **kwargs)
-        registry.clear_cache('stable')
+        registry.registry_of_row(self).clear_cache('stable')
         return result
 
     @staticmethod
@@ -3208,22 +3208,22 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
         """
         creating = self._state.adding
         result = super().save(*args, **kwargs)
+        pool = registry.registry_for_alias(self._state.db)
         if not creating:
-            registry.clear_cache('default')
+            pool.clear_cache('default')
         if self.model == 'base.ResGroups':
-            registry.clear_cache('groups')
+            pool.clear_cache('groups')
         return result
 
     def delete(self, *args, **kwargs):
         """Enganche de Django — ≙ ``unlink`` (``odoo19c: :2328-2334``).
 
         Docstring de la fuente, verbatim: *"Regular unlink method, but make
-        sure to clear the caches."*
+        sure to clear the caches."* El vaciado lo hace
+        :func:`_clear_caches_after_unlink` en ``post_delete``, que Django
+        emite también en el borrado masivo de un ``QuerySet``, que no pasa
+        por aquí.
         """
-        was_group = self.model == 'base.ResGroups'
-        registry.clear_cache('default')
-        if was_group:
-            registry.clear_cache('groups')
         return super().delete(*args, **kwargs)
 
     @classmethod
@@ -3616,3 +3616,16 @@ def _ordering_text(term):
     names = [part.name for part in term.flatten() if isinstance(part, F)]
     text = ', '.join(names)
     return f'{text} desc' if getattr(term, 'descending', False) else text
+
+
+def _clear_caches_after_unlink(sender, instance, using, **kwargs):
+    """≙ el vaciado de ``unlink`` (``odoo19c: ir_model.py:2328-2334``), en
+    el registro de la base de la fila borrada."""
+    pool = registry.registry_for_alias(using)
+    pool.clear_cache('default')
+    if instance.model == 'base.ResGroups':
+        pool.clear_cache('groups')
+
+
+signals.post_delete.connect(_clear_caches_after_unlink, sender=IrModelData,
+                            dispatch_uid='ir_model_data_unlink_caches')

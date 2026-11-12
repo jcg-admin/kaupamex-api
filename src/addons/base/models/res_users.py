@@ -3339,7 +3339,8 @@ def _invalidate_on_implication_changed(sender, action, **kwargs):
     """
     if action in ('post_add', 'post_remove', 'post_clear'):
         _invalidate_group_ids()
-        registry.clear_cache('groups')
+        registry.registry_of_row(
+            None, kwargs.get('using')).clear_cache('groups')
         # Las tres clausuras calculadas dependen de esta arista.
         ResUsers._invalidate_cache(ResUsers, ['all_group_ids'])
         groups = apps.get_model('base', 'ResGroups')
@@ -3363,4 +3364,4 @@ def _invalidate_on_group_deleted(sender, **kwargs):
     (``odoo19c: res_groups.py:303-305``).
     """
     _invalidate_group_ids()
-    registry.clear_cache('groups')
+    registry.registry_of_row(None, kwargs.get('using')).clear_cache('groups')

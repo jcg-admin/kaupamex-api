@@ -725,7 +725,7 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
         y el coste es vaciar un memo de 64 entradas.
         """
         result = super().save(*args, **kwargs)
-        registry.clear_cache('groups')
+        registry.registry_of_row(self).clear_cache('groups')
         return result
 
     def delete(self, *args, **kwargs):
@@ -738,7 +738,7 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
         """
         self._unlink_except_settings_group()
         result = super().delete(*args, **kwargs)
-        registry.clear_cache('groups')
+        registry.registry_of_row(self).clear_cache('groups')
         return result
 
     # === Clausura transitiva ==============================================

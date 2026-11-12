@@ -3205,3 +3205,14 @@ def _collector_fields(model):
             seen.add(id(field))
             fields.append(field)
     return fields
+
+
+def registry_of_row(row, using=None):
+    """El ``Registry`` de la base de una fila ≙ ``record.env.registry``.
+
+    En la fuente un registro trae su entorno, y su registro es el de la base
+    donde se leyó o escribió. Aquí esa base es ``_state.db`` de la fila, o el
+    ``using`` que Django entrega a sus señales; sin ninguno, la base activa.
+    """
+    alias = using or getattr(getattr(row, '_state', None), 'db', None)
+    return registry_for_alias(alias) if alias else active_registry()

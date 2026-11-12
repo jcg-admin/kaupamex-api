@@ -296,14 +296,14 @@ class IrDefault(models.Model):
         la haría saltarse sin que nada lo delatara.
         """
         result = super().save(*args, **kwargs)
-        registry.clear_cache('default')
+        registry.registry_of_row(self).clear_cache('default')
         self._check_accessible_field_id()
         return result
 
     def delete(self, *args, **kwargs):
         """Borra e invalida — la otra mitad de la guarda de ``save``."""
         result = super().delete(*args, **kwargs)
-        registry.clear_cache('default')
+        registry.registry_of_row(self).clear_cache('default')
         return result
 
     @classmethod

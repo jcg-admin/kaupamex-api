@@ -251,12 +251,12 @@ class PropertiesBaseDefinition(TimeStampedModel):
                     'No se puede cambiar el campo de una definición base.'
                 )
         super().save(*args, **kwargs)
-        registry.clear_cache('stable')
+        registry.registry_of_row(self).clear_cache('stable')
 
     def delete(self, *args, **kwargs):
         """Enganche de Django — vacía la familia tras borrar."""
         result = super().delete(*args, **kwargs)
-        registry.clear_cache('stable')
+        registry.registry_of_row(self).clear_cache('stable')
         return result
 
     # -- Lectura memorizada --------------------------------------------------

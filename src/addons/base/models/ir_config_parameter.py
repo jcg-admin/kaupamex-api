@@ -310,12 +310,12 @@ class SystemParameter(models.Model):
                     'No se pueden renombrar los parámetros de configuración '
                     'con claves %s.' % previous_key
                 )
-        registry.clear_cache('stable')
+        registry.registry_of_row(self).clear_cache('stable')
         return super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
         """Enganche de Django. Corre :meth:`unlink_default_parameters` y vacía
         la familia ``stable``."""
         self.unlink_default_parameters()
-        registry.clear_cache('stable')
+        registry.registry_of_row(self).clear_cache('stable')
         return super().delete(*args, **kwargs)

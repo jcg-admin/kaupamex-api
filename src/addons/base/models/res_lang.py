@@ -187,13 +187,13 @@ class ResLang(models.Model):
         """Enganche de Django: vacía la familia ``stable`` al guardar, como
         el ``create``/``write`` de la fuente (``:346``, ``:388``)."""
         super().save(*args, **kwargs)
-        registry.clear_cache('stable')
+        registry.registry_of_row(self).clear_cache('stable')
 
     def delete(self, *args, **kwargs):
         """Enganche de Django: vacía la familia ``stable``, como el
         ``unlink`` de la fuente (``:403``)."""
         result = super().delete(*args, **kwargs)
-        registry.clear_cache('stable')
+        registry.registry_of_row(self).clear_cache('stable')
         return result
 
     @classmethod

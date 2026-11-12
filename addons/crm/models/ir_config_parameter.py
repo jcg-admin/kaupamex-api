@@ -91,7 +91,8 @@ def rebuild_lead_on_pls_change(sender, instance, **kwargs):
     (``result = super().write(vals)`` primero, cuerpo después).
     """
     if instance.key == PLS_FIELDS_KEY:
-        registry.clear_cache('stable')
+        registry.registry_of_row(
+            instance, kwargs.get('using')).clear_cache('stable')
 
 
 def rebuild_lead_on_pls_unlink(sender, instance, **kwargs):
@@ -108,7 +109,8 @@ def rebuild_lead_on_pls_unlink(sender, instance, **kwargs):
       caché de más durante una desinstalación que aquí no ocurre.
     """
     if instance.key == PLS_FIELDS_KEY:
-        registry.clear_cache('stable')
+        registry.registry_of_row(
+            instance, kwargs.get('using')).clear_cache('stable')
 
 
 def apply_crm_extensions():
