@@ -220,3 +220,26 @@ migración de Odoo escribe con SQL o con el ORM vivo.
 **Verificación.** `tests/unit/orm/test_historical_model_writes.py`: sin la
 guarda falla exactamente `test_assigning_a_historical_row_leaves_the_transaction_clean`
 (1 failed, 2 passed); con ella, 3 passed. El caso vivo sigue marcando sucio.
+
+### Contrato completo del modelo histórico (ampliación)
+
+Ciclo de un modelo histórico, leído en el Django instalado: `ProjectState`
+reconstruye cada modelo con `ModelState.render` sobre un `StateApps`
+(`django/db/migrations/state.py`), con las mismas clases de campo; el
+`MigrationExecutor` entrega ese `apps` a `RunPython`. La identidad es
+inequívoca: `model._meta.apps is not django.apps.apps`.
+
+Casos cubiertos en `tests/unit/orm/test_historical_model_writes.py` (8):
+cargar una fila no llena la caché viva; asignar no deja escrituras
+pendientes; `save` y `create` persisten como en Django; `RunPython` real
+guarda sin encolar trabajo del ORM; un `atomic` revertido no deja fila; el
+atributo sí recibe el valor; y el control vivo sigue marcando sucio.
+
+Anulación (retirar la guarda): caen exactamente los 5 casos que dependen de
+ella —asignación, carga, `save`, `create` y `RunPython`— y sobreviven los 3
+que miden otra cosa (el atributo, el control vivo y el revertido).
+
+*Ciega a:* otro alias de base —el modelo histórico usa el alias que le da
+la migración y la guarda no consulta alias—, y a la herencia de bases
+propias en el estado: ResCountry no las tiene; un modelo cuyo estado
+conserve una base del ORM pasaría igual por `_meta.apps`.

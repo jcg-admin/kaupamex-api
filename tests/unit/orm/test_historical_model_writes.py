@@ -22,6 +22,8 @@ por otra vía que no sea el descriptor.
 """
 import pytest
 from django.apps import apps
+from django.db import connection, transaction
+from django.db.migrations.operations import RunPython
 from django.db.migrations.state import ProjectState
 
 from orm.environments import get_transaction
@@ -61,3 +63,75 @@ def test_a_live_row_assignment_is_still_marked_dirty():
     live = apps.get_model('base', 'ResCountry').objects.order_by('pk').first()
     live.name = f'{live.name} (live)'
     assert any(field.model is type(live) for field in _dirty_fields())
+
+
+def _historical_keys(structure):
+    """Campos de modelos históricos presentes en una estructura de la
+    transacción (``field_data``, ``field_dirty`` o ``tocompute``)."""
+    return {field for field in structure
+            if getattr(getattr(field, 'model', None), '_meta', None)
+            and field.model._meta.apps is not apps}
+
+
+def _transaction_is_free_of_historical_fields():
+    transaction = get_transaction()
+    return not (_historical_keys(transaction.field_data)
+                or _historical_keys(transaction.field_dirty)
+                or _historical_keys(transaction.tocompute))
+
+
+def test_loading_a_historical_row_does_not_fill_the_live_cache(
+        historical_country):
+    # El cargador de Django asigna cada columna al construir la fila: ese
+    # tramo poblaba la caché del ORM con campos que el registro vivo no tiene.
+    type(historical_country).objects.filter(pk=historical_country.pk).get()
+    assert _transaction_is_free_of_historical_fields()
+
+
+def test_a_historical_save_persists_like_django(historical_country):
+    historical_country.name = 'Saved through the migration state'
+    historical_country.save(update_fields=['name'])
+    live = apps.get_model('base', 'ResCountry')
+    assert (live.objects.filter(pk=historical_country.pk)
+            .values_list('name', flat=True).get()
+            == 'Saved through the migration state')
+    assert _transaction_is_free_of_historical_fields()
+
+
+def test_a_historical_create_persists_and_leaves_the_transaction_clean():
+    model = ProjectState.from_apps(apps).apps.get_model('base', 'ResCountry')
+    row = model.objects.create(code='QZ', name='Historical country')
+    assert apps.get_model('base', 'ResCountry').objects.filter(
+        pk=row.pk, code='QZ').exists()
+    assert _transaction_is_free_of_historical_fields()
+
+
+def test_run_python_saves_through_the_state_without_queueing_orm_work():
+    """El camino real de una migración de datos: ``RunPython`` recibe el
+    ``apps`` del estado y guarda con él."""
+    from_state = ProjectState.from_apps(apps)
+    to_state = from_state.clone()
+
+    def forwards(state_apps, schema_editor):
+        model = state_apps.get_model('base', 'ResCountry')
+        row = model.objects.order_by('pk').first()
+        row.name = 'Renamed by RunPython'
+        row.save()
+
+    operation = RunPython(forwards, RunPython.noop)
+    with connection.schema_editor(atomic=False) as editor:
+        operation.database_forwards('base', editor, from_state, to_state)
+    first = apps.get_model('base', 'ResCountry').objects.order_by('pk').first()
+    assert first.name == 'Renamed by RunPython'
+    assert _transaction_is_free_of_historical_fields()
+
+
+def test_a_rolled_back_historical_write_leaves_no_row():
+    model = ProjectState.from_apps(apps).apps.get_model('base', 'ResCountry')
+    with pytest.raises(RuntimeError):
+        with transaction.atomic():
+            model.objects.create(code='QY', name='Rolled back')
+            raise RuntimeError('rollback')
+    assert not apps.get_model('base', 'ResCountry').objects.filter(
+        code='QY').exists()
+    assert _transaction_is_free_of_historical_fields()
