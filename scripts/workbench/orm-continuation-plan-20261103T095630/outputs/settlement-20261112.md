@@ -76,3 +76,23 @@ conserva así; su fallo lo corrige la unidad siguiente.
 | Commit | `3fa51e36` | `a90cc34f` |
 | Diferencia con la instantánea | ninguna | `tests/unit/orm/test_registry_load_axis.py`: claves `'clave'`→`'key'` y dos firmas envueltas, exigidas por los gates de idioma y de admisión al commitear; sin cambio de lógica. Archivo ejecutado aparte: 26 passed (`load-axis-after-key.log`) |
 | Multidb | pendiente: ci-multidb sobre la revisión publicada | idem |
+
+## ci-multidb de `0e674aed` — conforme (2026-11-12T16:29:29)
+
+14 passed sobre dos bases desechables en 2:17:30 (`ci-multidb-0e674aed`).
+Cubre `3fa51e36` y `a90cc34f`. El de `5dc2e8c1` sigue registrado como
+fallido.
+
+## Unidad `registry-caches-per-database-0485`
+
+| Campo | Valor |
+|---|---|
+| Contrato | `Registry.__caches` y `_invalidation_flags` por instancia (`registry.py:233,282`), `clear_cache`/`clear_all_caches` (`:971-1001`), `ormcache` sobre `model.pool` (`tools/cache.py:101,127,325-332`), `Transaction(Registry(cr.dbname))` (`environments.py:72`), `load` → `reset_changes` (`models.py:1061-1063`) |
+| Diseño | `designs/registry-caches-per-database.md` |
+| RED | 5 de 8 (lectura cruzada: id `66301` de `default` servido al alias de sondeo) |
+| GREEN | 44 passed |
+| Anulación | contenedor único → 1; sin `origin_alias` → 2; `load` sin reset → 1; invalidación compartida → 2 |
+| Regresión derivada | 7 failed por el contrato retirado, reescritos: 213 passed |
+| Suite integral | `full-caches-9ed09c06`: 13 134 passed, 0 failed, 14 errors multidb |
+| Commit | `c89eed08` |
+| Multidb | pendiente sobre la revisión publicada |
