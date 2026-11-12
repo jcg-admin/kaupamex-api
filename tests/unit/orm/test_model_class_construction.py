@@ -326,19 +326,20 @@ class TestTheWiringRunsOnTheLiveTree:
         assert declarantes['ir.actions.server']._table == 'ir_act_server'
         assert declarantes['ir.actions.report']._table == 'ir_act_report_xml'
 
-    def test_a_model_that_inherits_a_name_without_declaring_one_is_skipped(
-        self,
-    ):
+    def test_a_model_with_its_own_name_gets_its_own_attributes(self):
         """EL CONTROL que el aviso de la fuente destapó.
 
-        ``getattr(cls, '_name')`` recorre la MRO, y ``StaticPage``
-        (``addons/website/models/static_page.py:30``) hereda su ``_name`` de
-        ``WebsiteSearchableMixin`` sin declarar el suyo. Leyendolo asi se le
-        habrian escrito el ``_description`` y el ``_table`` del mixin.
+        ``getattr(cls, '_name')`` recorre la MRO: ``StaticPage``
+        (``addons/website/models/static_page.py``) heredaba ``_name`` de
+        ``WebsiteSearchableMixin``, y leyéndolo así se le habrían escrito el
+        ``_description`` y el ``_table`` del mixin. Hoy declara el suyo
+        (designs/analytic-account-header.md), y el barrido le escribe los
+        atributos de ESE nombre. Detectar un nombre heredado es tarea de
+        ``test_model_names_are_declared.py``.
         """
-        assert '_name' not in StaticPage.__dict__
-        assert '_description' not in StaticPage.__dict__
-        assert '_table' not in StaticPage.__dict__
+        assert StaticPage.__dict__['_name'] == 'settings.static.page'
+        assert StaticPage._description == 'Static Page'
+        assert StaticPage._table == 'settings_static_page'
 
     def test_the_sweep_covers_every_registered_model(self):
         assert set(ensure_model_class_attributes()) == set(

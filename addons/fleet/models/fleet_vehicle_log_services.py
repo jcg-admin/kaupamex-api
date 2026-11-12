@@ -18,6 +18,14 @@ from .fleet_vehicle_odometer import FleetVehicleOdometer
 class FleetVehicleLogServices(MailThread, TimeStampedModel):
     """``fleet.vehicle.log.services`` — un servicio realizado a un vehículo."""
 
+    #: ≙ la cabecera de la fuente, verbatim:
+    #: ``odoo19c: addons/fleet/models/fleet_vehicle_log_services.py:9-12``.
+    #: Sin ``_name`` propio la clase heredaba ``'mail.thread'`` del mixin.
+    _name = 'fleet.vehicle.log.services'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _rec_name = 'service_type_id'
+    _description = 'Services for vehicles'
+
     STATE_NEW = 'new'
     STATE_RUNNING = 'running'
     STATE_DONE = 'done'

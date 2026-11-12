@@ -39,6 +39,12 @@ class StaticPage(WebsiteSearchableMixin, TimeStampedModel):
     docstring del módulo).
     """
 
+    #: Modelo propio del L0, sin contraparte en la fuente: el nombre se
+    #: deriva de su tabla (``check_table_matches_name``) y no de un mixin.
+    _name = 'settings.static.page'
+    _description = 'Static Page'
+    _inherit = ['website.searchable.mixin']
+
     PAGE_ABOUT = 'about'
     PAGE_TERMS = 'terms'
     PAGE_PRIVACY = 'privacy'

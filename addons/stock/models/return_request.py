@@ -28,6 +28,12 @@ class ReturnRequest(MailThread, TimeStampedModel, SoftDeleteModel):
     el rastro de auditoria que UC-RET-04 expone.
     """
 
+    #: Modelo propio del L0, sin contraparte en la fuente: el nombre se
+    #: deriva de su tabla (``check_table_matches_name``) y no de un mixin.
+    _name = 'return.request'
+    _description = 'Return Request'
+    _inherit = ['mail.thread']
+
     class Status(models.TextChoices):
         PENDING_REVIEW = 'PENDING_REVIEW', 'Pendiente de revision'
         INFO_REQUESTED = 'INFO_REQUESTED', 'Pendiente de informacion'

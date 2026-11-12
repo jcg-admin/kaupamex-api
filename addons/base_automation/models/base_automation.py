@@ -302,7 +302,11 @@ class BaseAutomationAction(TimeStampedModel):
 class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
     """``base.automation`` — regla de automatización declarativa."""
 
+    #: ≙ ``odoo19c: addons/base_automation/models/base_automation.py:125-127``,
+    #: verbatim: sin ``_name`` propio la clase heredaba ``'mail.thread'``.
+    _name = 'base.automation'
     _description = 'Automation Rule'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
 
     TRIGGER_CHOICES = [
         ('on_stage_set', 'Stage is set to'),
@@ -342,7 +346,11 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         help_text='Odoo name (tracking=True en la referencia: sin chatter '
                   'genérico portado, el seguimiento de cambios no aplica).',
     )
-    description = fields.Html(blank=True, default='', verbose_name='Descripción')
+    description = fields.Html(
+        blank=True,
+        default='',
+        verbose_name='Descripción',
+    )
     model_id = fields.Many2one(
         IrModel, null=False, on_delete=models.CASCADE, db_index=True,
         related_name='base_automations', verbose_name='Modelo',
@@ -370,12 +378,16 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
     )
     record_getter = fields.Char(
         max_length=1024, blank=True,
-        default="model.env[payload.get('_model')].browse(int(payload.get('_id')))",
+        default=("model.env[payload.get('_model')]"
+                 ".browse(int(payload.get('_id')))"),
         verbose_name='Localizador de registro',
         help_text='Código evaluado con safe_eval para ubicar el registro '
                   'sobre el que corre el webhook (Odoo record_getter).',
     )
-    log_webhook_calls = fields.Boolean(default=False, verbose_name='Registrar llamadas')
+    log_webhook_calls = fields.Boolean(
+        default=False,
+        verbose_name='Registrar llamadas',
+    )
     active = fields.Boolean(default=True, verbose_name='Activa')
 
     trigger = fields.Selection(
@@ -383,12 +395,15 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         verbose_name='Disparador',
     )
     trg_selection_field_id = fields.Many2one(
-        IrModelFieldsSelection, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='base_automations', verbose_name='Campo de selección disparador',
+        IrModelFieldsSelection, on_delete=models.SET_NULL, null=True,
+        blank=True,
+        related_name='base_automations',
+        verbose_name='Campo de selección disparador',
         db_column='trg_selection_field_id',
     )
     trg_field_ref_model_name = fields.Char(
-        max_length=255, blank=True, default='', verbose_name='Modelo de referencia',
+        max_length=255, blank=True, default='',
+        verbose_name='Modelo de referencia',
     )
     # ≙ Many2oneReference de la referencia — id plano, sin FK real (mismo
     # criterio que IrAttachment.res_id; ver docstring del módulo).
@@ -401,7 +416,11 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         help_text='Cuándo evaluar la condición (Odoo trg_date_id).',
         db_column='trg_date_id',
     )
-    trg_date_range = fields.Integer(null=True, blank=True, verbose_name='Retraso')
+    trg_date_range = fields.Integer(
+        null=True,
+        blank=True,
+        verbose_name='Retraso',
+    )
     trg_date_range_mode = fields.Selection(
         max_length=8, choices=RANGE_MODE_CHOICES, blank=True, default='',
         verbose_name='Modo del retraso',
@@ -419,7 +438,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
     )
     filter_pre_domain = fields.Char(
         max_length=2048, blank=True, default='', verbose_name='Dominio antes',
-        help_text='Debe cumplirse ANTES de la escritura (Odoo filter_pre_domain).',
+        help_text='Debe cumplirse ANTES de la escritura (Odoo '
+                  'filter_pre_domain).',
     )
     previous_domain = fields.Char(
         max_length=2048, blank=True, default='', verbose_name='Dominio previo',
@@ -428,10 +448,16 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
                   'cadena de cómputo (sin motor @api.depends genérico).',
     )
     filter_domain = fields.Char(
-        max_length=2048, blank=True, default='', verbose_name='Dominio de aplicación',
-        help_text='Debe cumplirse para ejecutar la regla (Odoo filter_domain).',
+        max_length=2048, blank=True, default='',
+        verbose_name='Dominio de aplicación',
+        help_text='Debe cumplirse para ejecutar la regla (Odoo '
+                  'filter_domain).',
     )
-    last_run = fields.Datetime(null=True, blank=True, verbose_name='Última corrida')
+    last_run = fields.Datetime(
+        null=True,
+        blank=True,
+        verbose_name='Última corrida',
+    )
     #: Los dos ≙ ``odoo19c: base_automation.py:240-252``, que la fuente declara
     #: ``compute=..., readonly=False, store=True``. Los tres se portan; el
     #: volcado del M2M lo hace ``orm.models._flush_m2m``, porque Django prohíbe
@@ -446,7 +472,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         IrModelFields, blank=True, related_name='automations_watching',
         compute='_compute_trigger_field_ids', store=True, readonly=False,
         verbose_name='Campos disparadores',
-        help_text='Si vacío, se vigilan todos los campos (Odoo trigger_field_ids).',
+        help_text='Si vacío, se vigilan todos los campos (Odoo '
+                  'trigger_field_ids).',
     )
 
     class Meta:
@@ -464,11 +491,14 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         ``BaseAutomationAction`` (ver "Decisión de mecanismo" del
         docstring del módulo). Requiere ``pk`` (accede al reverso
 
-        ≙ ``_compute_action_server_ids`` (``odoo19c: base_automation/models/base_automation.py``).
+        ≙ ``_compute_action_server_ids`` (``odoo19c:
+        base_automation/models/base_automation.py``).
         ``action_links``, que no existe sobre una instancia sin guardar)."""
         if self.pk is None:
             return IrActionsServer.objects.none()
-        return IrActionsServer.objects.filter(base_automation_link__automation=self)
+        return IrActionsServer.objects.filter(
+            base_automation_link__automation=self,
+        )
 
     # -- Sincronización de campos derivados (≙ cadena de @api.depends) ------
 
@@ -498,7 +528,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
     def _inverse_model_name(self):
         """≙ ``_inverse_model_name`` de la referencia — el lado ESCRITOR."""
         if self.model_name:
-            self.model_id = IrModel.objects.filter(model=self.model_name).first()
+            self.model_id = IrModel.objects.filter(
+                model=self.model_name).first()
 
     def _compute_url(self):
         """≙ ``_compute_url``."""
@@ -595,7 +626,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
             self.trg_date_range = abs(self.trg_date_range)
             if self.trigger == 'on_time':
                 self.trg_date_range_mode = (
-                    'before' if self.trg_date_range_mode == 'after' else 'after')
+                    'before' if self.trg_date_range_mode == 'after'
+                    else 'after')
 
     def _compute_trg_date_calendar_id(self):
         """≙ ``_compute_trg_date_calendar_id``."""
@@ -614,7 +646,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
 
     def _compute_trg_field_ref_model_name(self):
         """≙ ``_compute_trg_field_ref_model_name``."""
-        if self.trigger not in ('on_stage_set', 'on_tag_set') or self.trg_field_ref is None:
+        if self.trigger not in ('on_stage_set',
+                                'on_tag_set') or self.trg_field_ref is None:
             self.trg_field_ref_model_name = ''
             return
         field_qs = self._get_trigger_specific_field()
@@ -646,13 +679,16 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         if self.trigger in ('on_state_set', 'on_priority_set'):
             value = (self.trg_selection_field_id.value
                      if self.trg_selection_field_id else None)
-            self.filter_domain = repr([(field_row.name, '=', value)]) if value else ''
+            self.filter_domain = repr([(field_row.name, '=',
+                                        value)]) if value else ''
         elif self.trigger == 'on_stage_set':
             value = self.trg_field_ref
-            self.filter_domain = repr([(field_row.name, '=', value)]) if value else ''
+            self.filter_domain = repr([(field_row.name, '=',
+                                        value)]) if value else ''
         elif self.trigger == 'on_tag_set':
             value = self.trg_field_ref
-            self.filter_domain = repr([(field_row.name, 'in', [value])]) if value else ''
+            self.filter_domain = repr([(field_row.name, 'in',
+                                        [value])]) if value else ''
         elif self.trigger == 'on_user_set':
             self.filter_domain = repr([(field_row.name, '!=', False)])
         elif self.trigger == 'on_archive':
@@ -814,7 +850,9 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         ``model_id``), no contra la FK."""
         if self.pk is None or self.model_id is None:
             return
-        failing = self.action_server_ids.exclude(model_name=self.model_id.model)
+        failing = self.action_server_ids.exclude(
+            model_name=self.model_id.model,
+        )
         if failing.exists():
             names = ', '.join(failing.values_list('name', flat=True))
             raise ValidationError(
@@ -881,7 +919,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         if creating or self._critical_fields_changed():
             self._update_cron()
             self._update_registry()
-            self._has_trigger_onchange()  # ≙ invalidación de caché — sin efecto (ver docstring)
+            # ≙ invalidación de caché — sin efecto (ver docstring)
+            self._has_trigger_onchange()
         self._critical_snapshot = self._current_critical_snapshot()
 
     def delete(self, *args, **kwargs):
@@ -982,7 +1021,10 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
             action_clone.pk = None
             action_clone._state.adding = True
             action_clone.save()
-            BaseAutomationAction.objects.create(action=action_clone, automation=clone)
+            BaseAutomationAction.objects.create(
+                action=action_clone,
+                automation=clone,
+            )
         return clone
 
     # -- Acciones ------------------------------------------------------
@@ -990,8 +1032,11 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
     def action_open_scheduled_action(self):
         """≙ ``action_open_scheduled_action``."""
         cron = (IrCron.objects
-                .filter(ir_actions_server__model_name='base_automation.BaseAutomation',
-                        ir_actions_server__method_name='_cron_process_time_based_actions')
+                .filter(
+                    ir_actions_server__model_name=(
+                        'base_automation.BaseAutomation'),
+                    ir_actions_server__method_name=(
+                        '_cron_process_time_based_actions'))
                 .first())
         if not cron:
             raise UserError(
@@ -1015,7 +1060,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
 
     def _get_eval_context(self, payload=None):
         """≙ ``_get_eval_context``."""
-        model = django_apps.get_model(self.model_name) if self.model_name else None
+        model = django_apps.get_model(
+            self.model_name) if self.model_name else None
         # DIVERGENCIA declarada: la referencia expone además ``dateutil`` al
         # código de la regla; aquí no es dependencia del proyecto (ver
         # ``advance_date``), así que el contexto no lo publica.
@@ -1035,7 +1081,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         memoria) de la referencia por una re-consulta (``domains.to_q`` +
         ``QuerySet.filter``), mismo patrón que ``ir_rule.build_domain``."""
         if not domain_str or not pks:
-            return model_cls.objects.filter(pk__in=pks) if pks else model_cls.objects.none()
+            return model_cls.objects.filter(
+                pk__in=pks) if pks else model_cls.objects.none()
         parsed = safe_eval(domain_str, self._get_eval_context())
         q = domains.to_q(parsed, model=model_cls)
         return model_cls.objects.filter(pk__in=pks).filter(q)
@@ -1073,7 +1120,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         if old_values is None:
             return True
         row_old = old_values.get(pk, {})
-        current = model_cls.objects.filter(pk=pk).values(*watched).first() or {}
+        current = model_cls.objects.filter(
+            pk=pk).values(*watched).first() or {}
         return any(
             name in row_old and current.get(name) != row_old.get(name)
             for name in watched
@@ -1102,7 +1150,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         ``domain_post`` se acepta y no se usa (ver ``_filter_post_export_
         domain``): en la referencia viaja al contexto del modo ``code``,
         que ``IrActionsServer.run()`` no evalúa en este árbol."""
-        pks = [p for p in pks if self._check_trigger_fields(model_cls, p, old_values)]
+        pks = [p for p in pks if self._check_trigger_fields(model_cls, p,
+                                                            old_values)]
         if not pks:
             return
         for action in self.action_server_ids.all():
@@ -1118,7 +1167,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
                     self._add_postmortem(exc)
                     _logger.exception(
                         'base.automation %s: fallo ejecutando accion %s '
-                        'sobre %s#%s', self.pk, action.pk, model_cls.__name__, pk)
+                        'sobre %s#%s', self.pk, action.pk, model_cls.__name__,
+                        pk)
                     raise
 
     def _execute_webhook(self, payload):
@@ -1128,7 +1178,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         if self.log_webhook_calls:
             self._log_webhook(msg % (self.pk, payload))
 
-        model_cls = django_apps.get_model(self.model_name) if self.model_name else None
+        model_cls = django_apps.get_model(
+            self.model_name) if self.model_name else None
         record_pk = None
         if self.record_getter and model_cls is not None:
             try:
@@ -1143,8 +1194,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
                     self._log_webhook(msg % self.pk, level='ERROR')
                 raise
 
-        if model_cls is None or record_pk is None or not model_cls.objects.filter(
-                pk=record_pk).exists():
+        if (model_cls is None or record_pk is None
+                or not model_cls.objects.filter(pk=record_pk).exists()):
             msg = ('Webhook #%s could not be triggered because no record '
                    'to run it on was found.')
             _logger.warning(msg, self.pk)
@@ -1195,8 +1246,11 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
     def _update_cron(self):
         """≙ ``_update_cron``."""
         cron = (IrCron.objects
-                .filter(ir_actions_server__model_name='base_automation.BaseAutomation',
-                        ir_actions_server__method_name='_cron_process_time_based_actions')
+                .filter(
+                    ir_actions_server__model_name=(
+                        'base_automation.BaseAutomation'),
+                    ir_actions_server__method_name=(
+                        '_cron_process_time_based_actions'))
                 .first())
         if not cron:
             return
@@ -1217,7 +1271,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
             automations = BaseAutomation.objects.filter(
                 active=True, trigger__in=TIME_TRIGGERS)
         delays = [
-            abs(a.trg_date_range or 0) * DATE_RANGE_FACTOR[a.trg_date_range_type or None]
+            abs(a.trg_date_range
+                or 0) * DATE_RANGE_FACTOR[a.trg_date_range_type or None]
             for a in automations
         ]
         delays = [d for d in delays if d]
@@ -1244,7 +1299,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         ``trg_date_range_type == 'day'``) DEGRADADA — ``ResourceCalendar.
         plan_days`` no está portado (ver docstring del módulo): cae al
         cálculo de fecha simple sin ajuste por días laborables."""
-        if self.trg_date_calendar_id_id is not None and self.trg_date_range_type == 'day':
+        if (self.trg_date_calendar_id_id is not None
+                and self.trg_date_range_type == 'day'):
             _logger.warning(
                 'base.automation %s: trg_date_calendar_id fijado pero '
                 'ResourceCalendar.plan_days no está portado; usando '
@@ -1252,11 +1308,15 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
 
         if not self.trg_date_id:
             _logger.warning(
-                'Missing date trigger field in automation rule `%s`', self.name)
+                'Missing date trigger field in automation rule `%s`',
+                self.name)
             return model_cls.objects.none()
 
         date_field_name = self.trg_date_id.name
-        last_run = self.last_run or timezone.datetime.fromtimestamp(0, tz=timezone.utc)
+        last_run = self.last_run or timezone.datetime.fromtimestamp(
+            0,
+            tz=timezone.utc,
+        )
         range_sign = 1 if self.trg_date_range_mode == 'before' else -1
         date_range = range_sign * (self.trg_date_range or 0)
         unit = self.trg_date_range_type or None
@@ -1308,25 +1368,38 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         resuelve la clase con ``apps.get_model(model_name)``, no una
         instancia.
         """
-        automations = cls.objects.filter(active=True, trigger__in=TIME_TRIGGERS)
+        automations = cls.objects.filter(
+            active=True,
+            trigger__in=TIME_TRIGGERS,
+        )
         final_exception = None
         now = timezone.now()
         for automation in automations:
             if not automation.model_name:
                 continue
             model_cls = django_apps.get_model(automation.model_name)
-            _logger.info("Starting time-based automation rule `%s`.", automation.name)
-            records = automation._search_time_based_automation_records(model_cls, now)
+            _logger.info(
+                "Starting time-based automation rule `%s`.",
+                automation.name,
+            )
+            records = automation._search_time_based_automation_records(
+                model_cls,
+                now,
+            )
             pks = list(records.values_list('pk', flat=True))
             try:
                 automation._process(model_cls, pks)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 _logger.exception(
-                    'Error in time-based automation rule `%s`.', automation.name)
+                    'Error in time-based automation rule `%s`.',
+                    automation.name)
                 final_exception = exc
                 continue
             automation.last_run = now
             automation.save()
-            _logger.info("Time-based automation rule `%s` done.", automation.name)
+            _logger.info(
+                "Time-based automation rule `%s` done.",
+                automation.name,
+            )
         if final_exception is not None:
             raise final_exception

@@ -56,6 +56,14 @@ FUEL_TYPES = [
 class FleetVehicleModel(MailThread, TimeStampedModel):
     """``fleet.vehicle.model`` — p. ej. "Toyota / Corolla"."""
 
+    #: ≙ la cabecera de la fuente, verbatim:
+    #: ``odoo19c: addons/fleet/models/fleet_vehicle_model.py:23-26``.
+    #: Sin ``_name`` propio la clase heredaba ``'mail.thread'`` del mixin.
+    _name = 'fleet.vehicle.model'
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'avatar.mixin']
+    _description = 'Model of a vehicle'
+    _order = 'name asc'
+
     VEHICLE_TYPE_CAR = 'car'
     VEHICLE_TYPE_BIKE = 'bike'
     VEHICLE_TYPES = [

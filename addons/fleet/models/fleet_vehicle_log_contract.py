@@ -32,6 +32,14 @@ from addons.mail.models import MailThread
 class FleetVehicleLogContract(MailThread, TimeStampedModel):
     """``fleet.vehicle.log.contract`` — seguro, leasing, mantenimiento, etc."""
 
+    #: ≙ la cabecera de la fuente, verbatim:
+    #: ``odoo19c: addons/fleet/models/fleet_vehicle_log_contract.py:10-13``.
+    #: Sin ``_name`` propio la clase heredaba ``'mail.thread'`` del mixin.
+    _name = 'fleet.vehicle.log.contract'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _description = 'Vehicle Contract'
+    _order = 'state desc,expiration_date'
+
     STATE_FUTUR = 'futur'
     STATE_OPEN = 'open'
     STATE_EXPIRED = 'expired'

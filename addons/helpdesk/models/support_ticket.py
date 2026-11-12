@@ -50,6 +50,12 @@ class SupportTicket(
     consulta en auditorias post-venta.
     """
 
+    #: Modelo propio del L0, sin contraparte en la fuente: el nombre se
+    #: deriva de su tabla (``check_table_matches_name``) y no de un mixin.
+    _name = 'support.ticket'
+    _description = 'Support Ticket'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+
     class Status(models.TextChoices):
         OPEN = 'OPEN', 'Abierto'
         IN_PROGRESS = 'IN_PROGRESS', 'En progreso'

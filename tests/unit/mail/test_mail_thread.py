@@ -54,7 +54,7 @@ class TestMailThreadMessagePost:
         msg = ticket.message_post(body='<p>Hola</p>', author=user)
         assert isinstance(msg, MailMessage)
         # el par polimorfico apunta al ticket, igual que Odoo (model + res_id)
-        assert msg.model == 'helpdesk.SupportTicket'
+        assert msg.model == 'support.ticket'
         assert msg.res_id == ticket.pk
         assert msg.body == '<p>Hola</p>'
         assert msg.author_id == user.pk
@@ -140,7 +140,7 @@ class TestMailThreadActivities:
     ):
         act = ticket.activity_schedule(summary='Llamar al cliente', user=user)
         assert isinstance(act, MailActivity)
-        assert act.res_model == 'helpdesk.SupportTicket'
+        assert act.res_model == 'support.ticket'
         assert act.res_id == ticket.pk
         assert act.user_id == user.pk
         assert act.date_deadline is not None  # default hoy
@@ -176,7 +176,7 @@ class TestMailThreadActivities:
         # el hilo
         assert not MailActivity.objects.filter(pk=pk).exists()
         assert isinstance(msg, MailMessage)
-        assert msg.model == 'helpdesk.SupportTicket'
+        assert msg.model == 'support.ticket'
         assert msg.res_id == ticket.pk
         assert msg.message_type == MailMessage.TYPE_NOTIFICATION
         assert 'listo' in msg.body
@@ -213,7 +213,7 @@ class TestMailThreadTracking:
         assert isinstance(msg, MailMessage)
         assert msg.message_type == MailMessage.TYPE_NOTIFICATION
         assert (
-            msg.model == 'helpdesk.SupportTicket' and msg.res_id == ticket.pk
+            msg.model == 'support.ticket' and msg.res_id == ticket.pk
         )
         # dos tracking values colgados del mensaje (relacion Odoo
         # tracking_value_ids)
@@ -262,7 +262,7 @@ class TestMailTemplate:
     def test_render_substitutes_placeholders(self, ticket, user):
         tpl = MailTemplate.objects.create(
             name='Ticket resuelto',
-            model='helpdesk.SupportTicket',
+            model='support.ticket',
             subject='Ticket #{{ object.pk }}: {{ object.subject }}',
             body_html=(
                 '<p>Hola, tu ticket "{{ object.subject }}" fue'
@@ -284,7 +284,7 @@ class TestMailTemplate:
     def test_message_post_with_template_posts_rendered(self, ticket, user):
         tpl = MailTemplate.objects.create(
             name='aviso',
-            model='helpdesk.SupportTicket',
+            model='support.ticket',
             subject='Aviso {{ object.pk }}',
             body_html='<p>{{ object.subject }}</p>',
         )
@@ -328,10 +328,10 @@ class TestMailThreadConsumers:
         # aislamiento por (model,res_id): cada consumidor ve solo lo suyo
         assert ticket.message_ids.count() == 1
         assert lead.message_ids.count() == 1
-        # los dos lados del contraste: ``SupportTicket`` no declara ``_name``
-        # y cae al label Django; ``crm.lead`` sí lo declara. El aislamiento se
-        # sostiene igual, y ahora una de las dos etiquetas es la de la fuente.
-        assert ticket.message_ids.first().model == 'helpdesk.SupportTicket'
+        # los dos declaran ``_name``: ``crm.lead`` el de la fuente y
+        # ``support.ticket`` el derivado de su tabla (modelo propio del L0;
+        # designs/analytic-account-header.md). Ya ninguno cae al label Django.
+        assert ticket.message_ids.first().model == 'support.ticket'
         assert lead.message_ids.first().model == 'crm.lead'
 
 
@@ -474,7 +474,7 @@ class TestMailThreadEmailChannel:
         assert notif.notification_status == MailNotification.STATUS_SENT
         assert notif.mail_mail_id is None
         # el mensaje del hilo quedo publicado (tipo email)
-        assert notif.message.model == 'helpdesk.SupportTicket'
+        assert notif.message.model == 'support.ticket'
         assert notif.message.message_type == MailMessage.TYPE_EMAIL
 
     def test_dispatch_failure_links_mail_mail_and_exception(
@@ -532,7 +532,7 @@ class TestMailThreadSmsChannel:
         assert notif.sms.body == 'Tu ticket avanzo'
         assert notif.sms.state == SmsSms.STATE_PENDING
         # mensaje del hilo publicado
-        assert notif.message.model == 'helpdesk.SupportTicket'
+        assert notif.message.model == 'support.ticket'
 
     def test_mark_sms_sent_transitions_both(self, ticket, user):
         notif = send_thread_sms(ticket, user, body='hola', number='52155')

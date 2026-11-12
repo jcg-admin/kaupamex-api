@@ -58,7 +58,7 @@ class TestMailingIsThread:
         # gana chatter (mail.thread) sin columnas propias
         msg = m.message_post(body='campana creada')
         assert isinstance(msg, MailMessage)
-        assert msg.model == 'mass_mailing.MailingMailing'
+        assert msg.model == 'mailing.mailing'
         assert msg.res_id == m.pk
 
     def test_mailing_state_default_draft(self, db):

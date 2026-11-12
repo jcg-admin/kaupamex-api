@@ -28,6 +28,18 @@ class MailingMailing(MailThread, TimeStampedModel):
     ``mailing.mailing`` — campana de correo masivo (hereda ``mail.thread``).
     """
 
+    #: ≙ la cabecera de la fuente, verbatim:
+    #: ``odoo19c: addons/mass_mailing/models/mailing.py:38-49``.
+    #: Sin ``_name`` propio la clase heredaba ``'mail.thread'`` del mixin.
+    _name = 'mailing.mailing'
+    _description = 'Mass Mailing'
+    _inherit = ['mail.thread', 'mail.activity.mixin', 'mail.render.mixin',
+                'utm.source.mixin']
+    _order = 'calendar_date DESC'
+    _rec_name = "subject"
+    _systray_view = 'list'
+    _unrestricted_rendering = True
+
     # Odoo state (mailing.py:129) — colapsado a los estados que este stack usa.
     STATE_DRAFT = 'draft'
     STATE_IN_QUEUE = 'in_queue'
