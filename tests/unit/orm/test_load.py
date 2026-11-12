@@ -20,7 +20,7 @@ primera fila buena quedaría escrita.
 
 import pytest
 
-from addons.base.models.ir_model import IrModelData
+from addons.base.models.ir_model import IrModelAccess, IrModelData
 from addons.base.models.ir_module import IrModuleCategory
 from orm.environments import context_scope
 
@@ -111,6 +111,51 @@ class TestTheFailurePath:
 
         errores = [m for m in result['messages'] if m['type'] == 'error']
         assert errores and errores[0]['rows']['from'] == 1
+
+
+@pytest.mark.django_db
+class TestARowThatFailsInTheBase:
+    """≙ el reintento fila a fila de ``load`` (``odoo19c: odoo/orm/models.py:
+    985-1022``): una fila que la base rechaza se registra como error, se
+    vuelve al punto de retorno y la importación sigue con las demás.
+
+    La fila con el identificador externo desconocido pierde su ``model_id`` en
+    la conversión (se registra el error y la fila sigue, como en la fuente), y
+    el INSERT la rechaza por ``NOT NULL``. Volver al punto de retorno tras ese
+    INSERT es lo que la transacción marcada de Django impedía.
+    """
+
+    FIELDS = ['id', 'name', 'model_id:id', 'group_id:id', 'perm_read',
+              'perm_write', 'perm_create', 'perm_unlink']
+
+    def _load(self):
+        with context_scope(mode='init', module='base', noupdate=False):
+            return IrModelAccess.load(self.FIELDS, [
+                ['access_probe_good', 'probe.good', 'base.model_res_partner',
+                 'base.group_user', '1', '0', '0', '0'],
+                ['access_probe_bad', 'probe.bad', 'base.model_does_not_exist',
+                 'base.group_user', '1', '0', '0', '0'],
+            ])
+
+    def test_the_failure_is_reported_and_nothing_is_written(self):
+        before = IrModelAccess.objects.count()
+        result = self._load()
+        assert result['ids'] is False
+        errors = [m for m in result['messages'] if m['type'] == 'error']
+        # la conversión: el identificador externo no resuelve
+        conversion = [m for m in errors
+                      if m.get('value') == 'base.model_does_not_exist']
+        # la base: el INSERT de esa fila viola NOT NULL; el campo sale de los
+        # diagnósticos de PostgreSQL
+        database = [m for m in errors if 'value' not in m]
+        assert len(conversion) == 1 and conversion[0]['field'] == 'model_id'
+        assert len(database) == 1 and database[0]['field'] == 'model_id'
+        assert database[0]['rows']['from'] == 1
+        assert IrModelAccess.objects.count() == before
+
+    def test_the_transaction_stays_usable(self):
+        self._load()
+        assert IrModelAccess.objects.filter(name='probe.good').count() == 0
 
 
 @pytest.mark.django_db

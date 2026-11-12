@@ -67,3 +67,49 @@ def test_an_environment_holds_the_transaction_of_its_own_cursor(probe_alias):
     other = Environment(probe_alias, SUPERUSER_ID, {})
     assert other.transaction is _connection_transaction(probe_alias)
     assert other.transaction is not _connection_transaction('default')
+
+
+def test_a_flush_writes_through_its_own_cursor_without_entering_it(
+        probe_alias):
+    """``env.flush_all()`` escribe por el cursor de ``env``, esté o no activo.
+
+    ≙ ``_flush`` → ``_write_multi`` sobre ``self.env.cr``
+    (``odoo19c: odoo/orm/models.py:4520-4526``). ``init_models`` vuelca el
+    entorno de una base sin entrar en él (ci-multidb f77418eb:
+    ``CompanyContextRequired`` al leer ``res.partner`` por el enrutador). Si
+    la escritura buscara la fila por la base por defecto no la encontraría
+    —está sin confirmar en la otra conexión— y la saltaría en silencio.
+    """
+    record = SharedCompute.objects.using(probe_alias).create(name='6->9')
+    Environment(probe_alias, SUPERUSER_ID, {}).flush_all()
+    assert _row(probe_alias, record.pk) == {'name': '6->9', 'start': 6,
+                                            'end': 9}
+
+
+def test_write_multi_writes_through_the_cursor_of_its_recordset(probe_alias):
+    """``_write_multi`` escribe por ``self.env.cr``, no por el entorno activo.
+
+    ≙ ``odoo19c: odoo/orm/models.py:4520-4526``. El recordset es del alias y
+    el entorno activo es ``default``: buscar la fila por el enrutador la
+    pediría a ``default``, donde aún no existe, y la escritura se perdería.
+    """
+    record = SharedCompute.objects.using(probe_alias).create(name='1->2')
+    records = Environment(probe_alias, SUPERUSER_ID, {})[
+        'test_orm.shared.compute'].browse(record.pk)
+    records._write_multi([{'name': '3->4'}])
+    assert SharedCompute.objects.using(probe_alias).values_list(
+        'name', flat=True).get(pk=record.pk) == '3->4'
+
+
+def test_flush_model_flushes_the_transaction_of_its_recordset(probe_alias):
+    """``flush_model`` vuelca las marcas de ``self.env``, no las del activo.
+
+    ≙ ``BaseModel.flush_model`` → ``_flush`` (``odoo19c:
+    odoo/orm/models.py:6353-6400``): sucios, caché y base salen del entorno
+    del recordset.
+    """
+    record = SharedCompute.objects.using(probe_alias).create(name='7->8')
+    Environment(probe_alias, SUPERUSER_ID, {})[
+        'test_orm.shared.compute'].browse(record.pk).flush_model()
+    assert _row(probe_alias, record.pk) == {'name': '7->8', 'start': 7,
+                                            'end': 8}

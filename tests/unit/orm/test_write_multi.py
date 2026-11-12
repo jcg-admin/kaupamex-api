@@ -4,9 +4,10 @@
 ``designs/write-multi-flush.md`` del Workbench (TASK-API-0510).
 
 *Métrica:* las filas en la base tras la escritura, las llamadas que ve un
-espía sobre ``_write_multi`` y los argumentos de ``post_save``.
-*Ciega a:* la forma del enunciado SQL — aquí es ``save(update_fields)`` por
-fila, divergencia declarada en el diseño.
+espía sobre ``_write_multi`` y la ausencia de ``post_save`` en el volcado.
+*Ciega a:* la forma del enunciado SQL — aquí es un ``UPDATE`` por fila
+(designs/flush-writes-columns.md), no el ``UPDATE ... FROM (VALUES ...)`` por
+lotes de la fuente.
 """
 import datetime
 
@@ -110,7 +111,15 @@ def test_flushing_a_computed_field_dates_the_record(env, family):
     assert _stamp(child) > PAST
 
 
-def test_post_save_still_receives_the_flush(env, family):
+def test_the_flush_writes_the_column_without_post_save(env, family):
+    """El volcado escribe ``size1`` sin emitir ``post_save``.
+
+    ≙ ``_write_multi`` (``odoo19c: odoo/orm/models.py:4520-4526``), la
+    escritura de bajo nivel, sin la lógica de negocio que en Django viven en
+    los receptores de las señales (designs/flush-writes-columns.md). Esta
+    prueba afirmaba lo contrario —que ``post_save`` recibía el volcado— cuando
+    el volcado escribía por ``save()``.
+    """
     parent, child = family
     seen = []
 
@@ -124,4 +133,6 @@ def test_post_save_still_receives_the_flush(env, family):
         child.flush_model()
     finally:
         post_save.disconnect(receiver, sender=type(child))
-    assert any('size1' in fields for fields in seen)
+    assert seen == []
+    assert type(child).objects.values_list('size1', flat=True).get(
+        pk=child.id) == 4

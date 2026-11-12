@@ -65,7 +65,7 @@ from addons.base.models import IrModule
 from orm.environments import get_transaction
 from orm.utils import SUPERUSER_ID
 from service.db import savepoint
-from orm.environments import get_transaction
+from orm.environments import _discard_connection_transaction, get_transaction
 from orm.registry import clear_cache
 from pytest_django.plugin import blocking_manager_key
 
@@ -530,8 +530,31 @@ def _clear_the_orm_transaction():
     prueba: el slug de un producto con ``pk=42`` salía con el nombre de la
     prueba anterior.
     """
+    before = get_transaction()
+    default_env = before.default_env
     yield
-    get_transaction().clear()
+    release_test_transaction(before, default_env)
+
+
+def release_test_transaction(before, default_env):
+    """Devuelve la transacción del ORM al estado que tenía antes de la prueba.
+
+    El ``rollback`` de pytest-django deshace las filas de la prueba, pero la
+    transacción del ORM cuelga de la conexión y sobrevive; con ella, el
+    ``default_env`` que la prueba fijó. Si su usuario lo creó la prueba, la
+    siguiente vuelca con un ``write_uid`` que ya no existe
+    (``Transaction.flush`` vuelca como ``default_env``,
+    ``odoo19c: odoo/orm/environments.py:589-598``). En la fuente cada caso
+    abre su propio cursor (``odoo/tests/common.py``, ``setUpClass``), así que
+    lo que el caso fija muere con él. Aquí: la transacción que la prueba creó
+    se descarta, y la que ya existía recupera su ``default_env``.
+    """
+    current = get_transaction()
+    if current is not before:
+        _discard_connection_transaction()
+        return
+    current.clear()
+    current.default_env = default_env
 
 
 @pytest.fixture

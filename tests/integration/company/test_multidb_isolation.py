@@ -421,3 +421,52 @@ def test_init_models_runs_both_inits_in_the_selected_base(
     finally:
         ResUsers.objects.using(alias_b).filter(pk=uid).update(
             password=original)
+
+
+class TestStoredComputesStayInTheirBase:
+    """Los cálculos almacenados de una fila se marcan y se vuelcan en su base.
+
+    ≙ ``Environment.__new__`` (``odoo19c: odoo/orm/environments.py:70-80``):
+    la transacción del ORM es la del cursor; dos bases no comparten marcas,
+    caché ni volcado. Las dos bases recién aprovisionadas dan el mismo ``pk``
+    a su primera fila de ``test_orm.shared.compute``: si las marcas fueran a
+    una sola transacción, la de una base pisaría la de la otra. Cada base
+    lleva un ``name`` distinto, del que ``_compute_start_end`` deriva
+    ``start``/``end``. designs/transaction-per-alias.md.
+    """
+
+    @staticmethod
+    def _row(alias, pk):
+        model = Environment(alias, 1, {})['test_orm.shared.compute']
+        return type(model).objects.using(alias).values(
+            'name', 'start', 'end').get(pk=pk)
+
+    def test_django_creations_compute_in_their_own_base(
+            self, two_company_databases):
+        alias_a, alias_b = two_company_databases
+        model = type(Environment(alias_a, 1, {})['test_orm.shared.compute'])
+        row_a = model.objects.using(alias_a).create(name='5->25')
+        row_b = model.objects.using(alias_b).create(name='7->9')
+        for alias in (alias_a, alias_b):
+            with Environment(alias, 1, {}) as env:
+                env.flush_all()
+        assert self._row(alias_a, row_a.pk) == {
+            'name': '5->25', 'start': 5, 'end': 25}
+        assert self._row(alias_b, row_b.pk) == {
+            'name': '7->9', 'start': 7, 'end': 9}
+
+    def test_orm_creations_compute_in_their_own_base(
+            self, two_company_databases):
+        alias_a, alias_b = two_company_databases
+        created = {}
+        for alias, name in ((alias_a, '3->4'), (alias_b, '6->8')):
+            with Environment(alias, 1, {}) as env:
+                created[alias] = env['test_orm.shared.compute'].sudo().create(
+                    {'name': name}).id
+        for alias in (alias_a, alias_b):
+            with Environment(alias, 1, {}) as env:
+                env.flush_all()
+        assert self._row(alias_a, created[alias_a]) == {
+            'name': '3->4', 'start': 3, 'end': 4}
+        assert self._row(alias_b, created[alias_b]) == {
+            'name': '6->8', 'start': 6, 'end': 8}

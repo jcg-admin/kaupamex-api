@@ -66,6 +66,19 @@ class Savepoint:
             self._close(rollback)
 
     def rollback(self):
+        """Vuelve al punto de retorno, también tras un error de la base.
+
+        ≙ ``ROLLBACK TO SAVEPOINT``, que en PostgreSQL recupera una
+        transacción abortada: es lo que la fuente hace tras un INSERT
+        rechazado (``odoo19c: odoo/orm/models.py:985-1022``). Django marca la
+        conexión (``needs_rollback``) cuando una consulta falla dentro de
+        ``atomic`` y desde ahí rechaza toda consulta, este ``ROLLBACK``
+        incluido. Su propio ``Atomic.__exit__`` limpia la marca antes de
+        volver a su punto de retorno (``django/db/transaction.py:273-283``);
+        aquí se hace lo mismo, porque el punto se abrió en este mismo nivel
+        y deshace todo lo que vino después de él, el error incluido.
+        """
+        self._connection.needs_rollback = False
         transaction.savepoint_rollback(self.name, using=self._connection.alias)
 
     def _close(self, rollback):

@@ -72,6 +72,7 @@ from django.db.models.signals import (class_prepared, m2m_changed, post_init,
                                       post_save, pre_delete, pre_init,
                                       pre_save)
 from django.dispatch import receiver
+import psycopg
 from psycopg import errors as pg_errors
 import uuid
 import datetime
@@ -83,7 +84,7 @@ from contextvars import ContextVar
 
 from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import DatabaseError
-from django.db import DEFAULT_DB_ALIAS, connections
+from django.db import DEFAULT_DB_ALIAS, connections, router
 
 import api
 
@@ -117,7 +118,7 @@ from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES, determine,
                         convert_to_display_name, determine_inverse,
                         null_record_value)
 from orm.fields_textual import BASE_LANG, Char, TranslatedValue
-from orm.fields_temporal import LOG_ACCESS_EXPLICIT, Date, Datetime
+from orm.fields_temporal import LOG_ACCESS_EXPLICIT, SAVE_NOW, Date, Datetime
 from orm.identifiers import NewId
 from orm.fields_nonstored import non_stored_fields
 from orm.fields_properties import Properties, check_property_field_value_name
@@ -3921,7 +3922,13 @@ class RecordLoaderMixin(FieldSqlMixin):
                 try:
                     [rec] = cls._load_records([rec_data], mode == 'update',
                                               using=using)
+                    # make sure flush exceptions are raised here
+                    env().flush_all()
                     ids.append(rec.pk)
+                except psycopg.Warning as exc:
+                    savepoint.rollback()
+                    messages.append(dict(rec_data['info'], type='warning',
+                                         message=str(exc)))
                 except DatabaseError as exc:
                     savepoint.rollback()
                     info = rec_data['info']
@@ -5319,18 +5326,23 @@ def _flush(self):
         else:
             # un modelo de Django sin recordset no tiene ``_write_multi``: su
             # escritura es la misma, sin la capa de ``parent_path``
-            _write_rows(model, ids, vals_list)
+            _write_rows(model, ids, vals_list, env().db_alias)
 
 
-def _write_rows(model, ids, vals_list):
+def _write_rows(model, ids, vals_list, using):
     """Escribe ``vals_list`` sobre las filas físicas ``ids`` de ``model``.
 
     Es la escritura de :meth:`BaseModel._write_multi` y la de :func:`_flush`
     para un modelo de Django sin recordset: una sola implementación. Las filas
     se piden al ``_base_manager`` —el gestor físico, no el público con filtro
     de visibilidad— en una consulta por lote, y una fila que ya no existe no
-    se recrea. Cada fila se guarda con ``save(update_fields=...)``: es la
-    divergencia de enunciado declarada en ``designs/write-multi-flush.md``.
+    se recrea. Cada fila se escribe con :func:`_persist_columns`, el
+    ``UPDATE`` de columnas de designs/flush-writes-columns.md.
+
+    ``using`` es la base del entorno que se vuelca —``self.env.cr`` en la
+    fuente—, no la que el enrutador resolvería: ``init_models`` vuelca el
+    entorno de una base sin entrar en él, y la fila, sin confirmar en esa
+    conexión, no existe para ninguna otra (ci-multidb f77418eb).
     """
     fields_of = model_field_registry(model)
     writable = model._meta._non_pk_concrete_field_names
@@ -5338,7 +5350,8 @@ def _write_rows(model, ids, vals_list):
                   if getattr(model, '_log_access', True)
                   and fname in writable]
     rows = {row.pk: row
-            for row in model._base_manager.filter(pk__in=list(ids))}
+            for row in model._base_manager.db_manager(using).filter(
+                pk__in=list(ids))}
     for record_id, vals in zip(ids, vals_list):
         row = rows.get(record_id)
         if row is None:
@@ -5359,7 +5372,58 @@ def _write_rows(model, ids, vals_list):
             # ``pre_save``, pero sólo se guarda lo nombrado.
             names.extend(fname for fname in log_access
                          if fname not in names)
-            row.save(update_fields=names)
+            _persist_columns(row, names)
+
+
+def _persist_columns(row, names):
+    """Escribe las columnas ``names`` de ``row`` con un ``UPDATE`` directo.
+
+    ≙ ``_write``/``_write_multi`` (``odoo19c: odoo/orm/models.py:4520-4526``),
+    *"Low-level implementation of write()"*: un ``UPDATE`` de las columnas más
+    las de acceso, sin la lógica de negocio que la fuente aloja en ``write``.
+
+    En Django esa lógica vive en dos capas que el volcado no debe ejecutar: la
+    sobrescritura de ``save()`` del modelo y los receptores de
+    ``pre_save``/``post_save`` (``base_automation`` escucha **todos** los
+    modelos). ``save()`` ejecutaba las dos y ``save_base()`` las señales;
+    designs/flush-writes-columns.md mide ambas. Aquí se conserva sólo lo que
+    la escritura de la fuente sí hace:
+
+    - el valor de cada columna lo da ``Field.pre_save(row, False)`` —
+      ``auto_now`` de ``write_date`` con una sola lectura de reloj por
+      escritura, y el ``uid`` de ``write_uid`` (``LogAccessUserField``)—;
+    - la base es la de la fila (``_state.db``), donde se leyó;
+    - una fila borrada entre la lectura y la escritura no actualiza nada y no
+      falla, como el ``UPDATE`` de la fuente;
+    - en un ``BaseModel``, se retiran las marcas de sucio de lo escrito
+      (:meth:`BaseModel._discard_persisted_dirty`).
+    """
+    model = type(row)
+    row.__dict__.pop(SAVE_NOW, None)
+    try:
+        values = {}
+        for name in names:
+            field = model._meta.get_field(name)
+            values[field.attname] = field.pre_save(row, False)
+    finally:
+        row.__dict__.pop(SAVE_NOW, None)
+    alias = row._state.db or router.db_for_write(model, instance=row)
+    _update_columns(model, alias, row.pk, values)
+    if isinstance(row, BaseModel):
+        row._discard_persisted_dirty(names)
+
+
+def _update_columns(model, alias, record_id, values):
+    """El ``UPDATE`` físico de una fila: ni ``save()`` ni señales.
+
+    Va por el ``_base_manager``, el gestor físico sin filtro de visibilidad,
+    porque el volcado escribe lo que el registro de sucios nombra por id.
+    ``QuerySet.update`` es aquí la sentencia de la fuente, no un atajo: los
+    efectos de la escritura de bajo nivel ya se aplicaron arriba con
+    ``Field.pre_save``, y la lógica de negocio no pertenece al volcado.
+    """
+    model._base_manager.db_manager(alias).filter(pk=record_id).update(
+        **values)
 
 
 def _flush_m2m(row, field, value):
@@ -5394,19 +5458,26 @@ def flush_model(self, fnames=None):
     ``self``'s model. When the parameter is given, the method guarantees that
     at least the given fields are flushed to the database. More fields can be
     flushed, though"*.
+
+    Corre dentro de ``self.env`` cuando ``self`` es un recordset: el recálculo
+    y el volcado leen el entorno activo, y el de la fuente es ``self.env``
+    aunque no sea el activo (ci-multidb f77418eb).
     """
-    _recompute_model(self, fnames)
-    model = _model_of_records(self) or (
-        self if isinstance(self, type) else None)
-    if model is None:
-        return
-    if fnames is None:
-        _flush(self)
-        return
-    dirty = get_transaction().field_dirty
-    registry_of_model = model_field_registry(model)
-    if any(registry_of_model[fname] in dirty for fname in fnames):
-        _flush(self)
+    scope = (self.env if isinstance(self, BaseModel)
+             else contextlib.nullcontext())
+    with scope:
+        _recompute_model(self, fnames)
+        model = _model_of_records(self) or (
+            self if isinstance(self, type) else None)
+        if model is None:
+            return
+        if fnames is None:
+            _flush(self)
+            return
+        dirty = get_transaction().field_dirty
+        registry_of_model = model_field_registry(model)
+        if any(registry_of_model[fname] in dirty for fname in fnames):
+            _flush(self)
 
 
 def flush_recordset(self, fnames=None):
@@ -5414,19 +5485,24 @@ def flush_recordset(self, fnames=None):
     ``self``.
 
     ≙ ``BaseModel.flush_recordset`` (``:6367-6384``). La diferencia con
-    ``flush_model`` es el alcance: aqui solo estas filas.
+    ``flush_model`` es el alcance: aqui solo estas filas. Como alla, corre
+    dentro de ``self.env`` cuando ``self`` es un recordset.
     """
     rows = as_record_list(self)
     if not rows:
         return
-    _recompute_recordset(rows, fnames)
-    registry_of_model = model_field_registry(type(rows[0]))
-    fields = (registry_of_model.values() if fnames is None
-              else [registry_of_model[fname] for fname in fnames])
-    ids = set(record_ids(rows))
-    dirty = get_transaction().field_dirty
-    if not all(ids.isdisjoint(dirty.get(field) or ()) for field in fields):
-        _flush(rows)
+    scope = (self.env if isinstance(self, BaseModel)
+             else contextlib.nullcontext())
+    with scope:
+        _recompute_recordset(rows, fnames)
+        registry_of_model = model_field_registry(type(rows[0]))
+        fields = (registry_of_model.values() if fnames is None
+                  else [registry_of_model[fname] for fname in fnames])
+        ids = set(record_ids(rows))
+        dirty = get_transaction().field_dirty
+        if not all(ids.isdisjoint(dirty.get(field) or ())
+                   for field in fields):
+            _flush(rows)
 
 
 def _invalidate_cache(self, fnames=None, ids=None):
@@ -9210,7 +9286,7 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
         # registros que deben reescribir su parent_path
         parent_records = self._parent_store_update_prepare(vals_list)
 
-        _write_rows(type(self), self._ids, vals_list)
+        _write_rows(type(self), self._ids, vals_list, self.env.db_alias)
 
         # parent_path de los registros y sus descendientes
         if parent_records:

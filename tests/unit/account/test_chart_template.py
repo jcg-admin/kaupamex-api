@@ -759,7 +759,8 @@ class TestAccountTags:
 
         Requerido y computado no se contradicen: la referencia declara el campo
         ``required=True`` **y** ``precompute=True``, y el cómputo corre antes
-        del insert. Aquí lo llama ``save`` antes de guardar.
+        del insert, para la clave que ``vals`` no trae (``fname not in vals``,
+        ``:4842``): por eso la cuenta se crea sin ``account_type``.
         """
         AccountAccount.objects.create(
             company=company,
@@ -769,7 +770,7 @@ class TestAccountTags:
         )
 
         child = AccountAccount.objects.create(
-            company=company, code='4421', name='Otra', account_type=''
+            company=company, code='4421', name='Otra'
         )
 
         assert child.account_type == 'income_other'
@@ -785,7 +786,6 @@ class TestAccountTags:
             company=company,
             code='1010',
             name='Current Assets',
-            account_type='',
         )
 
         assert first.account_type == 'asset_current'

@@ -1413,28 +1413,34 @@ class Environment(abc.Mapping):
         filtro esas entradas vacías darían diez vueltas y un aviso que no
         describe nada.
         """
-        for _ in range(MAX_FIXPOINT_ITERATIONS):
-            self._recompute_all()
-            models_to_flush = OrderedSet()
-            for field, ids in list(self._field_dirty.items()):
-                if not ids:
-                    continue
-                model = model_of_field(field, registry)
-                if model is None:
-                    raise KeyError(getattr(field, 'model_name', '')
-                                   or repr(field))
-                models_to_flush.add(model)
-            if not models_to_flush:
-                break
-            for model in models_to_flush:
-                # ``self[model_name].flush_model()``: el recordset vacío; un
-                # modelo de Django sin ``BaseModel`` vuelca por su ``QuerySet``
-                if hasattr(model, '_from_ids'):
-                    model._from_ids(self, (), ()).flush_model()
-                else:
-                    model.objects.none().flush_model()
-        else:
-            _logger.warning("Too many iterations for flushing fields!")
+        # El volcado entero corre dentro de este entorno, que puede no ser el
+        # activo: ``init_models`` vuelca el de una base sin entrar en él, y el
+        # recálculo y la escritura leen el entorno activo. Es el
+        # ``self.env.cr`` de la fuente (ci-multidb f77418eb).
+        with self:
+            for _ in range(MAX_FIXPOINT_ITERATIONS):
+                self._recompute_all()
+                models_to_flush = OrderedSet()
+                for field, ids in list(self._field_dirty.items()):
+                    if not ids:
+                        continue
+                    model = model_of_field(field, registry)
+                    if model is None:
+                        raise KeyError(getattr(field, 'model_name', '')
+                                       or repr(field))
+                    models_to_flush.add(model)
+                if not models_to_flush:
+                    break
+                for model in models_to_flush:
+                    # ``self[model_name].flush_model()``: el recordset vacío;
+                    # un modelo de Django sin ``BaseModel`` vuelca por su
+                    # ``QuerySet``
+                    if hasattr(model, '_from_ids'):
+                        model._from_ids(self, (), ()).flush_model()
+                    else:
+                        model.objects.none().flush_model()
+            else:
+                _logger.warning("Too many iterations for flushing fields!")
 
     def flush_query(self, query):
         """Vuelca los campos que ``query`` declara en su metadata.
