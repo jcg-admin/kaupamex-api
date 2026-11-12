@@ -1,0 +1,52 @@
+FFFFF...                                                                 [100%]
+=================================== FAILURES ===================================
+________________ test_a_failed_load_resets_the_registry_changes ________________
+tests/integration/test_orm/test_registry_caches_per_database.py:98: in test_a_failed_load_resets_the_registry_changes
+    assert calls == [orm_registry.Registry('default')]
+E   assert [] == [<orm.registr...7f9685fe8440>]
+E     Right contains one more item: <orm.registry.Registry object at 0x7f9685fe8440>
+E     Use -v to get more diff
+---------------------------- Captured stdout setup -----------------------------
+Catálogo técnico: 0 añadidos, 0 actualizados (alcance medido: 124 addon(s) en /home/user/kaupamex-api/src/addons, /home/user/kaupamex-api/addons).
+auto_install coherente: 0 pendientes (alcance medido: 124 addon(s) con manifest de 124 en el árbol).
+Catálogo técnico: 0 añadidos, 0 actualizados (alcance medido: 124 addon(s) en /home/user/kaupamex-api/src/addons, /home/user/kaupamex-api/addons).
+auto_install coherente: 0 pendientes (alcance medido: 124 addon(s) con manifest de 124 en el árbol).
+____________ test_an_entry_of_one_database_is_not_served_to_another ____________
+tests/integration/test_orm/test_registry_caches_per_database.py:57: in test_an_entry_of_one_database_is_not_served_to_another
+    assert seen_by_default is not None
+E   assert None is not None
+______________ test_clearing_one_registry_leaves_the_other_alone _______________
+tests/integration/test_orm/test_registry_caches_per_database.py:70: in test_clearing_one_registry_leaves_the_other_alone
+    assert len(default._caches['stable'])
+E   AttributeError: 'Registry' object has no attribute '_caches'
+_____________ test_module_clear_cache_goes_to_the_active_registry ______________
+tests/integration/test_orm/test_registry_caches_per_database.py:85: in test_module_clear_cache_goes_to_the_active_registry
+    assert default.cache_invalidated == set()
+E   AssertionError: assert {'groups'} == set()
+E     Extra items in the left set:
+E     'groups'
+E     Use -v to get more diff
+______ test_the_environment_of_a_cursor_uses_the_registry_of_its_database ______
+tests/integration/test_orm/test_registry_xmlid_reassignment.py:61: in test_the_environment_of_a_cursor_uses_the_registry_of_its_database
+    assert Environment(cr.alias, SUPERUSER_ID, {}).registry is base
+E   AssertionError: assert <orm.registry.Registry object at 0x7f9685e5f750> is <orm.registry.Registry object at 0x7f9685fe8440>
+E    +  where <orm.registry.Registry object at 0x7f9685e5f750> = <Environment uid=1 su=True company=None>.registry
+E    +    where <Environment uid=1 su=True company=None> = Environment('default__cursor_2', 1, {})
+E    +      where 'default__cursor_2' = <sql_db.Cursor object at 0x7f9685e5f9d0>.alias
+=============================== warnings summary ===============================
+tests/integration/test_orm/test_registry_caches_per_database.py::test_a_failed_load_resets_the_registry_changes
+  /home/user/kaupamex-api/src/orm/fields.py:4488: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_registry_caches_per_database.py::test_a_failed_load_resets_the_registry_changes
+  /home/user/kaupamex-api/src/orm/fields.py:4488: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/integration/test_orm/test_registry_caches_per_database.py::test_a_failed_load_resets_the_registry_changes
+FAILED tests/integration/test_orm/test_registry_caches_per_database.py::test_an_entry_of_one_database_is_not_served_to_another
+FAILED tests/integration/test_orm/test_registry_caches_per_database.py::test_clearing_one_registry_leaves_the_other_alone
+FAILED tests/integration/test_orm/test_registry_caches_per_database.py::test_module_clear_cache_goes_to_the_active_registry
+FAILED tests/integration/test_orm/test_registry_xmlid_reassignment.py::test_the_environment_of_a_cursor_uses_the_registry_of_its_database
+5 failed, 3 passed, 2 warnings in 15.51s

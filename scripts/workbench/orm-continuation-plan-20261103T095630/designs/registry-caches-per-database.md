@@ -160,3 +160,30 @@ registry/ormcache"*). Sin ellos la invalidación anotada no llega a los demás
 procesos y un rollback no la deshace. Esta unidad porta el de `load`, que vive
 en el ORM; el del ciclo de petición (middleware de Django, comando de
 gestión, cron) es una unidad propia: `registry-signaling-lifecycle-0485`.
+
+## Implementación y verificación (2026-11-12T14:04:26 UTC)
+
+| Pieza | Dónde |
+|---|---|
+| contenedores y `cache_invalidated` por instancia; `clear_cache`/`clear_all_caches` del registro | `src/orm/registry.py` (`Registry.init`, `cache_invalidated`, `clear_cache`, `clear_all_caches`, `load`, `_setup_models__`, `check_signaling`, `reset_changes`) |
+| registro por base, no por cursor | `sql_db.origin_alias`, `registry.registry_for_alias`, `Environment.registry` |
+| funciones de módulo sobre el registro activo | `registry.active_registry`, `cache_of`, `clear_cache`, `clear_all_caches`, `cache_invalidated_names` |
+| `ormcache` con el contenedor y el contador `(base, método)` del registro | `src/tools/cache.py` (`ormcache.registry_of`: el `using` declarado o el receptor) |
+| claves de la fuente sin `using` | `_get_param`, `_get_model_defaults`, `_xmlid_lookup`, `_get_definition_id_for_property_field` |
+| `_update_xmlids` anota e invalida `groups` en el registro de `using` | `ir_model.py` |
+| `load` deshace lo anotado al revertir | `orm/models.py` (≙ `models.py:1061-1063`) |
+
+RED (`outputs/registry-caches/red-caches.log`, `red-xmlid-and-cursor.log`):
+5 de 8; la lectura cruzada devolvió bajo el alias de sondeo el id cacheado
+desde `default` (`66301`) con la fila de esa base renombrada. GREEN: 44
+passed con el contrato de `tools/cache.py` y `test_ormcache`. Anulación
+(`nullify-caches.log`): contenedor único → cae 1; sin `origin_alias` → caen
+2; `load` sin `reset_changes` → cae 1; registro de invalidación compartido →
+caen 2. Los archivos se restauraron byte a byte.
+
+Las tres pruebas que pasan antes y después (reasignación anotada,
+idempotencia, `reset_changes` tras deshacer) no son RED: con el registro de
+invalidación del módulo ya pasaban. Quedan como guardas.
+
+*Ciega a:* dos bases físicas distintas — las pruebas usan dos alias sobre la
+misma base, cada uno en su transacción; eso lo cubre ci-multidb.

@@ -1,0 +1,13 @@
+............................................                             [100%]
+=============================== warnings summary ===============================
+tests/integration/test_orm/test_registry_caches_per_database.py::test_a_failed_load_resets_the_registry_changes
+  /home/user/kaupamex-api/src/orm/fields.py:4488: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/test_orm/test_registry_caches_per_database.py::test_a_failed_load_resets_the_registry_changes
+  /home/user/kaupamex-api/src/orm/fields.py:4488: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+referencia: 20 pruebas marcadas, árbol presente en /home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/odoo-19.0 (odoo-tools@abe4040ec1)
+44 passed, 2 warnings in 15.50s

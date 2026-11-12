@@ -1,0 +1,20 @@
+== N1 contenedor: ormcache siempre en Registry('default')
+FAILED tests/integration/test_orm/test_registry_caches_per_database.py::test_an_entry_of_one_database_is_not_served_to_another
+1 failed, 7 passed in 14.35s
+restored-diff-vs-HEAD-quiet=1
+== N2 origen: el alias efímero no se resuelve a su base
+FAILED tests/integration/test_orm/test_registry_xmlid_reassignment.py::test_the_environment_of_a_cursor_uses_the_registry_of_its_database
+FAILED tests/integration/test_orm/test_registry_xmlid_reassignment.py::test_moving_an_xmlid_marks_its_database_registry
+2 failed, 6 passed in 15.28s
+restored-diff-vs-HEAD-quiet=1
+== N3 load sin reset_changes
+________________ test_a_failed_load_resets_the_registry_changes ________________
+tests/integration/test_orm/test_registry_caches_per_database.py:101: in test_a_failed_load_resets_the_registry_changes
+FAILED tests/integration/test_orm/test_registry_caches_per_database.py::test_a_failed_load_resets_the_registry_changes
+1 failed, 7 passed in 15.42s
+restored-diff-vs-HEAD-quiet=1
+== N4 registro de invalidación compartido entre registros
+FAILED tests/integration/test_orm/test_registry_caches_per_database.py::test_clearing_one_registry_leaves_the_other_alone
+FAILED tests/integration/test_orm/test_registry_caches_per_database.py::test_module_clear_cache_goes_to_the_active_registry
+2 failed, 6 passed in 15.74s
+restored-diff-vs-HEAD-quiet=1
