@@ -16,6 +16,7 @@ import traceback
 from django.apps import apps
 from django.core.management import call_command
 from django.db import connections, router, transaction
+from django.db.migrations.executor import MigrationExecutor
 from django.db.transaction import TransactionManagementError
 
 from modules.module import installed_addon_names
@@ -198,6 +199,23 @@ def load_demo(env, package, idref, mode):
         return False
 
 
+def apps_with_pending_migrations(using):
+    """Las apps cuyo esquema va detrás del modelo vivo en ``using``.
+
+    Devuelve ``{app_label: [migración, ...]}`` con las migraciones que faltan
+    por aplicar: el mismo plan que ``migrate`` calcularía hacia las hojas del
+    grafo (``MigrationExecutor.migration_plan``). Vacío si el esquema está al
+    día. designs/partial-migrate-data-load.md.
+    """
+    executor = MigrationExecutor(connections[using])
+    plan = executor.migration_plan(executor.loader.graph.leaf_nodes())
+    pending = {}
+    for migration, backwards in plan:
+        if not backwards:
+            pending.setdefault(migration.app_label, []).append(migration.name)
+    return pending
+
+
 def load_modules(using):
     """Install or update the addons of ``INSTALLED_APPS`` on ``using``.
 
@@ -225,8 +243,23 @@ def load_modules(using):
     graph = ModuleGraph.from_database(
         installed_addon_names(), using=using, mode='update')
     registry = Registry(using)
+    # ``init_models`` deja las tablas del módulo al día antes de sus datos en
+    # la fuente; aquí las deja ``migrate``, así que un módulo con migraciones
+    # pendientes —o que depende de uno omitido— no carga datos ni queda
+    # ``installed`` hasta que el esquema llegue (migración parcial).
+    pending = apps_with_pending_migrations(using)
+    skipped = set()
     with Environment(using, SUPERUSER_ID, {}) as environment:
         for package in graph:
+            waiting_on = [dep for dep in package.depends if dep in skipped]
+            if package.name in pending or waiting_on:
+                skipped.add(package.name)
+                _logger.warning(
+                    'module %s: schema not migrated on %s, data not loaded '
+                    '(pending migrations: %s; skipped dependencies: %s)',
+                    package.name, using, pending.get(package.name, []),
+                    waiting_on)
+                continue
             row = rows[package.name]
             install = row.state != IrModule.STATE_INSTALLED
             model_names = [

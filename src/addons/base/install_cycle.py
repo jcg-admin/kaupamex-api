@@ -13,10 +13,12 @@ import modules.loading
 def load_modules_after_migrate(sender, using, plan=None, **kwargs):
     """Instala o actualiza los addons tras ``migrate`` en ``using``.
 
-    ``post_migrate`` es el punto del stack en que el esquema de todas las
-    apps está al día: Django crea ahí permisos y tipos de contenido, y aquí
-    corre el paso por módulo de ``load_module_graph`` de la referencia
-    (``modules.loading.load_modules``). Dos guardas, las de
+    ``post_migrate`` es el punto del stack en que Django crea permisos y
+    tipos de contenido, y aquí corre el paso por módulo de
+    ``load_module_graph`` de la referencia (``modules.loading.load_modules``).
+    No garantiza el esquema al día: una migración parcial también lo emite,
+    y por eso ``load_modules`` omite el módulo con migraciones pendientes
+    (designs/partial-migrate-data-load.md). Dos guardas, las de
     ``django.contrib.auth.management.create_permissions``: sólo con ``plan``
     —lo pasa ``migrate``; ``flush`` emite la misma señal sin él— y sólo en
     una base donde el router migra ``base`` (las bases por empresa no

@@ -9,6 +9,9 @@ tras un ``flush``. Diseño: ``designs/module-install-cycle.md``, L3.
 import pytest
 from django.apps import apps
 from django.core.management.sql import emit_post_migrate_signal
+from django.db import connection
+from django.db.migrations.loader import MigrationLoader
+from django.db.migrations.recorder import MigrationRecorder
 
 import modules.loading as loading
 from modules.module import installed_addon_names
@@ -105,3 +108,45 @@ def test_a_failing_module_leaves_none_of_its_rows(monkeypatch):
     with pytest.raises(RuntimeError):
         loading.load_modules('default')
     assert not privilege.objects.filter(name='Carga a medias').exists()
+
+
+def _pretend_the_leaf_migration_is_pending(app_label):
+    """Borra, dentro de la transacción de la prueba, el registro de la última
+    migración de ``app_label``: el alias queda con el esquema de esa app a
+    medio migrar, como tras ``migrate <app> <anterior>``."""
+    loader = MigrationLoader(connection)
+    leaf = next(name for app, name in loader.graph.leaf_nodes()
+                if app == app_label)
+    MigrationRecorder(connection).migration_qs.filter(
+        app=app_label, name=leaf).delete()
+    return leaf
+
+
+def test_a_module_with_pending_migrations_is_not_loaded():
+    """≙ ``load_module_graph``: ``init_models`` deja las tablas del módulo al
+    día ANTES de ``load_data`` (``odoo19c: odoo/modules/loading.py``). Aquí
+    el esquema lo hacen las migraciones; con una pendiente, el módulo y sus
+    dependientes no cargan datos ni quedan ``installed``.
+    designs/partial-migrate-data-load.md."""
+    _forget_the_installation()
+    _pretend_the_leaf_migration_is_pending('hr')
+    loading.load_modules('default')
+    states = _module_states()
+    assert states['hr'] != 'installed'
+    assert states['hr_skills'] != 'installed'
+    assert not _xmlid_exists('hr', 'model_hr_employee')
+    assert states['base'] == 'installed'
+
+
+def test_completing_the_schema_installs_what_was_skipped():
+    _forget_the_installation()
+    leaf = _pretend_the_leaf_migration_is_pending('hr')
+    loading.load_modules('default')
+    MigrationRecorder(connection).record_applied('hr', leaf)
+    loading.load_modules('default')
+    states = _module_states()
+    assert states['hr'] == 'installed'
+    assert states['hr_skills'] == 'installed'
+    xmlids = apps.get_model('base', 'IrModelData').objects.filter(
+        module='hr', name='model_hr_employee')
+    assert xmlids.count() == 1
