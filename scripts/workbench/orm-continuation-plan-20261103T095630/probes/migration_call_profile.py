@@ -34,7 +34,7 @@ def main(app_label, migration_name, out_dir):
     loader = MigrationLoader(connection, replace_migrations=False)
     target = (app_label, migration_name)
     migration = loader.get_migration(app_label, migration_name)
-    previous = [key for key in loader.graph.node_map[target].parents]
+    previous = [parent.key for parent in loader.graph.node_map[target].parents]
 
     began = time.monotonic()
     state = loader.project_state(previous, at_end=True)

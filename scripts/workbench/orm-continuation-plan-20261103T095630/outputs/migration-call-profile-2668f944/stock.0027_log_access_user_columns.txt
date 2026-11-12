@@ -1,0 +1,52 @@
+migration=stock.0027_log_access_user_columns operations=50
+pre_state_seconds=0.60
+apply_seconds=37.91
+
+         49158593 function calls (48820739 primitive calls) in 37.910 seconds
+
+   Ordered by: cumulative time
+   List reduced from 498 to 40 due to restriction <40>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+        1    0.009    0.009   37.910   37.910 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:94(apply)
+       50    0.000    0.000   37.630    0.753 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:102(state_forwards)
+       50    0.002    0.000   37.630    0.753 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/migrations/state.py:255(add_field)
+       50    0.000    0.000   37.628    0.753 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/migrations/state.py:422(reload_model)
+       50    0.008    0.000   36.260    0.725 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/migrations/state.py:436(_reload)
+      100    0.018    0.000   36.238    0.362 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/migrations/state.py:676(render_multiple)
+     8950    0.350    0.000   36.139    0.004 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/migrations/state.py:960(render)
+11350/8900    0.493    0.000   20.553    0.002 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/base.py:97(__new__)
+   112875    0.169    0.000   15.175    0.000 /home/user/kaupamex-api/src/orm/fields.py:1232(_field_clone_with_args)
+   112875    0.306    0.000   15.006    0.000 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:666(clone)
+199475/174975    0.184    0.000   14.161    0.000 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/base.py:391(add_to_class)
+    25125    0.070    0.000    7.292    0.000 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1090(deconstruct)
+    25125    0.132    0.000    7.217    0.000 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:730(deconstruct)
+    27925    0.065    0.000    6.657    0.000 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:443(swappable_setting)
+    22892    1.439    0.000    6.589    0.000 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/apps/registry.py:283(get_swappable_settings_name)
+131675/131575    0.469    0.000    6.411    0.000 /home/user/kaupamex-api/src/orm/fields.py:2098(_field_contribute_to_class)
+    11350    0.145    0.000    5.379    0.000 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/base.py:397(_prepare)
+     7810    0.556    0.000    5.146    0.001 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/apps/registry.py:168(get_models)
+  1138814    0.821    0.000    4.601    0.000 {method 'extend' of 'list' objects}
+    30025    0.047    0.000    4.503    0.000 /home/user/kaupamex-api/src/orm/fields.py:2351(_fk_contribute_to_class)
+    32825    0.068    0.000    4.415    0.000 /home/user/kaupamex-api/src/orm/fields.py:2325(_related_contribute_to_class)
+    30025    0.078    0.000    4.282    0.000 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:922(contribute_to_class)
+     2800    0.009    0.000    4.087    0.001 /home/user/kaupamex-api/src/orm/fields.py:2335(_m2m_contribute_to_class)
+     2800    0.025    0.000    3.998    0.001 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1961(contribute_to_class)
+    11350    0.177    0.000    3.840    0.000 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/dispatch/dispatcher.py:179(send)
+  4598030    3.565    0.000    3.809    0.000 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/apps/config.py:241(get_models)
+     2450    0.086    0.000    3.721    0.002 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1303(create_many_to_many_intermediary_model)
+   112875    0.113    0.000    3.615    0.000 /home/user/kaupamex-api/src/orm/fields.py:1212(_field_deconstruct_without_copy)
+    32825    0.160    0.000    3.583    0.000 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:367(contribute_to_class)
+   167200    0.927    0.000    3.530    0.000 /home/user/kaupamex-api/src/orm/fields.py:1384(_field_setup_attrs)
+   112875    1.920    0.000    3.480    0.000 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:570(deconstruct)
+235857/191677    0.186    0.000    2.440    0.000 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/utils/functional.py:39(__get__)
+   120525    0.918    0.000    2.435    0.000 /home/user/kaupamex-api/src/orm/fields.py:1147(_field_init_with_copy)
+    32825    0.183    0.000    2.415    0.000 /home/user/kaupamex-api/src/orm/fields.py:1193(initialize)
+132025/113089    0.970    0.000    2.014    0.000 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/apps/registry.py:388(lazy_model_operation)
+    35625    0.470    0.000    1.842    0.000 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:68(lazy_related_operation)
+   131575    0.383    0.000    1.819    0.000 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:944(contribute_to_class)
+   167200    0.673    0.000    1.652    0.000 /home/user/kaupamex-api/src/orm/fields.py:1279(_field_get_attrs)
+   120525    0.618    0.000    1.429    0.000 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:186(__init__)
+       50    0.005    0.000    1.367    0.027 /home/user/kaupamex-api/.venv/lib/python3.13/site-packages/django/db/migrations/state.py:372(_find_reload_model)
+
+

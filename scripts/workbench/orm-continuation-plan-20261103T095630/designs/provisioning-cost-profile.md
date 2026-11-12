@@ -109,3 +109,45 @@ Con el costo en el número de operaciones de estado, no en el SQL:
    (instalación nueva y base en la revisión anterior).
 3. Medir aparte si `test_orm` tiene que migrarse en una instalación de
    producción.
+
+## Causa medida (2026-11-12, `outputs/migration-call-profile-2668f944/`)
+
+`probes/migration_call_profile.py` perfila con `cProfile` una sola
+migración del log-access a través de `sqlmigrate`, que recorre el camino de
+`migrate` sin escribir: `stock.0027_log_access_user_columns` (50
+`AddField` de FK a `res.users`).
+
+| Medida | Valor |
+|---|---|
+| estado previo (`project_state` + render) | 0.60 s |
+| aplicar la migración | 37.91 s |
+| `state_forwards` → `add_field` → `reload_model` | 37.63 s (99 %) |
+| `_reload` → `render_multiple` | 36.24 s |
+| `ModelState.render` | 8950 llamadas, 36.14 s |
+| `ModelBase.__new__` (clases históricas) | 11 350 llamadas, 20.55 s |
+| `orm.fields._field_clone_with_args` | 112 875 llamadas, 15.18 s |
+| `orm.fields._field_contribute_to_class` | 131 675 llamadas, 6.41 s |
+
+**Queda medido lo que antes era inferencia.** Para un campo relacional,
+`add_field` fija `delay = not field.is_relation` = `False`
+(`django/db/migrations/state.py:267`), `_find_reload_model` recoge los
+modelos relacionados de forma recursiva (`:385-387`) y `_reload` los
+vuelve a construir todos. Con una FK a `res.users` eso son unos 179
+modelos por operación (8950 renders / 50 operaciones). El costo crece con
+el número de operaciones de estado sobre campos relacionales, no con el
+SQL.
+
+Dentro de cada render, los ganchos del ORM sobre `clone` y
+`contribute_to_class` pesan una fracción grande; es un segundo frente
+medible, independiente de cuántas operaciones haya.
+
+### Consecuencia para la decisión
+
+- La consolidación reduce justo la cantidad medida: de tres operaciones de
+  estado por campo (`AddField`, `RenameField`, `AlterField`) a una. La
+  estimación es una reducción proporcional del costo del log-access; se
+  comprueba midiendo `stock` consolidado con este mismo probe.
+- El segundo frente —el costo de los ganchos del ORM por campo clonado en
+  un modelo histórico— se mide aparte antes de tocarlo: los modelos
+  históricos no necesitan la maquinaria del ORM vivo (la guarda de
+  `640628ce` ya los separa de la transacción).
