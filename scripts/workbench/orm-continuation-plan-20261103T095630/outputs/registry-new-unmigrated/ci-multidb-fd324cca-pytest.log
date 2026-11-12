@@ -1,0 +1,1060 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.18, pytest-7.4.4, pluggy-1.6.0 -- /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-fd324cca/.venv/bin/python3
+django: version: 6.0.5, settings: config.settings.testing (from env)
+rootdir: /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-fd324cca
+configfile: pytest.ini
+plugins: Faker-40.20.0, xdist-3.6.1, django-4.7.0
+collecting ... collected 15 items
+
+tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default ERROR [  6%]
+tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_write_under_company_scope_lands_in_its_own_base ERROR [ 13%]
+tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_rows_from_company_a_not_visible_under_company_b_scope ERROR [ 20%]
+tests/integration/company/test_multidb_isolation.py::TestSol085RowScopingIntraBase::test_row_scoping_filters_by_row_and_fk_resolves_intra_base ERROR [ 26%]
+tests/integration/company/test_multidb_isolation.py::test_company_schemas_and_native_connections ERROR [ 33%]
+tests/integration/company/test_multidb_isolation.py::test_init_creates_the_view_only_in_the_selected_database ERROR [ 40%]
+tests/integration/company/test_multidb_isolation.py::test_paperformat_xml_ids_exist_in_every_base ERROR [ 46%]
+tests/integration/company/test_multidb_isolation.py::test_company_init_writes_only_the_selected_base ERROR [ 53%]
+tests/integration/company/test_multidb_isolation.py::test_company_init_ignores_the_active_company_scope ERROR [ 60%]
+tests/integration/company/test_multidb_isolation.py::test_company_init_without_the_xml_id_assigns_nothing_and_rolls_back ERROR [ 66%]
+tests/integration/company/test_multidb_isolation.py::test_users_init_encrypts_only_in_the_selected_base ERROR [ 73%]
+tests/integration/company/test_multidb_isolation.py::test_init_models_runs_both_inits_in_the_selected_base ERROR [ 80%]
+tests/integration/company/test_multidb_isolation.py::TestStoredComputesStayInTheirBase::test_django_creations_compute_in_their_own_base ERROR [ 86%]
+tests/integration/company/test_multidb_isolation.py::TestStoredComputesStayInTheirBase::test_orm_creations_compute_in_their_own_base ERROR [ 93%]
+tests/integration/company/test_multidb_isolation.py::test_ormcache_entries_and_invalidation_stay_in_their_base ERROR [100%]
+
+==================================== ERRORS ====================================
+_ ERROR at setup of TestN1DegenerationRealWrite.test_domain_write_without_any_company_alias_lands_in_default _
+src/orm/registry.py:1825: in __new__
+    return cls.registries[db_name]
+src/tools/lru.py:74: in __getitem__
+    val = self._values[key]
+E   KeyError: 'default'
+
+During handling of the above exception, another exception occurred:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    _model, res_id = ir_model_data._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3107: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:141: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:211: in lookup
+    pool = self.registry_of(args, kwargs)
+src/tools/cache.py:166: in registry_of
+    return registry.registry_for_alias(alias)
+src/orm/registry.py:205: in registry_for_alias
+    return Registry(alias) if registry is None else registry
+src/orm/registry.py:1827: in __new__
+    return cls.new(db_name)
+src/tools/func.py:191: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1891: in new
+    registry.setup_signaling()
+src/orm/registry.py:2495: in setup_signaling
+    raise RuntimeError(
+E   RuntimeError: Faltan las tablas de senalizacion orm_signaling_registry, orm_signaling_default, orm_signaling_assets, orm_signaling_stable, orm_signaling_templates, orm_signaling_routing, orm_signaling_groups: las crea la migracion base.0085_orm_signaling_tables, que no se ha aplicado en esta base.
+---------------------------- Captured stderr setup -----------------------------
+Creating test database for alias 'default'...
+_ ERROR at setup of TestCrossCompanyIsolationByBase.test_write_under_company_scope_lands_in_its_own_base _
+src/orm/registry.py:1825: in __new__
+    return cls.registries[db_name]
+src/tools/lru.py:74: in __getitem__
+    val = self._values[key]
+E   KeyError: 'default'
+
+During handling of the above exception, another exception occurred:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    _model, res_id = ir_model_data._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3107: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:141: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:211: in lookup
+    pool = self.registry_of(args, kwargs)
+src/tools/cache.py:166: in registry_of
+    return registry.registry_for_alias(alias)
+src/orm/registry.py:205: in registry_for_alias
+    return Registry(alias) if registry is None else registry
+src/orm/registry.py:1827: in __new__
+    return cls.new(db_name)
+src/tools/func.py:191: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1891: in new
+    registry.setup_signaling()
+src/orm/registry.py:2495: in setup_signaling
+    raise RuntimeError(
+E   RuntimeError: Faltan las tablas de senalizacion orm_signaling_registry, orm_signaling_default, orm_signaling_assets, orm_signaling_stable, orm_signaling_templates, orm_signaling_routing, orm_signaling_groups: las crea la migracion base.0085_orm_signaling_tables, que no se ha aplicado en esta base.
+_ ERROR at setup of TestCrossCompanyIsolationByBase.test_rows_from_company_a_not_visible_under_company_b_scope _
+src/orm/registry.py:1825: in __new__
+    return cls.registries[db_name]
+src/tools/lru.py:74: in __getitem__
+    val = self._values[key]
+E   KeyError: 'default'
+
+During handling of the above exception, another exception occurred:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    _model, res_id = ir_model_data._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3107: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:141: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:211: in lookup
+    pool = self.registry_of(args, kwargs)
+src/tools/cache.py:166: in registry_of
+    return registry.registry_for_alias(alias)
+src/orm/registry.py:205: in registry_for_alias
+    return Registry(alias) if registry is None else registry
+src/orm/registry.py:1827: in __new__
+    return cls.new(db_name)
+src/tools/func.py:191: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1891: in new
+    registry.setup_signaling()
+src/orm/registry.py:2495: in setup_signaling
+    raise RuntimeError(
+E   RuntimeError: Faltan las tablas de senalizacion orm_signaling_registry, orm_signaling_default, orm_signaling_assets, orm_signaling_stable, orm_signaling_templates, orm_signaling_routing, orm_signaling_groups: las crea la migracion base.0085_orm_signaling_tables, que no se ha aplicado en esta base.
+_ ERROR at setup of TestSol085RowScopingIntraBase.test_row_scoping_filters_by_row_and_fk_resolves_intra_base _
+src/orm/registry.py:1825: in __new__
+    return cls.registries[db_name]
+src/tools/lru.py:74: in __getitem__
+    val = self._values[key]
+E   KeyError: 'default'
+
+During handling of the above exception, another exception occurred:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    _model, res_id = ir_model_data._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3107: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:141: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:211: in lookup
+    pool = self.registry_of(args, kwargs)
+src/tools/cache.py:166: in registry_of
+    return registry.registry_for_alias(alias)
+src/orm/registry.py:205: in registry_for_alias
+    return Registry(alias) if registry is None else registry
+src/orm/registry.py:1827: in __new__
+    return cls.new(db_name)
+src/tools/func.py:191: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1891: in new
+    registry.setup_signaling()
+src/orm/registry.py:2495: in setup_signaling
+    raise RuntimeError(
+E   RuntimeError: Faltan las tablas de senalizacion orm_signaling_registry, orm_signaling_default, orm_signaling_assets, orm_signaling_stable, orm_signaling_templates, orm_signaling_routing, orm_signaling_groups: las crea la migracion base.0085_orm_signaling_tables, que no se ha aplicado en esta base.
+________ ERROR at setup of test_company_schemas_and_native_connections _________
+src/orm/registry.py:1825: in __new__
+    return cls.registries[db_name]
+src/tools/lru.py:74: in __getitem__
+    val = self._values[key]
+E   KeyError: 'default'
+
+During handling of the above exception, another exception occurred:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    _model, res_id = ir_model_data._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3107: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:141: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:211: in lookup
+    pool = self.registry_of(args, kwargs)
+src/tools/cache.py:166: in registry_of
+    return registry.registry_for_alias(alias)
+src/orm/registry.py:205: in registry_for_alias
+    return Registry(alias) if registry is None else registry
+src/orm/registry.py:1827: in __new__
+    return cls.new(db_name)
+src/tools/func.py:191: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1891: in new
+    registry.setup_signaling()
+src/orm/registry.py:2495: in setup_signaling
+    raise RuntimeError(
+E   RuntimeError: Faltan las tablas de senalizacion orm_signaling_registry, orm_signaling_default, orm_signaling_assets, orm_signaling_stable, orm_signaling_templates, orm_signaling_routing, orm_signaling_groups: las crea la migracion base.0085_orm_signaling_tables, que no se ha aplicado en esta base.
+__ ERROR at setup of test_init_creates_the_view_only_in_the_selected_database __
+src/orm/registry.py:1825: in __new__
+    return cls.registries[db_name]
+src/tools/lru.py:74: in __getitem__
+    val = self._values[key]
+E   KeyError: 'default'
+
+During handling of the above exception, another exception occurred:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    _model, res_id = ir_model_data._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3107: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:141: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:211: in lookup
+    pool = self.registry_of(args, kwargs)
+src/tools/cache.py:166: in registry_of
+    return registry.registry_for_alias(alias)
+src/orm/registry.py:205: in registry_for_alias
+    return Registry(alias) if registry is None else registry
+src/orm/registry.py:1827: in __new__
+    return cls.new(db_name)
+src/tools/func.py:191: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1891: in new
+    registry.setup_signaling()
+src/orm/registry.py:2495: in setup_signaling
+    raise RuntimeError(
+E   RuntimeError: Faltan las tablas de senalizacion orm_signaling_registry, orm_signaling_default, orm_signaling_assets, orm_signaling_stable, orm_signaling_templates, orm_signaling_routing, orm_signaling_groups: las crea la migracion base.0085_orm_signaling_tables, que no se ha aplicado en esta base.
+________ ERROR at setup of test_paperformat_xml_ids_exist_in_every_base ________
+src/orm/registry.py:1825: in __new__
+    return cls.registries[db_name]
+src/tools/lru.py:74: in __getitem__
+    val = self._values[key]
+E   KeyError: 'default'
+
+During handling of the above exception, another exception occurred:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    _model, res_id = ir_model_data._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3107: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:141: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:211: in lookup
+    pool = self.registry_of(args, kwargs)
+src/tools/cache.py:166: in registry_of
+    return registry.registry_for_alias(alias)
+src/orm/registry.py:205: in registry_for_alias
+    return Registry(alias) if registry is None else registry
+src/orm/registry.py:1827: in __new__
+    return cls.new(db_name)
+src/tools/func.py:191: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1891: in new
+    registry.setup_signaling()
+src/orm/registry.py:2495: in setup_signaling
+    raise RuntimeError(
+E   RuntimeError: Faltan las tablas de senalizacion orm_signaling_registry, orm_signaling_default, orm_signaling_assets, orm_signaling_stable, orm_signaling_templates, orm_signaling_routing, orm_signaling_groups: las crea la migracion base.0085_orm_signaling_tables, que no se ha aplicado en esta base.
+______ ERROR at setup of test_company_init_writes_only_the_selected_base _______
+src/orm/registry.py:1825: in __new__
+    return cls.registries[db_name]
+src/tools/lru.py:74: in __getitem__
+    val = self._values[key]
+E   KeyError: 'default'
+
+During handling of the above exception, another exception occurred:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    _model, res_id = ir_model_data._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3107: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:141: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:211: in lookup
+    pool = self.registry_of(args, kwargs)
+src/tools/cache.py:166: in registry_of
+    return registry.registry_for_alias(alias)
+src/orm/registry.py:205: in registry_for_alias
+    return Registry(alias) if registry is None else registry
+src/orm/registry.py:1827: in __new__
+    return cls.new(db_name)
+src/tools/func.py:191: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1891: in new
+    registry.setup_signaling()
+src/orm/registry.py:2495: in setup_signaling
+    raise RuntimeError(
+E   RuntimeError: Faltan las tablas de senalizacion orm_signaling_registry, orm_signaling_default, orm_signaling_assets, orm_signaling_stable, orm_signaling_templates, orm_signaling_routing, orm_signaling_groups: las crea la migracion base.0085_orm_signaling_tables, que no se ha aplicado en esta base.
+_____ ERROR at setup of test_company_init_ignores_the_active_company_scope _____
+src/orm/registry.py:1825: in __new__
+    return cls.registries[db_name]
+src/tools/lru.py:74: in __getitem__
+    val = self._values[key]
+E   KeyError: 'default'
+
+During handling of the above exception, another exception occurred:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    _model, res_id = ir_model_data._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3107: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:141: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:211: in lookup
+    pool = self.registry_of(args, kwargs)
+src/tools/cache.py:166: in registry_of
+    return registry.registry_for_alias(alias)
+src/orm/registry.py:205: in registry_for_alias
+    return Registry(alias) if registry is None else registry
+src/orm/registry.py:1827: in __new__
+    return cls.new(db_name)
+src/tools/func.py:191: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1891: in new
+    registry.setup_signaling()
+src/orm/registry.py:2495: in setup_signaling
+    raise RuntimeError(
+E   RuntimeError: Faltan las tablas de senalizacion orm_signaling_registry, orm_signaling_default, orm_signaling_assets, orm_signaling_stable, orm_signaling_templates, orm_signaling_routing, orm_signaling_groups: las crea la migracion base.0085_orm_signaling_tables, que no se ha aplicado en esta base.
+_ ERROR at setup of test_company_init_without_the_xml_id_assigns_nothing_and_rolls_back _
+src/orm/registry.py:1825: in __new__
+    return cls.registries[db_name]
+src/tools/lru.py:74: in __getitem__
+    val = self._values[key]
+E   KeyError: 'default'
+
+During handling of the above exception, another exception occurred:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    _model, res_id = ir_model_data._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3107: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:141: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:211: in lookup
+    pool = self.registry_of(args, kwargs)
+src/tools/cache.py:166: in registry_of
+    return registry.registry_for_alias(alias)
+src/orm/registry.py:205: in registry_for_alias
+    return Registry(alias) if registry is None else registry
+src/orm/registry.py:1827: in __new__
+    return cls.new(db_name)
+src/tools/func.py:191: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1891: in new
+    registry.setup_signaling()
+src/orm/registry.py:2495: in setup_signaling
+    raise RuntimeError(
+E   RuntimeError: Faltan las tablas de senalizacion orm_signaling_registry, orm_signaling_default, orm_signaling_assets, orm_signaling_stable, orm_signaling_templates, orm_signaling_routing, orm_signaling_groups: las crea la migracion base.0085_orm_signaling_tables, que no se ha aplicado en esta base.
+_____ ERROR at setup of test_users_init_encrypts_only_in_the_selected_base _____
+src/orm/registry.py:1825: in __new__
+    return cls.registries[db_name]
+src/tools/lru.py:74: in __getitem__
+    val = self._values[key]
+E   KeyError: 'default'
+
+During handling of the above exception, another exception occurred:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    _model, res_id = ir_model_data._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3107: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:141: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:211: in lookup
+    pool = self.registry_of(args, kwargs)
+src/tools/cache.py:166: in registry_of
+    return registry.registry_for_alias(alias)
+src/orm/registry.py:205: in registry_for_alias
+    return Registry(alias) if registry is None else registry
+src/orm/registry.py:1827: in __new__
+    return cls.new(db_name)
+src/tools/func.py:191: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1891: in new
+    registry.setup_signaling()
+src/orm/registry.py:2495: in setup_signaling
+    raise RuntimeError(
+E   RuntimeError: Faltan las tablas de senalizacion orm_signaling_registry, orm_signaling_default, orm_signaling_assets, orm_signaling_stable, orm_signaling_templates, orm_signaling_routing, orm_signaling_groups: las crea la migracion base.0085_orm_signaling_tables, que no se ha aplicado en esta base.
+___ ERROR at setup of test_init_models_runs_both_inits_in_the_selected_base ____
+src/orm/registry.py:1825: in __new__
+    return cls.registries[db_name]
+src/tools/lru.py:74: in __getitem__
+    val = self._values[key]
+E   KeyError: 'default'
+
+During handling of the above exception, another exception occurred:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    _model, res_id = ir_model_data._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3107: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:141: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:211: in lookup
+    pool = self.registry_of(args, kwargs)
+src/tools/cache.py:166: in registry_of
+    return registry.registry_for_alias(alias)
+src/orm/registry.py:205: in registry_for_alias
+    return Registry(alias) if registry is None else registry
+src/orm/registry.py:1827: in __new__
+    return cls.new(db_name)
+src/tools/func.py:191: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1891: in new
+    registry.setup_signaling()
+src/orm/registry.py:2495: in setup_signaling
+    raise RuntimeError(
+E   RuntimeError: Faltan las tablas de senalizacion orm_signaling_registry, orm_signaling_default, orm_signaling_assets, orm_signaling_stable, orm_signaling_templates, orm_signaling_routing, orm_signaling_groups: las crea la migracion base.0085_orm_signaling_tables, que no se ha aplicado en esta base.
+_ ERROR at setup of TestStoredComputesStayInTheirBase.test_django_creations_compute_in_their_own_base _
+src/orm/registry.py:1825: in __new__
+    return cls.registries[db_name]
+src/tools/lru.py:74: in __getitem__
+    val = self._values[key]
+E   KeyError: 'default'
+
+During handling of the above exception, another exception occurred:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    _model, res_id = ir_model_data._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3107: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:141: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:211: in lookup
+    pool = self.registry_of(args, kwargs)
+src/tools/cache.py:166: in registry_of
+    return registry.registry_for_alias(alias)
+src/orm/registry.py:205: in registry_for_alias
+    return Registry(alias) if registry is None else registry
+src/orm/registry.py:1827: in __new__
+    return cls.new(db_name)
+src/tools/func.py:191: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1891: in new
+    registry.setup_signaling()
+src/orm/registry.py:2495: in setup_signaling
+    raise RuntimeError(
+E   RuntimeError: Faltan las tablas de senalizacion orm_signaling_registry, orm_signaling_default, orm_signaling_assets, orm_signaling_stable, orm_signaling_templates, orm_signaling_routing, orm_signaling_groups: las crea la migracion base.0085_orm_signaling_tables, que no se ha aplicado en esta base.
+_ ERROR at setup of TestStoredComputesStayInTheirBase.test_orm_creations_compute_in_their_own_base _
+src/orm/registry.py:1825: in __new__
+    return cls.registries[db_name]
+src/tools/lru.py:74: in __getitem__
+    val = self._values[key]
+E   KeyError: 'default'
+
+During handling of the above exception, another exception occurred:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    _model, res_id = ir_model_data._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3107: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:141: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:211: in lookup
+    pool = self.registry_of(args, kwargs)
+src/tools/cache.py:166: in registry_of
+    return registry.registry_for_alias(alias)
+src/orm/registry.py:205: in registry_for_alias
+    return Registry(alias) if registry is None else registry
+src/orm/registry.py:1827: in __new__
+    return cls.new(db_name)
+src/tools/func.py:191: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1891: in new
+    registry.setup_signaling()
+src/orm/registry.py:2495: in setup_signaling
+    raise RuntimeError(
+E   RuntimeError: Faltan las tablas de senalizacion orm_signaling_registry, orm_signaling_default, orm_signaling_assets, orm_signaling_stable, orm_signaling_templates, orm_signaling_routing, orm_signaling_groups: las crea la migracion base.0085_orm_signaling_tables, que no se ha aplicado en esta base.
+_ ERROR at setup of test_ormcache_entries_and_invalidation_stay_in_their_base __
+src/orm/registry.py:1825: in __new__
+    return cls.registries[db_name]
+src/tools/lru.py:74: in __getitem__
+    val = self._values[key]
+E   KeyError: 'default'
+
+During handling of the above exception, another exception occurred:
+/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:354: in handle
+    post_migrate_state = executor.migrate(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:137: in migrate
+    state = self._migrate_all_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:169: in _migrate_all_forwards
+    state = self.apply_migration(
+.venv/lib/python3.13/site-packages/django/db/migrations/executor.py:257: in apply_migration
+    state = migration.apply(state, schema_editor)
+.venv/lib/python3.13/site-packages/django/db/migrations/migration.py:132: in apply
+    operation.database_forwards(
+.venv/lib/python3.13/site-packages/django/db/migrations/operations/fields.py:118: in database_forwards
+    schema_editor.add_field(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:730: in add_field
+    definition, params = self.column_sql(model, field, include_default=True)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:391: in column_sql
+    " ".join(
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:336: in _iter_column_sql
+    default_value = self.effective_default(field)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:491: in effective_default
+    return field.get_db_prep_save(self._effective_default(field), self.connection)
+.venv/lib/python3.13/site-packages/django/db/backends/base/schema.py:467: in _effective_default
+    default = field.get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/related.py:1170: in get_default
+    field_default = super().get_default()
+.venv/lib/python3.13/site-packages/django/db/models/fields/__init__.py:1023: in get_default
+    return self._get_default()
+addons/stock/models/res_company.py:160: in _default_confirmation_mail_template
+    _model, res_id = ir_model_data._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3107: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:141: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:211: in lookup
+    pool = self.registry_of(args, kwargs)
+src/tools/cache.py:166: in registry_of
+    return registry.registry_for_alias(alias)
+src/orm/registry.py:205: in registry_for_alias
+    return Registry(alias) if registry is None else registry
+src/orm/registry.py:1827: in __new__
+    return cls.new(db_name)
+src/tools/func.py:191: in locked
+    return func(inst, *args, **kwargs)
+src/orm/registry.py:1891: in new
+    registry.setup_signaling()
+src/orm/registry.py:2495: in setup_signaling
+    raise RuntimeError(
+E   RuntimeError: Faltan las tablas de senalizacion orm_signaling_registry, orm_signaling_default, orm_signaling_assets, orm_signaling_stable, orm_signaling_templates, orm_signaling_routing, orm_signaling_groups: las crea la migracion base.0085_orm_signaling_tables, que no se ha aplicado en esta base.
+=============================== warnings summary ===============================
+tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-fd324cca/src/orm/fields.py:4488: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default
+  /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/gate-fd324cca/src/orm/fields.py:4488: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/multidb-fd324cca/junit_isolation.xml -
+=========================== short test summary info ============================
+ERROR tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default
+ERROR tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_write_under_company_scope_lands_in_its_own_base
+ERROR tests/integration/company/test_multidb_isolation.py::TestCrossCompanyIsolationByBase::test_rows_from_company_a_not_visible_under_company_b_scope
+ERROR tests/integration/company/test_multidb_isolation.py::TestSol085RowScopingIntraBase::test_row_scoping_filters_by_row_and_fk_resolves_intra_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_schemas_and_native_connections
+ERROR tests/integration/company/test_multidb_isolation.py::test_init_creates_the_view_only_in_the_selected_database
+ERROR tests/integration/company/test_multidb_isolation.py::test_paperformat_xml_ids_exist_in_every_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_init_writes_only_the_selected_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_init_ignores_the_active_company_scope
+ERROR tests/integration/company/test_multidb_isolation.py::test_company_init_without_the_xml_id_assigns_nothing_and_rolls_back
+ERROR tests/integration/company/test_multidb_isolation.py::test_users_init_encrypts_only_in_the_selected_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_init_models_runs_both_inits_in_the_selected_base
+ERROR tests/integration/company/test_multidb_isolation.py::TestStoredComputesStayInTheirBase::test_django_creations_compute_in_their_own_base
+ERROR tests/integration/company/test_multidb_isolation.py::TestStoredComputesStayInTheirBase::test_orm_creations_compute_in_their_own_base
+ERROR tests/integration/company/test_multidb_isolation.py::test_ormcache_entries_and_invalidation_stay_in_their_base
+================== 2 warnings, 15 errors in 71.46s (0:01:11) ===================

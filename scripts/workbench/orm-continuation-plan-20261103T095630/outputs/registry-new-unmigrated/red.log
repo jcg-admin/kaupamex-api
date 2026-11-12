@@ -1,0 +1,3 @@
+E   RuntimeError: Faltan las tablas de senalizacion orm_signaling_not_migrated: las crea la migracion base.0085_orm_signaling_tables, que no se ha aplicado en esta base.
+FAILED tests/integration/test_orm/test_registry_new_flushes_its_own_cursor.py::test_a_base_without_its_signaling_tables_builds_unsignaled
+1 failed, 2 passed, 2 warnings in 14.21s

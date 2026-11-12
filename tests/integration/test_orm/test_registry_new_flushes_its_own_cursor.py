@@ -41,3 +41,17 @@ def test_a_new_registry_starts_from_the_database_signaling():
         built = Registry.new('default')
         assert built.registry_sequence != -1
         assert built.check_signaling() is built
+
+
+def test_a_base_without_its_signaling_tables_builds_unsignaled(monkeypatch):
+    """Una base aún sin ``base.0085`` (``--create-db`` antes de ``migrate``).
+
+    La fuente crearía ahí las tablas; aquí las crea la migración, así que
+    el registro nace sin señalizar en vez de fallar (ci-multidb de
+    ``fd324cca``: 15 errores de fixture con ``RuntimeError``).
+    """
+    monkeypatch.setattr('orm.registry.signaling_table_names',
+                        lambda: ('orm_signaling_not_migrated',))
+    with preserved_registries():
+        built = Registry.new('default')
+        assert built.registry_sequence == -1

@@ -1887,8 +1887,12 @@ class Registry(Mapping):
                 == db_name):
             # ≙ ``registry.setup_signaling()`` (``registry.py:159``): nace
             # con las secuencias de su base, o el primer ``check_signaling``
-            # lo reconstruiría.
-            registry.setup_signaling()
+            # lo reconstruiría. La fuente crea ahí las tablas que falten;
+            # aquí las crea ``base.0085``, así que una base aún sin migrar
+            # (``--create-db`` antes de ``migrate``) nace sin señalizar.
+            if set(signaling_table_names()) <= set(
+                    connections[alias].introspection.table_names()):
+                registry.setup_signaling()
             with registry.cursor() as cr, orm.environments.Environment(
                     cr.alias, SUPERUSER_ID, {}):
                 _call_hooks(registry, '_register_hook')

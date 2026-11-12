@@ -1,0 +1,2 @@
+FAILED tests/integration/test_orm/test_registry_new_flushes_its_own_cursor.py::test_a_new_registry_starts_from_the_database_signaling
+1 failed, 2 passed, 2 warnings in 13.56s
