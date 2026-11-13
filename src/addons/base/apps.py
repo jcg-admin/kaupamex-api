@@ -32,6 +32,7 @@ from orm.model_classes import (
     ensure_access_managers,
     ensure_base_urls,
     ensure_copies,
+    ensure_creates,
     ensure_display_names,
     ensure_log_access,
     ensure_model_class_attributes,
@@ -103,6 +104,7 @@ class BaseConfig(AppConfig):
         ensure_schema_hooks()
         ensure_base_urls()
         ensure_copies()
+        ensure_creates()
         # Las columnas de acceso de la fuente en los modelos de la referencia
         # que no heredan ``TimeStampedModel`` (DEC-09).
         ensure_log_access()

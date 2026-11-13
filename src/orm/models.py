@@ -4711,10 +4711,13 @@ class DisplayNameMixin:
                 'No se puede ejecutar name_create: %s no declara _rec_name',
                 cls._meta.label)
             return False
-        # el alta de la fuente: defaults, contexto y acceso; un modelo sin
-        # ``create`` propio (no adopta DefaultGetMixin) usa el de Django
+        # el alta de la fuente: defaults, contexto y acceso. Todo modelo
+        # propio la tiene (``adopt_create``); uno de terceros, no.
         if hasattr(cls, 'create'):
             record = cls.create({rec_name: name})
+            if not hasattr(record, '_ids'):
+                # sin ``BaseModel``, ``_create_result`` da el ``QuerySet``
+                record = record.get()
         else:
             record = cls.objects.create(**{rec_name: name})
         return record.id, record.display_name

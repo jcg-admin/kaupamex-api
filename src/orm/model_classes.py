@@ -1933,3 +1933,48 @@ def ensure_copies():
     """
     return sum(1 for model in apps.get_models(include_auto_created=True)
                if adopt_copy(model))
+
+
+#: Los símbolos de alta que la fuente cuelga de ``BaseModel``
+#: (``odoo19c: odoo/orm/models.py:4611-4930`` y ``default_get``).
+CREATE_SYMBOLS = ('default_get', '_add_missing_default_values', 'create',
+                  '_create_result', '_prepare_create_values', '_create')
+
+
+def adopt_create(model_cls):
+    """Da a ``model_cls`` el alta de la fuente si no la hereda.
+
+    En la fuente todo modelo tiene ``create``, ``_create`` y ``default_get``
+    porque cuelgan de ``BaseModel``; aquí los lleva ``DefaultGetMixin``.
+    Cada símbolo que el modelo no resuelva por su MRO se toma del mixin;
+    un ``create`` propio del modelo, o el de ``BaseModel``, gana. Diseño:
+    ``designs/create-universality.md``.
+
+    :returns: cuántos símbolos se adoptaron.
+    """
+    if model_cls._meta.abstract or model_cls._meta.proxy:
+        return 0
+    if model_cls.__module__.startswith(THIRD_PARTY_MODULE_PREFIXES):
+        return 0
+    mixin = importlib.import_module('orm.models').DefaultGetMixin
+    adopted = 0
+    for name in CREATE_SYMBOLS:
+        if getattr(model_cls, name, None) is None:
+            setattr(model_cls, name, mixin.__dict__[name])
+            adopted += 1
+    return adopted
+
+
+@receiver(class_prepared, dispatch_uid='orm.model_classes.adopt_create')
+def _adopt_create_on_prepared(sender, **kwargs):
+    """Adopta el alta en cuanto la clase queda construida."""
+    adopt_create(sender)
+
+
+def ensure_creates():
+    """Barre el registro por si la señal llegó tarde (``H-API-577``).
+
+    :returns: cuántos modelos adoptaron al menos un símbolo en el barrido.
+    """
+    return sum(1 for model in apps.get_models(include_auto_created=True)
+               if adopt_create(model))

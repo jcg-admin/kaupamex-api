@@ -155,6 +155,10 @@ def _row_id(value):
     ids = getattr(value, '_ids', None)
     if ids is not None:
         return ids[0] if ids else None
+    if isinstance(value, _django_models.QuerySet):
+        # el alta de un comodelo sin ``BaseModel`` devuelve el ``QuerySet``
+        # de ``_create_result``, no una fila
+        return value.values_list('pk', flat=True).first()
     return getattr(value, 'pk', value)
 
 

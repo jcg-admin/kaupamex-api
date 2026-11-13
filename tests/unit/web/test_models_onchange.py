@@ -153,7 +153,9 @@ def test_onchange_with_an_unknown_field_returns_nothing():
     ``AttributeError``: el cliente puede mandar un nombre viejo tras un
     rename y eso no debe ser un 500.
     """
-    assert Base.onchange(_stage(), {'no_existe': 1}, ['no_existe'], _SPEC) == {}
+    result = Base.onchange(
+        _stage(), {'missing_field': 1}, ['missing_field'], _SPEC)
+    assert result == {}
 
 
 def test_onchange_collects_the_warning_of_the_registered_method():
@@ -216,11 +218,14 @@ def test_onchange_does_not_echo_back_the_field_the_user_typed():
     assert result['value'] == {}
 
 
+@pytest.mark.django_db
 def test_first_call_returns_every_field_of_the_spec():
     """Con ``field_names`` vacío (alta desde cero) salen todos los campos.
 
     Discrimina la primera llamada de una normal: la normal devuelve sólo lo
-    que cambió, y un alta con eso llegaría vacía.
+    que cambió, y un alta con eso llegaría vacía. Consulta la base porque
+    la primera llamada pasa por ``default_get``, que lee ``ir.default``
+    (≙ ``odoo19c: addons/web/models/models.py``, ``onchange``).
     """
     result = Base.onchange(_stage(), {}, [], _SPEC)
 
