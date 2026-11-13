@@ -3,15 +3,15 @@
 ≙ ``odoo19c: addons/utm/models/*.py`` (los cinco modelos son ``BaseModel``)
 y ``odoo19c: addons/utm/security/ir.model.access.csv`` (diez filas: CRUD sin
 borrado para ``base.group_user`` en campaña, medio y fuente; sólo lectura en
-etapa y etiqueta; todo para ``base.group_system``). Diseño:
+etapa y etiqueta; todo para ``base.group_system``). El CSV es copia fiel y lo
+carga el ciclo de instalación desde el manifiesto. Diseños:
 ``scripts/workbench/orm-continuation-plan-20261103T095630/designs/
-basemodel-adoption-utm.md``.
+basemodel-adoption-utm.md`` y ``security-data-by-manifest.md``.
 """
 import pytest
 from django.contrib.auth import get_user_model
 
-from addons.base.models import IrModelData
-from addons.utm.security.ir_model_access import _ACCESS
+from addons.base.models import IrModelAccess, IrModelData
 from exceptions import AccessError
 from orm.environments import Environment, sudo, user_scope
 from orm.models import BaseModel
@@ -37,11 +37,14 @@ def test_every_utm_model_is_a_base_model(name):
     assert issubclass(MODELS_BY_NAME[name], BaseModel)
 
 
-def test_the_acl_is_the_reference_csv():
-    assert len(_ACCESS) == 10
-    stage = {perms for _, label, group, perms in _ACCESS
-             if label == 'utm.UtmStage' and group == 'group_user'}
-    assert stage == {(1, 0, 0, 0)}
+def test_the_acl_is_the_reference_csv_with_its_external_ids():
+    xmlids = IrModelData.objects.filter(module='utm',
+                                        model='base.IrModelAccess')
+    assert xmlids.count() == 10
+    row = IrModelAccess.objects.get(
+        pk=xmlids.get(name='access_utm_stage_user').res_id)
+    perms = (row.perm_read, row.perm_write, row.perm_create, row.perm_unlink)
+    assert perms == (True, False, False, False)
 
 
 def test_an_internal_user_creates_a_source_but_cannot_delete_it():

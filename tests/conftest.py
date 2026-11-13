@@ -51,7 +51,6 @@ from addons.loyalty.data import CRON_EXPIRE_VOUCHERS
 from addons.mail.data import CRON_EMAIL_QUEUE
 from addons.website_sale.models.website import CRON_SEND_ABANDONED_CART_EMAIL
 from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
-from addons.utm.security.ir_model_access import seed as utm_acl_seed
 from tests.fixtures import reference_tree
 from addons.base.data.res_users_data import public_user_seed
 from addons.base.data.res_users_data import seed as root_user_seed
@@ -424,7 +423,6 @@ _SEEDERS = (
     base_rules_seed,            # base/security (record rules multi-company)
     base_acl_seed,              # base/security (ir.model.access, 23 filas)
     sale_rules_seed,            # sale/security/ir_rules
-    utm_acl_seed,               # utm/security (ir.model.access)
     subscription_rules_seed,    # sale_subscription/security/ir_rules
     sale_report_view_seed,      # sale/0002 (plantilla del documento)
     incoterm_extension_seed,    # sale_stock/0003 — después de la primaria
