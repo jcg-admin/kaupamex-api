@@ -109,6 +109,11 @@
    "id": "basemodel-adoption-0397",
    "task": "TASK-API-0397",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "sales-team-data-0397",
+   "task": "TASK-API-0397",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
   }
  ],
  "unrepresented": [
@@ -388,7 +393,8 @@
   "multidb-run-intent-0496",
   "copy-universality-0485",
   "create-universality-0485",
-  "basemodel-adoption-utm-0397"
+  "basemodel-adoption-utm-0397",
+  "basemodel-adoption-sales-team-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
