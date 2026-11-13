@@ -1879,3 +1879,57 @@ def refuse_inherited_name(sender, **kwargs):
         raise ImproperlyConfigured(
             f'{meta.label} hereda _name={inherited!r} sin declarar el suyo: '
             f'un modelo concreto declara su propia identidad.')
+
+
+#: Los símbolos de ``orm.models.CopyMixin`` que ``copy`` necesita: el método
+#: público, ``copy_data``, ``copy_translations`` y los tres que los sirven.
+COPY_SYMBOLS = ('_copy_blacklist', '_copy_child_data', 'copy_children',
+                'copy_data', 'copy_translations', 'copy')
+
+
+def adopt_copy(model_cls):
+    """Le da al modelo ``copy`` y su cadena, si no los tiene.
+
+    ≙ que ``copy_data`` (``odoo19c: odoo/orm/models.py:5406``),
+    ``copy_translations`` (``:5465``) y ``copy`` (``:5530``) cuelguen de
+    ``BaseModel``: allá **todo** modelo los tiene. Aquí los lleva
+    :class:`orm.models.CopyMixin`, que sólo trece modelos declaraban a mano;
+    medido el 2026-11-13, a 365 modelos propios les faltaba
+    (``designs/copy-universality.md``).
+
+    Misma forma que :func:`adopt_base_url`: cada símbolo se cuelga con
+    ``setattr`` sólo si el modelo no lo resuelve ya por su MRO, así que un
+    ``copy_data`` propio (``res.partner``) o heredado de ``BaseModel`` gana,
+    como la fuente permite con cualquier método de ``BaseModel``. No se
+    añade ``CopyMixin`` a las bases de ``TimeStampedModel``: los modelos
+    que lo declaran delante de ella romperían su MRO.
+
+    :returns: cuántos símbolos se instalaron — 0 si ya los tenía, es de
+        terceros, abstracto o proxy.
+    """
+    if model_cls._meta.abstract or model_cls._meta.proxy:
+        return 0
+    if model_cls.__module__.startswith(THIRD_PARTY_MODULE_PREFIXES):
+        return 0
+    mixin = importlib.import_module('orm.models').CopyMixin
+    adopted = 0
+    for name in COPY_SYMBOLS:
+        if getattr(model_cls, name, None) is None:
+            setattr(model_cls, name, mixin.__dict__[name])
+            adopted += 1
+    return adopted
+
+
+@receiver(class_prepared, dispatch_uid='orm.model_classes.adopt_copy')
+def _adopt_copy_on_prepared(sender, **kwargs):
+    """Adopta ``copy`` en cuanto la clase queda construida."""
+    adopt_copy(sender)
+
+
+def ensure_copies():
+    """Barre el registro por si la señal llegó tarde (``H-API-577``).
+
+    :returns: cuántos modelos adoptaron al menos un símbolo en el barrido.
+    """
+    return sum(1 for model in apps.get_models(include_auto_created=True)
+               if adopt_copy(model))

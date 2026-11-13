@@ -1,0 +1,4 @@
+FAILED tests/unit/orm/test_copy_universality.py::test_a_timestamped_model_duplicates_its_row
+FAILED tests/unit/orm/test_copy_universality.py::test_a_django_only_model_duplicates_its_row
+FAILED tests/unit/orm/test_copy_universality.py::test_every_own_concrete_model_has_copy
+3 failed, 24 passed, 2 warnings in 12.73s

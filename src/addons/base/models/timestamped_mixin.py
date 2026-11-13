@@ -2,10 +2,10 @@
 
 En la referencia el ORM auto-inyecta ``create_date``/``write_date``/
 ``create_uid``/``write_uid`` (``LOG_ACCESS_COLUMNS``) y el archivado es el
-campo ``active``; no hay mixin de app equivalente. Aquí se adapta al patrón
-Django. El end-state totalmente fiel (auto-inyección en la capa ``orm/``, sin
-mixin) queda como alternativa diferida en DEC-09 de
-``adoptar-arquitectura-server-service-odoo``.
+campo ``active``; no hay mixin de app equivalente. Esta base las declara y
+``orm.model_classes.adopt_log_access`` las copia en ``class_prepared`` a todo
+modelo que no la hereda (DEC-09, ``base/0110``). ``copy`` y su cadena no
+vienen de aquí: los entrega ``adopt_copy`` (``designs/copy-universality.md``).
 
 **Un archivo por mixin**, como ``image_mixin.py`` / ``avatar_mixin.py`` /
 ``properties_base_definition_mixin.py`` en la referencia. Antes los seis
