@@ -133,3 +133,9 @@ ci-multidb conservados como **no conformes**: `fd324cca` (15 errores de fixture,
 | `d10ae3ad` | clone | 1:22:15 | 2 501 s | 12 passed, 4 errors |
 
 La reducción (≈ 55 min, el fixture a menos de la mitad) está medida, pero **no es admisible todavía**: la ejecución en `clone` no fue conforme. Se repite `clone` sobre la revisión que cierre `provision`.
+
+## ci-multidb conformes (2026-11-13T02:14:05)
+
+- `ci-multidb-3342b8b2`: `provision`, 15 passed, 2:01:40. Cubre las seis unidades de la noche.
+- `ci-multidb-clone-3342b8b2`: `clone`, 15 passed, 1:32:56, misma revisión. Admite `clone` para cambios sin migraciones (`designs/multidb-gate-cost.md`). Una primera ejecución de `clone` se perdió por reinicio del contenedor.
+- Bases residuales de esa ejecución interrumpida, **no retiradas** por no poder probar su propiedad: `company_122020071908891_db` y una de tres `orm_bootstrap_*`.

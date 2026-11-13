@@ -103,3 +103,23 @@ evidencia pendiente de publicar. Etapas, con las piezas que ya existen:
 | publicada | commit por pathspec | quien integra |
 
 El gate en curso (`7b597391`) sigue con el lanzador anterior; no se toca.
+
+## Resultado medido (2026-11-13T02:14:05)
+
+Misma revisión `3342b8b2`, las dos ejecuciones conformes (15 passed):
+
+| Fase | `provision` (`ci-multidb-3342b8b2`) | `clone` (`ci-multidb-clone-3342b8b2`) |
+|---|---|---|
+| prueba 1 (`--create-db`) | 2 424 s | 2 779 s |
+| fixture de dos bases | 4 873 s | 2 793 s (−43 %) |
+| resto (12 pruebas) | 4 s | 4 s |
+| pytest total | 7 321 s | 5 594 s (−24 %) |
+
+La diferencia de la prueba 1 (+355 s) no la explica el modo —el código y la
+fase son idénticos—: es la variación de la máquina, y acota la precisión de la
+comparación.
+
+Decisión de uso, sin reducir cobertura: `clone` para cambios que no tocan
+migraciones ni aprovisionamiento; `provision` obligatorio cuando los tocan
+(como `3342b8b2`, por `base/0113`). La base A sigue aprovisionándose desde
+cero en los dos modos.
