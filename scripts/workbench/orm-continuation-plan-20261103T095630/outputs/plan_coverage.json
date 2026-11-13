@@ -94,6 +94,11 @@
    "id": "request-unit-of-work-integrity-0485",
    "task": "TASK-API-0485",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "ir-exports-one2many-0485",
+   "task": "TASK-API-0485",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
   }
  ],
  "unrepresented": [
@@ -370,7 +375,8 @@
   "bulk-delete-invalidation-0485",
   "public-user-seed-0485",
   "multidb-gate-clone",
-  "multidb-run-intent-0496"
+  "multidb-run-intent-0496",
+  "copy-universality-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
