@@ -1,0 +1,25 @@
+{
+  "reference_members": 188,
+  "concrete_models": 449,
+  "production_models": 396,
+  "production_subclassing_basemodel": 10,
+  "representative_found": [
+    "crm.lead",
+    "ir.attachment",
+    "product.template",
+    "res.partner",
+    "res.users",
+    "sale.order",
+    "stock.picking"
+  ],
+  "reach_by_channel": {
+    "inheritance": 133,
+    "mixin": 46,
+    "patch": 24,
+    "delegation": 12,
+    "production": 35,
+    "django": 3,
+    "object": 4
+  },
+  "names_absent_on_every_production_model": 4
+}

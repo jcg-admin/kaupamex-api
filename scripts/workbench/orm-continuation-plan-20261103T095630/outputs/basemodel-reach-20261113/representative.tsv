@@ -1,0 +1,1317 @@
+model	name	channel	owner
+crm.lead	__add__	delegation	orm.models.AccessQuerySet
+crm.lead	__and__	delegation	orm.models.AccessQuerySet
+crm.lead	__bool__	absent	
+crm.lead	__contains__	absent	
+crm.lead	__deepcopy__	absent	
+crm.lead	__ensure_xml_id	absent	
+crm.lead	__eq__	django	django.db.models.base.Model
+crm.lead	__ge__	object	object
+crm.lead	__getitem__	patch	django.db.models.base.Model
+crm.lead	__gt__	object	object
+crm.lead	__hash__	django	django.db.models.base.Model
+crm.lead	__init__	patch	django.db.models.base.Model
+crm.lead	__int__	absent	
+crm.lead	__iter__	absent	
+crm.lead	__le__	object	object
+crm.lead	__len__	absent	
+crm.lead	__lt__	object	object
+crm.lead	__or__	delegation	orm.models.AccessQuerySet
+crm.lead	__repr__	django	django.db.models.base.Model
+crm.lead	__reversed__	absent	
+crm.lead	__setitem__	patch	django.db.models.base.Model
+crm.lead	__sub__	delegation	orm.models.AccessQuerySet
+crm.lead	_add_missing_default_values	absent	
+crm.lead	_add_precomputed_values	patch	django.db.models.base.Model
+crm.lead	_add_sql_constraints	mixin	orm.models.RecordLoaderMixin
+crm.lead	_additional_allowed_keys_properties_definition	mixin	orm.models.RecordLoaderMixin
+crm.lead	_apply_onchange_methods	absent	
+crm.lead	_as_query	absent	
+crm.lead	_auto_init	mixin	orm.models.RecordLoaderMixin
+crm.lead	_cache	absent	
+crm.lead	_can_return_content	absent	
+crm.lead	_check_access	delegation	orm.models.AccessQuerySet
+crm.lead	_check_company	mixin	orm.models.CheckCompanyMixin
+crm.lead	_check_company_domain	mixin	orm.models.CheckCompanyMixin
+crm.lead	_check_field_access	mixin	orm.models.FieldSqlMixin
+crm.lead	_check_m2m_recursion	absent	
+crm.lead	_check_parent_path	mixin	orm.models.RecordLoaderMixin
+crm.lead	_check_qorder	mixin	orm.models.OrderMixin
+crm.lead	_check_recursion	absent	
+crm.lead	_check_removed_columns	mixin	orm.models.RecordLoaderMixin
+crm.lead	_clean_properties	mixin	orm.models.RecordLoaderMixin
+crm.lead	_compute_display_name	mixin	orm.models.DisplayNameMixin
+crm.lead	_compute_field_value	absent	
+crm.lead	_constraint_methods	absent	
+crm.lead	_context	absent	
+crm.lead	_convert_records	mixin	orm.models.RecordLoaderMixin
+crm.lead	_convert_to_cache_properties_definition	mixin	orm.models.RecordLoaderMixin
+crm.lead	_convert_to_column_properties_definition	mixin	orm.models.RecordLoaderMixin
+crm.lead	_convert_to_record	absent	
+crm.lead	_convert_to_write	absent	
+crm.lead	_cr	absent	
+crm.lead	_create	absent	
+crm.lead	_determine_fields_to_fetch	absent	
+crm.lead	_export_rows	absent	
+crm.lead	_extract_records	mixin	orm.models.RecordLoaderMixin
+crm.lead	_fetch_field	absent	
+crm.lead	_fetch_query	absent	
+crm.lead	_field_to_sql	production	addons.crm.models.crm_lead.CrmLead
+crm.lead	_filter_access_rules	absent	
+crm.lead	_filter_access_rules_python	absent	
+crm.lead	_filtered_access	delegation	orm.models.AccessQuerySet
+crm.lead	_flush	patch	django.db.models.base.Model
+crm.lead	_get_base_lang	absent	
+crm.lead	_get_external_ids	delegation	orm.models.AccessQuerySet
+crm.lead	_get_placeholder_filename	patch	django.db.models.base.Model
+crm.lead	_get_redirect_suggested_company	delegation	orm.models.AccessQuerySet
+crm.lead	_has_cycle	absent	
+crm.lead	_has_field_access	mixin	orm.models.FieldSqlMixin
+crm.lead	_has_onchange	absent	
+crm.lead	_init_column	patch	django.db.models.base.Model
+crm.lead	_invalidate_cache	patch	django.db.models.base.Model
+crm.lead	_is_an_ordinary_table	absent	
+crm.lead	_load_records	mixin	orm.models.RecordLoaderMixin
+crm.lead	_load_records_create	mixin	orm.models.RecordLoaderMixin
+crm.lead	_load_records_write	mixin	orm.models.RecordLoaderMixin
+crm.lead	_modified	patch	django.db.models.base.Model
+crm.lead	_modified_triggers	patch	django.db.models.base.Model
+crm.lead	_onchange_methods	absent	
+crm.lead	_ondelete_methods	absent	
+crm.lead	_order_field_to_sql	mixin	orm.models.OrderMixin
+crm.lead	_order_to_sql	mixin	orm.models.OrderMixin
+crm.lead	_origin	absent	
+crm.lead	_parent_store_compute	absent	
+crm.lead	_parent_store_create	absent	
+crm.lead	_parent_store_update	absent	
+crm.lead	_parent_store_update_prepare	absent	
+crm.lead	_post_model_setup__	absent	
+crm.lead	_prepare_create_values	absent	
+crm.lead	_read_format	absent	
+crm.lead	_read_group	absent	
+crm.lead	_read_group_empty_value	absent	
+crm.lead	_read_group_expand_full	absent	
+crm.lead	_read_group_fill_results	absent	
+crm.lead	_read_group_fill_temporal	absent	
+crm.lead	_read_group_format_result	absent	
+crm.lead	_read_group_format_result_properties	absent	
+crm.lead	_read_group_groupby	production	addons.mail.models.mail_activity_mixin.MailActivityMixin
+crm.lead	_read_group_groupby_properties	absent	
+crm.lead	_read_group_having	absent	
+crm.lead	_read_group_orderby	absent	
+crm.lead	_read_group_postprocess_aggregate	absent	
+crm.lead	_read_group_postprocess_groupby	absent	
+crm.lead	_read_group_select	absent	
+crm.lead	_read_grouping_sets	absent	
+crm.lead	_rec_name_fallback	absent	
+crm.lead	_recompute_field	patch	django.db.models.base.Model
+crm.lead	_recompute_model	patch	django.db.models.base.Model
+crm.lead	_recompute_recordset	patch	django.db.models.base.Model
+crm.lead	_register_hook	absent	
+crm.lead	_search	absent	
+crm.lead	_search_display_name	mixin	orm.models.DisplayNameMixin
+crm.lead	_sorted_order_to_function	absent	
+crm.lead	_sql_error_to_message	mixin	orm.models.RecordLoaderMixin
+crm.lead	_sql_error_to_message_generic	mixin	orm.models.RecordLoaderMixin
+crm.lead	_table_has_rows	patch	django.db.models.base.Model
+crm.lead	_table_sql	absent	
+crm.lead	_traverse_related_sql	mixin	orm.models.FieldSqlMixin
+crm.lead	_uid	absent	
+crm.lead	_unregister_hook	absent	
+crm.lead	_update_cache	absent	
+crm.lead	_update_field_translations	patch	django.db.models.base.Model
+crm.lead	_valid_field_parameter	absent	
+crm.lead	_validate_fields	patch	django.db.models.base.Model
+crm.lead	_validate_properties_definition	mixin	orm.models.RecordLoaderMixin
+crm.lead	_write	absent	
+crm.lead	_write_multi	absent	
+crm.lead	action_archive	mixin	orm.models.ArchiveMixin
+crm.lead	action_unarchive	production	addons.crm.models.crm_lead.CrmLead
+crm.lead	browse	absent	
+crm.lead	check_access	delegation	orm.models.AccessQuerySet
+crm.lead	check_access_rights	absent	
+crm.lead	check_access_rule	absent	
+crm.lead	check_field_access_rights	absent	
+crm.lead	concat	absent	
+crm.lead	copy	absent	
+crm.lead	copy_data	production	addons.crm.models.crm_lead.CrmLead
+crm.lead	copy_translations	patch	django.db.models.base.Model
+crm.lead	create	absent	
+crm.lead	default_get	production	addons.utm.models.utm_mixin.UtmMixin
+crm.lead	ensure_one	absent	
+crm.lead	exists	absent	
+crm.lead	export_data	absent	
+crm.lead	fetch	absent	
+crm.lead	fields_get	absent	
+crm.lead	filtered	absent	
+crm.lead	filtered_domain	delegation	orm.models.AccessQuerySet
+crm.lead	flush_model	patch	django.db.models.base.Model
+crm.lead	flush_recordset	patch	django.db.models.base.Model
+crm.lead	get_base_url	mixin	orm.models.BaseUrlMixin
+crm.lead	get_external_id	delegation	orm.models.AccessQuerySet
+crm.lead	get_field_translations	patch	django.db.models.base.Model
+crm.lead	get_metadata	absent	
+crm.lead	get_property_definition	mixin	orm.models.RecordLoaderMixin
+crm.lead	grouped	absent	
+crm.lead	has_access	delegation	orm.models.AccessQuerySet
+crm.lead	ids	absent	
+crm.lead	init	mixin	orm.models.RecordLoaderMixin
+crm.lead	invalidate_model	patch	django.db.models.base.Model
+crm.lead	invalidate_recordset	patch	django.db.models.base.Model
+crm.lead	is_transient	absent	
+crm.lead	load	mixin	orm.models.RecordLoaderMixin
+crm.lead	lock_for_update	absent	
+crm.lead	mapped	absent	
+crm.lead	modified	patch	django.db.models.base.Model
+crm.lead	name_create	mixin	orm.models.DisplayNameMixin
+crm.lead	name_search	mixin	orm.models.DisplayNameMixin
+crm.lead	new	absent	
+crm.lead	onchange	absent	
+crm.lead	read	absent	
+crm.lead	read_group	absent	
+crm.lead	search	absent	
+crm.lead	search_count	absent	
+crm.lead	search_fetch	production	addons.crm.models.crm_lead.CrmLead
+crm.lead	search_read	absent	
+crm.lead	sorted	absent	
+crm.lead	sudo	absent	
+crm.lead	toggle_active	mixin	orm.models.ArchiveMixin
+crm.lead	try_lock_for_update	absent	
+crm.lead	union	absent	
+crm.lead	unlink	absent	
+crm.lead	update	absent	
+crm.lead	update_field_translations	patch	django.db.models.base.Model
+crm.lead	with_company	absent	
+crm.lead	with_context	absent	
+crm.lead	with_env	absent	
+crm.lead	with_prefetch	absent	
+crm.lead	with_user	absent	
+crm.lead	write	mixin	orm.models.RecordLoaderMixin
+res.partner	__add__	delegation	orm.models.AccessQuerySet
+res.partner	__and__	delegation	orm.models.AccessQuerySet
+res.partner	__bool__	absent	
+res.partner	__contains__	absent	
+res.partner	__deepcopy__	absent	
+res.partner	__ensure_xml_id	absent	
+res.partner	__eq__	django	django.db.models.base.Model
+res.partner	__ge__	object	object
+res.partner	__getitem__	patch	django.db.models.base.Model
+res.partner	__gt__	object	object
+res.partner	__hash__	django	django.db.models.base.Model
+res.partner	__init__	patch	django.db.models.base.Model
+res.partner	__int__	absent	
+res.partner	__iter__	absent	
+res.partner	__le__	object	object
+res.partner	__len__	absent	
+res.partner	__lt__	object	object
+res.partner	__or__	delegation	orm.models.AccessQuerySet
+res.partner	__repr__	django	django.db.models.base.Model
+res.partner	__reversed__	absent	
+res.partner	__setitem__	patch	django.db.models.base.Model
+res.partner	__sub__	delegation	orm.models.AccessQuerySet
+res.partner	_add_missing_default_values	mixin	orm.models.DefaultGetMixin
+res.partner	_add_precomputed_values	patch	django.db.models.base.Model
+res.partner	_add_sql_constraints	mixin	orm.models.RecordLoaderMixin
+res.partner	_additional_allowed_keys_properties_definition	mixin	orm.models.RecordLoaderMixin
+res.partner	_apply_onchange_methods	absent	
+res.partner	_as_query	absent	
+res.partner	_auto_init	mixin	orm.models.RecordLoaderMixin
+res.partner	_cache	absent	
+res.partner	_can_return_content	absent	
+res.partner	_check_access	delegation	orm.models.AccessQuerySet
+res.partner	_check_company	mixin	orm.models.CheckCompanyMixin
+res.partner	_check_company_domain	mixin	orm.models.CheckCompanyMixin
+res.partner	_check_field_access	mixin	orm.models.FieldSqlMixin
+res.partner	_check_m2m_recursion	absent	
+res.partner	_check_parent_path	mixin	orm.models.RecordLoaderMixin
+res.partner	_check_qorder	mixin	orm.models.OrderMixin
+res.partner	_check_recursion	absent	
+res.partner	_check_removed_columns	mixin	orm.models.RecordLoaderMixin
+res.partner	_clean_properties	mixin	orm.models.RecordLoaderMixin
+res.partner	_compute_display_name	production	addons.base.models.res_partner.ResPartner
+res.partner	_compute_field_value	absent	
+res.partner	_constraint_methods	absent	
+res.partner	_context	absent	
+res.partner	_convert_records	mixin	orm.models.RecordLoaderMixin
+res.partner	_convert_to_cache_properties_definition	mixin	orm.models.RecordLoaderMixin
+res.partner	_convert_to_column_properties_definition	mixin	orm.models.RecordLoaderMixin
+res.partner	_convert_to_record	absent	
+res.partner	_convert_to_write	absent	
+res.partner	_cr	absent	
+res.partner	_create	mixin	orm.models.DefaultGetMixin
+res.partner	_determine_fields_to_fetch	absent	
+res.partner	_export_rows	absent	
+res.partner	_extract_records	mixin	orm.models.RecordLoaderMixin
+res.partner	_fetch_field	absent	
+res.partner	_fetch_query	absent	
+res.partner	_field_to_sql	mixin	orm.models.FieldSqlMixin
+res.partner	_filter_access_rules	absent	
+res.partner	_filter_access_rules_python	absent	
+res.partner	_filtered_access	delegation	orm.models.AccessQuerySet
+res.partner	_flush	patch	django.db.models.base.Model
+res.partner	_get_base_lang	absent	
+res.partner	_get_external_ids	delegation	orm.models.AccessQuerySet
+res.partner	_get_placeholder_filename	patch	django.db.models.base.Model
+res.partner	_get_redirect_suggested_company	delegation	orm.models.AccessQuerySet
+res.partner	_has_cycle	absent	
+res.partner	_has_field_access	mixin	orm.models.FieldSqlMixin
+res.partner	_has_onchange	absent	
+res.partner	_init_column	patch	django.db.models.base.Model
+res.partner	_invalidate_cache	patch	django.db.models.base.Model
+res.partner	_is_an_ordinary_table	absent	
+res.partner	_load_records	mixin	orm.models.RecordLoaderMixin
+res.partner	_load_records_create	production	addons.base.models.res_partner.ResPartner
+res.partner	_load_records_write	mixin	orm.models.RecordLoaderMixin
+res.partner	_modified	patch	django.db.models.base.Model
+res.partner	_modified_triggers	patch	django.db.models.base.Model
+res.partner	_onchange_methods	absent	
+res.partner	_ondelete_methods	absent	
+res.partner	_order_field_to_sql	mixin	orm.models.OrderMixin
+res.partner	_order_to_sql	mixin	orm.models.OrderMixin
+res.partner	_origin	mixin	orm.models.OriginMixin
+res.partner	_parent_store_compute	absent	
+res.partner	_parent_store_create	absent	
+res.partner	_parent_store_update	absent	
+res.partner	_parent_store_update_prepare	absent	
+res.partner	_post_model_setup__	absent	
+res.partner	_prepare_create_values	mixin	orm.models.DefaultGetMixin
+res.partner	_read_format	absent	
+res.partner	_read_group	absent	
+res.partner	_read_group_empty_value	absent	
+res.partner	_read_group_expand_full	absent	
+res.partner	_read_group_fill_results	absent	
+res.partner	_read_group_fill_temporal	absent	
+res.partner	_read_group_format_result	absent	
+res.partner	_read_group_format_result_properties	absent	
+res.partner	_read_group_groupby	absent	
+res.partner	_read_group_groupby_properties	absent	
+res.partner	_read_group_having	absent	
+res.partner	_read_group_orderby	absent	
+res.partner	_read_group_postprocess_aggregate	absent	
+res.partner	_read_group_postprocess_groupby	absent	
+res.partner	_read_group_select	absent	
+res.partner	_read_grouping_sets	absent	
+res.partner	_rec_name_fallback	absent	
+res.partner	_recompute_field	patch	django.db.models.base.Model
+res.partner	_recompute_model	patch	django.db.models.base.Model
+res.partner	_recompute_recordset	patch	django.db.models.base.Model
+res.partner	_register_hook	absent	
+res.partner	_search	absent	
+res.partner	_search_display_name	mixin	orm.models.DisplayNameMixin
+res.partner	_sorted_order_to_function	absent	
+res.partner	_sql_error_to_message	mixin	orm.models.RecordLoaderMixin
+res.partner	_sql_error_to_message_generic	mixin	orm.models.RecordLoaderMixin
+res.partner	_table_has_rows	patch	django.db.models.base.Model
+res.partner	_table_sql	absent	
+res.partner	_traverse_related_sql	mixin	orm.models.FieldSqlMixin
+res.partner	_uid	absent	
+res.partner	_unregister_hook	absent	
+res.partner	_update_cache	absent	
+res.partner	_update_field_translations	patch	django.db.models.base.Model
+res.partner	_valid_field_parameter	absent	
+res.partner	_validate_fields	patch	django.db.models.base.Model
+res.partner	_validate_properties_definition	mixin	orm.models.RecordLoaderMixin
+res.partner	_write	absent	
+res.partner	_write_multi	absent	
+res.partner	action_archive	mixin	orm.models.ArchiveMixin
+res.partner	action_unarchive	mixin	orm.models.ArchiveMixin
+res.partner	browse	absent	
+res.partner	check_access	delegation	orm.models.AccessQuerySet
+res.partner	check_access_rights	absent	
+res.partner	check_access_rule	absent	
+res.partner	check_field_access_rights	absent	
+res.partner	concat	absent	
+res.partner	copy	mixin	orm.models.CopyMixin
+res.partner	copy_data	production	addons.base.models.res_partner.ResPartner
+res.partner	copy_translations	mixin	orm.models.CopyMixin
+res.partner	create	mixin	orm.models.DefaultGetMixin
+res.partner	default_get	production	addons.base.models.res_partner.ResPartner
+res.partner	ensure_one	absent	
+res.partner	exists	absent	
+res.partner	export_data	absent	
+res.partner	fetch	absent	
+res.partner	fields_get	absent	
+res.partner	filtered	absent	
+res.partner	filtered_domain	delegation	orm.models.AccessQuerySet
+res.partner	flush_model	patch	django.db.models.base.Model
+res.partner	flush_recordset	patch	django.db.models.base.Model
+res.partner	get_base_url	mixin	orm.models.BaseUrlMixin
+res.partner	get_external_id	delegation	orm.models.AccessQuerySet
+res.partner	get_field_translations	patch	django.db.models.base.Model
+res.partner	get_metadata	absent	
+res.partner	get_property_definition	mixin	orm.models.RecordLoaderMixin
+res.partner	grouped	absent	
+res.partner	has_access	delegation	orm.models.AccessQuerySet
+res.partner	ids	absent	
+res.partner	init	mixin	orm.models.RecordLoaderMixin
+res.partner	invalidate_model	patch	django.db.models.base.Model
+res.partner	invalidate_recordset	patch	django.db.models.base.Model
+res.partner	is_transient	absent	
+res.partner	load	mixin	orm.models.RecordLoaderMixin
+res.partner	lock_for_update	absent	
+res.partner	mapped	absent	
+res.partner	modified	patch	django.db.models.base.Model
+res.partner	name_create	production	addons.base.models.res_partner.ResPartner
+res.partner	name_search	mixin	orm.models.DisplayNameMixin
+res.partner	new	absent	
+res.partner	onchange	absent	
+res.partner	read	absent	
+res.partner	read_group	absent	
+res.partner	search	absent	
+res.partner	search_count	absent	
+res.partner	search_fetch	absent	
+res.partner	search_read	absent	
+res.partner	sorted	absent	
+res.partner	sudo	absent	
+res.partner	toggle_active	mixin	orm.models.ArchiveMixin
+res.partner	try_lock_for_update	absent	
+res.partner	union	absent	
+res.partner	unlink	absent	
+res.partner	update	absent	
+res.partner	update_field_translations	patch	django.db.models.base.Model
+res.partner	with_company	absent	
+res.partner	with_context	absent	
+res.partner	with_env	absent	
+res.partner	with_prefetch	absent	
+res.partner	with_user	absent	
+res.partner	write	production	addons.base.models.res_partner.ResPartner
+sale.order	__add__	delegation	orm.models.AccessQuerySet
+sale.order	__and__	delegation	orm.models.AccessQuerySet
+sale.order	__bool__	absent	
+sale.order	__contains__	absent	
+sale.order	__deepcopy__	absent	
+sale.order	__ensure_xml_id	absent	
+sale.order	__eq__	django	django.db.models.base.Model
+sale.order	__ge__	object	object
+sale.order	__getitem__	patch	django.db.models.base.Model
+sale.order	__gt__	object	object
+sale.order	__hash__	django	django.db.models.base.Model
+sale.order	__init__	patch	django.db.models.base.Model
+sale.order	__int__	absent	
+sale.order	__iter__	absent	
+sale.order	__le__	object	object
+sale.order	__len__	absent	
+sale.order	__lt__	object	object
+sale.order	__or__	delegation	orm.models.AccessQuerySet
+sale.order	__repr__	django	django.db.models.base.Model
+sale.order	__reversed__	absent	
+sale.order	__setitem__	patch	django.db.models.base.Model
+sale.order	__sub__	delegation	orm.models.AccessQuerySet
+sale.order	_add_missing_default_values	absent	
+sale.order	_add_precomputed_values	patch	django.db.models.base.Model
+sale.order	_add_sql_constraints	mixin	orm.models.RecordLoaderMixin
+sale.order	_additional_allowed_keys_properties_definition	mixin	orm.models.RecordLoaderMixin
+sale.order	_apply_onchange_methods	absent	
+sale.order	_as_query	absent	
+sale.order	_auto_init	mixin	orm.models.RecordLoaderMixin
+sale.order	_cache	absent	
+sale.order	_can_return_content	absent	
+sale.order	_check_access	delegation	orm.models.AccessQuerySet
+sale.order	_check_company	mixin	orm.models.CheckCompanyMixin
+sale.order	_check_company_domain	mixin	orm.models.CheckCompanyMixin
+sale.order	_check_field_access	mixin	orm.models.FieldSqlMixin
+sale.order	_check_m2m_recursion	absent	
+sale.order	_check_parent_path	mixin	orm.models.RecordLoaderMixin
+sale.order	_check_qorder	mixin	orm.models.OrderMixin
+sale.order	_check_recursion	absent	
+sale.order	_check_removed_columns	mixin	orm.models.RecordLoaderMixin
+sale.order	_clean_properties	mixin	orm.models.RecordLoaderMixin
+sale.order	_compute_display_name	mixin	orm.models.DisplayNameMixin
+sale.order	_compute_field_value	absent	
+sale.order	_constraint_methods	absent	
+sale.order	_context	absent	
+sale.order	_convert_records	mixin	orm.models.RecordLoaderMixin
+sale.order	_convert_to_cache_properties_definition	mixin	orm.models.RecordLoaderMixin
+sale.order	_convert_to_column_properties_definition	mixin	orm.models.RecordLoaderMixin
+sale.order	_convert_to_record	absent	
+sale.order	_convert_to_write	absent	
+sale.order	_cr	absent	
+sale.order	_create	absent	
+sale.order	_determine_fields_to_fetch	absent	
+sale.order	_export_rows	absent	
+sale.order	_extract_records	mixin	orm.models.RecordLoaderMixin
+sale.order	_fetch_field	absent	
+sale.order	_fetch_query	absent	
+sale.order	_field_to_sql	mixin	orm.models.FieldSqlMixin
+sale.order	_filter_access_rules	absent	
+sale.order	_filter_access_rules_python	absent	
+sale.order	_filtered_access	delegation	orm.models.AccessQuerySet
+sale.order	_flush	patch	django.db.models.base.Model
+sale.order	_get_base_lang	absent	
+sale.order	_get_external_ids	delegation	orm.models.AccessQuerySet
+sale.order	_get_placeholder_filename	patch	django.db.models.base.Model
+sale.order	_get_redirect_suggested_company	delegation	orm.models.AccessQuerySet
+sale.order	_has_cycle	absent	
+sale.order	_has_field_access	mixin	orm.models.FieldSqlMixin
+sale.order	_has_onchange	absent	
+sale.order	_init_column	patch	django.db.models.base.Model
+sale.order	_invalidate_cache	patch	django.db.models.base.Model
+sale.order	_is_an_ordinary_table	absent	
+sale.order	_load_records	mixin	orm.models.RecordLoaderMixin
+sale.order	_load_records_create	mixin	orm.models.RecordLoaderMixin
+sale.order	_load_records_write	mixin	orm.models.RecordLoaderMixin
+sale.order	_modified	patch	django.db.models.base.Model
+sale.order	_modified_triggers	patch	django.db.models.base.Model
+sale.order	_onchange_methods	absent	
+sale.order	_ondelete_methods	absent	
+sale.order	_order_field_to_sql	mixin	orm.models.OrderMixin
+sale.order	_order_to_sql	mixin	orm.models.OrderMixin
+sale.order	_origin	absent	
+sale.order	_parent_store_compute	absent	
+sale.order	_parent_store_create	absent	
+sale.order	_parent_store_update	absent	
+sale.order	_parent_store_update_prepare	absent	
+sale.order	_post_model_setup__	absent	
+sale.order	_prepare_create_values	absent	
+sale.order	_read_format	absent	
+sale.order	_read_group	absent	
+sale.order	_read_group_empty_value	absent	
+sale.order	_read_group_expand_full	absent	
+sale.order	_read_group_fill_results	absent	
+sale.order	_read_group_fill_temporal	absent	
+sale.order	_read_group_format_result	absent	
+sale.order	_read_group_format_result_properties	absent	
+sale.order	_read_group_groupby	production	addons.mail.models.mail_activity_mixin.MailActivityMixin
+sale.order	_read_group_groupby_properties	absent	
+sale.order	_read_group_having	absent	
+sale.order	_read_group_orderby	absent	
+sale.order	_read_group_postprocess_aggregate	absent	
+sale.order	_read_group_postprocess_groupby	absent	
+sale.order	_read_group_select	absent	
+sale.order	_read_grouping_sets	absent	
+sale.order	_rec_name_fallback	absent	
+sale.order	_recompute_field	patch	django.db.models.base.Model
+sale.order	_recompute_model	patch	django.db.models.base.Model
+sale.order	_recompute_recordset	patch	django.db.models.base.Model
+sale.order	_register_hook	absent	
+sale.order	_search	absent	
+sale.order	_search_display_name	mixin	orm.models.DisplayNameMixin
+sale.order	_sorted_order_to_function	absent	
+sale.order	_sql_error_to_message	mixin	orm.models.RecordLoaderMixin
+sale.order	_sql_error_to_message_generic	mixin	orm.models.RecordLoaderMixin
+sale.order	_table_has_rows	patch	django.db.models.base.Model
+sale.order	_table_sql	absent	
+sale.order	_traverse_related_sql	mixin	orm.models.FieldSqlMixin
+sale.order	_uid	absent	
+sale.order	_unregister_hook	absent	
+sale.order	_update_cache	absent	
+sale.order	_update_field_translations	patch	django.db.models.base.Model
+sale.order	_valid_field_parameter	absent	
+sale.order	_validate_fields	patch	django.db.models.base.Model
+sale.order	_validate_properties_definition	mixin	orm.models.RecordLoaderMixin
+sale.order	_write	absent	
+sale.order	_write_multi	absent	
+sale.order	action_archive	mixin	orm.models.ArchiveMixin
+sale.order	action_unarchive	mixin	orm.models.ArchiveMixin
+sale.order	browse	absent	
+sale.order	check_access	delegation	orm.models.AccessQuerySet
+sale.order	check_access_rights	absent	
+sale.order	check_access_rule	absent	
+sale.order	check_field_access_rights	absent	
+sale.order	concat	absent	
+sale.order	copy	absent	
+sale.order	copy_data	absent	
+sale.order	copy_translations	patch	django.db.models.base.Model
+sale.order	create	absent	
+sale.order	default_get	production	addons.utm.models.utm_mixin.UtmMixin
+sale.order	ensure_one	absent	
+sale.order	exists	absent	
+sale.order	export_data	absent	
+sale.order	fetch	absent	
+sale.order	fields_get	absent	
+sale.order	filtered	absent	
+sale.order	filtered_domain	delegation	orm.models.AccessQuerySet
+sale.order	flush_model	patch	django.db.models.base.Model
+sale.order	flush_recordset	patch	django.db.models.base.Model
+sale.order	get_base_url	mixin	orm.models.BaseUrlMixin
+sale.order	get_external_id	delegation	orm.models.AccessQuerySet
+sale.order	get_field_translations	patch	django.db.models.base.Model
+sale.order	get_metadata	absent	
+sale.order	get_property_definition	mixin	orm.models.RecordLoaderMixin
+sale.order	grouped	absent	
+sale.order	has_access	delegation	orm.models.AccessQuerySet
+sale.order	ids	absent	
+sale.order	init	mixin	orm.models.RecordLoaderMixin
+sale.order	invalidate_model	patch	django.db.models.base.Model
+sale.order	invalidate_recordset	patch	django.db.models.base.Model
+sale.order	is_transient	absent	
+sale.order	load	mixin	orm.models.RecordLoaderMixin
+sale.order	lock_for_update	absent	
+sale.order	mapped	absent	
+sale.order	modified	patch	django.db.models.base.Model
+sale.order	name_create	mixin	orm.models.DisplayNameMixin
+sale.order	name_search	mixin	orm.models.DisplayNameMixin
+sale.order	new	absent	
+sale.order	onchange	absent	
+sale.order	read	absent	
+sale.order	read_group	absent	
+sale.order	search	absent	
+sale.order	search_count	absent	
+sale.order	search_fetch	absent	
+sale.order	search_read	absent	
+sale.order	sorted	absent	
+sale.order	sudo	absent	
+sale.order	toggle_active	mixin	orm.models.ArchiveMixin
+sale.order	try_lock_for_update	absent	
+sale.order	union	absent	
+sale.order	unlink	absent	
+sale.order	update	absent	
+sale.order	update_field_translations	patch	django.db.models.base.Model
+sale.order	with_company	absent	
+sale.order	with_context	absent	
+sale.order	with_env	absent	
+sale.order	with_prefetch	absent	
+sale.order	with_user	absent	
+sale.order	write	mixin	orm.models.RecordLoaderMixin
+product.template	__add__	delegation	orm.models.AccessQuerySet
+product.template	__and__	delegation	orm.models.AccessQuerySet
+product.template	__bool__	absent	
+product.template	__contains__	absent	
+product.template	__deepcopy__	absent	
+product.template	__ensure_xml_id	absent	
+product.template	__eq__	django	django.db.models.base.Model
+product.template	__ge__	object	object
+product.template	__getitem__	patch	django.db.models.base.Model
+product.template	__gt__	object	object
+product.template	__hash__	django	django.db.models.base.Model
+product.template	__init__	patch	django.db.models.base.Model
+product.template	__int__	absent	
+product.template	__iter__	absent	
+product.template	__le__	object	object
+product.template	__len__	absent	
+product.template	__lt__	object	object
+product.template	__or__	delegation	orm.models.AccessQuerySet
+product.template	__repr__	django	django.db.models.base.Model
+product.template	__reversed__	absent	
+product.template	__setitem__	patch	django.db.models.base.Model
+product.template	__sub__	delegation	orm.models.AccessQuerySet
+product.template	_add_missing_default_values	absent	
+product.template	_add_precomputed_values	patch	django.db.models.base.Model
+product.template	_add_sql_constraints	mixin	orm.models.RecordLoaderMixin
+product.template	_additional_allowed_keys_properties_definition	mixin	orm.models.RecordLoaderMixin
+product.template	_apply_onchange_methods	absent	
+product.template	_as_query	absent	
+product.template	_auto_init	mixin	orm.models.RecordLoaderMixin
+product.template	_cache	absent	
+product.template	_can_return_content	absent	
+product.template	_check_access	delegation	orm.models.AccessQuerySet
+product.template	_check_company	mixin	orm.models.CheckCompanyMixin
+product.template	_check_company_domain	production	addons.product.models.product_template.ProductTemplate
+product.template	_check_field_access	mixin	orm.models.FieldSqlMixin
+product.template	_check_m2m_recursion	absent	
+product.template	_check_parent_path	mixin	orm.models.RecordLoaderMixin
+product.template	_check_qorder	mixin	orm.models.OrderMixin
+product.template	_check_recursion	absent	
+product.template	_check_removed_columns	mixin	orm.models.RecordLoaderMixin
+product.template	_clean_properties	mixin	orm.models.RecordLoaderMixin
+product.template	_compute_display_name	mixin	orm.models.DisplayNameMixin
+product.template	_compute_field_value	absent	
+product.template	_constraint_methods	absent	
+product.template	_context	absent	
+product.template	_convert_records	mixin	orm.models.RecordLoaderMixin
+product.template	_convert_to_cache_properties_definition	mixin	orm.models.RecordLoaderMixin
+product.template	_convert_to_column_properties_definition	mixin	orm.models.RecordLoaderMixin
+product.template	_convert_to_record	absent	
+product.template	_convert_to_write	absent	
+product.template	_cr	absent	
+product.template	_create	absent	
+product.template	_determine_fields_to_fetch	absent	
+product.template	_export_rows	absent	
+product.template	_extract_records	mixin	orm.models.RecordLoaderMixin
+product.template	_fetch_field	absent	
+product.template	_fetch_query	absent	
+product.template	_field_to_sql	mixin	orm.models.FieldSqlMixin
+product.template	_filter_access_rules	absent	
+product.template	_filter_access_rules_python	absent	
+product.template	_filtered_access	delegation	orm.models.AccessQuerySet
+product.template	_flush	patch	django.db.models.base.Model
+product.template	_get_base_lang	absent	
+product.template	_get_external_ids	delegation	orm.models.AccessQuerySet
+product.template	_get_placeholder_filename	patch	django.db.models.base.Model
+product.template	_get_redirect_suggested_company	delegation	orm.models.AccessQuerySet
+product.template	_has_cycle	absent	
+product.template	_has_field_access	mixin	orm.models.FieldSqlMixin
+product.template	_has_onchange	absent	
+product.template	_init_column	patch	django.db.models.base.Model
+product.template	_invalidate_cache	patch	django.db.models.base.Model
+product.template	_is_an_ordinary_table	absent	
+product.template	_load_records	mixin	orm.models.RecordLoaderMixin
+product.template	_load_records_create	mixin	orm.models.RecordLoaderMixin
+product.template	_load_records_write	mixin	orm.models.RecordLoaderMixin
+product.template	_modified	patch	django.db.models.base.Model
+product.template	_modified_triggers	patch	django.db.models.base.Model
+product.template	_onchange_methods	absent	
+product.template	_ondelete_methods	absent	
+product.template	_order_field_to_sql	mixin	orm.models.OrderMixin
+product.template	_order_to_sql	mixin	orm.models.OrderMixin
+product.template	_origin	absent	
+product.template	_parent_store_compute	absent	
+product.template	_parent_store_create	absent	
+product.template	_parent_store_update	absent	
+product.template	_parent_store_update_prepare	absent	
+product.template	_post_model_setup__	absent	
+product.template	_prepare_create_values	absent	
+product.template	_read_format	absent	
+product.template	_read_group	absent	
+product.template	_read_group_empty_value	absent	
+product.template	_read_group_expand_full	absent	
+product.template	_read_group_fill_results	absent	
+product.template	_read_group_fill_temporal	absent	
+product.template	_read_group_format_result	absent	
+product.template	_read_group_format_result_properties	absent	
+product.template	_read_group_groupby	absent	
+product.template	_read_group_groupby_properties	absent	
+product.template	_read_group_having	absent	
+product.template	_read_group_orderby	absent	
+product.template	_read_group_postprocess_aggregate	absent	
+product.template	_read_group_postprocess_groupby	absent	
+product.template	_read_group_select	absent	
+product.template	_read_grouping_sets	absent	
+product.template	_rec_name_fallback	absent	
+product.template	_recompute_field	patch	django.db.models.base.Model
+product.template	_recompute_model	patch	django.db.models.base.Model
+product.template	_recompute_recordset	patch	django.db.models.base.Model
+product.template	_register_hook	absent	
+product.template	_search	absent	
+product.template	_search_display_name	mixin	orm.models.DisplayNameMixin
+product.template	_sorted_order_to_function	absent	
+product.template	_sql_error_to_message	mixin	orm.models.RecordLoaderMixin
+product.template	_sql_error_to_message_generic	mixin	orm.models.RecordLoaderMixin
+product.template	_table_has_rows	patch	django.db.models.base.Model
+product.template	_table_sql	absent	
+product.template	_traverse_related_sql	mixin	orm.models.FieldSqlMixin
+product.template	_uid	absent	
+product.template	_unregister_hook	absent	
+product.template	_update_cache	absent	
+product.template	_update_field_translations	patch	django.db.models.base.Model
+product.template	_valid_field_parameter	absent	
+product.template	_validate_fields	patch	django.db.models.base.Model
+product.template	_validate_properties_definition	mixin	orm.models.RecordLoaderMixin
+product.template	_write	absent	
+product.template	_write_multi	absent	
+product.template	action_archive	mixin	orm.models.ArchiveMixin
+product.template	action_unarchive	mixin	orm.models.ArchiveMixin
+product.template	browse	absent	
+product.template	check_access	delegation	orm.models.AccessQuerySet
+product.template	check_access_rights	absent	
+product.template	check_access_rule	absent	
+product.template	check_field_access_rights	absent	
+product.template	concat	absent	
+product.template	copy	absent	
+product.template	copy_data	absent	
+product.template	copy_translations	patch	django.db.models.base.Model
+product.template	create	absent	
+product.template	default_get	absent	
+product.template	ensure_one	absent	
+product.template	exists	absent	
+product.template	export_data	absent	
+product.template	fetch	absent	
+product.template	fields_get	absent	
+product.template	filtered	absent	
+product.template	filtered_domain	delegation	orm.models.AccessQuerySet
+product.template	flush_model	patch	django.db.models.base.Model
+product.template	flush_recordset	patch	django.db.models.base.Model
+product.template	get_base_url	mixin	orm.models.BaseUrlMixin
+product.template	get_external_id	delegation	orm.models.AccessQuerySet
+product.template	get_field_translations	patch	django.db.models.base.Model
+product.template	get_metadata	absent	
+product.template	get_property_definition	mixin	orm.models.RecordLoaderMixin
+product.template	grouped	absent	
+product.template	has_access	delegation	orm.models.AccessQuerySet
+product.template	ids	absent	
+product.template	init	mixin	orm.models.RecordLoaderMixin
+product.template	invalidate_model	patch	django.db.models.base.Model
+product.template	invalidate_recordset	patch	django.db.models.base.Model
+product.template	is_transient	absent	
+product.template	load	mixin	orm.models.RecordLoaderMixin
+product.template	lock_for_update	absent	
+product.template	mapped	absent	
+product.template	modified	patch	django.db.models.base.Model
+product.template	name_create	mixin	orm.models.DisplayNameMixin
+product.template	name_search	mixin	orm.models.DisplayNameMixin
+product.template	new	absent	
+product.template	onchange	absent	
+product.template	read	absent	
+product.template	read_group	absent	
+product.template	search	absent	
+product.template	search_count	absent	
+product.template	search_fetch	absent	
+product.template	search_read	absent	
+product.template	sorted	absent	
+product.template	sudo	absent	
+product.template	toggle_active	mixin	orm.models.ArchiveMixin
+product.template	try_lock_for_update	absent	
+product.template	union	absent	
+product.template	unlink	absent	
+product.template	update	absent	
+product.template	update_field_translations	patch	django.db.models.base.Model
+product.template	with_company	absent	
+product.template	with_context	absent	
+product.template	with_env	absent	
+product.template	with_prefetch	absent	
+product.template	with_user	absent	
+product.template	write	mixin	orm.models.RecordLoaderMixin
+stock.picking	__add__	delegation	orm.models.AccessQuerySet
+stock.picking	__and__	delegation	orm.models.AccessQuerySet
+stock.picking	__bool__	absent	
+stock.picking	__contains__	absent	
+stock.picking	__deepcopy__	absent	
+stock.picking	__ensure_xml_id	absent	
+stock.picking	__eq__	django	django.db.models.base.Model
+stock.picking	__ge__	object	object
+stock.picking	__getitem__	patch	django.db.models.base.Model
+stock.picking	__gt__	object	object
+stock.picking	__hash__	django	django.db.models.base.Model
+stock.picking	__init__	patch	django.db.models.base.Model
+stock.picking	__int__	absent	
+stock.picking	__iter__	absent	
+stock.picking	__le__	object	object
+stock.picking	__len__	absent	
+stock.picking	__lt__	object	object
+stock.picking	__or__	delegation	orm.models.AccessQuerySet
+stock.picking	__repr__	django	django.db.models.base.Model
+stock.picking	__reversed__	absent	
+stock.picking	__setitem__	patch	django.db.models.base.Model
+stock.picking	__sub__	delegation	orm.models.AccessQuerySet
+stock.picking	_add_missing_default_values	mixin	orm.models.DefaultGetMixin
+stock.picking	_add_precomputed_values	patch	django.db.models.base.Model
+stock.picking	_add_sql_constraints	mixin	orm.models.RecordLoaderMixin
+stock.picking	_additional_allowed_keys_properties_definition	mixin	orm.models.RecordLoaderMixin
+stock.picking	_apply_onchange_methods	absent	
+stock.picking	_as_query	absent	
+stock.picking	_auto_init	mixin	orm.models.RecordLoaderMixin
+stock.picking	_cache	absent	
+stock.picking	_can_return_content	absent	
+stock.picking	_check_access	delegation	orm.models.AccessQuerySet
+stock.picking	_check_company	mixin	orm.models.CheckCompanyMixin
+stock.picking	_check_company_domain	mixin	orm.models.CheckCompanyMixin
+stock.picking	_check_field_access	mixin	orm.models.FieldSqlMixin
+stock.picking	_check_m2m_recursion	absent	
+stock.picking	_check_parent_path	mixin	orm.models.RecordLoaderMixin
+stock.picking	_check_qorder	mixin	orm.models.OrderMixin
+stock.picking	_check_recursion	absent	
+stock.picking	_check_removed_columns	mixin	orm.models.RecordLoaderMixin
+stock.picking	_clean_properties	mixin	orm.models.RecordLoaderMixin
+stock.picking	_compute_display_name	mixin	orm.models.DisplayNameMixin
+stock.picking	_compute_field_value	absent	
+stock.picking	_constraint_methods	absent	
+stock.picking	_context	absent	
+stock.picking	_convert_records	mixin	orm.models.RecordLoaderMixin
+stock.picking	_convert_to_cache_properties_definition	mixin	orm.models.RecordLoaderMixin
+stock.picking	_convert_to_column_properties_definition	mixin	orm.models.RecordLoaderMixin
+stock.picking	_convert_to_record	absent	
+stock.picking	_convert_to_write	absent	
+stock.picking	_cr	absent	
+stock.picking	_create	mixin	orm.models.DefaultGetMixin
+stock.picking	_determine_fields_to_fetch	absent	
+stock.picking	_export_rows	absent	
+stock.picking	_extract_records	mixin	orm.models.RecordLoaderMixin
+stock.picking	_fetch_field	absent	
+stock.picking	_fetch_query	absent	
+stock.picking	_field_to_sql	mixin	orm.models.FieldSqlMixin
+stock.picking	_filter_access_rules	absent	
+stock.picking	_filter_access_rules_python	absent	
+stock.picking	_filtered_access	delegation	orm.models.AccessQuerySet
+stock.picking	_flush	patch	django.db.models.base.Model
+stock.picking	_get_base_lang	absent	
+stock.picking	_get_external_ids	delegation	orm.models.AccessQuerySet
+stock.picking	_get_placeholder_filename	patch	django.db.models.base.Model
+stock.picking	_get_redirect_suggested_company	delegation	orm.models.AccessQuerySet
+stock.picking	_has_cycle	absent	
+stock.picking	_has_field_access	mixin	orm.models.FieldSqlMixin
+stock.picking	_has_onchange	absent	
+stock.picking	_init_column	patch	django.db.models.base.Model
+stock.picking	_invalidate_cache	patch	django.db.models.base.Model
+stock.picking	_is_an_ordinary_table	absent	
+stock.picking	_load_records	mixin	orm.models.RecordLoaderMixin
+stock.picking	_load_records_create	mixin	orm.models.RecordLoaderMixin
+stock.picking	_load_records_write	mixin	orm.models.RecordLoaderMixin
+stock.picking	_modified	patch	django.db.models.base.Model
+stock.picking	_modified_triggers	patch	django.db.models.base.Model
+stock.picking	_onchange_methods	absent	
+stock.picking	_ondelete_methods	absent	
+stock.picking	_order_field_to_sql	mixin	orm.models.OrderMixin
+stock.picking	_order_to_sql	mixin	orm.models.OrderMixin
+stock.picking	_origin	absent	
+stock.picking	_parent_store_compute	absent	
+stock.picking	_parent_store_create	absent	
+stock.picking	_parent_store_update	absent	
+stock.picking	_parent_store_update_prepare	absent	
+stock.picking	_post_model_setup__	absent	
+stock.picking	_prepare_create_values	mixin	orm.models.DefaultGetMixin
+stock.picking	_read_format	absent	
+stock.picking	_read_group	absent	
+stock.picking	_read_group_empty_value	absent	
+stock.picking	_read_group_expand_full	absent	
+stock.picking	_read_group_fill_results	absent	
+stock.picking	_read_group_fill_temporal	absent	
+stock.picking	_read_group_format_result	absent	
+stock.picking	_read_group_format_result_properties	absent	
+stock.picking	_read_group_groupby	production	addons.mail.models.mail_activity_mixin.MailActivityMixin
+stock.picking	_read_group_groupby_properties	absent	
+stock.picking	_read_group_having	absent	
+stock.picking	_read_group_orderby	absent	
+stock.picking	_read_group_postprocess_aggregate	absent	
+stock.picking	_read_group_postprocess_groupby	absent	
+stock.picking	_read_group_select	absent	
+stock.picking	_read_grouping_sets	absent	
+stock.picking	_rec_name_fallback	absent	
+stock.picking	_recompute_field	patch	django.db.models.base.Model
+stock.picking	_recompute_model	patch	django.db.models.base.Model
+stock.picking	_recompute_recordset	patch	django.db.models.base.Model
+stock.picking	_register_hook	absent	
+stock.picking	_search	absent	
+stock.picking	_search_display_name	mixin	orm.models.DisplayNameMixin
+stock.picking	_sorted_order_to_function	absent	
+stock.picking	_sql_error_to_message	mixin	orm.models.RecordLoaderMixin
+stock.picking	_sql_error_to_message_generic	mixin	orm.models.RecordLoaderMixin
+stock.picking	_table_has_rows	patch	django.db.models.base.Model
+stock.picking	_table_sql	absent	
+stock.picking	_traverse_related_sql	mixin	orm.models.FieldSqlMixin
+stock.picking	_uid	absent	
+stock.picking	_unregister_hook	absent	
+stock.picking	_update_cache	absent	
+stock.picking	_update_field_translations	patch	django.db.models.base.Model
+stock.picking	_valid_field_parameter	absent	
+stock.picking	_validate_fields	patch	django.db.models.base.Model
+stock.picking	_validate_properties_definition	mixin	orm.models.RecordLoaderMixin
+stock.picking	_write	absent	
+stock.picking	_write_multi	absent	
+stock.picking	action_archive	mixin	orm.models.ArchiveMixin
+stock.picking	action_unarchive	mixin	orm.models.ArchiveMixin
+stock.picking	browse	absent	
+stock.picking	check_access	delegation	orm.models.AccessQuerySet
+stock.picking	check_access_rights	absent	
+stock.picking	check_access_rule	absent	
+stock.picking	check_field_access_rights	absent	
+stock.picking	concat	absent	
+stock.picking	copy	absent	
+stock.picking	copy_data	absent	
+stock.picking	copy_translations	patch	django.db.models.base.Model
+stock.picking	create	production	addons.stock.models.stock_picking.StockPicking
+stock.picking	default_get	mixin	orm.models.DefaultGetMixin
+stock.picking	ensure_one	absent	
+stock.picking	exists	absent	
+stock.picking	export_data	absent	
+stock.picking	fetch	absent	
+stock.picking	fields_get	absent	
+stock.picking	filtered	absent	
+stock.picking	filtered_domain	delegation	orm.models.AccessQuerySet
+stock.picking	flush_model	patch	django.db.models.base.Model
+stock.picking	flush_recordset	patch	django.db.models.base.Model
+stock.picking	get_base_url	mixin	orm.models.BaseUrlMixin
+stock.picking	get_external_id	delegation	orm.models.AccessQuerySet
+stock.picking	get_field_translations	patch	django.db.models.base.Model
+stock.picking	get_metadata	absent	
+stock.picking	get_property_definition	mixin	orm.models.RecordLoaderMixin
+stock.picking	grouped	absent	
+stock.picking	has_access	delegation	orm.models.AccessQuerySet
+stock.picking	ids	absent	
+stock.picking	init	mixin	orm.models.RecordLoaderMixin
+stock.picking	invalidate_model	patch	django.db.models.base.Model
+stock.picking	invalidate_recordset	patch	django.db.models.base.Model
+stock.picking	is_transient	absent	
+stock.picking	load	mixin	orm.models.RecordLoaderMixin
+stock.picking	lock_for_update	absent	
+stock.picking	mapped	absent	
+stock.picking	modified	patch	django.db.models.base.Model
+stock.picking	name_create	mixin	orm.models.DisplayNameMixin
+stock.picking	name_search	mixin	orm.models.DisplayNameMixin
+stock.picking	new	absent	
+stock.picking	onchange	absent	
+stock.picking	read	absent	
+stock.picking	read_group	absent	
+stock.picking	search	absent	
+stock.picking	search_count	absent	
+stock.picking	search_fetch	absent	
+stock.picking	search_read	absent	
+stock.picking	sorted	absent	
+stock.picking	sudo	absent	
+stock.picking	toggle_active	mixin	orm.models.ArchiveMixin
+stock.picking	try_lock_for_update	absent	
+stock.picking	union	absent	
+stock.picking	unlink	production	addons.stock.models.stock_picking.StockPicking
+stock.picking	update	absent	
+stock.picking	update_field_translations	patch	django.db.models.base.Model
+stock.picking	with_company	absent	
+stock.picking	with_context	absent	
+stock.picking	with_env	absent	
+stock.picking	with_prefetch	absent	
+stock.picking	with_user	absent	
+stock.picking	write	production	addons.stock.models.stock_picking.StockPicking
+res.users	__add__	delegation	orm.models.AccessQuerySet
+res.users	__and__	delegation	orm.models.AccessQuerySet
+res.users	__bool__	absent	
+res.users	__contains__	absent	
+res.users	__deepcopy__	absent	
+res.users	__ensure_xml_id	absent	
+res.users	__eq__	django	django.db.models.base.Model
+res.users	__ge__	object	object
+res.users	__getitem__	patch	django.db.models.base.Model
+res.users	__gt__	object	object
+res.users	__hash__	django	django.db.models.base.Model
+res.users	__init__	patch	django.db.models.base.Model
+res.users	__int__	absent	
+res.users	__iter__	absent	
+res.users	__le__	object	object
+res.users	__len__	absent	
+res.users	__lt__	object	object
+res.users	__or__	delegation	orm.models.AccessQuerySet
+res.users	__repr__	django	django.db.models.base.Model
+res.users	__reversed__	absent	
+res.users	__setitem__	patch	django.db.models.base.Model
+res.users	__sub__	delegation	orm.models.AccessQuerySet
+res.users	_add_missing_default_values	mixin	orm.models.DefaultGetMixin
+res.users	_add_precomputed_values	patch	django.db.models.base.Model
+res.users	_add_sql_constraints	mixin	orm.models.RecordLoaderMixin
+res.users	_additional_allowed_keys_properties_definition	mixin	orm.models.RecordLoaderMixin
+res.users	_apply_onchange_methods	absent	
+res.users	_as_query	absent	
+res.users	_auto_init	mixin	orm.models.RecordLoaderMixin
+res.users	_cache	absent	
+res.users	_can_return_content	absent	
+res.users	_check_access	delegation	orm.models.AccessQuerySet
+res.users	_check_company	mixin	orm.models.CheckCompanyMixin
+res.users	_check_company_domain	production	addons.base.models.res_users.ResUsers
+res.users	_check_field_access	mixin	orm.models.FieldSqlMixin
+res.users	_check_m2m_recursion	absent	
+res.users	_check_parent_path	mixin	orm.models.RecordLoaderMixin
+res.users	_check_qorder	mixin	orm.models.OrderMixin
+res.users	_check_recursion	absent	
+res.users	_check_removed_columns	mixin	orm.models.RecordLoaderMixin
+res.users	_clean_properties	mixin	orm.models.RecordLoaderMixin
+res.users	_compute_display_name	production	addons.base.models.res_users.ResUsers
+res.users	_compute_field_value	absent	
+res.users	_constraint_methods	absent	
+res.users	_context	absent	
+res.users	_convert_records	mixin	orm.models.RecordLoaderMixin
+res.users	_convert_to_cache_properties_definition	mixin	orm.models.RecordLoaderMixin
+res.users	_convert_to_column_properties_definition	mixin	orm.models.RecordLoaderMixin
+res.users	_convert_to_record	absent	
+res.users	_convert_to_write	absent	
+res.users	_cr	absent	
+res.users	_create	mixin	orm.models.DefaultGetMixin
+res.users	_determine_fields_to_fetch	absent	
+res.users	_export_rows	absent	
+res.users	_extract_records	mixin	orm.models.RecordLoaderMixin
+res.users	_fetch_field	absent	
+res.users	_fetch_query	absent	
+res.users	_field_to_sql	mixin	orm.models.FieldSqlMixin
+res.users	_filter_access_rules	absent	
+res.users	_filter_access_rules_python	absent	
+res.users	_filtered_access	delegation	orm.models.AccessQuerySet
+res.users	_flush	patch	django.db.models.base.Model
+res.users	_get_base_lang	absent	
+res.users	_get_external_ids	delegation	orm.models.AccessQuerySet
+res.users	_get_placeholder_filename	patch	django.db.models.base.Model
+res.users	_get_redirect_suggested_company	delegation	orm.models.AccessQuerySet
+res.users	_has_cycle	absent	
+res.users	_has_field_access	mixin	orm.models.FieldSqlMixin
+res.users	_has_onchange	absent	
+res.users	_init_column	patch	django.db.models.base.Model
+res.users	_invalidate_cache	patch	django.db.models.base.Model
+res.users	_is_an_ordinary_table	absent	
+res.users	_load_records	mixin	orm.models.RecordLoaderMixin
+res.users	_load_records_create	mixin	orm.models.RecordLoaderMixin
+res.users	_load_records_write	mixin	orm.models.RecordLoaderMixin
+res.users	_modified	patch	django.db.models.base.Model
+res.users	_modified_triggers	patch	django.db.models.base.Model
+res.users	_onchange_methods	absent	
+res.users	_ondelete_methods	absent	
+res.users	_order_field_to_sql	mixin	orm.models.OrderMixin
+res.users	_order_to_sql	mixin	orm.models.OrderMixin
+res.users	_origin	absent	
+res.users	_parent_store_compute	absent	
+res.users	_parent_store_create	absent	
+res.users	_parent_store_update	absent	
+res.users	_parent_store_update_prepare	absent	
+res.users	_post_model_setup__	absent	
+res.users	_prepare_create_values	mixin	orm.models.DefaultGetMixin
+res.users	_read_format	absent	
+res.users	_read_group	absent	
+res.users	_read_group_empty_value	absent	
+res.users	_read_group_expand_full	absent	
+res.users	_read_group_fill_results	absent	
+res.users	_read_group_fill_temporal	absent	
+res.users	_read_group_format_result	absent	
+res.users	_read_group_format_result_properties	absent	
+res.users	_read_group_groupby	absent	
+res.users	_read_group_groupby_properties	absent	
+res.users	_read_group_having	absent	
+res.users	_read_group_orderby	absent	
+res.users	_read_group_postprocess_aggregate	absent	
+res.users	_read_group_postprocess_groupby	absent	
+res.users	_read_group_select	absent	
+res.users	_read_grouping_sets	absent	
+res.users	_rec_name_fallback	absent	
+res.users	_recompute_field	patch	django.db.models.base.Model
+res.users	_recompute_model	patch	django.db.models.base.Model
+res.users	_recompute_recordset	patch	django.db.models.base.Model
+res.users	_register_hook	absent	
+res.users	_search	absent	
+res.users	_search_display_name	mixin	orm.models.DisplayNameMixin
+res.users	_sorted_order_to_function	absent	
+res.users	_sql_error_to_message	mixin	orm.models.RecordLoaderMixin
+res.users	_sql_error_to_message_generic	mixin	orm.models.RecordLoaderMixin
+res.users	_table_has_rows	patch	django.db.models.base.Model
+res.users	_table_sql	absent	
+res.users	_traverse_related_sql	mixin	orm.models.FieldSqlMixin
+res.users	_uid	absent	
+res.users	_unregister_hook	absent	
+res.users	_update_cache	absent	
+res.users	_update_field_translations	patch	django.db.models.base.Model
+res.users	_valid_field_parameter	absent	
+res.users	_validate_fields	patch	django.db.models.base.Model
+res.users	_validate_properties_definition	mixin	orm.models.RecordLoaderMixin
+res.users	_write	absent	
+res.users	_write_multi	absent	
+res.users	action_archive	mixin	orm.models.ArchiveMixin
+res.users	action_unarchive	mixin	orm.models.ArchiveMixin
+res.users	browse	absent	
+res.users	check_access	delegation	orm.models.AccessQuerySet
+res.users	check_access_rights	absent	
+res.users	check_access_rule	absent	
+res.users	check_field_access_rights	absent	
+res.users	concat	absent	
+res.users	copy	absent	
+res.users	copy_data	absent	
+res.users	copy_translations	patch	django.db.models.base.Model
+res.users	create	mixin	orm.models.DefaultGetMixin
+res.users	default_get	mixin	orm.models.DefaultGetMixin
+res.users	ensure_one	absent	
+res.users	exists	absent	
+res.users	export_data	absent	
+res.users	fetch	absent	
+res.users	fields_get	absent	
+res.users	filtered	absent	
+res.users	filtered_domain	delegation	orm.models.AccessQuerySet
+res.users	flush_model	patch	django.db.models.base.Model
+res.users	flush_recordset	patch	django.db.models.base.Model
+res.users	get_base_url	mixin	orm.models.BaseUrlMixin
+res.users	get_external_id	delegation	orm.models.AccessQuerySet
+res.users	get_field_translations	patch	django.db.models.base.Model
+res.users	get_metadata	absent	
+res.users	get_property_definition	mixin	orm.models.RecordLoaderMixin
+res.users	grouped	absent	
+res.users	has_access	delegation	orm.models.AccessQuerySet
+res.users	ids	absent	
+res.users	init	production	addons.base.models.res_users.ResUsers
+res.users	invalidate_model	patch	django.db.models.base.Model
+res.users	invalidate_recordset	patch	django.db.models.base.Model
+res.users	is_transient	absent	
+res.users	load	mixin	orm.models.RecordLoaderMixin
+res.users	lock_for_update	absent	
+res.users	mapped	absent	
+res.users	modified	patch	django.db.models.base.Model
+res.users	name_create	mixin	orm.models.DisplayNameMixin
+res.users	name_search	production	addons.base.models.res_users.ResUsers
+res.users	new	absent	
+res.users	onchange	absent	
+res.users	read	absent	
+res.users	read_group	absent	
+res.users	search	absent	
+res.users	search_count	absent	
+res.users	search_fetch	absent	
+res.users	search_read	absent	
+res.users	sorted	absent	
+res.users	sudo	absent	
+res.users	toggle_active	mixin	orm.models.ArchiveMixin
+res.users	try_lock_for_update	absent	
+res.users	union	absent	
+res.users	unlink	absent	
+res.users	update	absent	
+res.users	update_field_translations	patch	django.db.models.base.Model
+res.users	with_company	absent	
+res.users	with_context	absent	
+res.users	with_env	absent	
+res.users	with_prefetch	absent	
+res.users	with_user	absent	
+res.users	write	production	addons.base.models.res_users.ResUsers
+ir.attachment	__add__	inheritance	orm.models.BaseModel
+ir.attachment	__and__	inheritance	orm.models.BaseModel
+ir.attachment	__bool__	inheritance	orm.models.BaseModel
+ir.attachment	__contains__	inheritance	orm.models.BaseModel
+ir.attachment	__deepcopy__	inheritance	orm.models.BaseModel
+ir.attachment	__ensure_xml_id	absent	
+ir.attachment	__eq__	inheritance	orm.models.BaseModel
+ir.attachment	__ge__	inheritance	orm.models.BaseModel
+ir.attachment	__getitem__	inheritance	orm.models.BaseModel
+ir.attachment	__gt__	inheritance	orm.models.BaseModel
+ir.attachment	__hash__	inheritance	orm.models.BaseModel
+ir.attachment	__init__	inheritance	orm.models.BaseModel
+ir.attachment	__int__	inheritance	orm.models.BaseModel
+ir.attachment	__iter__	inheritance	orm.models.BaseModel
+ir.attachment	__le__	inheritance	orm.models.BaseModel
+ir.attachment	__len__	inheritance	orm.models.BaseModel
+ir.attachment	__lt__	inheritance	orm.models.BaseModel
+ir.attachment	__or__	inheritance	orm.models.BaseModel
+ir.attachment	__repr__	inheritance	orm.models.BaseModel
+ir.attachment	__reversed__	absent	
+ir.attachment	__setitem__	inheritance	orm.models.BaseModel
+ir.attachment	__sub__	inheritance	orm.models.BaseModel
+ir.attachment	_add_missing_default_values	inheritance	orm.models.BaseModel
+ir.attachment	_add_precomputed_values	patch	django.db.models.base.Model
+ir.attachment	_add_sql_constraints	production	addons.base.models.ir_attachment.IrAttachment
+ir.attachment	_additional_allowed_keys_properties_definition	mixin	orm.models.RecordLoaderMixin
+ir.attachment	_apply_onchange_methods	inheritance	orm.models.BaseModel
+ir.attachment	_as_query	inheritance	orm.models.BaseModel
+ir.attachment	_auto_init	production	addons.base.models.ir_attachment.IrAttachment
+ir.attachment	_cache	inheritance	orm.models.BaseModel
+ir.attachment	_can_return_content	inheritance	orm.models.BaseModel
+ir.attachment	_check_access	inheritance	orm.models.BaseModel
+ir.attachment	_check_company	absent	
+ir.attachment	_check_company_domain	absent	
+ir.attachment	_check_field_access	mixin	orm.models.FieldSqlMixin
+ir.attachment	_check_m2m_recursion	inheritance	orm.models.BaseModel
+ir.attachment	_check_parent_path	production	addons.base.models.ir_attachment.IrAttachment
+ir.attachment	_check_qorder	mixin	orm.models.OrderMixin
+ir.attachment	_check_recursion	inheritance	orm.models.BaseModel
+ir.attachment	_check_removed_columns	production	addons.base.models.ir_attachment.IrAttachment
+ir.attachment	_clean_properties	mixin	orm.models.RecordLoaderMixin
+ir.attachment	_compute_display_name	production	addons.base.models.ir_attachment.IrAttachment
+ir.attachment	_compute_field_value	inheritance	orm.models.BaseModel
+ir.attachment	_constraint_methods	inheritance	orm.models.BaseModel
+ir.attachment	_context	inheritance	orm.models.BaseModel
+ir.attachment	_convert_records	production	addons.base.models.ir_attachment.IrAttachment
+ir.attachment	_convert_to_cache_properties_definition	mixin	orm.models.RecordLoaderMixin
+ir.attachment	_convert_to_column_properties_definition	mixin	orm.models.RecordLoaderMixin
+ir.attachment	_convert_to_record	inheritance	orm.models.BaseModel
+ir.attachment	_convert_to_write	inheritance	orm.models.BaseModel
+ir.attachment	_cr	inheritance	orm.models.BaseModel
+ir.attachment	_create	inheritance	orm.models.BaseModel
+ir.attachment	_determine_fields_to_fetch	inheritance	orm.models.BaseModel
+ir.attachment	_export_rows	inheritance	orm.models.BaseModel
+ir.attachment	_extract_records	production	addons.base.models.ir_attachment.IrAttachment
+ir.attachment	_fetch_field	inheritance	orm.models.BaseModel
+ir.attachment	_fetch_query	inheritance	orm.models.BaseModel
+ir.attachment	_field_to_sql	mixin	orm.models.FieldSqlMixin
+ir.attachment	_filter_access_rules	inheritance	orm.models.BaseModel
+ir.attachment	_filter_access_rules_python	inheritance	orm.models.BaseModel
+ir.attachment	_filtered_access	inheritance	orm.models.BaseModel
+ir.attachment	_flush	patch	django.db.models.base.Model
+ir.attachment	_get_base_lang	inheritance	orm.models.BaseModel
+ir.attachment	_get_external_ids	inheritance	orm.models.BaseModel
+ir.attachment	_get_placeholder_filename	patch	django.db.models.base.Model
+ir.attachment	_get_redirect_suggested_company	delegation	orm.models.AccessQuerySet
+ir.attachment	_has_cycle	inheritance	orm.models.BaseModel
+ir.attachment	_has_field_access	inheritance	orm.models.BaseModel
+ir.attachment	_has_onchange	inheritance	orm.models.BaseModel
+ir.attachment	_init_column	inheritance	orm.models.BaseModel
+ir.attachment	_invalidate_cache	patch	django.db.models.base.Model
+ir.attachment	_is_an_ordinary_table	inheritance	orm.models.BaseModel
+ir.attachment	_load_records	production	addons.base.models.ir_attachment.IrAttachment
+ir.attachment	_load_records_create	production	addons.base.models.ir_attachment.IrAttachment
+ir.attachment	_load_records_write	mixin	orm.models.RecordLoaderMixin
+ir.attachment	_modified	patch	django.db.models.base.Model
+ir.attachment	_modified_triggers	patch	django.db.models.base.Model
+ir.attachment	_onchange_methods	inheritance	orm.models.BaseModel
+ir.attachment	_ondelete_methods	inheritance	orm.models.BaseModel
+ir.attachment	_order_field_to_sql	mixin	orm.models.OrderMixin
+ir.attachment	_order_to_sql	mixin	orm.models.OrderMixin
+ir.attachment	_origin	inheritance	orm.models.BaseModel
+ir.attachment	_parent_store_compute	inheritance	orm.models.BaseModel
+ir.attachment	_parent_store_create	absent	
+ir.attachment	_parent_store_update	inheritance	orm.models.BaseModel
+ir.attachment	_parent_store_update_prepare	inheritance	orm.models.BaseModel
+ir.attachment	_post_model_setup__	inheritance	orm.models.BaseModel
+ir.attachment	_prepare_create_values	inheritance	orm.models.BaseModel
+ir.attachment	_read_format	inheritance	orm.models.BaseModel
+ir.attachment	_read_group	inheritance	orm.models.BaseModel
+ir.attachment	_read_group_empty_value	inheritance	orm.models.BaseModel
+ir.attachment	_read_group_expand_full	inheritance	orm.models.BaseModel
+ir.attachment	_read_group_fill_results	inheritance	orm.models.BaseModel
+ir.attachment	_read_group_fill_temporal	inheritance	orm.models.BaseModel
+ir.attachment	_read_group_format_result	inheritance	orm.models.BaseModel
+ir.attachment	_read_group_format_result_properties	inheritance	orm.models.BaseModel
+ir.attachment	_read_group_groupby	inheritance	orm.models.BaseModel
+ir.attachment	_read_group_groupby_properties	inheritance	orm.models.BaseModel
+ir.attachment	_read_group_having	inheritance	orm.models.BaseModel
+ir.attachment	_read_group_orderby	inheritance	orm.models.BaseModel
+ir.attachment	_read_group_postprocess_aggregate	inheritance	orm.models.BaseModel
+ir.attachment	_read_group_postprocess_groupby	inheritance	orm.models.BaseModel
+ir.attachment	_read_group_select	inheritance	orm.models.BaseModel
+ir.attachment	_read_grouping_sets	inheritance	orm.models.BaseModel
+ir.attachment	_rec_name_fallback	inheritance	orm.models.BaseModel
+ir.attachment	_recompute_field	patch	django.db.models.base.Model
+ir.attachment	_recompute_model	patch	django.db.models.base.Model
+ir.attachment	_recompute_recordset	patch	django.db.models.base.Model
+ir.attachment	_register_hook	inheritance	orm.models.BaseModel
+ir.attachment	_search	inheritance	orm.models.BaseModel
+ir.attachment	_search_display_name	production	addons.base.models.ir_attachment.IrAttachment
+ir.attachment	_sorted_order_to_function	inheritance	orm.models.BaseModel
+ir.attachment	_sql_error_to_message	production	addons.base.models.ir_attachment.IrAttachment
+ir.attachment	_sql_error_to_message_generic	production	addons.base.models.ir_attachment.IrAttachment
+ir.attachment	_table_has_rows	inheritance	orm.models.BaseModel
+ir.attachment	_table_sql	inheritance	orm.models.BaseModel
+ir.attachment	_traverse_related_sql	mixin	orm.models.FieldSqlMixin
+ir.attachment	_uid	inheritance	orm.models.BaseModel
+ir.attachment	_unregister_hook	inheritance	orm.models.BaseModel
+ir.attachment	_update_cache	inheritance	orm.models.BaseModel
+ir.attachment	_update_field_translations	patch	django.db.models.base.Model
+ir.attachment	_valid_field_parameter	inheritance	orm.models.BaseModel
+ir.attachment	_validate_fields	patch	django.db.models.base.Model
+ir.attachment	_validate_properties_definition	mixin	orm.models.RecordLoaderMixin
+ir.attachment	_write	inheritance	orm.models.BaseModel
+ir.attachment	_write_multi	inheritance	orm.models.BaseModel
+ir.attachment	action_archive	inheritance	orm.models.BaseModel
+ir.attachment	action_unarchive	inheritance	orm.models.BaseModel
+ir.attachment	browse	inheritance	orm.models.BaseModel
+ir.attachment	check_access	inheritance	orm.models.BaseModel
+ir.attachment	check_access_rights	inheritance	orm.models.BaseModel
+ir.attachment	check_access_rule	inheritance	orm.models.BaseModel
+ir.attachment	check_field_access_rights	inheritance	orm.models.BaseModel
+ir.attachment	concat	inheritance	orm.models.BaseModel
+ir.attachment	copy	inheritance	orm.models.BaseModel
+ir.attachment	copy_data	inheritance	orm.models.BaseModel
+ir.attachment	copy_translations	inheritance	orm.models.BaseModel
+ir.attachment	create	inheritance	orm.models.BaseModel
+ir.attachment	default_get	inheritance	orm.models.BaseModel
+ir.attachment	ensure_one	inheritance	orm.models.BaseModel
+ir.attachment	exists	inheritance	orm.models.BaseModel
+ir.attachment	export_data	inheritance	orm.models.BaseModel
+ir.attachment	fetch	inheritance	orm.models.BaseModel
+ir.attachment	fields_get	inheritance	orm.models.BaseModel
+ir.attachment	filtered	inheritance	orm.models.BaseModel
+ir.attachment	filtered_domain	inheritance	orm.models.BaseModel
+ir.attachment	flush_model	patch	django.db.models.base.Model
+ir.attachment	flush_recordset	patch	django.db.models.base.Model
+ir.attachment	get_base_url	production	addons.base.models.ir_attachment.IrAttachment
+ir.attachment	get_external_id	inheritance	orm.models.BaseModel
+ir.attachment	get_field_translations	patch	django.db.models.base.Model
+ir.attachment	get_metadata	inheritance	orm.models.BaseModel
+ir.attachment	get_property_definition	mixin	orm.models.RecordLoaderMixin
+ir.attachment	grouped	inheritance	orm.models.BaseModel
+ir.attachment	has_access	inheritance	orm.models.BaseModel
+ir.attachment	ids	inheritance	orm.models.BaseModel
+ir.attachment	init	production	addons.base.models.ir_attachment.IrAttachment
+ir.attachment	invalidate_model	patch	django.db.models.base.Model
+ir.attachment	invalidate_recordset	patch	django.db.models.base.Model
+ir.attachment	is_transient	inheritance	orm.models.BaseModel
+ir.attachment	load	production	addons.base.models.ir_attachment.IrAttachment
+ir.attachment	lock_for_update	inheritance	orm.models.BaseModel
+ir.attachment	mapped	inheritance	orm.models.BaseModel
+ir.attachment	modified	patch	django.db.models.base.Model
+ir.attachment	name_create	production	addons.base.models.ir_attachment.IrAttachment
+ir.attachment	name_search	production	addons.base.models.ir_attachment.IrAttachment
+ir.attachment	new	inheritance	orm.models.BaseModel
+ir.attachment	onchange	absent	
+ir.attachment	read	inheritance	orm.models.BaseModel
+ir.attachment	read_group	inheritance	orm.models.BaseModel
+ir.attachment	search	inheritance	orm.models.BaseModel
+ir.attachment	search_count	inheritance	orm.models.BaseModel
+ir.attachment	search_fetch	inheritance	orm.models.BaseModel
+ir.attachment	search_read	inheritance	orm.models.BaseModel
+ir.attachment	sorted	inheritance	orm.models.BaseModel
+ir.attachment	sudo	inheritance	orm.models.BaseModel
+ir.attachment	toggle_active	inheritance	orm.models.BaseModel
+ir.attachment	try_lock_for_update	inheritance	orm.models.BaseModel
+ir.attachment	union	inheritance	orm.models.BaseModel
+ir.attachment	unlink	inheritance	orm.models.BaseModel
+ir.attachment	update	inheritance	orm.models.BaseModel
+ir.attachment	update_field_translations	patch	django.db.models.base.Model
+ir.attachment	with_company	inheritance	orm.models.BaseModel
+ir.attachment	with_context	inheritance	orm.models.BaseModel
+ir.attachment	with_env	inheritance	orm.models.BaseModel
+ir.attachment	with_prefetch	inheritance	orm.models.BaseModel
+ir.attachment	with_user	inheritance	orm.models.BaseModel
+ir.attachment	write	inheritance	orm.models.BaseModel
