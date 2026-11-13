@@ -1,0 +1,20 @@
+bringing up nodes...
+bringing up nodes...
+
+........................................................................ [ 55%]
+..........................................................               [100%]
+=============================== warnings summary ===============================
+tests/unit/utm/test_utm.py: 4 warnings
+tests/unit/orm/test_modified_engine.py: 15 warnings
+tests/unit/web/test_models_onchange.py: 3 warnings
+  /home/user/kaupamex-api/src/orm/fields.py:4488: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_code should be searchable. This is necessary to determine which records to recompute when base.ResCountry.code is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+tests/unit/utm/test_utm.py: 4 warnings
+tests/unit/orm/test_modified_engine.py: 15 warnings
+tests/unit/web/test_models_onchange.py: 3 warnings
+  /home/user/kaupamex-api/src/orm/fields.py:4488: UserWarning: Field <django.db.models.fields.related.ForeignKey: country> in dependency of base_setup.SiteConfigSettings.company_country_group_codes should be searchable. This is necessary to determine which records to recompute when base.ResCountry.country_group_codes is modified. You should either make the field searchable, or simplify the field dependency.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+130 passed, 44 warnings in 22.95s
