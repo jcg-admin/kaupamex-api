@@ -17,8 +17,18 @@ from addons.resource.models import (
     ResourceResource,
 )
 from exceptions import ValidationError
+from orm.environments import sudo
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def _as_superuser():
+    """Los datos de prueba de la referencia se escriben como superusuario
+    (``TransactionCase.env``, ``odoo/tests/common.py``): con los modelos de
+    ``resource`` sobre ``BaseModel``, el acceso pasa por ``check_access``."""
+    with sudo():
+        yield
 
 
 @pytest.fixture
@@ -184,7 +194,7 @@ class TestResourceCalendarDefaultForCompany:
         calendar = company.get_or_create_default_resource_calendar()
         assert calendar.is_default is True
         assert calendar.company_id == company.pk
-        assert calendar.attendances.count() == 15  # 5 días * 3 tramos
+        assert len(calendar.attendances) == 15  # 5 días * 3 tramos
         # Idempotente: una segunda llamada no crea otro calendario.
         assert (
             company.get_or_create_default_resource_calendar().pk == calendar.pk
@@ -200,7 +210,7 @@ class TestResourceCalendarSwitchModes:
         calendar.switch_calendar_type()
         assert calendar.two_weeks_calendar is True
         week_types = {
-            a.week_type for a in calendar.attendances.all() if a.week_type
+            a.week_type for a in calendar.attendances if a.week_type
         }
         assert week_types == {'0', '1'}
 
@@ -209,4 +219,4 @@ class TestResourceCalendarSwitchModes:
         calendar.switch_calendar_type()
         calendar.switch_calendar_type()
         assert calendar.two_weeks_calendar is False
-        assert calendar.attendances.count() == 15
+        assert len(calendar.attendances) == 15

@@ -50,7 +50,7 @@ TIME_TYPES = [
 ]
 
 
-class ResourceCalendarLeaves(TimeStampedModel):
+class ResourceCalendarLeaves(models.BaseModel, TimeStampedModel):
     """``resource.calendar.leaves`` — una ausencia general de la compañía o
     de un recurso concreto."""
 

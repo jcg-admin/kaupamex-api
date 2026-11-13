@@ -110,7 +110,7 @@ _DEFAULT_WEEK_SPEC = [
 ]
 
 
-class ResourceCalendar(TimeStampedModel):
+class ResourceCalendar(models.BaseModel, TimeStampedModel):
     """``resource.calendar`` — horario de trabajo asociado a recursos."""
 
     # Atributos de clase de modelo de la fuente
@@ -224,7 +224,7 @@ class ResourceCalendar(TimeStampedModel):
     def _global_attendances(self):
         """Odoo ``_get_global_attendances`` — tramos reales de trabajo
         (excluye descansos y secciones técnicas)."""
-        return [a for a in self.attendances.all() if a.is_work_period]
+        return [a for a in self.attendances if a.is_work_period]
 
     def _days_per_week(self):
         """Odoo ``_get_days_per_week``."""
@@ -276,7 +276,8 @@ class ResourceCalendar(TimeStampedModel):
     def work_resources_count(self):
         """≙ ``work_resources_count`` / ``_compute_work_resources_count``
         (``:115``, ``:242-248``)."""
-        return self.resources.count()
+        # el recuento de ``resource.resource`` por calendario de la fuente
+        return len(self.resources)
 
     def sync_full_time_required_hours(self):
         """Sincroniza ``full_time_required_hours`` desde el calendario por
@@ -297,7 +298,7 @@ class ResourceCalendar(TimeStampedModel):
         dentro de un mismo día de la semana (y, en calendario de dos
         semanas, dentro de la misma semana)."""
         real_attendances = [
-            a for a in self.attendances.all() if not a.display_type
+            a for a in self.attendances if not a.display_type
         ]
         if self.two_weeks_calendar:
             self._check_overlap(
@@ -342,7 +343,7 @@ class ResourceCalendar(TimeStampedModel):
         if template_company is not None:
             default_calendar = template_company.resource_calendar
             if default_calendar is not None:
-                attendances = list(default_calendar.attendances.all())
+                attendances = list(default_calendar.attendances)
                 if attendances:
                     return [a.copy_vals() for a in attendances]
         specs = []
@@ -414,7 +415,7 @@ class ResourceCalendar(TimeStampedModel):
                 'display_type': 'line_section',
             },
         ]
-        for index, attendance in enumerate(self.attendances.all()):
+        for index, attendance in enumerate(self.attendances):
             for week_type, offset in (('0', 1), ('1', 26)):
                 vals = attendance.copy_vals()
                 vals['week_type'] = week_type
@@ -427,7 +428,7 @@ class ResourceCalendar(TimeStampedModel):
         if not self.two_weeks_calendar:
             self.two_weeks_calendar = True
             specs = self.two_weeks_attendance_specs()
-            self.attendances.all().delete()
+            self.attendances.unlink()
             ResourceCalendarAttendance.objects.bulk_create(
                 [
                     ResourceCalendarAttendance(calendar=self, **spec)
@@ -436,7 +437,7 @@ class ResourceCalendar(TimeStampedModel):
             )
         else:
             self.two_weeks_calendar = False
-            self.attendances.all().delete()
+            self.attendances.unlink()
             self.duration_based = False
             self.create_default_attendances()
         self.save()
@@ -445,13 +446,15 @@ class ResourceCalendar(TimeStampedModel):
         """Odoo ``switch_based_on_duration``."""
         self.duration_based = not self.duration_based
         if self.duration_based:
-            self.attendances.filter(day_period='lunch').delete()
+            # ≙ ``attendance_ids.filtered(...).unlink()`` (``:311``)
+            self.attendances.filtered(
+                lambda att: att.day_period == 'lunch').unlink()
         else:
-            self.attendances.all().delete()
+            self.attendances.unlink()
             self.create_default_attendances()
             if self.two_weeks_calendar:
                 specs = self.two_weeks_attendance_specs()
-                self.attendances.all().delete()
+                self.attendances.unlink()
                 ResourceCalendarAttendance.objects.bulk_create(
                     [
                         ResourceCalendarAttendance(calendar=self, **spec)

@@ -25,6 +25,15 @@ pytestmark = pytest.mark.django_db
 
 
 @pytest.fixture(autouse=True)
+def _as_superuser():
+    """Los datos de prueba de la referencia se escriben como superusuario
+    (``TransactionCase.env``, ``odoo/tests/common.py``): con los modelos de
+    ``resource`` sobre ``BaseModel``, el acceso pasa por ``check_access``."""
+    with sudo():
+        yield
+
+
+@pytest.fixture(autouse=True)
 def _elevated():
     """Leer por ``res.users`` o ``website.page`` un campo heredado aplica
     las reglas del padre como la fuente (TASK-API-0182); sin usuario en

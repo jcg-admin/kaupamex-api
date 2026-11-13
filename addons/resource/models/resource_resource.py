@@ -53,7 +53,7 @@ RESOURCE_TYPES = [
 ]
 
 
-class ResourceResource(TimeStampedModel):
+class ResourceResource(models.BaseModel, TimeStampedModel):
     """``resource.resource`` — algo planificable: una persona o una
     máquina/centro de trabajo."""
 

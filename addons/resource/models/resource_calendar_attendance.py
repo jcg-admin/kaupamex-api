@@ -65,7 +65,7 @@ DISPLAY_TYPES = [
 ]
 
 
-class ResourceCalendarAttendance(TimeStampedModel):
+class ResourceCalendarAttendance(models.BaseModel, TimeStampedModel):
     """``resource.calendar.attendance`` — un tramo de trabajo de un día de
     la semana (p. ej. "Lunes mañana, 08:00-12:00")."""
 
