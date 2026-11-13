@@ -91,33 +91,8 @@
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
-   "id": "registry-cursor-unit-of-work-0485",
-   "task": "TASK-API-0485",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
-  },
-  {
    "id": "request-unit-of-work-integrity-0485",
    "task": "TASK-API-0485",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
-  },
-  {
-   "id": "bulk-delete-invalidation-0485",
-   "task": "TASK-API-0485",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
-  },
-  {
-   "id": "public-user-seed-0485",
-   "task": "TASK-API-0485",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
-  },
-  {
-   "id": "multidb-gate-clone",
-   "task": "TASK-API-0496",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
-  },
-  {
-   "id": "multidb-run-intent-0496",
-   "task": "TASK-API-0496",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   }
  ],
@@ -388,9 +363,14 @@
   "orm-read-group-public-0485",
   "orm-read-group-properties-0485",
   "orm-write-multi-0485",
+  "registry-cursor-unit-of-work-0485",
   "registry-caches-per-database-0485",
   "request-unit-of-work-0485",
-  "registry-new-signaling-0485"
+  "registry-new-signaling-0485",
+  "bulk-delete-invalidation-0485",
+  "public-user-seed-0485",
+  "multidb-gate-clone",
+  "multidb-run-intent-0496"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
