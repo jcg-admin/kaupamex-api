@@ -35,7 +35,7 @@ from .utm_mixin import UtmMixin
 from .utm_stage import UtmStage
 
 
-class UtmCampaign(TimeStampedModel):
+class UtmCampaign(models.BaseModel, TimeStampedModel):
     """``utm.campaign`` — campaña (``odoo19c: utm_campaign.py:7-61``)."""
 
     _name = 'utm.campaign'

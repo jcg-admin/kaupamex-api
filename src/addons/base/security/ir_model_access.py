@@ -497,7 +497,8 @@ def _group_by_xmlid(xmlid, using, IrModelData, ResGroups):
     return ResGroups.objects.using(using).filter(pk=data.res_id).first()
 
 
-def _seed(registry, IrModel, IrModelAccess, IrModelData, ResGroups, using):
+def _seed(registry, IrModel, IrModelAccess, IrModelData, ResGroups, using,
+          rows=_ACCESS):
     """El cuerpo, sobre los modelos que le den — idempotente por la terna
     ``(name, modelo, grupo)``.
 
@@ -506,8 +507,12 @@ def _seed(registry, IrModel, IrModelAccess, IrModelData, ResGroups, using):
     migración para :func:`seed_base_acl`. Es el único sitio donde las dos
     entradas difieren en algo más que la clase del modelo a escribir, y por eso
     entra como parámetro en vez de resolverse dentro.
+
+    ``rows`` son las filas: las de ``base`` por defecto, o las que cada addon
+    deriva de su propio CSV (``addons.utm.security.ir_model_access``), con
+    el grupo nombrado por su identificador en ``base``.
     """
-    for name, label, group_xmlid, perms in _ACCESS:
+    for name, label, group_xmlid, perms in rows:
         try:
             model_class = registry.get_model(label)
         except LookupError:

@@ -45,6 +45,8 @@ from addons.utm.models import (
 from addons.utm.models.utm_medium import SELF_REQUIRED_UTM_MEDIUMS_REF
 from addons.utm.models.utm_tag import _default_color
 from exceptions import UserError, ValidationError
+from orm.commands import Command
+from orm.environments import sudo
 
 pytestmark = pytest.mark.django_db
 
@@ -304,7 +306,10 @@ class TestUtmMedium:
         assert UtmMedium.objects.filter(name='Website').count() == 1
 
     def test_name_is_normalised_for_the_external_id(self):
-        """Espacios y puntos pasan a guion bajo — ≙ ``re.sub(r"[\\s|.]", "_", …)``."""
+        """Espacios y puntos pasan a guion bajo.
+
+        ≙ ``re.sub(r"[\\s|.]", "_", …)``.
+        """
         medium = UtmMedium._fetch_or_create_utm_medium('Paid Social')
 
         assert IrModelData.objects.filter(
@@ -431,9 +436,11 @@ class TestUtmCampaign:
         stage = UtmStage.objects.create(name='Nuevas')
         campaign = UtmCampaign.objects.create(title='Verano', stage_id=stage)
         tag = UtmTag.objects.create(name='newsletter')
-        campaign.tag_ids.add(tag)
-
-        assert list(tag.campaign_ids.all()) == [campaign]
+        # ≙ el comando de enlace de la fuente: ``tag_ids`` es un recordset de
+        # ``BaseModel`` y se escribe con ``Command.link``, no con un manager
+        with sudo():
+            campaign.write({'tag_ids': [Command.link(tag.pk)]})
+            assert list(tag.campaign_ids) == [campaign]
 
 
 # ------------------------------------------------------------ utm.tag/stage --

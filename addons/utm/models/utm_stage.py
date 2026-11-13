@@ -10,7 +10,7 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class UtmStage(TimeStampedModel):
+class UtmStage(models.BaseModel, TimeStampedModel):
     """``utm.stage`` — etapa de campaña (``odoo19c: utm_stage.py:8-16``)."""
 
     _name = 'utm.stage'

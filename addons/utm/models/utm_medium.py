@@ -49,7 +49,7 @@ SELF_REQUIRED_UTM_MEDIUMS_REF = {
 }
 
 
-class UtmMedium(TimeStampedModel):
+class UtmMedium(models.BaseModel, TimeStampedModel):
     """``utm.medium`` — medio de entrega (``odoo19c: utm_medium.py:11-67``)."""
 
     _name = 'utm.medium'

@@ -24,7 +24,7 @@ def _default_color():
     return randint(1, 11)
 
 
-class UtmTag(TimeStampedModel):
+class UtmTag(models.BaseModel, TimeStampedModel):
     """``utm.tag`` — etiqueta de campaña (``odoo19c: utm_tag.py:9-27``)."""
 
     _name = 'utm.tag'

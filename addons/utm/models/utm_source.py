@@ -37,7 +37,7 @@ from tools.translate import _
 from .utm_mixin import UtmMixin
 
 
-class UtmSource(TimeStampedModel):
+class UtmSource(models.BaseModel, TimeStampedModel):
     """``utm.source`` — origen del enlace (``odoo19c: utm_source.py:7-48``)."""
 
     _name = 'utm.source'
