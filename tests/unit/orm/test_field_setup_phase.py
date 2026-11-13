@@ -18,6 +18,7 @@ from django.db import connection, models
 from orm.models import BaseModel  # noqa: E402
 from orm.fields import (ComputedFieldDescriptor, FieldDescriptor,
                         _install_field_descriptor)
+from tests.fixtures.probe_tables import create_probe_tables
 
 
 class CountrySp(models.Model):
@@ -40,9 +41,11 @@ class PartnerSpBase(BaseModel):
 
 
 class OwnerSpBase(BaseModel):
-    partner = models.ForeignKey(PartnerSpBase, on_delete=models.CASCADE, null=True)
+    partner = models.ForeignKey(PartnerSpBase, on_delete=models.CASCADE,
+                                null=True)
     partner_name = models.CharField(max_length=32, related='partner.name')
-    country_code = models.CharField(max_length=4, related='partner.country.code')
+    country_code = models.CharField(
+        max_length=4, related='partner.country.code')
 
     class Meta:
         app_label = 'base'
@@ -60,7 +63,8 @@ class PartnerSpPlain(models.Model):
 
 
 class OwnerSpPlain(models.Model):
-    partner = models.ForeignKey(PartnerSpPlain, on_delete=models.CASCADE, null=True)
+    partner = models.ForeignKey(PartnerSpPlain, on_delete=models.CASCADE,
+                                null=True)
     partner_name = models.CharField(max_length=32, related='partner.name')
 
     class Meta:
@@ -77,8 +81,7 @@ def tables(django_db_setup, django_db_blocker):
     """Las tablas de sonda se crean fuera de la transaccion del caso."""
     with django_db_blocker.unblock():
         with connection.schema_editor() as editor:
-            for model in MODELS:
-                editor.create_model(model)
+            create_probe_tables(editor, MODELS)
     yield
     with django_db_blocker.unblock():
         with connection.schema_editor() as editor:
@@ -88,7 +91,8 @@ def tables(django_db_setup, django_db_blocker):
 
 def installed_descriptor(model, name):
     field = model._meta.get_field(name)
-    return type(model).__dict__.get(field.attname) or model.__dict__[field.attname]
+    return (type(model).__dict__.get(field.attname)
+            or model.__dict__[field.attname])
 
 
 class TestTheDescriptorIsElectedWithComputeInHand:
@@ -97,9 +101,11 @@ class TestTheDescriptorIsElectedWithComputeInHand:
         for model in (OwnerSpPlain, OwnerSpBase):
             descriptor = model.__dict__['partner_name']
             assert type(descriptor) is ComputedFieldDescriptor, model
-            assert descriptor.field.compute == descriptor.field._compute_related
+            field = descriptor.field
+            assert field.compute == field._compute_related
 
-    def test_the_selector_promotes_a_base_descriptor_when_compute_arrives(self):
+    def test_the_selector_promotes_a_base_descriptor_when_compute_arrives(
+            self):
         """Control de anulacion: sin la rama de promocion este caso cae."""
         field = copy.copy(OwnerSpPlain._meta.get_field('partner_name'))
 

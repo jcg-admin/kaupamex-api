@@ -31,6 +31,7 @@ from django.db import models as django_models
 import api
 import fields
 from orm.fields import _collect_field_definitions
+from tests.fixtures.probe_tables import create_probe_tables
 
 
 class LabelMixin:
@@ -94,7 +95,7 @@ def tables(django_db_setup, django_db_blocker):
     """La tabla de la sonda, una vez por sesión y fuera de la transacción."""
     with django_db_blocker.unblock():
         with connection.schema_editor() as editor:
-            editor.create_model(DirectProbe)
+            create_probe_tables(editor, (DirectProbe,))
     yield
     with django_db_blocker.unblock():
         # Los casos ya finalizaron y revirtieron sus transacciones. La DDL de

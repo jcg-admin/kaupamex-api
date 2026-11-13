@@ -24,6 +24,7 @@ from orm.environments import sudo
 from addons.html_editor.models.html_field_history_mixin import (
     HtmlFieldHistoryMixin,
 )
+from tests.fixtures.probe_tables import create_probe_tables
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -100,8 +101,7 @@ def tables(django_db_setup, django_db_blocker):
     """
     with django_db_blocker.unblock():
         with connection.schema_editor() as editor:
-            for model in (HistoryProbe, UnversionableProbe):
-                editor.create_model(model)
+            create_probe_tables(editor, (HistoryProbe, UnversionableProbe))
     yield
     with django_db_blocker.unblock():
         with connection.schema_editor() as editor:

@@ -38,6 +38,7 @@ import api
 import fields
 from orm import registry
 from orm.environments import env, transaction_scope
+from tests.fixtures.probe_tables import create_probe_tables
 
 
 def _settle_creation():
@@ -119,8 +120,7 @@ def tables(django_db_setup, django_db_blocker):
     """
     with django_db_blocker.unblock():
         with connection.schema_editor() as editor:
-            for model in (EngineOwner, EngineProbe):
-                editor.create_model(model)
+            create_probe_tables(editor, (EngineOwner, EngineProbe))
     yield
     with django_db_blocker.unblock():
         with connection.schema_editor() as editor:
