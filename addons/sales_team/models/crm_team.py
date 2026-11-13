@@ -21,7 +21,7 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class CrmTeam(TimeStampedModel):
+class CrmTeam(models.BaseModel, TimeStampedModel):
     """``crm.team`` — equipo de venta (Sales Team)."""
 
     # Atributos de clase de modelo — los que la fuente declara

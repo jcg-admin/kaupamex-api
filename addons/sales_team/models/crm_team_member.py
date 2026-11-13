@@ -17,7 +17,7 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class CrmTeamMember(TimeStampedModel):
+class CrmTeamMember(models.BaseModel, TimeStampedModel):
     """``crm.team.member`` — membresía usuario↔equipo."""
 
     _name = 'crm.team.member'

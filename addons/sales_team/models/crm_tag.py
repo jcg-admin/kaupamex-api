@@ -31,7 +31,7 @@ def _get_default_color():
     return randint(1, 11)
 
 
-class CrmTag(TimeStampedModel):
+class CrmTag(models.BaseModel, TimeStampedModel):
     """``crm.tag`` — etiqueta de CRM/ventas."""
 
     _name = 'crm.tag'

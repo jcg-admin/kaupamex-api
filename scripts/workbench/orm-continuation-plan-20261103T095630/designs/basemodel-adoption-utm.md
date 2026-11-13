@@ -19,13 +19,14 @@ HR quedó «verificado sólo para el superusuario» porque su ACL no se portó
 (`designs/hr-basemodel-dependencies.md`). Aquí no se repite: sin las filas,
 un usuario interno quedaría denegado en los cinco.
 
-## Mecanismo (EXTEND)
+## Mecanismo — corregido en `a40f3f22`
 
-`addons.base.security.ir_model_access._seed` gana el parámetro `rows`; `utm`
-declara las suyas, derivadas del CSV con `probes/derive_base_acl.py` (10
-derivadas, 0 sin modelo), con dos entradas: `seed` (catálogo de
-`tests/conftest.py`) y `seed_utm_acl` (migración `utm/0007`). La herencia de
-`BaseModel` es Python y no cambia columnas.
+La primera versión (`e9fb9b5b`) sembró la ACL con una lista Python y la
+migración `utm/0007`: un mecanismo paralelo existiendo ya el de la fuente.
+Ahora `utm/security/ir.model.access.csv` es copia fiel, declarada en `data`
+del manifiesto, y la carga el ciclo de instalación con su identificador
+externo (`designs/security-data-by-manifest.md`). La herencia de `BaseModel`
+es Python y no cambia columnas.
 
 ## Pruebas
 

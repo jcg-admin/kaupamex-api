@@ -43,7 +43,7 @@ import importlib
 
 import pytest
 
-from addons.base.models.ir_model import IrModelAccess
+from addons.base.models.ir_model import IrModelAccess, IrModelData
 from addons.base.models.ir_rule import IrRule
 
 pytestmark = pytest.mark.django_db
@@ -109,7 +109,15 @@ class TestTheRecordRulesAreThere:
         ``company_id IS NULL``, que devuelve las filas sin empresa a todo el
         mundo.
         """
-        for rule in IrRule.objects.filter(name__endswith='multi-company'):
+        # sólo las sembradas por migración, sin identificador externo: las
+        # que carga un manifiesto siguen su propio XML (``sales_team`` declara
+        # ``company_ids + [False]``, también verbatim de su fuente)
+        loaded = IrModelData.objects.filter(
+            model='base.IrRule').values_list('res_id', flat=True)
+        rules = IrRule.objects.filter(
+            name__endswith='multi-company').exclude(pk__in=list(loaded))
+        assert rules.exists()
+        for rule in rules:
             assert rule.domain_force == "[('company_id', 'in', company_ids)]"
 
     def test_the_rules_are_global(self):
