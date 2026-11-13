@@ -36,7 +36,8 @@ from service import db as svc
 
 pytestmark = pytest.mark.integration
 
-_COMPANY_A_ID = secrets.randbits(48)
+_COMPANY_A_ID = int(os.environ.get('MULTIDB_COMPANY_A_ID')
+                    or secrets.randbits(48))
 _COMPANY_B_ID = _COMPANY_A_ID + 1
 _ALIAS_A = f'company_{_COMPANY_A_ID}_db'
 _ALIAS_B = f'company_{_COMPANY_B_ID}_db'

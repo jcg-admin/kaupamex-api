@@ -1,0 +1,2 @@
+FAILED tests/unit/scripts/test_run_multidb_isolation.py::test_reclaim_refuses_another_owner_or_open_sessions
+1 failed, 4 passed, 2 warnings in 14.38s

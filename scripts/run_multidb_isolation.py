@@ -94,6 +94,67 @@ def drop_created(env, name, companies_before):
     return created
 
 
+def planned_databases(name, company_a_id):
+    """Las tres bases que crea una ejecución: arranque y la pareja A/A+1."""
+    return [name, f'company_{company_a_id}_db',
+            f'company_{company_a_id + 1}_db']
+
+
+def write_intent(out, intent):
+    """Deja en ``out/intent.json`` lo que la ejecución va a crear.
+
+    Se escribe **antes** del primer ``CREATE DATABASE``: si un reclamo del
+    contenedor mata la ejecución, es la prueba de procedencia de sus restos
+    (``designs/multidb-run-intent-ledger.md``).
+    """
+    path = pathlib.Path(out) / 'intent.json'
+    path.write_text(json.dumps(intent, indent=1) + '\n')
+    return path
+
+
+def reclaim(env, run_dirs, connect=connect):
+    """Retira los restos de ejecuciones interrumpidas, y sólo esos.
+
+    Un directorio sin ``intent.json`` no prueba nada; uno con
+    ``record.json`` terminó y ya limpió. De lo declarado se retira cada base
+    que exista, sea del rol de la intención (el de esta VM) y no tenga
+    sesiones; lo demás queda anotado como rehusado.
+    """
+    results = {}
+    for run_dir in map(pathlib.Path, run_dirs):
+        if (run_dir / 'record.json').exists():
+            results[str(run_dir)] = 'finished'
+            continue
+        if not (run_dir / 'intent.json').exists():
+            results[str(run_dir)] = 'no-intent'
+            continue
+        intent = json.loads((run_dir / 'intent.json').read_text())
+        dropped, refused = [], {}
+        with connect(env) as conn:
+            for database in intent['databases']:
+                found = conn.execute(
+                    'SELECT pg_get_userbyid(datdba) FROM pg_database'
+                    ' WHERE datname = %s', [database]).fetchone()
+                if not found:
+                    continue
+                if found[0] != intent['role'] or found[0] != env['DB_QA_USER']:
+                    refused[database] = 'owner'
+                    continue
+                sessions = conn.execute(
+                    'SELECT count(*) FROM pg_stat_activity'
+                    ' WHERE datname = %s', [database]).fetchone()[0]
+                if sessions:
+                    refused[database] = 'sessions'
+                    continue
+                conn.execute(f'DROP DATABASE "{database}"')
+                dropped.append(database)
+        outcome = {'dropped': dropped, 'refused': refused}
+        (run_dir / 'reclaimed.json').write_text(
+            json.dumps(outcome, indent=1) + '\n')
+        results[str(run_dir)] = outcome
+    return results
+
+
 def main(out_dir):
     out = pathlib.Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -112,6 +173,14 @@ def main(out_dir):
         text=True).stdout.strip()
     record = {'database': name, 'revision': revision,
               'second_base': env.get('MULTIDB_SECOND_BASE', 'provision')}
+    company_a_id = secrets.randbits(48)
+    env['MULTIDB_COMPANY_A_ID'] = str(company_a_id)
+    write_intent(out, {
+        'databases': planned_databases(name, company_a_id),
+        'role': env['DB_QA_USER'], 'revision': revision,
+        'boot_id': pathlib.Path(
+            '/proc/sys/kernel/random/boot_id').read_text().strip(),
+        'started': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())})
 
     owner, companies_before, server, role = catalog(env, name)
     assert owner is None, f'{name} ya existía: no se reutiliza'
@@ -157,5 +226,11 @@ def main(out_dir):
 
 
 if __name__ == '__main__':
+    if sys.argv[1:2] == ['--reclaim']:
+        _source = Config(RepositoryEnv(str(ROOT / 'src' / '.env')))
+        _env = {f'DB_QA_{key}': _source(f'DB_QA_{key}', default='')
+                for key in ('USER', 'PASSWORD', 'HOST', 'PORT')}
+        print(json.dumps(reclaim(_env, sys.argv[2:]), indent=1))
+        raise SystemExit(0)
     raise SystemExit(main(sys.argv[1] if len(sys.argv) > 1
                           else ROOT / 'test-results' / 'multidb'))
