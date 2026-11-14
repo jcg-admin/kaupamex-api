@@ -692,6 +692,16 @@ class HrEmployee(models.BaseModel, MailThread, MailActivityMixin,
         (``related='version_id.date_version'``)."""
         return self.version.date_version if self.version_id else None
 
+    def _version_rows(self):
+        """Las versiones del empleado como ``QuerySet``, incluidas las
+        inactivas.
+
+        Con ``hr.version`` sobre ``BaseModel`` la inversa ``versions`` es un
+        recordset; estos métodos filtran, ordenan y proyectan con la API de
+        Django, que el recordset no tiene, así que consultan por el gestor.
+        """
+        return HrVersion.objects.filter(employee=self)
+
     @property
     def versions_count(self):
         """≙ ``versions_count`` (``:198``).
@@ -702,7 +712,7 @@ class HrEmployee(models.BaseModel, MailThread, MailActivityMixin,
 
         ≙ ``_compute_versions_count`` (``odoo19c: hr/models/hr_employee.py``).
         """
-        return self.versions.count()
+        return self._version_rows().count()
 
     @property
     def version_revision(self):
@@ -714,7 +724,7 @@ class HrEmployee(models.BaseModel, MailThread, MailActivityMixin,
         if not self.version_id:
             return 0
         ordered_ids = list(
-            self.versions.order_by('date_version')
+            self._version_rows().order_by('date_version')
             .values_list('pk', flat=True),
         )
         if self.version_id not in ordered_ids:
@@ -859,7 +869,7 @@ class HrEmployee(models.BaseModel, MailThread, MailActivityMixin,
         DIVERGENCIA: ``self.env.context['before_date']`` → argumento
         explícito. Este ORM no tiene contexto de entorno.
         """
-        versions = self.versions.all()
+        versions = self._version_rows().all()
         if before_date:
             return [version for version in versions
                     if version.date_start
@@ -932,9 +942,10 @@ class HrEmployee(models.BaseModel, MailThread, MailActivityMixin,
         """
         on_date = on_date or date.today()
         versions = list(
-            self.versions.filter(active=True).order_by('date_version'))
+            self._version_rows().filter(active=True).order_by('date_version'))
         if not versions:
-            versions = list(self.versions.all().order_by('date_version'))
+            versions = list(
+                self._version_rows().order_by('date_version'))
         if not versions:
             return None
         filtered = [version for version in versions
@@ -952,11 +963,11 @@ class HrEmployee(models.BaseModel, MailThread, MailActivityMixin,
         así que lo invoca ``save()`` y el cron. No escribe si el resultado
         no cambia — misma guarda que la referencia (``:538-540``).
         """
-        version = self.versions.filter(
+        version = self._version_rows().filter(
             date_version__lte=date.today(),
         ).order_by('-date_version').first()
         if version is None:
-            version = self.versions.order_by('date_version').first()
+            version = self._version_rows().order_by('date_version').first()
         if version is not None and self.version_id != version.pk:
             self.version = version
         return version
@@ -1010,7 +1021,7 @@ class HrEmployee(models.BaseModel, MailThread, MailActivityMixin,
         # Django añade ``date_version`` al ``SELECT DISTINCT`` y dos
         # versiones del MISMO contrato devuelven el intervalo dos veces —
         # medido sobre la query generada. Ver H-API-713.
-        rows = self.versions.filter(
+        rows = self._version_rows().filter(
             contract_date_start__isnull=False,
         ).order_by().values_list(
             'contract_date_start', 'contract_date_end',
@@ -1116,7 +1127,7 @@ class HrEmployee(models.BaseModel, MailThread, MailActivityMixin,
             self, date_from, date_to):
         """≙ ``_get_versions_with_contract_overlap_with_period``
         (``:1767-1775``)."""
-        return list(self.versions.filter(
+        return list(self._version_rows().filter(
             models.Q(contract_date_start__isnull=False)
             & models.Q(contract_date_start__lte=date_to)
             & (models.Q(contract_date_end__gte=date_from)
@@ -1163,7 +1174,7 @@ class HrEmployee(models.BaseModel, MailThread, MailActivityMixin,
 
         version_to_copy = self._get_version(version_date)
         if version_to_copy is None:
-            version_to_copy = self.versions.order_by(
+            version_to_copy = self._version_rows().order_by(
                 'date_version', 'pk').first()
         if (version_to_copy is not None
                 and version_to_copy.date_version == version_date):
@@ -1237,7 +1248,8 @@ class HrEmployee(models.BaseModel, MailThread, MailActivityMixin,
             if future_contract_dates else None
         )
 
-        version_same_date = self.versions.filter(date_version=on_date).first()
+        version_same_date = self._version_rows().filter(
+            date_version=on_date).first()
         if version_same_date is not None:
             version_same_date.contract_date_start = on_date
             version_same_date.contract_date_end = new_contract_date_end

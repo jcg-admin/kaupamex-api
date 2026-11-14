@@ -14,8 +14,18 @@ from decimal import Decimal
 import pytest
 
 from addons.hr.models import HrDepartment, HrEmployee, HrVersion
+from orm.environments import sudo
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def _as_superuser():
+    """Los datos de prueba de la referencia se escriben como superusuario:
+    con ``hr.version`` sobre ``BaseModel``, el acceso pasa por
+    ``check_access``."""
+    with sudo():
+        yield
 
 
 class TestHrEmployeeVersionDelegationWithoutAVersion:
@@ -25,7 +35,8 @@ class TestHrEmployeeVersionDelegationWithoutAVersion:
 
     def test_current_version_is_none(self):
         employee = HrEmployee.objects.create(name='Sin versión')
-        assert employee.current_version is None
+        # Many2one vacío: un recordset vacío, no ``None`` (como la fuente)
+        assert not employee.current_version
 
     def test_current_date_version_is_none(self):
         employee = HrEmployee.objects.create(name='Sin versión')

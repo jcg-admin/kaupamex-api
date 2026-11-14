@@ -80,7 +80,8 @@ from addons.hr.models.hr_payroll_structure_type import HrPayrollStructureType
 from addons.mail.models import MailActivityMixin, MailThread
 
 
-class HrVersion(MailThread, MailActivityMixin, TimeStampedModel):
+class HrVersion(models.BaseModel, MailThread, MailActivityMixin,
+                TimeStampedModel):
     """``hr.version`` — una versión (tramo de contrato/puesto) de un empleado.
 
     Un empleado tiene N ``hr.version`` a lo largo de su carrera (altas,

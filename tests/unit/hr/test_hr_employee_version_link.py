@@ -20,8 +20,18 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from addons.hr.models import HrEmployee, HrVersion
+from orm.environments import sudo
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def _as_superuser():
+    """Los datos de prueba de la referencia se escriben como superusuario:
+    con ``hr.version`` sobre ``BaseModel``, el acceso pasa por
+    ``check_access``."""
+    with sudo():
+        yield
 
 
 def _employee(name='Ana Prueba'):
@@ -407,7 +417,7 @@ class TestCreateVersion:
         # El contrato vigente viaja con la copia.
         assert created.contract_date_start == date(2026, 1, 1)
         assert created.contract_date_end == date(2026, 12, 31)
-        assert employee.versions.count() == 2
+        assert len(employee.versions) == 2
 
     def test_an_existing_version_on_the_same_date_is_not_duplicated(self):
         employee = _employee()
@@ -416,7 +426,7 @@ class TestCreateVersion:
         created = employee.create_version({'date_version': date(2026, 1, 1)})
 
         assert created == existing
-        assert employee.versions.count() == 1
+        assert len(employee.versions) == 1
 
     def test_a_new_contract_end_propagates_to_the_whole_contract(self):
         employee = _employee()
@@ -616,5 +626,6 @@ class TestVersionPeriods:
         periods = HrEmployee._get_calendar_periods([employee], start, stop)
 
         assert len(periods[employee.pk]) == 1
-        # Sin calendario en la versión, el valor del tramo es None.
-        assert periods[employee.pk][0][2] is None
+        # Sin calendario en la versión, el valor del tramo es un recordset
+        # vacío de ``resource.calendar``, como en la fuente.
+        assert not periods[employee.pk][0][2]
