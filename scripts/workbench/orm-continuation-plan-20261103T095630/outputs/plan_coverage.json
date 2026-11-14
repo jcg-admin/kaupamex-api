@@ -429,7 +429,8 @@
   "recruitment-job-interviewer-sync-0397",
   "x2many-django-comodel-condition-0485",
   "basemodel-adoption-hr-comodels-0397",
-  "basemodel-adoption-hr-core-0397"
+  "basemodel-adoption-hr-core-0397",
+  "basemodel-adoption-hr-employee-location-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
