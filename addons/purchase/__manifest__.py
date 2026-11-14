@@ -14,9 +14,14 @@
     # código no tiene y el gate de destinos muertos no puede distinguir de un
     # olvido; el porte es de la Capa 1 (tarea #203).
     'depends': [
+        # La fuente declara sólo `account` y recibe el resto transitivamente;
+        # aquí cada import directo se declara, como en `sale`.
+        'account',  # account.document.import.mixin de la orden
+        'analytic',  # analytic.mixin de la línea
         'base',  # ResPartner — el proveedor
         'base_setup',  # los ajustes de compra por empresa
         'mail',  # mail.thread y mail.activity.mixin del _inherit de la orden
+        'portal',  # portal.mixin de la orden
         'product',  # Product — lo que se compra
     ],
     'author': 'Odoo S.A.',

@@ -58,3 +58,30 @@ antes el hogar de `product.catalog.mixin` y las dependencias del manifiesto.
 
 - volver a `Meta.ordering = ['-create_date', '-id']`: cae el caso 6;
 - retirar `_name` de la orden: caen los casos 1, 2, 4 y 6.
+
+## Corrección: las cinco mezclas existían (subunidad `purchase-order-mixins-0397`)
+
+Lo de arriba sobre las mezclas es falso, y lo destapó abrir la subunidad
+siguiente. Se buscó `_name = '<mezcla>'` y esas mezclas se declaran como
+clase Python sin esa línea: `PortalMixin` (`addons/portal/models/
+portal_mixin.py`), `ProductCatalogMixin` (`addons/product/models/
+product_catalog_mixin.py`, en su hogar de la fuente; `stock` sólo la
+extiende), `AccountDocumentImportMixin` y `AnalyticMixin`. `sale.order` ya
+heredaba las cinco de la orden.
+
+*Métrica usada:* la cadena literal `_name = '<mezcla>'` en `addons/`.
+*Ciega a:* toda mezcla declarada como clase Python sin `_name` o con otro
+espaciado: el instrumento no podía ver el fenómeno sobre el que se concluyó.
+
+Hecho en esta subunidad:
+
+- la orden hereda las cinco, en el orden de la fuente; la línea hereda
+  `AnalyticMixin`; el manifiesto declara `account`, `analytic` y `portal`;
+- `AccountDocumentImportMixin` declara `_abstract = True`: la fuente la
+  declara `AbstractModel`, y sin la marca `_check_model_parent_extension`
+  rechazaba que un `BaseModel` la heredara;
+- la migración añade `access_token` (de `portal.mixin`) y
+  `analytic_distribution` (de `analytic.mixin`).
+
+Los dos casos nuevos son estructurales (`issubclass`): su RED es el control
+que discrimina, y anularlos sólo repetiría ese RED.

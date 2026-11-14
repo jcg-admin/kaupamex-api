@@ -40,15 +40,14 @@ import fields
 import models
 
 from addons.base_setup.settings_access import get_setting
+from addons.analytic.models.analytic_mixin import AnalyticMixin
 from addons.base.models import TimeStampedModel
 
 
-class PurchaseOrderLine(models.BaseModel, TimeStampedModel):
+class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
     """``purchase.order.line`` — una línea de la orden de compra.
 
-    ``_inherit = ['analytic.mixin']`` (``odoo19c: :15``): pendiente — la
-    mezcla existe en ``analytic`` y falta declarar esa dependencia en el
-    manifiesto; subunidad ``purchase-order-mixins-0397``.
+    ``_inherit = ['analytic.mixin']`` (``odoo19c: :15``) por herencia.
     """
 
     _name = 'purchase.order.line'

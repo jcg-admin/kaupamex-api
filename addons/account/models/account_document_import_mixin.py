@@ -575,6 +575,11 @@ class AccountDocumentImportMixin:
             new_files_data.extend(cls._to_files_data(created_attachments))
         return new_files_data
 
+    #: ≙ ``models.AbstractModel`` de la fuente: sin tabla. Sin la marca, un
+    #: ``BaseModel`` que la hereda (``purchase.order``) choca con
+    #: ``_check_model_parent_extension``, que la leía como modelo concreto.
+    _abstract = True
+
 
 def apply_account_extensions():
     """No aplica — ``AccountDocumentImportMixin`` es un modelo NUEVO

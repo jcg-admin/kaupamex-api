@@ -8,7 +8,12 @@ purchase-order-header.md``.
 """
 import pytest
 
+from addons.account.models.account_document_import_mixin import (
+    AccountDocumentImportMixin)
+from addons.analytic.models.analytic_mixin import AnalyticMixin
 from addons.mail.models import MailActivityMixin, MailThread
+from addons.portal.models.portal_mixin import PortalMixin
+from addons.product.models.product_catalog_mixin import ProductCatalogMixin
 from orm.models import BaseModel
 from orm.registry import MODELS_BY_NAME
 
@@ -23,10 +28,19 @@ def test_the_order_is_registered_under_its_source_name():
     assert order._order == 'priority desc, id desc'
 
 
-def test_the_order_inherits_the_mail_mixins():
+def test_the_order_inherits_the_five_source_mixins():
+    """≙ ``_inherit = ['portal.mixin', 'product.catalog.mixin',
+    'mail.thread', 'mail.activity.mixin', 'account.document.import.mixin']``
+    (:23)."""
     order = MODELS_BY_NAME['purchase.order']
-    assert issubclass(order, MailThread)
-    assert issubclass(order, MailActivityMixin)
+    for mixin in (PortalMixin, ProductCatalogMixin, MailThread,
+                  MailActivityMixin, AccountDocumentImportMixin):
+        assert issubclass(order, mixin), mixin.__name__
+
+
+def test_the_line_inherits_the_analytic_mixin():
+    """≙ ``_inherit = ['analytic.mixin']`` (purchase_order_line.py:15)."""
+    assert issubclass(MODELS_BY_NAME['purchase.order.line'], AnalyticMixin)
 
 
 def test_the_line_is_registered_under_its_source_name():

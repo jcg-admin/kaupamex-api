@@ -70,8 +70,12 @@ import fields
 import models
 from django.utils import timezone
 
+from addons.account.models.account_document_import_mixin import (
+    AccountDocumentImportMixin)
 from addons.base.models import ResCurrency, TimeStampedModel
 from addons.mail.models import MailActivityMixin, MailThread
+from addons.portal.models.portal_mixin import PortalMixin
+from addons.product.models.product_catalog_mixin import ProductCatalogMixin
 
 #: Centinela de «todavía no se cargó ninguna fila» — distinto de
 #: ``company_id is None`` (fila cargada, sin empresa). El mismo patrón que
@@ -80,22 +84,15 @@ from addons.mail.models import MailActivityMixin, MailThread
 _SIN_CARGAR = object()
 
 
-class PurchaseOrder(models.BaseModel, MailThread, MailActivityMixin,
+class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
+                    MailThread, MailActivityMixin, AccountDocumentImportMixin,
                     TimeStampedModel):
     """``purchase.order`` — orden de compra a un proveedor.
 
-    ``_inherit`` de la fuente (``:23``): ``mail.thread`` y
-    ``mail.activity.mixin`` entran por herencia. Las otras tres quedan para
-    la subunidad ``purchase-order-mixins-0397``
-    (``designs/purchase-order-header.md``):
-
-    - ``portal.mixin``: BLOQUEADO por ``portal.mixin`` — no existe en este
-      árbol.
-    - ``product.catalog.mixin``: pendiente — existe, pero vive en ``stock``
-      y no en ``product``, su hogar en la fuente; se mueve antes de
-      heredarlo, porque ``purchase`` no depende de ``stock``.
-    - ``account.document.import.mixin``: pendiente — existe en ``account``;
-      falta declarar esa dependencia en el manifiesto, como la fuente.
+    ``_inherit`` de la fuente (``:23``) completo, en su orden:
+    ``portal.mixin``, ``product.catalog.mixin``, ``mail.thread``,
+    ``mail.activity.mixin`` y ``account.document.import.mixin``; la misma
+    composición que ``sale.order``.
     """
 
     _name = 'purchase.order'
