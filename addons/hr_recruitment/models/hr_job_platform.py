@@ -43,7 +43,7 @@ def _normalize_email(text):
     return (text or '').strip().lower()
 
 
-class HrJobPlatform(TimeStampedModel):
+class HrJobPlatform(models.BaseModel, TimeStampedModel):
     """
     ``hr.job.platform`` — plataforma de origen de candidaturas por correo.
     """

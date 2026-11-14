@@ -58,7 +58,7 @@ def _default_legend_normal():
     return _('In Progress')
 
 
-class HrRecruitmentStage(TimeStampedModel):
+class HrRecruitmentStage(models.BaseModel, TimeStampedModel):
     """``hr.recruitment.stage`` — una columna del kanban de reclutamiento."""
 
     _name = 'hr.recruitment.stage'

@@ -11,7 +11,7 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class HrRecruitmentDegree(TimeStampedModel):
+class HrRecruitmentDegree(models.BaseModel, TimeStampedModel):
     """``hr.recruitment.degree`` — catálogo de grados académicos."""
 
     _name = 'hr.recruitment.degree'

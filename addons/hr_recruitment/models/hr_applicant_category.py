@@ -39,7 +39,7 @@ def _get_default_color():
     return randint(1, 11)
 
 
-class HrApplicantCategory(TimeStampedModel):
+class HrApplicantCategory(models.BaseModel, TimeStampedModel):
     """``hr.applicant.category`` — una etiqueta de candidato."""
 
     _name = 'hr.applicant.category'

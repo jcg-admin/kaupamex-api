@@ -140,7 +140,6 @@ addons/hr_hourly_cost/__init__.py::``hr.version`` — 0 hits, no BLOQUEADO
 addons/hr_hourly_cost/models/hr_employee.py::- ``groups="hr.group_hr_user"`` — **BLOQUEADO**. Es visibilidad de campo por
 addons/hr_hourly_cost/models/hr_employee.py::- ``tracking=True`` — **BLOQUEADO**. Greppeado
 addons/hr_recruitment/__manifest__.py::# `web_tour` (0 hits) — sus consumidores quedan BLOQUEADOS con la pieza
-addons/hr_recruitment/__manifest__.py::'digest',  # DigestDigest (extensión declarada BLOQUEADA — ver models/digest.py)
 addons/hr_recruitment/models/calendar.py::de este addon) también queda BLOQUEADO, por el mismo ausente.
 addons/hr_recruitment/models/digest.py::'BLOQUEADO — ver docstring del módulo.',
 addons/hr_recruitment/models/digest.py::- BLOQUEADO — delega en ``_calculate_company_based_kpi``, que

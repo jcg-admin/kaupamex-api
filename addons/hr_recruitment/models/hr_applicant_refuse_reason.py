@@ -31,7 +31,7 @@ from addons.base.models import TimeStampedModel
 from addons.mail.models import MailTemplate
 
 
-class HrApplicantRefuseReason(TimeStampedModel):
+class HrApplicantRefuseReason(models.BaseModel, TimeStampedModel):
     """``hr.applicant.refuse.reason`` — catálogo de motivos de rechazo."""
 
     _name = 'hr.applicant.refuse.reason'

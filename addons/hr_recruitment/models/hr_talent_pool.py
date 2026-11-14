@@ -39,7 +39,7 @@ def _get_default_color():
     return randint(1, 11)
 
 
-class HrTalentPool(MailThread, TimeStampedModel):
+class HrTalentPool(models.BaseModel, MailThread, TimeStampedModel):
     """``hr.talent.pool`` — bolsa de candidatos reutilizables."""
 
     _name = 'hr.talent.pool'

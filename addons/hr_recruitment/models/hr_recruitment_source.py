@@ -65,7 +65,7 @@ def _default_medium():
     return UtmMedium._fetch_or_create_utm_medium('website').pk
 
 
-class HrRecruitmentSource(UtmSourceMixin, TimeStampedModel):
+class HrRecruitmentSource(models.BaseModel, UtmSourceMixin, TimeStampedModel):
     """``hr.recruitment.source`` — un canal (bolsa de trabajo, referido…) por
     puesto."""
 
