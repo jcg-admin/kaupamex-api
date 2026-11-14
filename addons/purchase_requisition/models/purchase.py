@@ -335,7 +335,7 @@ def get_tender_best_lines(self):
             type(self).STATE_PURCHASE,
         ):
             continue
-        for line in order_rec.order_line.all():
+        for line in order_rec.order_line:
             if not line.product_qty or not line.price_total_cc:
                 continue
             subtotal = line.price_total_cc

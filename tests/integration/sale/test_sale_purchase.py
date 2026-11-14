@@ -11,9 +11,19 @@ from django.core.exceptions import ValidationError
 from addons.purchase.models import PurchaseOrder, PurchaseOrderLine
 from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.sale_purchase.models import SaleLinePurchaseLink
+from orm.environments import sudo
 from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.integration
+
+
+@pytest.fixture(autouse=True)
+def _as_superuser():
+    """Sobre ``BaseModel`` la orden de compra aplica su control de acceso;
+    los datos de prueba de la referencia se escriben como superusuario."""
+    with sudo():
+        yield
+
 
 User = get_user_model()
 

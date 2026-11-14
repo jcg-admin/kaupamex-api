@@ -71,6 +71,7 @@ import models
 from django.utils import timezone
 
 from addons.base.models import ResCurrency, TimeStampedModel
+from addons.mail.models import MailActivityMixin, MailThread
 
 #: Centinela de «todavía no se cargó ninguna fila» — distinto de
 #: ``company_id is None`` (fila cargada, sin empresa). El mismo patrón que
@@ -79,8 +80,28 @@ from addons.base.models import ResCurrency, TimeStampedModel
 _SIN_CARGAR = object()
 
 
-class PurchaseOrder(TimeStampedModel):
-    """``purchase.order`` — orden de compra a un proveedor."""
+class PurchaseOrder(models.BaseModel, MailThread, MailActivityMixin,
+                    TimeStampedModel):
+    """``purchase.order`` — orden de compra a un proveedor.
+
+    ``_inherit`` de la fuente (``:23``): ``mail.thread`` y
+    ``mail.activity.mixin`` entran por herencia. Las otras tres quedan para
+    la subunidad ``purchase-order-mixins-0397``
+    (``designs/purchase-order-header.md``):
+
+    - ``portal.mixin``: BLOQUEADO por ``portal.mixin`` — no existe en este
+      árbol.
+    - ``product.catalog.mixin``: pendiente — existe, pero vive en ``stock``
+      y no en ``product``, su hogar en la fuente; se mueve antes de
+      heredarlo, porque ``purchase`` no depende de ``stock``.
+    - ``account.document.import.mixin``: pendiente — existe en ``account``;
+      falta declarar esa dependencia en el manifiesto, como la fuente.
+    """
+
+    _name = 'purchase.order'
+    _description = "Purchase Order"
+    _rec_names_search = ['name', 'partner_ref']
+    _order = 'priority desc, id desc'
 
     STATE_DRAFT = 'draft'
     STATE_SENT = 'sent'
@@ -110,6 +131,19 @@ class PurchaseOrder(TimeStampedModel):
         help_text='Proveedor (Odoo partner_id).',
         db_column='partner_id',
     )
+    #: ≙ ``priority`` (``odoo19c: :78-79``).
+    priority = fields.Selection(
+        [('0', 'Normal'), ('1', 'Urgent')], 'Priority', default='0',
+        max_length=1, db_index=True)
+    #: ≙ ``partner_ref`` (``odoo19c: :83-87``).
+    partner_ref = fields.Char(
+        'Vendor Reference', max_length=255, blank=True, default='',
+        copy=False,
+        help_text=(
+            "Reference of the sales order or bid sent by the vendor. It's "
+            "used to do the matching when you receive the products as this "
+            "reference is usually written on the delivery order sent by "
+            "your vendor."))
     # Odoo purchase.order.date_order.
     date_order = fields.Datetime(
         null=True,
@@ -182,7 +216,7 @@ class PurchaseOrder(TimeStampedModel):
 
     class Meta:
         db_table = 'purchase_order'
-        ordering = ['-create_date', '-id']
+        ordering = ['-priority', '-id']
         verbose_name = 'Orden de compra'
         verbose_name_plural = 'Órdenes de compra'
 
@@ -298,7 +332,7 @@ class PurchaseOrder(TimeStampedModel):
     def _sum_lines(self, attr: str) -> Decimal:
         # Odoo purchase.order._amount_all (suma de las líneas).
         return sum(
-            (getattr(line, attr)() for line in self.order_line.all()),
+            (getattr(line, attr)() for line in self.order_line),
             Decimal('0.00'),
         ).quantize(Decimal('0.01'))
 
@@ -324,7 +358,7 @@ class PurchaseOrder(TimeStampedModel):
             raise ValidationError(
                 'Solo una RFQ (draft/sent) puede confirmarse.'
             )
-        if not self.order_line.exists():
+        if not self.order_line:
             raise ValidationError(
                 'No se puede confirmar una orden sin líneas.'
             )

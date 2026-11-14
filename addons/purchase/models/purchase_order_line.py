@@ -2,12 +2,13 @@
 
 Adaptación fiel de Odoo ``purchase.order.line`` (``purchase/models/
 purchase_order_line.py``, idéntico en 18 y 19): línea de una orden de compra.
-Núcleo verificado en ambas versiones — ``name``/``product_qty``/``price_unit``/
-``discount``/``product_id``/``order_id`` + ``price_subtotal`` computado. Espeja el
-desglose por línea de ``sale.order.line`` (IVA-incluido MX) para consistencia.
+Núcleo verificado en ambas versiones — ``name``/``product_qty``/
+``price_unit``/``discount``/``product_id``/``order_id`` + ``price_subtotal``
+computado. Espeja el desglose por línea de ``sale.order.line`` (IVA-incluido
+MX) para consistencia.
 
-``company_id``/``currency_id`` (tarea #266) — dependencias de ``price_total_cc``
-====================================================================================
+``company_id``/``currency_id`` (tarea #266), dependencias de ``price_total_cc``
+===============================================================================
 
 .. list-table::
    :header-rows: 1
@@ -42,20 +43,34 @@ from addons.base_setup.settings_access import get_setting
 from addons.base.models import TimeStampedModel
 
 
-class PurchaseOrderLine(TimeStampedModel):
-    """``purchase.order.line`` — una línea de la orden de compra."""
+class PurchaseOrderLine(models.BaseModel, TimeStampedModel):
+    """``purchase.order.line`` — una línea de la orden de compra.
 
-    order_id    = fields.Many2one(
-        'purchase.PurchaseOrder', null=False, on_delete=models.CASCADE, related_name='order_line',
+    ``_inherit = ['analytic.mixin']`` (``odoo19c: :15``): pendiente — la
+    mezcla existe en ``analytic`` y falta declarar esa dependencia en el
+    manifiesto; subunidad ``purchase-order-mixins-0397``.
+    """
+
+    _name = 'purchase.order.line'
+    _description = 'Purchase Order Line'
+    _order = 'order_id, sequence, id'
+
+    #: ≙ ``sequence`` (``odoo19c: :22``).
+    sequence = fields.Integer(string='Sequence', default=10)
+
+    order_id = fields.Many2one(
+        'purchase.PurchaseOrder', null=False, on_delete=models.CASCADE,
+        related_name='order_line',
         help_text='Odoo order_id.',
         db_column='order_id',
     )
-    product_id  = fields.Many2one(
-        'product.ProductProduct', on_delete=models.PROTECT, null=True, blank=True,
+    product_id = fields.Many2one(
+        'product.ProductProduct', on_delete=models.PROTECT, null=True,
+        blank=True,
         related_name='purchase_order_lines', help_text='Odoo product_id.',
         db_column='product_id',
     )
-    name        = fields.Char(
+    name = fields.Char(
         max_length=255, blank=True, default='',
         help_text='Descripción de la línea (Odoo purchase.order.line.name).',
     )
@@ -63,14 +78,16 @@ class PurchaseOrderLine(TimeStampedModel):
         default=1, validators=[MinValueValidator(1)],
         help_text='Cantidad (Odoo product_qty).',
     )
-    price_unit  = fields.Monetary(
-        max_digits=12, decimal_places=2, help_text='Odoo price_unit (IVA incl.).',
+    price_unit = fields.Monetary(
+        max_digits=12, decimal_places=2,
+        help_text='Odoo price_unit (IVA incl.).',
     )
-    discount    = fields.Monetary(
+    discount = fields.Monetary(
         max_digits=5, decimal_places=2, default=Decimal('0.00'),
         help_text='Descuento % de la línea (Odoo discount).',
     )
-    # Odoo purchase.order.line.company_id — ver docstring del módulo (tarea #266).
+    # Odoo purchase.order.line.company_id — ver docstring del módulo
+    # (tarea #266).
     company_id = fields.Many2one(
         'base.ResCompany', null=True, blank=True, on_delete=models.CASCADE,
         related_name='+', db_column='company_id',
@@ -81,6 +98,7 @@ class PurchaseOrderLine(TimeStampedModel):
 
     class Meta:
         db_table = 'purchase_order_line'
+        ordering = ['order_id', 'sequence', 'id']
         verbose_name = 'Línea de orden de compra'
         verbose_name_plural = 'Líneas de orden de compra'
 
@@ -97,7 +115,8 @@ class PurchaseOrderLine(TimeStampedModel):
         """Sincroniza ``company_id`` con el de la orden — divergencia
         declarada en el docstring del módulo (``related=…, store=True`` sin
         motor de recompute)."""
-        self.company_id = self.order_id.company_id if self.order_id_id else None
+        self.company_id = (
+            self.order_id.company_id if self.order_id_id else None)
 
     def save(self, *args, **kwargs):
         """Sincroniza ``company_id`` antes de persistir — ver
@@ -116,7 +135,8 @@ class PurchaseOrderLine(TimeStampedModel):
 
     def price_tax(self) -> Decimal:
         rate = get_setting('iva_rate')
-        return (self.price_total() * rate / (1 + rate)).quantize(Decimal('0.01'))
+        return (self.price_total() * rate
+                / (1 + rate)).quantize(Decimal('0.01'))
 
     def price_subtotal(self) -> Decimal:
         return self.price_total() - self.price_tax()

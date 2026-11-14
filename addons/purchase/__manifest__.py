@@ -16,6 +16,7 @@
     'depends': [
         'base',  # ResPartner — el proveedor
         'base_setup',  # los ajustes de compra por empresa
+        'mail',  # mail.thread y mail.activity.mixin del _inherit de la orden
         'product',  # Product — lo que se compra
     ],
     'author': 'Odoo S.A.',

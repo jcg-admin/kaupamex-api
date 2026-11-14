@@ -12,9 +12,10 @@ módulo), así que ``get_tender_best_lines`` comparaba con
 alternativas comparten moneda.
 
 **Qué haría fallar a cada control se declara en su caso.** El caso central
-—``test_prefers_the_cheaper_line_in_company_currency_not_the_smaller_raw_number``—
-es el que discrimina D-3a: con ``PurchaseOrder._compute_currency_rate``
-neutralizado a 1.0 fijo, el "mejor precio" se invierte.
+—``test_prefers_the_cheaper_line_in_company_currency``, antes con el
+sufijo ``_not_the_smaller_raw_number``— es el que discrimina D-3a: con
+``PurchaseOrder._compute_currency_rate`` neutralizado a 1.0 fijo, el "mejor
+precio" se invierte.
 """
 
 from datetime import date
@@ -28,8 +29,17 @@ from addons.base_setup.settings_access import get_setting
 from addons.product.models import ProductProduct, ProductTemplate
 from addons.purchase.models import PurchaseOrder, PurchaseOrderLine
 from addons.purchase_requisition.models import PurchaseOrderGroup
+from orm.environments import sudo
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
+
+
+@pytest.fixture(autouse=True)
+def _as_superuser():
+    """Sobre ``BaseModel`` la orden de compra aplica su control de acceso;
+    los datos de prueba de la referencia se escriben como superusuario."""
+    with sudo():
+        yield
 
 
 @pytest.fixture
@@ -149,7 +159,7 @@ class TestPriceTotalCcAndCompanyCurrencyId:
 class TestGetTenderBestLinesD3a:
     """D-3a CERRADA: compara en moneda de la empresa, no por número crudo."""
 
-    def test_prefers_the_cheaper_line_in_company_currency_not_the_smaller_raw_number(
+    def test_prefers_the_cheaper_line_in_company_currency(
             self, company, mxn, usd, variant):
         """Dos alternativas del mismo producto: una en MXN (barata de
         verdad) y otra en USD (número menor, pero *cara* al convertir).
@@ -178,8 +188,8 @@ class TestGetTenderBestLinesD3a:
             company, usd, variant, Decimal('10.00'), group
         )
 
-        mxn_line = mxn_order.order_line.all()[0]
-        usd_line = usd_order.order_line.all()[0]
+        mxn_line = mxn_order.order_line[0]
+        usd_line = usd_order.order_line[0]
 
         # Qué haría fallar al control: comparar sin convertir.
         assert (
