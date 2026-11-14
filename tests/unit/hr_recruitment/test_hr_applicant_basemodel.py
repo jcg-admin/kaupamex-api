@@ -77,18 +77,19 @@ def _applicants(interviewer):
     Applicant = MODELS_BY_NAME['hr.applicant']
     Job = MODELS_BY_NAME['hr.job']
     with sudo():
-        job = Job.objects.create(name='Puesto entrevistado')
-        job.interviewer_ids.add(interviewer)
-        other_job = Job.objects.create(name='Puesto ajeno')
+        [job] = Job.create([{'name': 'Puesto entrevistado',
+                             'interviewer_ids': [
+                                 Command.link(interviewer.pk)]}])
+        [other_job] = Job.create([{'name': 'Puesto ajeno'}])
         made = {
             'by_job': Applicant.create([{
-                'partner_name': 'Por puesto', 'job_id': job.pk}]),
+                'partner_name': 'Por puesto', 'job_id': job.id}]),
             'direct': Applicant.create([{
                 'partner_name': 'Directo',
-                'job_id': other_job.pk,
+                'job_id': other_job.id,
                 'interviewer_ids': [Command.set([interviewer.pk])]}]),
             'foreign': Applicant.create([{
-                'partner_name': 'Ajeno', 'job_id': other_job.pk}]),
+                'partner_name': 'Ajeno', 'job_id': other_job.id}]),
         }
     return {key: records.id for key, records in made.items()}
 

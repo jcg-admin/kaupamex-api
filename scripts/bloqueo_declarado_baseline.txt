@@ -159,8 +159,6 @@ addons/hr_recruitment/models/hr_job.py::- BLOQUEADO — dato XML (``mt_job_new``
 addons/hr_recruitment/models/hr_job.py::- BLOQUEADO — ordenamiento SQL de vista de lista; sin consumidor
 addons/hr_recruitment/models/hr_job.py::- BLOQUEADOS — ``mail.alias.mixin`` ausente (mismo bloqueo que
 addons/hr_recruitment/models/hr_job.py::- BLOQUEADOS — familia (b): framework de acciones cliente Odoo
-addons/hr_recruitment/models/hr_job.py::- BLOQUEADOS — la única lógica de negocio propia (fuera de la
-addons/hr_recruitment/models/hr_job.py::Porte símbolo por símbolo — 27 de 43 medidos, 16 BLOQUEADOS
 addons/hr_recruitment/models/hr_recruitment_source.py::- BLOQUEADO
 addons/hr_recruitment/models/hr_recruitment_source.py::- BLOQUEADO — llama enteramente a ``create_alias``
 addons/hr_recruitment/models/hr_recruitment_source.py::- portado (una rama BLOQUEADA — ver divergencia 1)

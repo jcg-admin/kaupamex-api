@@ -45,6 +45,7 @@ from datetime import date
 import fields
 import models
 
+from orm.commands import Command
 from orm.environments import env
 from orm.model_classes import extend_model
 
@@ -52,9 +53,9 @@ from orm.model_classes import extend_model
 def _compute_current_job_skill_ids(self):
     """≙ ``_compute_current_job_skill_ids`` (``:26-30``)."""
     today = date.today()
-    return self.job_skill_ids.filter(
-        models.Q(valid_to__isnull=True) | models.Q(valid_to__gte=today),
-    )
+    return self.job_skill_ids.filtered(
+        lambda job_skill: (not job_skill.valid_to
+                           or job_skill.valid_to >= today))
 
 
 def current_job_skill_ids(self):
@@ -64,10 +65,9 @@ def current_job_skill_ids(self):
 
 def _compute_skill_ids(self):
     """≙ ``_compute_skill_ids`` (``:47-50``)."""
-    skill_ids = list(
-        self.job_skill_ids.values_list('skill_id', flat=True).distinct(),
-    )
-    self.skill_ids.set(skill_ids)
+    skill_ids = sorted({
+        job_skill.skill_id for job_skill in self.job_skill_ids})
+    self.write({'skill_ids': [Command.set(skill_ids)]})
     return self.skill_ids
 
 

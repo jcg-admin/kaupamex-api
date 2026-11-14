@@ -17,7 +17,7 @@ from addons.base.models import TimeStampedModel
 from addons.mail.models import MailThread
 
 
-class HrJob(MailThread, TimeStampedModel):
+class HrJob(models.BaseModel, MailThread, TimeStampedModel):
     """``hr.job`` — catálogo de puestos. El departamento es opcional.
 
     Atributos de clase de la referencia
@@ -26,6 +26,13 @@ class HrJob(MailThread, TimeStampedModel):
     Pendiente: ``_order = 'sequence'``, porque este puerto aún no tiene el
     campo ``sequence``; también los objetos de tabla ``_name_company_uniq`` y
     ``_no_of_recruitment_positive`` (``:42-49``).
+
+    ``create``/``write`` de la fuente (``:80-92``) no se declaran aquí:
+    ``create`` sólo pasa ``mail_create_nosubscribe``, que el ``MailThread``
+    de este árbol no lee (no suscribe al creador), y ``write`` llama a
+    ``handle_history_divergence`` de ``html_editor``, del que ``hr`` no
+    depende en este árbol (``__manifest__.py``). Pendiente: cablear la
+    divergencia de historial cuando ``hr`` dependa de ``html_editor``.
     """
 
     _name = 'hr.job'

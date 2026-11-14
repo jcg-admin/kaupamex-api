@@ -77,7 +77,7 @@ def _compute_applicant_matching_score(self, applicant):
     """
     if not self.job_skill_ids.exists():
         return 0
-    job_skills = list(self.job_skill_ids.all())
+    job_skills = list(self.job_skill_ids)
     job_degree = (
         self.expected_degree.score * 100 if self.expected_degree_id else 0
     )
@@ -120,7 +120,8 @@ def _search_matching_applicants(self):
     HrApplicant = django_apps.get_model('hr_recruitment', 'HrApplicant')
     if not self.job_skill_ids.exists():
         return HrApplicant.objects.none()
-    skill_pks = self.job_skill_ids.values_list('skill_id', flat=True)
+    skill_pks = sorted({job_skill.skill_id
+                        for job_skill in self.job_skill_ids})
     return (
         HrApplicant.objects.exclude(job_id=self.pk)
         .filter(skill_ids__in=skill_pks)

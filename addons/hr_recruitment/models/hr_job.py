@@ -13,8 +13,10 @@ aviso de licencia preservados (DEC-KX-03). La referencia declara
 ``_inherit`` lo expresa ``extend_model('hr', 'HrJob', …)`` — par de Django
 porque ``hr.HrJob`` no declara ``_name`` propio en este árbol.
 
-Porte símbolo por símbolo — 27 de 43 medidos, 16 BLOQUEADOS
-================================================================
+Porte símbolo por símbolo — 29 de 43 medidos
+============================================
+
+Porte BLOQUEADO — 14 de 43 símbolos
 
 .. list-table::
    :header-rows: 1
@@ -67,12 +69,10 @@ Porte símbolo por símbolo — 27 de 43 medidos, 16 BLOQUEADOS
      - portado sin código — reverso automático de
        ``HrRecruitmentSource.job`` (``related_name='recruitment_sources'``)
    * - ``create``/``write`` (``:287-336``)
-     - BLOQUEADOS — la única lógica de negocio propia (fuera de la
-       sincronía de alias, ya bloqueada) es
-       ``ResUsers._create_recruitment_interviewers``/
-       ``_remove_recruitment_interviewers`` (``res_users.py`` de este
-       addon); su forma pura queda ahí, disponible para cablearla aquí en
-       el sucesor que decida el punto exacto de la escritura
+     - portados por ``overrides=`` sobre ``hr.job`` (``BaseModel``): grupo
+       entrevistador, candidaturas archivadas con el puesto y cambio de
+       reclutador; la sincronía de alias sigue BLOQUEADA y la exclusión
+       del gerente depende de ``manager_id``
    * - ``_order_field_to_sql`` (``:338-346``)
      - BLOQUEADO — ordenamiento SQL de vista de lista; sin consumidor
    * - ``_creation_subtype`` (``:348-349``)
@@ -86,9 +86,13 @@ Porte símbolo por símbolo — 27 de 43 medidos, 16 BLOQUEADOS
 from django.apps import apps
 from django.db.models import Q
 
+import api
 import fields
 import models
-from orm.environments import get_current_user
+from addons.hr_recruitment.models.hr_applicant import (
+    _create_recruitment_interviewers, _interviewer_pks,
+    _remove_recruitment_interviewers)
+from orm.environments import get_current_user, sudo
 from orm.model_classes import extend_model
 
 
@@ -281,6 +285,54 @@ def set_favorite(job, is_fav):
         job.favorite_users.remove(user)
 
 
+def create(cls, previous, vals_list):
+    """≙ ``create`` (``odoo19c: :287-293``): los entrevistadores entran al
+    grupo. ``favorite_user_ids`` por defecto vacío ya lo da el campo."""
+    jobs = previous(vals_list)
+    with sudo():
+        _create_recruitment_interviewers(_interviewer_pks(jobs))
+    return jobs
+
+
+def write(self, previous, vals):
+    """≙ ``write`` (``odoo19c: :295-336``).
+
+    Dos tramos de la fuente quedan fuera:
+
+    BLOQUEADO por ``manager_id`` — la desuscripción del reclutador
+    anterior no excluye a los partners del gerente.
+
+    BLOQUEADO por ``mail.alias.mixin`` — la sincronía de
+    ``alias_defaults`` (``:329-335``).
+    """
+    old_interviewers = _interviewer_pks(self)
+    old_recruiters = {job.id: job.user for job in self}
+    if 'active' in vals and not vals['active']:
+        self.applications.write({'active': False})
+    res = previous(vals)
+    if 'interviewer_ids' in vals:
+        new_interviewers = _interviewer_pks(self)
+        _remove_recruitment_interviewers(old_interviewers - new_interviewers)
+        with sudo():
+            _create_recruitment_interviewers(new_interviewers)
+
+    # el reclutador nuevo sigue el puesto y sus candidaturas en curso
+    if 'user_id' in vals or 'user' in vals:
+        for job in self:
+            old_recruiter = old_recruiters[job.id]
+            to_unsubscribe = [old_recruiter] if old_recruiter else []
+            job.message_unsubscribe(to_unsubscribe)
+            applications = job.applications.filtered(
+                lambda applicant: (
+                    applicant.user_id == getattr(old_recruiter, 'pk', None)
+                    and applicant.application_status() == 'ongoing'))
+            if applications:
+                for applicant in applications:
+                    applicant.message_unsubscribe(to_unsubscribe)
+                applications.write({'user_id': job.user_id})
+    return res
+
+
 def _wire_extra_methods(model):
     """≙ ``luego=`` de ``extend_model`` — los símbolos que no encajan como
     ``campos``/``metodos``/``propiedades`` (una property con setter, un
@@ -372,6 +424,10 @@ def apply_hr_recruitment_hr_job_extensions():
             'extended_interviewer_ids': extended_interviewer_ids,
             'is_favorite': is_favorite,
             'no_of_hired_employee': no_of_hired_employee,
+        },
+        overrides={
+            'create': api.model_create_multi(classmethod(create)),
+            'write': write,
         },
         luego=_wire_extra_methods,
     )

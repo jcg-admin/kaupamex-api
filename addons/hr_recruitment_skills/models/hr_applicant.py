@@ -165,11 +165,11 @@ def _compute_matching_skill_ids(self, matching_job=None):
     """
     job = matching_job if matching_job is not None else self.job
     empty = HrSkill.objects.none()
-    if job is None or not (
+    if not job or not (
         job.job_skill_ids.exists() or job.expected_degree_id
     ):
         return (empty, empty, 0)
-    job_skills = list(job.job_skill_ids.all())
+    job_skills = list(job.job_skill_ids)
     job_degree = (
         (job.expected_degree.score * 100) if job.expected_degree_id else 0
     )
