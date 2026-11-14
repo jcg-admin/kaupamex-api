@@ -123,7 +123,7 @@ from orm.fields import (
 )
 from orm.fields_properties import Properties
 from orm.environments import get_current_tz, get_current_uid, is_su
-from orm.model_classes import parent_name_of
+from orm.model_classes import is_parent_field, parent_name_of
 from orm.utils import COLLECTION_TYPES, parse_field_expr
 from orm import registry
 from tools.date_utils import parse_date, parse_iso_date, utc
@@ -2849,8 +2849,8 @@ def _operator_child_of_domain(comodel, parent):
     ids — guarda la consulta que los produce.
     """
     model = comodel.model
-    if getattr(model, '_parent_store', False) and parent == parent_name_of(
-        model
+    if getattr(model, '_parent_store', False) and is_parent_field(
+        model, parent
     ):
         return Domain.OR(
             DomainCondition('parent_path', '=like', path + '%')
@@ -2889,8 +2889,8 @@ def _operator_parent_of_domain(comodel, parent):
     vacía que deja el separador final, no al propio nodo.
     """
     model = comodel.model
-    if getattr(model, '_parent_store', False) and parent == parent_name_of(
-        model
+    if getattr(model, '_parent_store', False) and is_parent_field(
+        model, parent
     ):
         return OrderedSet(
             int(label)

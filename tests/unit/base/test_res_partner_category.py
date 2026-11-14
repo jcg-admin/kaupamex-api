@@ -8,20 +8,16 @@ mixins que deciden como se presenta un contacto segun el country.
 El control que puede fallar
 ---------------------------
 
-La guarda medida es **la de recursividad** de ``_check_parent_id``: la fuente
-levanta *"You can not create recursive tags."* si una tag acaba colgando
-de si misma. Sin ella, ``display_name`` —que sube por la cadena de padres—
-entra en bucle infinito.
+Sobre ``BaseModel`` con ``_parent_store``, un ciclo lo rechaza
+``_parent_store_update`` con *"Recursion Detected."* antes que
+``_check_parent_id``, como en la fuente; y la transacción de ``save()``
+impide que la fila quede escrita con el ciclo.
 
-Medido: con ``_check_parent_id`` vaciada a ``pass``, esta suite pasa de
-**11 passed** a **1 failed, 10 passed** — cae
-``test_a_cycle_is_refused``, y solo ese. Los otros diez miden la jerarquia
-sana, el color, la path materializada y los dos mixins, que no tocan esa
-rama.
-
-Prediccion antes de correrlo: 1 cae. (Las predicciones anteriores de esta
-sesion fallaron dos de tres veces; se anota la de este por el mismo motivo
-que el control existe.)
+Medido el 2026-11-14: sin la transacción de ``save()`` cae
+``test_a_cycle_is_refused`` y sólo ese; sin el ``default`` del color cae
+``test_the_color_is_dealt_at_random_within_eleven``. Diseño:
+``scripts/workbench/orm-continuation-plan-20261103T095630/designs/
+res-partner-category-basemodel.md``.
 """
 
 import pytest
@@ -32,10 +28,19 @@ from addons.base.models.res_partner import (
     ResPartnerCategory,
 )
 from addons.base.models.res_country import ResCountry
-from exceptions import ValidationError
+from exceptions import UserError
+from orm.environments import sudo
 from tests.conftest import matching_by_display_name
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
+
+
+@pytest.fixture(autouse=True)
+def _as_superuser():
+    """Sobre ``BaseModel`` la categoría aplica su control de acceso; los
+    datos de prueba de la referencia se escriben como superusuario."""
+    with sudo():
+        yield
 
 
 # --------------------------------------------------------------------------
@@ -143,13 +148,16 @@ def test_the_materialized_path_is_kept():
 
 
 def test_a_cycle_is_refused():
-    """``_check_parent_id`` (``:157-160``) — el mensaje de la fuente es
-    *"You can not create recursive tags."*"""
+    """Con ``_parent_store``, el ciclo lo rechaza ``_parent_store_update``
+    (``UserError("Recursion Detected.")``, ``odoo/orm/models.py``) antes que
+    ``_check_parent_id``, como en la fuente. Y no queda persistido: el
+    ``write`` de la fuente se revierte entero."""
     a = ResPartnerCategory.objects.create(name='A')
     b = ResPartnerCategory.objects.create(name='B', parent=a)
     a.parent = b
-    with pytest.raises(ValidationError):
+    with pytest.raises(UserError):
         a.save()
+    assert ResPartnerCategory.objects.get(pk=a.pk).parent_id is None
 
 
 def test_searching_by_name_brings_the_descendants():

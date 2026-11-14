@@ -189,6 +189,29 @@ def parent_name_of(model_cls):
     return getattr(model_cls, '_parent_name', DEFAULT_PARENT_NAME)
 
 
+def is_parent_field(model_cls, name):
+    """Si ``name`` designa el campo padre del modelo, por cualquiera de sus
+    dos caras.
+
+    ≙ la comparación ``parent == comodel._parent_name`` de
+    ``_operator_child_of_domain`` y ``_operator_parent_of_domain``
+    (``odoo19c: odoo/orm/domains.py:1780-1824``). Allá el nombre es uno;
+    aquí ``BaseModel`` declara ``_parent_name = 'parent_id'`` (el de la
+    fuente) y el FK se llama ``parent``, cuyo ``attname`` es ``parent_id``.
+    Son el mismo campo, el criterio de :data:`DEFAULT_PARENT_NAME`; comparar
+    las cadenas dejaba sin la rama de ``parent_path`` a todo ``BaseModel``
+    con ``_parent_store`` cuyo FK se llama ``parent``.
+    """
+    parent_name = parent_name_of(model_cls)
+    if name == parent_name:
+        return True
+    try:
+        return (model_cls._meta.get_field(name)
+                is model_cls._meta.get_field(parent_name))
+    except FieldDoesNotExist:
+        return False
+
+
 def resolve_rec_name(model_cls):
     """Fija ``_rec_name`` cuando el modelo no lo declara y tiene ``name``.
 

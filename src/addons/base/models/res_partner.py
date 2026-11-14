@@ -42,10 +42,11 @@ from addons.base.models.res_country import (ADDRESS_FORMAT_KEYS,
                                             DEFAULT_ADDRESS_FORMAT)
 from addons.base.models.res_lang import ResLang
 from exceptions import RedirectWarning, ValidationError
-from django.db import DEFAULT_DB_ALIAS
+from django.db import DEFAULT_DB_ALIAS, transaction
 from orm.environments import (company_scope, context_scope, execute_query,
                               get_context, get_current_company,
                               get_current_user, sudo)
+from orm.models import _parent_store_update
 from orm.utils import SUPERUSER_ID
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from tools.mail import (email_normalize_all, formataddr,
@@ -120,7 +121,8 @@ _tzs = [(tz, tz) for tz in sorted(available_timezones() - {_LOCAL_LINK},
 
 
 def _tz_get(self):
-    """La poblacion de zonas — ≙ ``_tz_get`` (``odoo19c: res_partner.py:41-42``).
+    """La poblacion de zonas — ≙ ``_tz_get``
+    (``odoo19c: res_partner.py:41-42``).
 
     Recibe ``self`` y lo ignora, como la fuente: alli es un metodo suelto que
     el ``Selection`` invoca con el recordset. Se conserva la firma porque los
@@ -130,7 +132,8 @@ def _tz_get(self):
 
 
 def _default_tz():
-    """El ``default`` del campo ``tz`` — ≙ ``lambda self: self.env.context.get('tz')``.
+    """El ``default`` del campo ``tz`` —
+    ≙ ``lambda self: self.env.context.get('tz')``.
 
     Funcion con nombre y NO un ``lambda``: el serializador de migraciones de
     Django rehusa con ``ValueError: Cannot serialize function: lambda``
@@ -199,7 +202,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
       guion bajo (``__set_name__``, ``:40-46``), así que el nombre real de la
       fuente es ``res_partner_check_name`` — el mismo que aquí.
 
-    **El único que NO se porta, y por qué** (``hallazgo-abierto-genera-sucesor``):
+    **El único que NO se porta, y por qué**
+    (``hallazgo-abierto-genera-sucesor``):
 
     - ``_check_company_domain = models.check_company_domain_parent_of``
       (``odoo19c: :192``) referencia un símbolo de
@@ -300,15 +304,15 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     tercero sin declararlo.
     """
 
-    _name                = 'res.partner'
-    _description         = 'Contact'
-    _inherit             = ['format.address.mixin', 'format.vat.label.mixin',
-                            'avatar.mixin', 'properties.base.definition.mixin']
-    _order               = 'complete_name ASC, id DESC'
-    _rec_names_search    = ['complete_name', 'email', 'ref', 'vat',
-                            'company_registry']
+    _name = 'res.partner'
+    _description = 'Contact'
+    _inherit = ['format.address.mixin', 'format.vat.label.mixin',
+                'avatar.mixin', 'properties.base.definition.mixin']
+    _order = 'complete_name ASC, id DESC'
+    _rec_names_search = ['complete_name', 'email', 'ref', 'vat',
+                         'company_registry']
     _allow_sudo_commands = False
-    _check_company_auto  = True
+    _check_company_auto = True
 
     # Los tipos de partner que se anexan al nombre completo (Odoo
     # ``odoo19c: res_partner.py:195``). Constante de clase, no atributo de
@@ -339,8 +343,9 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
 
         La fuente hace **dos** cosas, y aquí sólo una está detenida:
 
-        1. Heredar el ``company_id`` del padre. **BLOQUEADO por ``company_id``**
-           — el campo no existe en este puerto, así que no hay valor que
+        1. Heredar el ``company_id`` del padre.
+           **BLOQUEADO por ``company_id``** — el campo no existe en este
+           puerto, así que no hay valor que
            heredar ni columna donde ponerlo. Tarea **#110**; cuando el campo
            llegue, esta mitad se escribe y su caso con él.
         2. Sanear un ``type`` inválido que se cuele del contexto de una acción
@@ -362,22 +367,22 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         return values
 
     # ``type`` — un partner hijo es una dirección; el padre es el titular.
-    TYPE_CONTACT  = 'contact'
-    TYPE_INVOICE  = 'invoice'
+    TYPE_CONTACT = 'contact'
+    TYPE_INVOICE = 'invoice'
     TYPE_DELIVERY = 'delivery'
-    TYPE_OTHER    = 'other'
+    TYPE_OTHER = 'other'
     TYPES = [
-        (TYPE_CONTACT,  'Contacto'),
-        (TYPE_INVOICE,  'Facturación'),
+        (TYPE_CONTACT, 'Contacto'),
+        (TYPE_INVOICE, 'Facturación'),
         (TYPE_DELIVERY, 'Entrega'),
-        (TYPE_OTHER,    'Otra'),
+        (TYPE_OTHER, 'Otra'),
     ]
 
-    name        = fields.Char(
+    name = fields.Char(
         max_length=200, db_index=True,
         help_text='Nombre de la persona o empresa (Odoo res.partner.name).',
     )
-    parent      = fields.Many2one(
+    parent = fields.Many2one(
         'self', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='children', db_index=True,
         help_text=(
@@ -385,28 +390,28 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
             '(Odoo parent_id). Su reverso ``children`` es Odoo child_ids.'
         ),
     )
-    type        = fields.Selection(
+    type = fields.Selection(
         max_length=16, choices=TYPES, default=TYPE_CONTACT,
         help_text='Tipo de dirección (Odoo res.partner.type).',
     )
-    is_company  = fields.Boolean(
+    is_company = fields.Boolean(
         default=False,
         help_text='True = empresa; False = persona física (Odoo is_company).',
     )
-    active      = fields.Boolean(
+    active = fields.Boolean(
         default=True, db_index=True,
         help_text='Archivado sin borrar (Odoo active).',
     )
 
     # --- Contacto ---
-    email       = fields.Char(max_length=254, blank=True, default='')
-    phone       = fields.Char(max_length=32,  blank=True, default='')
-    website     = fields.Char(max_length=255, blank=True, default='')
-    vat         = fields.Char(
+    email = fields.Char(max_length=254, blank=True, default='')
+    phone = fields.Char(max_length=32, blank=True, default='')
+    website = fields.Char(max_length=255, blank=True, default='')
+    vat = fields.Char(
         max_length=32, blank=True, default='', db_index=True,
         help_text='RFC / Tax ID (Odoo vat). Lo valida ``base_vat``.',
     )
-    function    = fields.Char(
+    function = fields.Char(
         max_length=120, blank=True, default='',
         help_text='Puesto (Odoo function).',
     )
@@ -456,8 +461,9 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         db_index=True, db_column='commercial_partner_id',
         related_name='commercial_children',
         compute='_compute_commercial_partner', store=True, recursive=True,
-        help_text='Entidad comercial del contacto: la primera empresa al subir '
-                  'por la cadena de padres (Odoo commercial_partner_id).',
+        help_text='Entidad comercial del contacto: la primera empresa al '
+                  'subir por la cadena de padres (Odoo '
+                  'commercial_partner_id).',
     )
     commercial_company_name = fields.Char(
         max_length=255, blank=True, default='',
@@ -487,27 +493,28 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     # ``copy=False`` de la fuente NO se transcribe: el propio campo lo fija
     # —el valor es de la empresa, no del registro— igual que allá lo fija
     # ``_setup_attrs`` (``odoo19c: odoo/orm/fields.py:473``).
-    barcode     = fields.Char(
+    barcode = fields.Char(
         company_dependent=True,
         help_text='Use a barcode to identify this contact.',
     )
-    employee    = fields.Boolean(
+    employee = fields.Boolean(
         default=False,
         help_text='Marca de contacto empleado (Odoo employee).',
     )
 
     # --- Dirección. Plana, como la referencia: no hay tabla de
     # direcciones. ---
-    street      = fields.Char(max_length=255, blank=True, default='')
-    street2     = fields.Char(max_length=255, blank=True, default='')
-    zip         = fields.Char(max_length=16,  blank=True, default='', db_index=True)
-    city        = fields.Char(max_length=120, blank=True, default='')
-    state       = fields.Many2one(
-        'base.ResCountryState', on_delete=models.SET_NULL, null=True, blank=True,
+    street = fields.Char(max_length=255, blank=True, default='')
+    street2 = fields.Char(max_length=255, blank=True, default='')
+    zip = fields.Char(max_length=16, blank=True, default='', db_index=True)
+    city = fields.Char(max_length=120, blank=True, default='')
+    state = fields.Many2one(
+        'base.ResCountryState', on_delete=models.SET_NULL, null=True,
+        blank=True,
         related_name='partners',
         help_text='Estado/provincia (Odoo state_id).',
     )
-    country     = fields.Many2one(
+    country = fields.Many2one(
         'base.ResCountry', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='partners',
         help_text='País (Odoo country_id).',
@@ -524,13 +531,13 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     # con el ``color`` de ``res.partner.category``, que allá es aleatorio
     # (``randint(1, 11)``) y pertenece a otra clase del mismo archivo.
     # ``res.company._compute_color`` lo lee y, si es 0, cae a ``id % 12``.
-    color       = fields.Integer(
+    color = fields.Integer(
         default=0, verbose_name='Índice de color',
         help_text='Odoo color. 0 = sin color declarado.',
     )
 
     # --- Localización ---
-    lang        = fields.Char(
+    lang = fields.Char(
         max_length=16, blank=True, default='',
         help_text='Idioma preferido (Odoo lang).',
     )
@@ -549,7 +556,7 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     # escribiendo la fila y solo ``full_clean()`` la rechaza. Por eso el
     # respaldo a GMT de ``_compute_tz_offset`` se queda: cubre el dato viejo
     # y la escritura que esquiva la validacion.
-    tz          = fields.Char(
+    tz = fields.Char(
         max_length=64, blank=True, choices=_tzs,
         default=_default_tz,
         verbose_name='Timezone',
@@ -559,7 +566,7 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
                   'used. Anywhere else, time values are computed according to '
                   'the time offset of your web client (Odoo tz).',
     )
-    comment     = fields.Text(blank=True, default='')
+    comment = fields.Text(blank=True, default='')
 
     # Aviso de la fuente, verbatim (``odoo19c: res_partner.py:230``):
     # *"Warning: user_id is a Salesperson, not the inverse of partner_id in
@@ -571,7 +578,7 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     # ``related_name='+'`` es divergencia de STACK declarada: la fuente NO
     # declara inverso para este campo, y Django fabricaria uno que alla no
     # existe. El ``+`` es lo mas cercano a no tenerlo.
-    user        = fields.Many2one(
+    user = fields.Many2one(
         'base.ResUsers', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='+',
         help_text='Vendedor: el usuario interno a cargo de este contacto '
@@ -658,16 +665,16 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
                   'find the most appropriate one.')
 
     class Meta:
-        db_table            = 'res_partner'
+        db_table = 'res_partner'
         # Derivado de ``_order = 'complete_name ASC, id DESC'``, ahora
         # VERBATIM: ``complete_name`` es una columna real desde que se porto
         # su bloque, asi que ya no hace falta sustituir el primer tramo por
         # ``name``. El comentario anterior decia que era «un compute que este
         # puerto no trae» — cierto al escribirlo, falso desde este commit.
-        ordering            = ['complete_name', '-id']
-        verbose_name        = 'Partner'
+        ordering = ['complete_name', '-id']
+        verbose_name = 'Partner'
         verbose_name_plural = 'Partners'
-        constraints         = [
+        constraints = [
             # ``_check_name`` de la fuente (``odoo19c: res_partner.py:326``).
             # Un partner ``type='contact'`` requiere ``name``; una dirección
             # (``invoice``/``delivery``/``other``) puede carecer de él.
@@ -741,7 +748,9 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
 
     @property
     def is_address(self) -> bool:
-        """Un partner hijo con ``type`` distinto de contacto es una dirección."""
+        """Un partner hijo con ``type`` distinto de contacto es una
+        dirección.
+        """
         return bool(self.parent_id) and self.type != self.TYPE_CONTACT
 
     @property
@@ -820,15 +829,17 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         that are synced from the parent."*
 
         La fuente devuelve ``list(ADDRESS_FIELDS)``, su tupla de módulo. Aquí
-        el nombre del campo cambia por la convención de este árbol —``state_id``
-        y ``country_id`` son ``state`` y ``country``—, y esa correspondencia es
+        el nombre del campo cambia por la convención de este árbol
+        —``state_id`` y ``country_id`` son ``state`` y ``country``—, y esa
+        correspondencia es
         la única divergencia.
         """
         return ['street', 'street2', 'zip', 'city', 'state', 'country']
 
     @classmethod
     def _formatting_address_fields(cls):
-        """≙ ``_formatting_address_fields`` (``odoo19c: res_partner.py:664-667``).
+        """≙ ``_formatting_address_fields``
+        (``odoo19c: res_partner.py:664-667``).
 
         Docstring de la fuente, verbatim: *"Returns the list of address fields
         usable to format addresses."*
@@ -842,7 +853,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
 
     @classmethod
     def _synced_commercial_fields(cls):
-        """≙ ``_synced_commercial_fields`` (``odoo19c: res_partner.py:695-700``).
+        """≙ ``_synced_commercial_fields``
+        (``odoo19c: res_partner.py:695-700``).
 
         Docstring de la fuente, verbatim: *"Returns the list of fields that are
         managed by the commercial entity to which a partner belongs. When
@@ -919,7 +931,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     #   columna—, así que el accessor devuelve el REGISTRO como en la fuente.
     # ------------------------------------------------------------------
     def _convert_fields_to_values(self, field_names):
-        """≙ ``_convert_fields_to_values`` (``odoo19c: res_partner.py:653-657``).
+        """≙ ``_convert_fields_to_values``
+        (``odoo19c: res_partner.py:653-657``).
 
         Docstring de la fuente, verbatim: *"Returns dict of write() values for
         synchronizing ``field_names``"*.
@@ -1002,14 +1015,16 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         return {}
 
     def _get_synced_commercial_values(self):
-        """≙ ``_get_synced_commercial_values`` (``odoo19c: res_partner.py:711-718``).
+        """≙ ``_get_synced_commercial_values``
+        (``odoo19c: res_partner.py:711-718``).
 
         Docstring de la fuente, verbatim (con su errata *"from ercord"*):
         *"Get synchronized commercial values from ercord. Return only set
         values as for other commercial values."*
         """
-        set_synced_fields = [fname for fname in self._synced_commercial_fields()
-                             if getattr(self, fname)]
+        set_synced_fields = [
+            fname for fname in self._synced_commercial_fields()
+            if getattr(self, fname)]
         if set_synced_fields:
             return self._convert_fields_to_values(set_synced_fields)
         return {}
@@ -1095,7 +1110,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         active_company_id = get_current_company()
         for company_id in ResCompany.objects.values_list('pk', flat=True):
             if company_id == active_company_id:
-                continue      # ≙ *"already handled by _commercial_sync_from_company"*
+                # ≙ *"already handled by _commercial_sync_from_company"*
+                continue
             with company_scope(company_id):
                 # La entidad comercial se resuelve DENTRO del alcance: sus
                 # valores dependientes de empresa son los de esta empresa, no
@@ -1128,7 +1144,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         fields_to_sync = list(fields_to_sync)
         if not fields_to_sync:
             return
-        sync_vals = commercial_partner._convert_fields_to_values(fields_to_sync)
+        sync_vals = commercial_partner._convert_fields_to_values(
+            fields_to_sync)
         children_ids_to_sync = OrderedSet()
         for child in self.children.all():
             if child.is_company:
@@ -1202,8 +1219,9 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         aqui. Hoy existe (``orm/fields_company_dependent.py``), y con el la
         guarda se porta con su firma y su mensaje.
 
-        **La unicidad es POR EMPRESA, y ahi esta el punto.** El ``search_count``
-        de la fuente corre bajo la empresa activa, asi que dos contactos con el
+        **La unicidad es POR EMPRESA, y ahi esta el punto.** El
+        ``search_count`` de la fuente corre bajo la empresa activa, asi que dos
+        contactos con el
         mismo codigo en empresas distintas **no** colisionan — es exactamente
         lo que ``company_dependent`` compra. Aqui la lectura del atributo ya
         resuelve por la empresa activa (el descriptor), asi que comparar el
@@ -1229,7 +1247,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         table = type(self)._meta.db_table
         column = type(self)._meta.get_field('barcode').to_sql(self, table)
         rows = execute_query(SQL(
-            "SELECT id FROM %s WHERE %s = %s AND id IS DISTINCT FROM %s LIMIT 1",
+            "SELECT id FROM %s WHERE %s = %s AND id IS DISTINCT FROM %s "
+            "LIMIT 1",
             SQL.identifier(table), column, barcode, self.pk,
         ), using=self._state.db or None)
         if rows:
@@ -1458,7 +1477,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         groups = defaultdict(list)
         for partner, vals in zip(partners, vals_list):
             cp_id = None
-            if vals.get('parent') and partner.commercial_partner_id.pk != partner.pk:
+            if (vals.get('parent')
+                    and partner.commercial_partner_id.pk != partner.pk):
                 cp_id = partner.commercial_partner_id.pk
 
             add_id = None
@@ -1473,7 +1493,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
             # commercial fields from commercial partner
             if cp_id:
                 to_write = cls.objects.using(using).get(
-                    pk=cp_id)._convert_fields_to_values(cls._commercial_fields())
+                    pk=cp_id)._convert_fields_to_values(
+                        cls._commercial_fields())
             # address fields from parent
             if add_id:
                 parent = cls.objects.using(using).get(pk=add_id)
@@ -1539,8 +1560,9 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         ``filter(commercial_partner_id=…)`` no compilaba (:ref:`h-api-1034`).
 
         La cadena la resuelve el padre, no este registro: se lee su
-        ``commercial_partner_id`` ya calculado. Eso es lo que ``recursive=True``
-        declara, y lo que hace que una nieta llegue a la abuela sin conocerla.
+        ``commercial_partner_id`` ya calculado. Eso es lo que
+        ``recursive=True`` declara, y lo que hace que una nieta llegue a la
+        abuela sin conocerla.
         """
         if self.is_company or not self.parent_id:
             self.commercial_partner_id = self if self.pk else None
@@ -1608,7 +1630,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         return urlunsplit(partes._replace(scheme='http'))
 
     def save(self, *args, **kwargs):
-        """Escribe y sincroniza — ≙ ``create`` (``:926``) y ``write`` (``:856``).
+        """Escribe y sincroniza —
+        ≙ ``create`` (``:926``) y ``write`` (``:856``).
 
         Las dos preparaciones que la fuente hace en ambos caminos, y el porqué
         de cada una:
@@ -1714,7 +1737,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     # fallar.
     # ------------------------------------------------------------------
     def open_commercial_entity(self):
-        """≙ ``open_commercial_entity`` (``odoo19c: res_partner.py:1023-1031``).
+        """≙ ``open_commercial_entity``
+        (``odoo19c: res_partner.py:1023-1031``).
 
         Docstring de la fuente, verbatim: *"Utility method used to add an
         "Open Company" button in partner views"*.
@@ -2053,7 +2077,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
             if context.get('show_email') and self.email:
                 name = f"{name} <{self.email}>"
             if context.get('show_address'):
-                name = name + "\n" + self._display_address(without_company=True)
+                name = name + "\n" + self._display_address(
+                    without_company=True)
             if context.get('show_vat') and self.vat:
                 if context.get('show_address'):
                     name = f"{name} \n {self.vat}"
@@ -2308,8 +2333,9 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
     def _compute_company_registry(self):
         """No-op deliberado — ≙ ``_compute_company_registry`` (``:528``).
 
-        La fuente escribe ``company.company_registry = company.company_registry``
-        y lo explica en su propio comentario: *"exists to allow overrides"*.
+        La fuente escribe
+        ``company.company_registry = company.company_registry`` y lo explica en
+        su propio comentario: *"exists to allow overrides"*.
         El campo es ``store=True, readonly=False``: se captura a mano, y el
         compute existe solo para que una localizacion lo pueda derivar
         sobreescribiendo este metodo. Se porta con esa forma para que el
@@ -2824,8 +2850,9 @@ class FormatVatLabelMixin:
     def vat_label_for(company):
         """La etiqueta del identificador fiscal segun el pais de la empresa.
 
-        ≙ la condicion ``if vat_label := self.env.company.country_id.vat_label``
-        de la fuente (``:49``). Devuelve cadena vacia cuando el pais no
+        ≙ la condicion
+        ``if vat_label := self.env.company.country_id.vat_label`` de la fuente
+        (``:49``). Devuelve cadena vacia cuando el pais no
         declara tag, que es cuando la fuente no toca nada.
         """
         country = getattr(company, 'country', None)
@@ -3050,8 +3077,15 @@ class FormatAddressMixin:
         return {'address_field_order': order} if order else {}
 
 
+def _get_default_color():
+    """≙ ``_get_default_color`` (``odoo19c: res_partner.py:145-146``) — el
+    ``default`` del campo ``color``: un entero al azar de 1 a
+    ``ResPartnerCategory.COLOR_MAX``. Vive en el módulo porque el
+    serializador de migraciones exige una ruta importable."""
+    return randint(1, ResPartnerCategory.COLOR_MAX)
 
-class ResPartnerCategory(TimeStampedModel):
+
+class ResPartnerCategory(models.BaseModel, TimeStampedModel):
     """``res.partner.category`` — ≙ ``ResPartnerCategory``
     (``odoo19c: odoo/addons/base/models/res_partner.py:139-181``).
 
@@ -3074,8 +3108,9 @@ class ResPartnerCategory(TimeStampedModel):
 
     name = fields.Char(max_length=120, verbose_name='Nombre')
     color = fields.Integer(
-        default=0, verbose_name='Color',
-        help_text='Odoo color. Un entero de 1 a 11 repartido al azar al crear.')
+        default=_get_default_color, verbose_name='Color',
+        help_text=(
+            'Odoo color. Un entero de 1 a 11 repartido al azar al crear.'))
     parent = fields.Many2one(
         'self', on_delete=models.CASCADE, null=True, blank=True,
         db_index=True, related_name='child_ids', verbose_name='Categoría',
@@ -3087,8 +3122,10 @@ class ResPartnerCategory(TimeStampedModel):
         max_length=255, blank=True, default='', db_index=True,
         verbose_name='Ruta de ancestros',
         help_text="Ruta materializada '1/4/9/' — sostiene _parent_store.")
-    partners = fields.Many2many(
-        ResPartner, blank=True, related_name='category_ids',
+    partner_ids = fields.Many2many(
+        ResPartner, relation='res_partner_res_partner_category_rel',
+        column1='category_id', column2='partner_id',
+        blank=True, related_name='category_ids',
         verbose_name='Contactos',
         help_text='Odoo partner_ids, con column1=category_id.')
 
@@ -3102,47 +3139,47 @@ class ResPartnerCategory(TimeStampedModel):
         return self.display_name
 
     def save(self, *args, **kwargs):
-        """Siembra el color al azar y mantiene la ruta materializada.
+        """Mantiene la ruta materializada en el camino de Django.
 
-        El color solo se reparte **al crear** y solo si nadie lo puso, que es
-        lo que hace el ``default=_get_default_color`` de la fuente: un default
-        callable corre una vez, no en cada escritura.
+        ``objects.create`` y ``save()`` no pasan por ``create``/``write`` del
+        ORM, que son quienes mantienen el árbol de un ``BaseModel`` con
+        ``_parent_store``. Mismo patrón que ``hr.department`` e
+        ``ir.ui.menu``: una fila que cambia de padre delega en
+        :func:`orm.models._parent_store_update`, que reescribe el subárbol y
+        rechaza una recursión; una fila nueva calcula su propia ruta.
+
+        Todo va en una transacción: la fila se escribe antes de que
+        ``_parent_store_update`` rechace un ciclo, y sin ella el ciclo
+        quedaba persistido. En la fuente el ``write`` entero se revierte.
         """
-        creating = self._state.adding
-        if creating and not self.color:
-            self.color = self._get_default_color()
-        self._check_parent_id()
-        result = super().save(*args, **kwargs)
-        path = self._compute_parent_path()
-        if self.parent_path != path:
-            type(self).objects.filter(pk=self.pk).update(parent_path=path)
-            self.parent_path = path
-        return result
+        stored = (type(self)._base_manager.filter(pk=self.pk)
+                  .values_list('parent_id', 'parent_path').first()
+                  if self.pk is not None else None)
+        with transaction.atomic(using=self._state.db or DEFAULT_DB_ALIAS):
+            super().save(*args, **kwargs)
+            if stored and stored[1] and stored[0] != self.parent_id:
+                _parent_store_update(self)
+            else:
+                path = self._compute_parent_path()
+                if path != self.parent_path:
+                    self.parent_path = path
+                    super().save(update_fields=['parent_path'])
 
     @staticmethod
     def _get_default_color():
-        """≙ ``_get_default_color`` (``:143-144``).
+        """≙ ``_get_default_color`` (``:145-146``) — un color al azar entre
+        once, el ``default`` del campo ``color``."""
+        return _get_default_color()
 
-        La fuente reparte un color al azar entre once para que las etiquetas
-        se distingan de un vistazo. Alla es el ``default=`` callable del campo;
-        aqui lo llama ``save()`` al crear, que es cuando ese default corre.
-        """
-        return randint(1, ResPartnerCategory.COLOR_MAX)
-
+    @api.constrains('parent')
     def _check_parent_id(self):
-        """≙ ``_check_parent_id`` (``:157-160``) — ``@api.constrains``.
+        """≙ ``_check_parent_id`` (``:156-159``).
 
-        Mensaje de la fuente, verbatim: *"You can not create recursive tags."*
-        La fuente lo resuelve con ``_has_cycle()`` del ORM; aqui se recorre la
-        cadena, que es lo que ese helper hace por dentro.
+        Mensaje de la fuente, verbatim: *"You can not create recursive
+        tags."*
         """
-        seen = set()
-        current = self.parent
-        while current is not None:
-            if current.pk == self.pk or current.pk in seen:
-                raise ValidationError('No se pueden crear etiquetas recursivas.')
-            seen.add(current.pk)
-            current = current.parent
+        if self._has_cycle():
+            raise ValidationError(_('You can not create recursive tags.'))
 
     def _compute_parent_path(self):
         """Ruta materializada del ancestro, terminada en ``/``.
@@ -3162,13 +3199,15 @@ class ResPartnerCategory(TimeStampedModel):
         including their direct parent by default."* La cadena completa
         separada por ``' / '``, de la raiz hacia abajo.
         """
-        names = []
-        current = self
-        while current is not None:
-            names.append(current.name or '')
-            current = current.parent
-        label = ' / '.join(reversed(names))
-        self.display_name = label
+        label = ''
+        for category in self:
+            names = []
+            current = category
+            while current:
+                names.append(current.name or '')
+                current = current.parent
+            label = ' / '.join(reversed(names))
+            category.display_name = label
         return label
 
     @classmethod

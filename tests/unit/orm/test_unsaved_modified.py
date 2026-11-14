@@ -36,14 +36,15 @@ def test_unsaved_reverse_many_to_many_does_not_construct_a_database_manager(
 ):
     with django_db_blocker.block():
         record = ResPartner(name='New categorized parent')
-        inverse = ResPartnerCategory._meta.get_field('partners').remote_field
+        inverse = ResPartnerCategory._meta.get_field(
+            'partner_ids').remote_field
         assert _traverse_inverse([record], inverse) == []
 
 
 def test_unsaved_forward_many_to_many_has_no_persisted_rows(django_db_blocker):
     with django_db_blocker.block():
         record = ResPartnerCategory(name='New category')
-        inverse = ResPartnerCategory._meta.get_field('partners')
+        inverse = ResPartnerCategory._meta.get_field('partner_ids')
         assert _traverse_inverse([record], inverse) == []
 
 

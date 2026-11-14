@@ -81,7 +81,15 @@ class TestItResolvesToTheDjangoReverse:
 
     Es la mitad que el ``related_name`` SI da, y el porte no la reimplementa:
     la reusa. El control positivo compara las dos vias sobre los mismos datos.
+
+    El modelo de prueba es ``ir.module.category``, un modelo de Django con FK
+    a sí mismo: ``res.partner.category`` ya es un ``BaseModel`` y su inverso
+    devuelve un recordset, no el manager de Django que esta clase mide.
     """
+
+    @pytest.fixture
+    def category_class(self):
+        return apps.get_model('base', 'IrModuleCategory')
 
     @pytest.fixture
     def tree(self, db, category_class):
@@ -93,7 +101,7 @@ class TestItResolvesToTheDjangoReverse:
 
     def test_reading_it_gives_the_children(self, tree, category_class):
         root, child_a, child_b = tree
-        field = One2many('base.ResPartnerCategory', 'parent')
+        field = One2many('base.IrModuleCategory', 'parent')
         field.contribute_to_class(category_class, 'o2m_test_children')
         try:
             assert set(
@@ -103,22 +111,22 @@ class TestItResolvesToTheDjangoReverse:
             delattr(category_class, 'o2m_test_children')
 
     def test_it_agrees_with_the_related_name(self, tree, category_class):
-        """EL CONTROL POSITIVO. ``child_ids`` es el ``related_name`` que este
+        """EL CONTROL POSITIVO. ``child`` es el ``related_name`` que este
         arbol ya declara en el hijo; el ``One2many`` del padre tiene que dar
         exactamente lo mismo. Si divergen, el porte construyo otra cosa.
         """
         root, _, _ = tree
-        field = One2many('base.ResPartnerCategory', 'parent')
+        field = One2many('base.IrModuleCategory', 'parent')
         field.contribute_to_class(category_class, 'o2m_test_agree')
         try:
             assert set(
                 root.o2m_test_agree.values_list('pk', flat=True)
-            ) == set(root.child_ids.values_list('pk', flat=True))
+            ) == set(root.child.values_list('pk', flat=True))
         finally:
             delattr(category_class, 'o2m_test_agree')
 
     def test_from_the_class_it_gives_the_descriptor(self, category_class):
-        field = One2many('base.ResPartnerCategory', 'parent')
+        field = One2many('base.IrModuleCategory', 'parent')
         field.contribute_to_class(category_class, 'o2m_test_descriptor')
         try:
             assert category_class.o2m_test_descriptor is field
