@@ -17,8 +17,13 @@
         'hr',  # HrEmployee, HrEmployeePublic, HrWorkLocation
         'base',  # ResUsers, ResPartner (extensiones directas)
     ],
-    # `data`/`assets` de la referencia (security XML/CSV, vistas, JS) son
-    # capa de cliente Odoo — sin equivalente en este stack (DRF headless).
+    # `data` de la referencia: la seguridad se carga como allá; las vistas y
+    # los `assets` (JS) son capa de cliente Odoo, sin equivalente en este
+    # stack (DRF headless).
+    'data': [
+        'security/security.xml',
+        'security/ir.model.access.csv',
+    ],
     # Licencia de la fuente, tal como su manifest la declara (DEC-KX-03
     # punto 1): `hr_homeworking` en Odoo Community es LGPL-3.
     'license': 'LGPL-3',
