@@ -2528,11 +2528,37 @@ def _multi_comodel_domain(field, model):
     return _domain(domain)
 
 
+def _django_id_in(alias, rows):
+    """``"alias"."id" IN (subselect)`` sobre las filas de un ``QuerySet``."""
+    return SQL("%s IN %s", SQL.identifier(alias, 'id'),
+               _queryset_subselect(rows))
+
+
+def _django_ids_query(model, comodel, ids):
+    """La ``Query`` de un comodelo de Django sobre ``ids`` — lo que
+    ``comodel.browse(ids)._as_query(ordered=False)`` da en la fuente."""
+    query = Query(model.env, comodel._meta.db_table)
+    query.set_result_ids(list(ids), ordered=False)
+    return query
+
+
+def _django_rows_query(model, comodel, rows):
+    """La ``Query`` de un comodelo de Django sobre las filas de ``rows`` —
+    lo que ``comodel._search(domain)`` da en la fuente."""
+    table = comodel._meta.db_table
+    query = Query(model.env, table)
+    query.add_where(_django_id_in(table, rows))
+    return query
+
+
 def _multi_condition_to_sql(self, field_expr, operator, value, model, alias,
                             query):
     """``_RelationalMulti.condition_to_sql`` — ≙ ``:779-818``."""
     assert field_expr == self.name, "Supporting condition only to field"
     comodel = model.env[_multi_comodel_name(self)]
+    #: un comodelo de Django no es ``BaseModel``: la misma prueba y la misma
+    #: rama que ``_many2one_condition_to_sql``
+    django_comodel = not hasattr(comodel, '_from_ids')
     if not getattr(self, 'store', True):
         raise ValueError(
             f"Cannot convert {self} to SQL because it is not stored")
@@ -2547,7 +2573,8 @@ def _multi_condition_to_sql(self, field_expr, operator, value, model, alias,
     # el valor, y la consulta del comodelo
     if isinstance(value, COLLECTION_TYPES):
         value = OrderedSet(value)
-        comodel = comodel.sudo().with_context(active_test=False)
+        if not django_comodel:
+            comodel = comodel.sudo().with_context(active_test=False)
         if False in value:
             #  [not] in (False, 1): una condición por parte
             if len(value) > 1:
@@ -2561,13 +2588,20 @@ def _multi_condition_to_sql(self, field_expr, operator, value, model, alias,
                                           query),
                 )
             #  in (False) => not any (TRUE); not in (False) => any (TRUE)
-            value = comodel._search([], active_test=False)
+            if django_comodel:
+                value = _django_rows_query(
+                    model, comodel, comodel._base_manager.all())
+            else:
+                value = comodel._search([], active_test=False)
             exists = not exists
+        elif django_comodel:
+            value = _django_ids_query(model, comodel, value)
         else:
             value = comodel.browse(list(value))._as_query(ordered=False)
     elif isinstance(value, SQL):
         # el SQL envuelto en una consulta simple
-        comodel = comodel.sudo()
+        if not django_comodel:
+            comodel = comodel.sudo()
         value = _domain('id', 'any', value)
     coquery = self._get_query_for_condition_value(
         model, comodel, operator, value)
@@ -2580,15 +2614,25 @@ def _multi_get_query_for_condition_value(self, model, comodel, operator,
     """La ``Query`` del comodelo con el ``domain`` del campo — ≙ ``:820-837``.
     """
     field_domain = _multi_comodel_domain(self, model)
+    django_comodel = not hasattr(comodel, '_from_ids')
     if _is_domain(value):
         domain = value & field_domain
-        comodel = comodel.with_context(**(getattr(self, 'context', None)
-                                          or {}))
         bypass_access = (getattr(self, 'bypass_search_access', False)
                          or operator in ('any!', 'not any!'))
+        if django_comodel:
+            return _django_rows_query(model, comodel, django_comodel_rows(
+                comodel, domain, bypass_access))
+        comodel = comodel.with_context(**(getattr(self, 'context', None)
+                                          or {}))
         return comodel._search(domain, bypass_access=bypass_access)
     if isinstance(value, Query):
         # el domain del campo, añadido a la consulta
+        if django_comodel:
+            if not field_domain.is_true():
+                value.add_where(_django_id_in(
+                    value.table, comodel.objects.filter(
+                        field_domain._to_q(comodel))))
+            return value
         domain = field_domain.optimize_full(comodel)
         if not domain.is_true():
             value.add_where(domain._to_sql(comodel, value.table, value))
