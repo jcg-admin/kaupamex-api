@@ -41,3 +41,26 @@ hace allá (el conteo es generoso), y a los campos, que son otro eje.
 Cada subunidad se diseña, se prueba en rojo y se mide con su anulación
 antes de la siguiente. Ninguna se declara cerrada con una divergencia en
 lugar del porte.
+
+## Lo que la subunidad 2 necesita antes (medido 2026-11-14)
+
+La seguridad de la fuente no es sólo de `purchase`: de sus 36 filas de
+acceso, 21 son sobre modelos de `account`, `product` o `base`, y 6 sobre
+cuatro modelos propios de `purchase` que aquí no existen
+(`purchase.bill.union`, `purchase.report`, `purchase.bill.line.match`,
+`bill.to.po.wizard`; `grep -rln "_name = '<modelo>'"` da 0 en los cuatro).
+Nombra los grupos `account.group_account_readonly` y
+`account.group_account_invoice`, que tampoco existen aquí, y la categoría
+`base.module_category_supply_chain`.
+
+Orden que se sigue de esto:
+
+1. dependencias del manifiesto (`account`, `analytic`) y hogar de
+   `product.catalog.mixin`: subunidad `purchase-order-mixins-0397`;
+2. la seguridad de `account` con sus grupos, si no está ya portada en otra
+   unidad;
+3. los cuatro modelos propios que la seguridad nombra;
+4. entonces la seguridad de `purchase`, entera.
+
+Portar ahora sólo las filas cuyos modelos existen dejaría un CSV parcial
+presentado como la seguridad de `purchase`; no se hace.
