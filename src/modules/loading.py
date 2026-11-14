@@ -262,11 +262,10 @@ def load_modules(using):
                 continue
             row = rows[package.name]
             install = row.state != IrModule.STATE_INSTALLED
-            model_names = [
-                name for name, model in registry.models.items()
-                if getattr(getattr(model, '_meta', None), 'app_label',
-                           None) == package.name
-            ]
+            # ≙ ``loading.py:187-190``: los modelos que el módulo define o
+            # extiende, más sus descendientes por ``_inherit``/``_inherits``
+            model_names = list(registry.descendants(
+                registry.load(package.name), '_inherit', '_inherits'))
             with transaction.atomic(using=using):
                 with connections[using].cursor() as cursor:
                     registry.init_models(

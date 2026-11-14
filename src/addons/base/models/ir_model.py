@@ -861,9 +861,12 @@ class IrModel(models.OriginMixin, TimeStampedModel):
         XML id» de ``_reflect_models`` (``odoo19c: :462-475``).
 
         Sin ``module`` en el contexto la fuente no escribe nada, y aquí
-        tampoco. El dueño es ``model._module`` allá (el módulo que extendió el
-        modelo por última vez); aquí, la app de Django que lo declara
-        (``_meta.app_label``), que es el único dueño que este registro lleva.
+        tampoco. Allá recibe el XML-ID el modelo cuyo ``_module`` es el
+        módulo cargado —*"the name of the module that last extended
+        model"*—; como los módulos se cargan en orden de grafo, al cargar uno
+        él es el último que extendió los modelos que define y los que
+        extiende. Aquí son los del ``app_label`` y los que el módulo extiende
+        con ``extend_model`` (``registry.MODELS_EXTENDED_BY_MODULE``).
         Un modelo sin ``_name`` propio no tiene nombre en la referencia del
         que derivar ``model_<nombre>`` (``model_xmlid``, ``:63-65``) y no
         recibe XML-ID: si lo hereda de un mixin (``mail.thread``), no es el
@@ -871,9 +874,11 @@ class IrModel(models.OriginMixin, TimeStampedModel):
         """
         if not module:
             return
+        extended = registry.MODELS_EXTENDED_BY_MODULE.get(module, ())
         owned = {label: model for label, model in classes.items()
-                 if model._meta.app_label == module
-                 and '_name' in vars(model)}
+                 if '_name' in vars(model)
+                 and (model._meta.app_label == module
+                      or model._name in extended)}
         if not owned:
             return
         rows = cls.objects.using(using).filter(model__in=owned)

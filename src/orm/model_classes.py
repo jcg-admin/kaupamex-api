@@ -1566,6 +1566,7 @@ def extend_model(*destino, campos=None, metodos=None, overrides=None,
     module = calling_module()
 
     def aplicar(modelo):
+        note_model_extended_by(module, modelo)
         for nombre, field in (campos or {}).items():
             add_field_if_absent(modelo, nombre, field)
         for nombre, funcion in (metodos or {}).items():
@@ -1978,3 +1979,12 @@ def ensure_creates():
     """
     return sum(1 for model in apps.get_models(include_auto_created=True)
                if adopt_create(model))
+
+
+def note_model_extended_by(module, model_cls):
+    """Anota que ``module`` extiende ``model_cls``, en
+    ``orm.registry.MODELS_EXTENDED_BY_MODULE``. Sin addon no se anota."""
+    name = getattr(model_cls, '_name', None)
+    if module and isinstance(name, str):
+        importlib.import_module('orm.registry') \
+            .MODELS_EXTENDED_BY_MODULE.setdefault(module, set()).add(name)

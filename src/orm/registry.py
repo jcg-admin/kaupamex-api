@@ -2211,12 +2211,15 @@ class Registry(Mapping):
         self._field_trigger_trees.clear()
         self._is_modifying_relations.clear()
 
+        # los que el modulo define y los que extiende con ``extend_model``,
+        # como las clases de ``_module_to_models__`` de la fuente
+        extended = MODELS_EXTENDED_BY_MODULE.get(name, ())
         model_names = []
         for model in apps.get_models(include_auto_created=True):
-            if model._meta.app_label != name:
-                continue
             model_name = getattr(model, '_name', None)
-            if model_name:
+            if not model_name:
+                continue
+            if model._meta.app_label == name or model_name in extended:
                 model_names.append(model_name)
                 self.models[model_name] = model
         return model_names
@@ -3224,3 +3227,12 @@ def registry_of_row(row, using=None):
     """
     alias = using or getattr(getattr(row, '_state', None), 'db', None)
     return registry_for_alias(alias) if alias else active_registry()
+
+
+#: Los modelos que cada addon extiende, por ``_name`` — ≙ las clases de
+#: extensión que ``MetaModel._module_to_models__`` guarda por módulo
+#: (``odoo19c: odoo/orm/models.py``), que ``Registry.load`` recorre para
+#: devolver *"the names of the directly modified models"*
+#: (``odoo/orm/registry.py:350-380``). La llena
+#: :func:`orm.model_classes.extend_model`.
+MODELS_EXTENDED_BY_MODULE = {}
