@@ -210,11 +210,12 @@ Divergencias declaradas — de mecanismo, no de alcance
    fuente usa ``self._read_group(groupby=['vat'],
    aggregates=['id:recordset'])``. El agregador ya existe como método de
    ``BaseModel`` (``orm/models.py``), pero ``res.partner`` es aquí un modelo
-   de Django que no hereda de ``BaseModel``
-   (``grep -c "BaseModel" src/addons/base/models/res_partner.py`` da **0**),
-   así que no lo alcanza. El equivalente es un ``filter(vat__in=…)`` por VAT,
-   que produce la misma partición: los partners de cada VAT reciben su
-   estado.
+   de Django que no hereda de ``BaseModel``. La cuenta se ciñe a la
+   declaración de la clase, porque el archivo sí nombra ``BaseModel`` en
+   ``res.partner.category``: ``grep -Pzc 'class ResPartner[(][^)]*BaseModel'
+   src/addons/base/models/res_partner.py`` da **0**. Así que no lo
+   alcanza. El equivalente es un ``filter(vat__in=…)`` por VAT, que
+   produce la misma partición: los partners de cada VAT reciben su estado.
 4. **El endpoint de VIES es un servicio de Odoo S.A.** ``vies.api.odoo.com`` /
    ``vies.test.odoo.com`` se portan **verbatim** porque son el valor por
    defecto del parámetro ``iap_vies.endpoint``, no una constante del código:

@@ -2596,9 +2596,8 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         - ``partner.company_id`` — el campo de empresa del partner, que aqui
           no existe todavia (el confinamiento por empresa vive en el
           queryset, no en una FK del partner). Medido:
-          ``grep -cE "^    company(_id)? *= fields\."``
-          ``src/addons/base/models/res_partner.py``
-          da **0**.
+          ``grep -cE "^    company(_id)? *= fields\."
+          src/addons/base/models/res_partner.py`` da **0**.
 
         Devolver ``None`` es la conducta declarada mientras eso siga asi: NO
         es «no hay ningun partner con el mismo VAT», es «no se puede
