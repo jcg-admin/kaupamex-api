@@ -35,7 +35,7 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class HrWorkLocation(TimeStampedModel):
+class HrWorkLocation(models.BaseModel, TimeStampedModel):
     """``hr.work.location`` — sede de trabajo (casa, oficina, otra)."""
 
     # Atributos de clase de modelo — los tres que la referencia declara

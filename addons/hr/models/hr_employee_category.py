@@ -38,7 +38,7 @@ def _default_category_color():
     return randint(1, 11)
 
 
-class HrEmployeeCategory(TimeStampedModel):
+class HrEmployeeCategory(models.BaseModel, TimeStampedModel):
     """``hr.employee.category`` — etiqueta libre para clasificar empleados."""
 
     # Atributos de clase de modelo — los dos que la referencia declara, en

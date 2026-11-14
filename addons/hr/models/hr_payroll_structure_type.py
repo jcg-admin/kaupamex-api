@@ -68,7 +68,7 @@ def _default_resource_calendar():
     return company.resource_calendar if company is not None else None
 
 
-class HrPayrollStructureType(TimeStampedModel):
+class HrPayrollStructureType(models.BaseModel, TimeStampedModel):
     """``hr.payroll.structure.type`` — familia de estructuras salariales."""
 
     # Atributos de clase de modelo — los dos que la referencia declara

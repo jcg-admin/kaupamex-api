@@ -23,12 +23,21 @@ from addons.base.models import ResLang
 from addons.hr.models import HrDepartureReason
 from exceptions import UserError
 from orm import registry
-from orm.environments import context_scope
+from orm.environments import context_scope, sudo
 from orm.fields import type_for
 from orm.fields_textual import BASE_LANG
 from tools.sql import convert_column_translatable
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def _as_superuser():
+    """El registro de sonda se escribe como superusuario: con
+    ``hr.departure.reason`` sobre ``BaseModel`` la escritura pasa por
+    ``check_access``, y estos casos miden la traducción, no el acceso."""
+    with sudo():
+        yield
 
 
 def stored(record):

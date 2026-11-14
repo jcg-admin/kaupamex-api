@@ -54,7 +54,7 @@ def _default_country():
     return company.country if company is not None else None
 
 
-class HrDepartureReason(TimeStampedModel):
+class HrDepartureReason(models.BaseModel, TimeStampedModel):
     """``hr.departure.reason`` — catálogo de motivos de baja."""
 
     # Atributos de clase de modelo — los tres que la referencia declara

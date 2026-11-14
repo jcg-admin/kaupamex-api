@@ -36,7 +36,7 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class HrContractType(TimeStampedModel):
+class HrContractType(models.BaseModel, TimeStampedModel):
     """``hr.contract.type`` — tipo de contrato (temporal, indefinido, ...)."""
 
     # Atributos de clase de modelo — los tres que la referencia declara
