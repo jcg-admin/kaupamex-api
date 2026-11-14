@@ -124,7 +124,7 @@ from tools.sql import drop_view_if_exists
 from addons.hr.models.hr_employee import HrEmployee
 
 
-class HrEmployeePublic(models.Model):
+class HrEmployeePublic(models.BaseModel):
     """``hr.employee.public`` — el subconjunto público del empleado.
 
     Vista SQL (``Meta.managed = False``): las columnas las llena la vista
