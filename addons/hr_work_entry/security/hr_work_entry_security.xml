@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Adaptado de Odoo Community 19 `hr_work_entry/security/
+    hr_work_entry_security.xml` (LGPL-3, odoo-tools@abe4040ec1). Copia fiel
+    salvo una omisión: `ir_rule_hr_work_entry_type_multi_company` evalúa
+    `user.env.companies.mapped('country_id')`, que exige `res.users` y
+    `res.company` sobre `BaseModel`. Es el bloqueo medido que `hr` declara
+    para sus tres reglas del mismo tipo (designs/module-install-cycle.md,
+    sección L4e).
+
+    Diseño: scripts/workbench/orm-continuation-plan-20261103T095630/designs/
+    basemodel-adoption-hr-work-entry.md.
+-->
+<odoo noupdate="1">
+    <record id="hr_user_work_entry_employee" model="ir.rule">
+        <field name="name">Work entries/Employee calendar filter: only self</field>
+        <field name="model_id" ref="model_hr_user_work_entry_employee"/>
+        <field name="domain_force">[('user_id', '=', user.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        <field name="perm_create" eval="1"/>
+        <field name="perm_write" eval="1"/>
+        <field name="perm_unlink" eval="1"/>
+        <field name="perm_read" eval="0"/>
+    </record>
+
+    <record id="ir_rule_hr_work_entry_multi_company" model="ir.rule">
+        <field name="name">HR Work Entry Contract: Multi Company</field>
+        <field name="model_id" ref="model_hr_work_entry"/>
+        <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+    </record>
+</odoo>

@@ -135,7 +135,7 @@ def _default_work_entry_type():
     )
 
 
-class HrWorkEntry(TimeStampedModel):
+class HrWorkEntry(models.BaseModel, TimeStampedModel):
     """``hr.work.entry`` — un día de trabajo/ausencia de un empleado, con su
     tipo, duración en horas y estado de validación."""
 

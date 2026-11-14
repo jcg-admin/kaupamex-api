@@ -28,7 +28,7 @@ from addons.base.models import ResUsers, TimeStampedModel
 from orm.environments import get_current_uid
 
 
-class HrUserWorkEntryEmployee(TimeStampedModel):
+class HrUserWorkEntryEmployee(models.BaseModel, TimeStampedModel):
     """Personnal calendar filter (docstring verbatim de la fuente, ``:7``) —
     qué empleados tiene marcados cada usuario en su calendario."""
 

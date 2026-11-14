@@ -69,7 +69,7 @@ from exceptions import UserError
 ATTENDANCE_TYPE_CODE = 'WORK100'
 
 
-class HrWorkEntryType(TimeStampedModel):
+class HrWorkEntryType(models.BaseModel, TimeStampedModel):
     """``hr.work.entry.type`` — un tipo de entrada de trabajo (asistencia,
     horas extra, ausencia…) con su código de nómina y su tarifa."""
 
