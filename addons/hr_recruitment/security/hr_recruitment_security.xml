@@ -2,20 +2,20 @@
 <!--
     Adaptado de Odoo Community 19 `hr_recruitment/security/
     hr_recruitment_security.xml` (LGPL-3, odoo-tools@abe4040ec1). Copia fiel
-    salvo cinco omisiones medidas:
+    salvo cuatro omisiones medidas:
 
     1. `group_hr_recruitment_manager.user_ids` sin `base.user_admin`: ese
        usuario no existe en este árbol; `base.user_root` sí, y se conserva.
-    2. `hr_applicant_interviewer_rule`: su dominio nombra `interviewer_ids` en
-       `hr.applicant` (aquí `interviewers`) y en `hr.job` (el campo no está
-       portado). Sucesora `recruitment-interviewer-fields-0397`.
-    3. `mail_message_user_rule`: `mail.message` no tiene `_name` ni XML-ID.
-    4. `mail_plan_rule_group_hr_recruitment_manager_applicant` y
+    2. `mail_message_user_rule`: `mail.message` no tiene `_name` ni XML-ID.
+    3. `mail_plan_rule_group_hr_recruitment_manager_applicant` y
        `mail_plan_templates_rule_group_hr_recruitment_manager_applicant`:
        `mail.activity.plan[_template]` no están portados.
 
+    `hr_applicant_interviewer_rule` se carga desde que `interviewer_ids`
+    lleva su nombre de la fuente y `hr.applicant` es `BaseModel`.
+
     Diseño: scripts/workbench/orm-continuation-plan-20261103T095630/designs/
-    basemodel-adoption-hr-recruitment.md.
+    basemodel-adoption-hr-recruitment.md y hr-applicant-basemodel.md.
 -->
 <odoo noupdate="1">
 
@@ -61,6 +61,19 @@
 
     <record id="base.group_user" model="res.groups">
         <field name="implied_ids" eval="[(4, ref('hr_recruitment.group_applicant_cv_display'))]"/>
+    </record>
+
+    <record id="hr_applicant_interviewer_rule" model="ir.rule">
+        <field name="name">Applicant Interviewer</field>
+        <field name="model_id" ref="model_hr_applicant"/>
+        <field name="domain_force">[
+            '|',
+                ('job_id.interviewer_ids', 'in', user.id),
+                ('interviewer_ids', 'in', user.id),
+        ]</field>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+        <field name="groups" eval="[(4, ref('hr_recruitment.group_hr_recruitment_interviewer'))]"/>
     </record>
 
     <record id="hr_applicant_user_rule" model="ir.rule">

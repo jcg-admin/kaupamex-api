@@ -23,8 +23,18 @@ from addons.hr_skills.models.hr_job_skill import HrJobSkill
 from addons.hr_skills.models.hr_skill import HrSkill
 from addons.hr_skills.models.hr_skill_level import HrSkillLevel
 from addons.hr_skills.models.hr_skill_type import HrSkillType
+from orm.environments import sudo
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
+
+
+@pytest.fixture(autouse=True)
+def _as_superuser():
+    """Los datos de prueba de la referencia se escriben como superusuario
+    (``TransactionCase.env``, ``odoo/tests/common.py``): con ``hr.applicant``
+    sobre ``BaseModel``, el acceso pasa por ``check_access``."""
+    with sudo():
+        yield
 
 
 def _skill_type(name='General'):

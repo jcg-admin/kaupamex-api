@@ -21,8 +21,18 @@ from addons.hr_skills.models.hr_job_skill import HrJobSkill
 from addons.hr_skills.models.hr_skill import HrSkill
 from addons.hr_skills.models.hr_skill_level import HrSkillLevel
 from addons.hr_skills.models.hr_skill_type import HrSkillType
+from orm.environments import sudo
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
+
+
+@pytest.fixture(autouse=True)
+def _as_superuser():
+    """Los datos de prueba de la referencia se escriben como superusuario
+    (``TransactionCase.env``, ``odoo/tests/common.py``): con ``hr.applicant``
+    sobre ``BaseModel``, el acceso pasa por ``check_access``."""
+    with sudo():
+        yield
 
 
 def _skill_type(name='General'):
@@ -164,7 +174,7 @@ class TestMapApplicantSkillIdsToTalentSkillIds:
         applicant._map_applicant_skill_ids_to_talent_skill_ids()
 
         talent_skills = set(
-            talent.applicant_skill_ids.values_list('skill_id', flat=True)
+            [a_s.skill_id for a_s in talent.applicant_skill_ids]
         )
         assert talent_skills == {skill.pk}
 
@@ -190,7 +200,7 @@ class TestMapApplicantSkillIdsToTalentSkillIds:
 
         applicant._map_applicant_skill_ids_to_talent_skill_ids()
 
-        talent_skill = talent.applicant_skill_ids.get()
+        talent_skill = talent.applicant_skill_ids.ensure_one()
         assert talent_skill.skill_level_id == high.pk
 
     def test_deletes_a_talent_skill_the_applicant_no_longer_has(self):
@@ -208,7 +218,7 @@ class TestMapApplicantSkillIdsToTalentSkillIds:
 
         applicant._map_applicant_skill_ids_to_talent_skill_ids()
 
-        assert talent.applicant_skill_ids.count() == 0
+        assert len(talent.applicant_skill_ids) == 0
 
     def test_does_nothing_when_self_is_its_own_pool_applicant(self):
         """Caso real del guard: ``check_talent_pool_required`` modela "es
@@ -257,7 +267,7 @@ class TestCreate:
 
         assert applicant.pk is not None
         assert list(
-            applicant.applicant_skill_ids.values_list('skill_id', flat=True),
+            [a_s.skill_id for a_s in applicant.applicant_skill_ids],
         ) == [skill.pk]
 
     def test_merges_current_and_applicant_skill_ids(self):
@@ -290,7 +300,7 @@ class TestCreate:
         )
 
         skill_pks = set(
-            applicant.applicant_skill_ids.values_list('skill_id', flat=True)
+            [a_s.skill_id for a_s in applicant.applicant_skill_ids]
         )
         assert skill_pks == {s1.pk, s2.pk}
 
@@ -325,7 +335,7 @@ class TestCreate:
             ]
         )
 
-        created = applicant.applicant_skill_ids.get()
+        created = applicant.applicant_skill_ids.ensure_one()
         assert created.skill_type_id is not None
 
 
@@ -351,7 +361,7 @@ class TestWrite:
         )
 
         assert list(
-            applicant.applicant_skill_ids.values_list('skill_id', flat=True),
+            [a_s.skill_id for a_s in applicant.applicant_skill_ids],
         ) == [skill.pk]
 
     def test_does_not_touch_skills_when_vals_does_not_mention_them(self):
@@ -372,7 +382,7 @@ class TestWrite:
 
         applicant.refresh_from_db()
         assert applicant.partner_name == 'Grace Hopper'
-        assert applicant.applicant_skill_ids.count() == 1
+        assert len(applicant.applicant_skill_ids) == 1
 
     def test_propagates_to_pool_applicant_when_skills_change(self):
         skill_type = _skill_type()
@@ -394,7 +404,7 @@ class TestWrite:
         )
 
         assert list(
-            talent.applicant_skill_ids.values_list('skill_id', flat=True),
+            [a_s.skill_id for a_s in talent.applicant_skill_ids],
         ) == [skill.pk]
 
     def test_does_not_propagate_when_skills_are_untouched(self):
@@ -403,7 +413,7 @@ class TestWrite:
 
         applicant.write({'partner_name': 'Ada'})
 
-        assert talent.applicant_skill_ids.count() == 0
+        assert len(talent.applicant_skill_ids) == 0
 
     def test_returns_self(self):
         applicant = HrApplicant.objects.create()

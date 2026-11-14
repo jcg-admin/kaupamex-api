@@ -58,6 +58,7 @@ def test_the_acl_and_rules_carry_their_external_ids():
     assert data.filter(model='base.IrModelAccess').count() == 18
     assert set(data.filter(model='base.IrRule').values_list(
         'name', flat=True)) == {'hr_applicant_comp_rule',
+                                'hr_applicant_interviewer_rule',
                                 'hr_applicant_user_rule',
                                 'hr_job_user_rule',
                                 'hr_talent_pool_user_rule'}

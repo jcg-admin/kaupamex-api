@@ -99,34 +99,30 @@ Divergencias declaradas
    opcionalmente, ``'applicant_skill_ids'``/``'current_applicant_skill_ids'``
    — listas de dicts ``{'skill', 'skill_level', 'skill_type'}`` (el
    ``skill_type`` es opcional; el ``default=`` del mixin lo resuelve si se
-   omite). Se instala como ``classmethod`` con ``metodos=`` (no
-   ``overrides=``): ``HrApplicant`` no declara ningún ``create`` previo
-   que relevar (verificado: ``grep -n "def create" addons/hr_recruitment/
-   models/hr_applicant.py`` → 0 hits), así que no hay ``super()`` que
-   invocar — a diferencia de ``sale/models/ir_config_parameter.py``, cuyo
-   ``create`` SÍ tiene previa y por eso usa ``wrap_method``.
-8. **``write`` — mismo aplanamiento, sin colisionar con** ``save()``.
-   ``hr_recruitment/models/hr_applicant.py:446`` YA overridea ``save()``
-   para su propio ``create``/``write`` (fuente ``:615-693`` — otro rango,
-   la sincronía de entrevistadores). Instalar aquí un método con OTRO
-   nombre (``write``, el símbolo literal de la referencia) evita competir
-   con esa cadena: ``write(vals)`` reconcilia habilidades cuando ``vals``
-   trae ``'applicant_skill_ids'``/``'current_applicant_skill_ids'``
-   (mismo guard que la fuente, ``:156``, para no borrar habilidades en un
-   ``write`` que no las toca), aplica el resto de ``vals`` con
-   ``setattr`` + ``self.save()`` (que SÍ dispara la cadena de
-   ``hr_recruitment``), y sólo entonces propaga a
+   omite). Va por ``overrides=`` sobre el ``create`` de
+   ``hr_recruitment``, que es la previa que la fuente llama con
+   ``super()`` (``:152``): crea las filas y deja viva su sincronía de
+   entrevistadores.
+8. **``write`` — mismo aplanamiento, encadenado.** Reconcilia
+   habilidades cuando ``vals`` trae ``'applicant_skill_ids'``/
+   ``'current_applicant_skill_ids'`` (mismo guard que la fuente,
+   ``:156``, para no borrar habilidades en un ``write`` que no las
+   toca), entrega el resto de ``vals`` al ``write`` de
+   ``hr_recruitment`` por ``overrides=`` y sólo entonces propaga a
    ``pool_applicant`` — igual orden que la fuente (``:163-165``, dentro
    del mismo ``if``).
 """
 
-import fields
 from django.apps import apps as django_apps
+
+import api
+import fields
 
 from addons.hr_recruitment_skills.models.hr_applicant_skill import (
     HrApplicantSkill,
 )
 from addons.hr_skills.models.hr_skill import HrSkill
+from orm.commands import Command
 from orm.method_chain import chain_method
 from orm.model_classes import extend_model
 from orm.models import Q
@@ -137,7 +133,7 @@ def _compute_current_applicant_skill_ids(self):
     habilidades vigentes del candidato (certificación más reciente si no
     hay vigentes), por instancia."""
     by_applicant = HrApplicantSkill._get_current_skills_by_applicant(
-        self.applicant_skill_ids.all(),
+        self.applicant_skill_ids,
     )
     return by_applicant[self.pk]
 
@@ -151,10 +147,11 @@ def _compute_skill_ids(self):
     """≙ ``_compute_skill_ids`` (``:40-42``) — sincroniza la columna M2M
     con las habilidades declaradas (mismo criterio que
     ``hr_skills/models/hr_job.py::_compute_skill_ids``)."""
-    skill_ids = list(
-        self.applicant_skill_ids.values_list('skill_id', flat=True).distinct(),
-    )
-    self.skill_ids.set(skill_ids)
+    skill_ids = sorted({
+        applicant_skill.skill_id
+        for applicant_skill in self.applicant_skill_ids
+    })
+    self.write({'skill_ids': [Command.set(skill_ids)]})
     return self.skill_ids
 
 
@@ -232,7 +229,7 @@ def _employee_create_vals_skills(self):
                 'skill_level': applicant_skill.skill_level,
                 'skill_type': applicant_skill.skill_type,
             }
-            for applicant_skill in self.applicant_skill_ids.all()
+            for applicant_skill in self.applicant_skill_ids
         ],
     }
 
@@ -287,7 +284,7 @@ def _reconcile_applicant_skills(applicant, skill_specs):
     Devuelve el queryset resultante de ``applicant.applicant_skill_ids``.
     """
     existing_by_skill = {
-        a_s.skill_id: a_s for a_s in applicant.applicant_skill_ids.all()
+        a_s.skill_id: a_s for a_s in applicant.applicant_skill_ids
     }
     seen = set()
     for spec in skill_specs:
@@ -316,7 +313,7 @@ def _reconcile_applicant_skills(applicant, skill_specs):
     for skill_pk, orphan in existing_by_skill.items():
         if skill_pk not in seen:
             orphan.delete()
-    return applicant.applicant_skill_ids.all()
+    return applicant.applicant_skill_ids
 
 
 def _map_applicant_skill_ids_to_talent_skill_ids(self):
@@ -340,12 +337,12 @@ def _map_applicant_skill_ids_to_talent_skill_ids(self):
             'skill_level': applicant_skill.skill_level_id,
             'skill_type': applicant_skill.skill_type_id,
         }
-        for applicant_skill in self.applicant_skill_ids.all()
+        for applicant_skill in self.applicant_skill_ids
     ]
     return _reconcile_applicant_skills(talent, specs)
 
 
-def create(cls, vals_list):
+def create(cls, previous, vals_list):
     """≙ ``create`` (``:147-153``) — DIVERGENCIA 7 del docstring del
     módulo.
 
@@ -355,22 +352,26 @@ def create(cls, vals_list):
     funciona sin esto", comentario ``:149-150``) y materializa las
     habilidades del candidato recién creado por manager directo.
 
-    Devuelve la lista de ``HrApplicant`` creados.
+    Va por ``overrides=``: ``previous`` es el ``create`` de
+    ``hr_recruitment`` (``super().create(vals_list)`` de la fuente,
+    ``:152``), que crea las filas.
+
+    Devuelve el recordset creado.
     """
-    created = []
-    for vals in vals_list:
-        vals = dict(vals)
-        skills = vals.pop('current_applicant_skill_ids', []) + vals.pop(
-            'applicant_skill_ids', []
-        )
-        applicant = cls.objects.create(**vals)
+    vals_list = [dict(vals) for vals in vals_list]
+    skills_per_vals = [
+        vals.pop('current_applicant_skill_ids', [])
+        + vals.pop('applicant_skill_ids', [])
+        for vals in vals_list
+    ]
+    applicants = previous(vals_list)
+    for applicant, skills in zip(applicants, skills_per_vals):
         if skills:
             _reconcile_applicant_skills(applicant, skills)
-        created.append(applicant)
-    return created
+    return applicants
 
 
-def write(self, vals):
+def write(self, previous, vals):
     """≙ ``write`` (``:155-166``) — DIVERGENCIA 8 del docstring del
     módulo.
 
@@ -379,10 +380,8 @@ def write(self, vals):
     ``self.applicant_skill_ids`` contra la lista fusionada y propaga a
     ``self.pool_applicant`` — ≙ ``_map_applicant_skill_ids_to_talent_
     skill_ids`` (``:163-165``), mismo ``if``. Las demás claves de
-    ``vals`` se aplican por ``setattr`` + ``self.save()`` — el
-    ``super().write(vals)`` de la fuente (``:166``), que en este árbol
-    es la cadena que ``hr_recruitment/models/hr_applicant.py:446`` ya
-    instaló sobre ``save()``.
+    ``vals`` van a ``previous``, el ``write`` de ``hr_recruitment`` —
+    el ``super().write(vals)`` de la fuente (``:166``).
 
     Devuelve ``self``.
     """
@@ -395,10 +394,8 @@ def write(self, vals):
             'applicant_skill_ids', []
         )
         _reconcile_applicant_skills(self, skills)
-    for field_name, value in vals.items():
-        setattr(self, field_name, value)
     if vals:
-        self.save()
+        previous(vals)
     if (
         touched_skills
         and self.pool_applicant_id
@@ -436,10 +433,11 @@ def apply_hr_recruitment_skills_hr_applicant_extensions():
             '_map_applicant_skill_ids_to_talent_skill_ids': (
                 _map_applicant_skill_ids_to_talent_skill_ids
             ),
-            # ``create`` no tiene previa que relevar (verificado: 0 hits de
-            # "def create" en hr_recruitment/models/hr_applicant.py) — se
-            # instala como classmethod nuevo, no como wrap_method.
-            'create': classmethod(create),
+        },
+        # ``create``/``write`` extienden los de ``hr_recruitment``, como el
+        # ``super()`` de la fuente (``:145-166``).
+        overrides={
+            'create': api.model_create_multi(classmethod(create)),
             'write': write,
         },
         propiedades={

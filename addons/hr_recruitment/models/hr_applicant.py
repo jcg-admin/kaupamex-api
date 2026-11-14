@@ -61,13 +61,14 @@ from django.apps import apps
 from django.db.models import Q
 from django.utils import timezone
 
+import api
 import fields
 import models
 from addons.base.models import ResPartner, TimeStampedModel
 from addons.mail.models import MailActivityMixin, MailThread
 from addons.utm.models.utm_mixin import UtmMixin
 from exceptions import UserError, ValidationError
-from orm.environments import get_current_user
+from orm.environments import get_current_user, sudo
 from tools.translate import _
 
 AVAILABLE_PRIORITIES = [
@@ -92,7 +93,32 @@ APPLICATION_STATUSES = [
 ]
 
 
-class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
+def _interviewer_pks(applicants):
+    """Los ``res.users`` entrevistadores de ``applicants``, por pk."""
+    return {
+        pk for applicant in applicants
+        for pk in applicant.interviewer_ids.values_list('pk', flat=True)
+    }
+
+
+def _create_recruitment_interviewers(user_pks):
+    """``users._create_recruitment_interviewers()`` sobre los pk dados."""
+    ResUsersModel = apps.get_model('base', 'ResUsers')
+    if user_pks:
+        ResUsersModel._create_recruitment_interviewers(
+            ResUsersModel.objects.filter(pk__in=user_pks))
+
+
+def _remove_recruitment_interviewers(user_pks):
+    """``users._remove_recruitment_interviewers()`` sobre los pk dados."""
+    ResUsersModel = apps.get_model('base', 'ResUsers')
+    if user_pks:
+        ResUsersModel._remove_recruitment_interviewers(
+            ResUsersModel.objects.filter(pk__in=user_pks))
+
+
+class HrApplicant(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
+                  TimeStampedModel):
     """``hr.applicant`` — un candidato, desde la postulación hasta la
     contratación o el rechazo."""
 
@@ -588,83 +614,121 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
 
     # === Alta / edición ======================================================
 
-    def save(self, *args, **kwargs):
-        """≙ ``create``/``write`` (``odoo19c: :615-693``) — Django unifica
-        alta y edición; se reproduce el núcleo de ambas.
+    @api.model_create_multi
+    @classmethod
+    def create(cls, vals_list):
+        """≙ ``create`` (``odoo19c: :617-645``)."""
+        for vals in vals_list:
+            if vals.get('user_id') or vals.get('user'):
+                vals['date_open'] = timezone.now()
+            if vals.get('email_from'):
+                vals['email_from'] = vals['email_from'].strip()
+        applicants = super().create(vals_list)
+        with sudo():
+            _create_recruitment_interviewers(
+                _interviewer_pks(applicants))
 
-        DIVERGENCIA: la notificación a entrevistadores nuevos
-        (``message_notify``) y el alta/baja del grupo de RR.HH. vía
-        ``ResUsers._create_recruitment_interviewers`` se cablean aquí en
-        vez de en un hook de vals — mismo efecto neto, otro punto de
-        disparo. La sincronía de ``pool_applicant`` en escritura masiva
-        (fuente ``:667-676``) queda BLOQUEADA — depende de saber qué
-        campos cambiaron respecto al valor anterior, y este ORM no trae
-        ese diff a ``save()`` sin leer antes (fuera de alcance de este
-        pase).
+        for applicant in applicants:
+            if (applicant.talent_pools.exists()
+                    and not applicant.pool_applicant_id):
+                applicant.pool_applicant_id = applicant.id
+
+        for applicant in applicants:
+            applicant._notify_new_interviewers(
+                _interviewer_pks(applicant))
+        return applicants
+
+    def write(self, vals):
+        """≙ ``write`` (``odoo19c: :647-700``).
+
+        Los nombres de la fuente (``user_id``, ``stage_id``) son aquí los
+        attnames de las FK ``user`` y ``stage``; se aceptan los dos.
         """
-        is_new = self.pk is None
-        previous_interviewer_pks = (
-            set(self.interviewer_ids.values_list('pk', flat=True))
-            if not is_new
-            else set()
-        )
-        if not is_new:
-            self.date_last_stage_update = timezone.now()
-        result = super().save(*args, **kwargs)
-        new_interviewer_pks = set(
-            self.interviewer_ids.values_list('pk', flat=True)
-        )
+        if vals.get('user_id') or vals.get('user'):
+            vals['date_open'] = timezone.now()
+        old_interviewers = _interviewer_pks(self)
+        stage_key = next(
+            (key for key in ('stage_id', 'stage') if key in vals), None)
+        if stage_key is not None:
+            vals['date_last_stage_update'] = timezone.now()
+            if 'kanban_state' not in vals:
+                vals['kanban_state'] = 'normal'
+            HrRecruitmentStage = apps.get_model(
+                'hr_recruitment', 'HrRecruitmentStage')
+            new_stage = HrRecruitmentStage.objects.filter(
+                pk=getattr(vals[stage_key], 'pk', vals[stage_key])).first()
+            for applicant in self:
+                vals['last_stage_id'] = applicant.stage_id
+                old_hired = bool(
+                    applicant.stage_id and applicant.stage.hired_stage)
+                new_hired = bool(new_stage and new_stage.hired_stage)
+                job = applicant.job
+                if new_hired and not old_hired:
+                    if job is not None and job.no_of_recruitment > 0:
+                        job.no_of_recruitment -= 1
+                        job.save(update_fields=['no_of_recruitment'])
+                elif not new_hired and old_hired and job is not None:
+                    job.no_of_recruitment += 1
+                    job.save(update_fields=['no_of_recruitment'])
+        if 'kanban_state' in vals:
+            vals['date_last_stage_update'] = timezone.now()
+        res = super().write(vals)
+
+        for applicant in self:
+            pool = applicant.pool_applicant
+            if (pool is not None and pool.pk != applicant.pk
+                    and not applicant.is_pool_applicant()):
+                synced = {
+                    key: vals[key]
+                    for key in ('email_from', 'partner_phone',
+                                'linkedin_profile', 'type_id')
+                    if key in vals
+                }
+                if synced:
+                    pool.write(synced)
+
+        if 'interviewer_ids' in vals:
+            new_interviewers = _interviewer_pks(self)
+            _remove_recruitment_interviewers(
+                old_interviewers - new_interviewers)
+            with sudo():
+                _create_recruitment_interviewers(new_interviewers)
+            added = new_interviewers - old_interviewers
+            for applicant in self:
+                applicant._notify_new_interviewers(added)
+        return res
+
+    def _notify_new_interviewers(self, interviewer_pks):
+        """El aviso de ``create``/``write`` (``odoo19c: :631-644``,
+        ``:685-700``) a los entrevistadores nuevos, salvo quien escribe.
+
+        DIVERGENCIA declarada: el destinatario de una ``mail.notification``
+        es aquí el usuario y no su ``res.partner``
+        (``addons/mail/models/mail_notification.py``, campo ``partner``), así
+        que se notifica a los usuarios; ``author_id``, ``email_from``,
+        ``email_layout_xmlid`` y ``model_description`` no tienen receptor en
+        el ``MailThread`` de este árbol.
+        """
         ResUsersModel = apps.get_model('base', 'ResUsers')
-        create_fn = getattr(
-            ResUsersModel, '_create_recruitment_interviewers', None
-        )
-        remove_fn = getattr(
-            ResUsersModel, '_remove_recruitment_interviewers', None
-        )
-        if (
-            create_fn is not None
-            and new_interviewer_pks - previous_interviewer_pks
-        ):
-            create_fn(
-                ResUsersModel.objects.filter(
-                    pk__in=new_interviewer_pks - previous_interviewer_pks
-                )
-            )
-        if (
-            remove_fn is not None
-            and previous_interviewer_pks - new_interviewer_pks
-        ):
-            remove_fn(
-                ResUsersModel.objects.filter(
-                    pk__in=previous_interviewer_pks - new_interviewer_pks
-                )
-            )
         current_user = get_current_user()
-        new_interviewers_to_notify = ResUsersModel.objects.filter(
-            pk__in=new_interviewer_pks - previous_interviewer_pks,
-        )
+        users = ResUsersModel.objects.filter(pk__in=interviewer_pks)
         if current_user is not None:
-            new_interviewers_to_notify = new_interviewers_to_notify.exclude(
-                pk=current_user.pk
-            )
-        for interviewer in new_interviewers_to_notify:
-            self.message_notify(
-                partners=(
-                    [interviewer.partner]
-                    if getattr(interviewer, 'partner_id', None)
-                    else []
-                ),
-                subject=_(
-                    'Fuiste asignado como entrevistador de %(name)s',
-                    name=str(self),
-                ),
-                body=_(
-                    'Fuiste asignado como entrevistador del candidato'
-                    ' %(name)s',
-                    name=self.partner_name or '',
-                ),
-            )
-        return result
+            users = users.exclude(pk=current_user.pk)
+        recipients = list(users)
+        if not recipients:
+            return
+        self.message_notify(
+            partners=recipients,
+            subject=_(
+                'Fuiste asignado como entrevistador de %(name)s',
+                name=str(self),
+            ),
+            body=_(
+                'Fuiste asignado como entrevistador del candidato'
+                ' %(name)s',
+                name=self.partner_name or '',
+            ),
+        )
 
     def copy_partner_name_suffix(self):
         """≙ ``copy_data`` (``odoo19c: :606-613``) — el sufijo "(copia)"
