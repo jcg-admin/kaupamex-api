@@ -9,9 +9,8 @@ x2many-django-comodel-condition.md``.
 import pytest
 from django.db import connection, models
 
-from addons.base.models import TimeStampedModel
 from orm.environments import sudo
-from orm.models import BaseModel
+from orm.models import BaseModel, RecordLoaderMixin
 from tests.fixtures.probe_tables import create_probe_tables
 
 
@@ -25,7 +24,7 @@ class TagDjXc(models.Model):
         db_table = 'orm_tag_dj_xc'
 
 
-class ItemXc(BaseModel, TimeStampedModel):
+class ItemXc(BaseModel, RecordLoaderMixin):
     _name = 'orm.item.xc'
     name = models.CharField(max_length=32)
     tags = models.ManyToManyField(TagDjXc, db_table='orm_item_xc_tag_rel')

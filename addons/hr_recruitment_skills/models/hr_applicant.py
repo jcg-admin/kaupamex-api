@@ -122,7 +122,6 @@ from addons.hr_recruitment_skills.models.hr_applicant_skill import (
     HrApplicantSkill,
 )
 from addons.hr_skills.models.hr_skill import HrSkill
-from orm.commands import Command
 from orm.method_chain import chain_method
 from orm.model_classes import extend_model
 from orm.models import Q
@@ -151,7 +150,7 @@ def _compute_skill_ids(self):
         applicant_skill.skill_id
         for applicant_skill in self.applicant_skill_ids
     })
-    self.write({'skill_ids': [Command.set(skill_ids)]})
+    self.write({'skill_ids': [fields.Command.set(skill_ids)]})
     return self.skill_ids
 
 

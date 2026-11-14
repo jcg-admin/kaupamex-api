@@ -45,7 +45,6 @@ from datetime import date
 import fields
 import models
 
-from orm.commands import Command
 from orm.environments import env
 from orm.model_classes import extend_model
 
@@ -67,7 +66,7 @@ def _compute_skill_ids(self):
     """≙ ``_compute_skill_ids`` (``:47-50``)."""
     skill_ids = sorted({
         job_skill.skill_id for job_skill in self.job_skill_ids})
-    self.write({'skill_ids': [Command.set(skill_ids)]})
+    self.write({'skill_ids': [fields.Command.set(skill_ids)]})
     return self.skill_ids
 
 
