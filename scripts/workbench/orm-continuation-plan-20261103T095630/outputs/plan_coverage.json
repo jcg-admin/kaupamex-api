@@ -129,6 +129,21 @@
    "id": "hr-work-entry-data-0397",
    "task": "TASK-API-0397",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "recruitment-interviewer-fields-0397",
+   "task": "TASK-API-0397",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "hr-applicant-basemodel-0397",
+   "task": "TASK-API-0397",
+   "reason": "waits for recruitment-interviewer-fields-0397"
+  },
+  {
+   "id": "recruitment-job-interviewer-sync-0397",
+   "task": "TASK-API-0397",
+   "reason": "waits for hr-applicant-basemodel-0397"
   }
  ],
  "unrepresented": [
@@ -412,7 +427,8 @@
   "basemodel-adoption-sales-team-0397",
   "basemodel-adoption-resource-0397",
   "basemodel-adoption-hr-work-entry-0397",
-  "registry-load-extended-models-0485"
+  "registry-load-extended-models-0485",
+  "basemodel-adoption-hr-recruitment-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
