@@ -427,7 +427,9 @@
   "basemodel-adoption-hr-core-0397",
   "basemodel-adoption-res-partner-category-0397",
   "basemodel-adoption-hr-employee-location-0397",
-  "purchase-order-header-0397"
+  "purchase-order-header-0397",
+  "purchase-order-mixins-0397",
+  "purchase-res-company-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
