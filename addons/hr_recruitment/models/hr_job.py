@@ -256,10 +256,10 @@ def extended_interviewer_ids(job):
     ResUsersModel = apps.get_model('base', 'ResUsers')
     interviewer_pks = set()
     for applicant in HrApplicant.objects.filter(job=job).prefetch_related(
-        'interviewers'
+        'interviewer_ids'
     ):
         interviewer_pks |= set(
-            applicant.interviewers.values_list('pk', flat=True)
+            applicant.interviewer_ids.values_list('pk', flat=True)
         )
     return ResUsersModel.objects.filter(pk__in=interviewer_pks)
 
@@ -320,8 +320,16 @@ def apply_hr_recruitment_hr_job_extensions():
                 blank=True,
                 verbose_name='Usuarios que lo marcaron favorito',
             ),
-            'interviewers': fields.Many2many(
+            # ≙ ``interviewer_ids`` (``odoo19c: :64-70``). La fuente no
+            # declara ``relation``: la deriva
+            # ``odoo/orm/fields_relational.py:1291-1295`` como
+            # ``hr_job_res_users_rel`` (``hr_job_id``, ``res_users_id``), y
+            # aquí se escribe porque sin ella Django nombra otra tabla.
+            'interviewer_ids': fields.Many2many(
                 'base.ResUsers',
+                relation='hr_job_res_users_rel',
+                column1='hr_job_id',
+                column2='res_users_id',
                 related_name='interviewer_jobs',
                 blank=True,
                 verbose_name='Entrevistadores',

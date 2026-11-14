@@ -76,15 +76,16 @@ def remove_recruitment_interviewers(cls, users):
     HrJob = apps.get_model('hr', 'HrJob')
     HrApplicant = apps.get_model('hr_recruitment', 'HrApplicant')
     still_interviewing = set()
-    for job in HrJob.objects.filter(interviewers__pk__in=user_pks).distinct():
+    for job in HrJob.objects.filter(
+            interviewer_ids__pk__in=user_pks).distinct():
         still_interviewing |= set(
-            job.interviewers.values_list('pk', flat=True)
+            job.interviewer_ids.values_list('pk', flat=True)
         )
     for applicant in HrApplicant.objects.filter(
-        interviewers__pk__in=user_pks
+        interviewer_ids__pk__in=user_pks
     ).distinct():
         still_interviewing |= set(
-            applicant.interviewers.values_list('pk', flat=True)
+            applicant.interviewer_ids.values_list('pk', flat=True)
         )
     still_recruiters = set(
         recruitment_group.all_user_ids.values_list('pk', flat=True)

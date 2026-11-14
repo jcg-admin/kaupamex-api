@@ -49,7 +49,7 @@ regla de seguridad de la fuente. ExecuteNow: yes.
   `HrJob` (addon `hr`) tampoco lo es, pero la regla sólo lo recorre como
   lookup.
 
-## Hipótesis (sonda pendiente): la sincronía de entrevistadores de `save()` no se dispara
+## Medido: la sincronía de entrevistadores de `save()` no se dispara
 
 `HrApplicant.save()` (`addons/hr_recruitment/models/hr_applicant.py:585-662`)
 lee los entrevistadores antes de `super().save()` y otra vez después, y
@@ -61,6 +61,16 @@ se dispara. La fuente lo hace en `create`/`write`
 (`odoo19c: hr_recruitment/models/hr_applicant.py:617-700`), con
 `old_interviewers` leído antes de `super().write(vals)` y la rama
 `'interviewer_ids' in vals`.
+
+Sonda (2026-11-14, `039fa199`): espiar `ResUsers._create_recruitment_interviewers`
+y, sobre un candidato guardado, hacer `interviewers.add(u)` + `save()`,
+`remove` + `set([u])` + `save()`. Resultado: `CALLS []`. La clase espiada es
+la que lee `save()` (`apps.get_model('base', 'ResUsers') is
+MODELS_BY_NAME['res.users']` → `True`, y el atributo existe).
+
+*Métrica:* llamadas al método espiado durante esas escrituras.
+*Ciega a:* una escritura del Many2many que llegara a `save()` por otro camino
+(p. ej. `BaseModel.write`), que hoy no existe para `hr.applicant`.
 
 ## Decisión — dos unidades
 

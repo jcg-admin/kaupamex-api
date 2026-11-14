@@ -41,8 +41,8 @@ declaran en su propio comentario de campo):
 ``refuse_reason``, ``meeting_ids``/``meeting_display_*`` — BLOQUEADOS
 (``calendar.event`` ausente, ver ``calendar.py`` de este addon),
 ``campaign_id``/``medium_id``/``source_id`` (de ``UtmMixin``, ya
-``on_delete=SET_NULL`` por defecto — no-op), ``interviewer_ids``→
-``interviewers``, ``application_status``/``application_count`` (métodos),
+``on_delete=SET_NULL`` por defecto — no-op), ``interviewer_ids`` (mismo
+nombre y tabla), ``application_status``/``application_count`` (métodos),
 ``applicant_properties``, ``applicant_notes``, ``refuse_date``,
 ``talent_pool_ids`` → portado sin código (reverso de
 ``HrTalentPool.talents``, ver ese archivo), ``pool_applicant_id``→
@@ -256,8 +256,13 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
         related_name='applicants',
         verbose_name='Motivo de rechazo',
     )
-    interviewers = fields.Many2many(
+    #: ≙ ``interviewer_ids`` (``odoo19c: :125-127``), con su tabla; las
+    #: columnas son las que la fuente deriva de ella.
+    interviewer_ids = fields.Many2many(
         'base.ResUsers',
+        relation='hr_applicant_res_users_interviewers_rel',
+        column1='hr_applicant_id',
+        column2='res_users_id',
         related_name='interviewing_applicants',
         blank=True,
         db_index=True,
@@ -599,7 +604,7 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
         """
         is_new = self.pk is None
         previous_interviewer_pks = (
-            set(self.interviewers.values_list('pk', flat=True))
+            set(self.interviewer_ids.values_list('pk', flat=True))
             if not is_new
             else set()
         )
@@ -607,7 +612,7 @@ class HrApplicant(MailThread, MailActivityMixin, UtmMixin, TimeStampedModel):
             self.date_last_stage_update = timezone.now()
         result = super().save(*args, **kwargs)
         new_interviewer_pks = set(
-            self.interviewers.values_list('pk', flat=True)
+            self.interviewer_ids.values_list('pk', flat=True)
         )
         ResUsersModel = apps.get_model('base', 'ResUsers')
         create_fn = getattr(
