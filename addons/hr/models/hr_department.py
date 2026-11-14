@@ -12,14 +12,18 @@ campos que cuelgan de ``hr.employee`` (``manager_id``, ``member_ids``,
 esas tablas aterricen.
 """
 
+import api
 import fields
 import models
 
 from addons.base.models import TimeStampedModel, _reject_hierarchy_cycle
 from addons.mail.models import MailThread
+from exceptions import ValidationError
+from orm.models import _parent_store_update
+from tools.translate import _
 
 
-class HrDepartment(MailThread, TimeStampedModel):
+class HrDepartment(models.BaseModel, MailThread, TimeStampedModel):
     """``hr.department`` — unidad organizativa con sub-departamentos.
 
     Hereda ``MailThread`` igual que ``hr.department`` hereda ``mail.thread``
@@ -28,16 +32,21 @@ class HrDepartment(MailThread, TimeStampedModel):
 
     Atributos de clase de la referencia (``odoo19c:
     hr/models/hr_department.py:12-17``): ``_name``, ``_description``,
-    ``_inherit`` y ``_order`` se declaran verbatim. Pendientes, por campos
-    que este puerto aún no tiene: ``_rec_name = 'complete_name'`` (falta
-    ``complete_name``) y ``_parent_store = True`` (``parent_path`` existe,
-    pero el modelo no deriva de ``BaseModel``, que es quien mantiene el árbol).
+    ``_inherit``, ``_order`` y ``_parent_store`` se declaran verbatim; el
+    árbol lo mantiene ``BaseModel`` en ``create``/``write``. Pendiente:
+    ``_rec_name = 'complete_name'`` (falta ``complete_name``).
+
+    ``create``/``write`` de la fuente (``:120-137``) quedan fuera:
+    ``create`` sólo pasa ``mail_create_nosubscribe``, que el ``MailThread``
+    de aquí no lee, y ``write`` reasigna el gerente, que depende de
+    ``manager_id`` (DEFERIDO, abajo).
     """
 
     _name = 'hr.department'
     _description = 'Department'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'name'
+    _parent_store = True
 
     name = fields.Char(verbose_name='Nombre')
     # D-2: FK directa a base.ResCompany (Odoo company_id, res.company). El eje
@@ -103,12 +112,32 @@ class HrDepartment(MailThread, TimeStampedModel):
             return f'{self.pk}/'
         return f'{self.parent.parent_path}{self.pk}/'
 
+    @api.constrains('parent_id')
+    def _check_parent_id(self):
+        """≙ ``_check_parent_id`` (``odoo19c: :115-118``)."""
+        if self._has_cycle():
+            raise ValidationError(
+                _('No puedes crear departamentos recursivos.'))
+
     def save(self, *args, **kwargs):
+        """Mantiene la ruta materializada en el camino de Django.
+
+        ``objects.create`` y ``save()`` no pasan por ``create``/``write``
+        del ORM, que son quienes mantienen el árbol de un ``BaseModel`` con
+        ``_parent_store``. Mismo patrón que ``ir.ui.menu``: una fila que
+        cambia de padre delega en :func:`orm.models._parent_store_update`,
+        que reescribe el subárbol; una fila nueva se calcula sola. Escribir
+        aquí el camino del propio nodo antes de reescribir el subárbol
+        dejaba a sus descendientes con el prefijo viejo.
         """
-        Mantiene la ruta materializada, que en la referencia mantiene el ORM.
-        """
+        stored = (type(self)._base_manager.filter(pk=self.pk)
+                  .values_list('parent_id', 'parent_path').first()
+                  if self.pk is not None else None)
         super().save(*args, **kwargs)
-        path = self._compute_parent_path()
-        if path != self.parent_path:
-            self.parent_path = path
-            super().save(update_fields=['parent_path'])
+        if stored and stored[1] and stored[0] != self.parent_id:
+            _parent_store_update(self)
+        else:
+            path = self._compute_parent_path()
+            if path != self.parent_path:
+                self.parent_path = path
+                super().save(update_fields=['parent_path'])

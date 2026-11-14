@@ -53,7 +53,7 @@ def test_department_subhierarchy(company):
         name='Ventas Online', parent=ventas, company=company
     )
     assert online.parent_id == ventas.pk
-    assert list(ventas.children.all()) == [online]
+    assert list(ventas.children) == [online]
 
 
 def test_department_no_self_cycle(company):
