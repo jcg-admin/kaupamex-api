@@ -411,7 +411,8 @@
   "basemodel-adoption-utm-0397",
   "basemodel-adoption-sales-team-0397",
   "basemodel-adoption-resource-0397",
-  "basemodel-adoption-hr-work-entry-0397"
+  "basemodel-adoption-hr-work-entry-0397",
+  "registry-load-extended-models-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
