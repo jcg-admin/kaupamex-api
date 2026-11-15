@@ -62,7 +62,9 @@ class SaleLinePurchaseLink(TimeStampedModel):
         la
         venta, y persiste el vínculo venta→compra. Devuelve el enlace.
         """
-        po = PurchaseOrder.objects.create(partner_id=vendor)
+        # ``env['purchase.order'].create(...)`` de la fuente: pasa por el
+        # ``create`` del ORM, que toma el nombre de la secuencia.
+        [po] = PurchaseOrder.create([{'partner_id': vendor.pk}])
         pol = PurchaseOrderLine.objects.create(
             order_id=po,
             product_id=sale_line.product,

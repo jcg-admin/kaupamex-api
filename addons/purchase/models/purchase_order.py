@@ -61,10 +61,10 @@ no existía aquí (``grep -c currency_rate`` daba **0**). El mecanismo —
        ``fields.Float`` de la fuente como ``Monetary`` por la misma razón).
 """
 
-import uuid
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
+from django.db import transaction
 import fields
 import models
 from django.utils import timezone
@@ -75,7 +75,8 @@ from tools.translate import _
 
 from addons.account.models.account_document_import_mixin import (
     AccountDocumentImportMixin)
-from addons.base.models import ResCompany, ResCurrency, TimeStampedModel
+from addons.base.models import (
+    IrSequence, ResCompany, ResCurrency, TimeStampedModel)
 from addons.mail.models import MailActivityMixin, MailThread
 from addons.portal.models.portal_mixin import PortalMixin
 from addons.product.models.product_catalog_mixin import ProductCatalogMixin
@@ -85,6 +86,27 @@ from addons.product.models.product_catalog_mixin import ProductCatalogMixin
 #: ``SaleOrder._loaded_company_id``
 #: (``api: addons/sale/models/sale_order.py:855-861``).
 _SIN_CARGAR = object()
+
+
+def _next_purchase_name(company_id, sequence_date):
+    """El siguiente nombre de ``purchase.order``, o ``None``.
+
+    ≙ ``next_by_code('purchase.order', sequence_date=...)`` (``:404``). La
+    secuencia ``seq_purchase_order`` de la fuente (``purchase_data.xml:
+    21-27``: prefijo ``P``, relleno 5, sin empresa) se siembra en el punto de
+    uso, como la de ``sale.order`` (``api: addons/sale/models/
+    sale_order.py:44-60``): los datos XML no se cargan aquí (H-API-22).
+    """
+    with transaction.atomic():
+        exists = IrSequence.objects.select_for_update().filter(
+            code='purchase.order').exists()
+        if not exists:
+            IrSequence.objects.create(
+                name='Purchase Order', code='purchase.order', prefix='P',
+                padding=5)
+        return IrSequence.next_by_code(
+            'purchase.order', company=company_id,
+            sequence_date=sequence_date)
 
 
 def _default_buyer():
@@ -121,11 +143,11 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
         (STATE_CANCEL, 'Cancelada'),
     ]
 
-    # Odoo purchase.order.name (default 'New' → aquí se asigna al confirmar).
+    # Odoo purchase.order.name (default 'New'; create lo toma de la secuencia).
     name = fields.Char(
         max_length=32,
         blank=True,
-        default='',
+        default='New',
         help_text='Referencia de la orden (Odoo purchase.order.name).',
     )
     #: ≙ ``partner_id`` (``odoo19c: :91-94``): el proveedor es un contacto.
@@ -157,9 +179,12 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
             "reference is usually written on the delivery order sent by "
             "your vendor."))
     # Odoo purchase.order.date_order.
+    #: ≙ ``date_order`` (``odoo19c: :88-89``, ``default=Datetime.now``).
     date_order = fields.Datetime(
         null=True,
         blank=True,
+        default=timezone.now,
+        copy=False,
         help_text='Fecha de la orden (Odoo date_order).',
     )
     # Odoo purchase.order.state.
@@ -377,10 +402,22 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
     def amount_total(self) -> Decimal:
         return self._sum_lines('price_total')
 
-    def _generate_purchase_name(self) -> str:
-        # Odoo asigna la secuencia 'purchase.order' al confirmar; aquí
-        # P-<uuid>.
-        return f'P-{uuid.uuid4().hex[:8].upper()}'
+    @classmethod
+    def create(cls, vals_list):
+        """≙ ``create`` (``odoo19c: :393-406``).
+
+        Un nombre ``'New'`` se cambia por el siguiente de la secuencia
+        ``purchase.order``, con la empresa de los valores y la fecha de
+        ``date_order``; sin secuencia, ``'/'``.
+        """
+        for vals in vals_list:
+            company_id = vals.get('company_id') or get_current_company()
+            if vals.get('name', 'New') == 'New':
+                seq_date = None
+                if vals.get('date_order'):
+                    seq_date = timezone.localtime(vals['date_order'])
+                vals['name'] = _next_purchase_name(company_id, seq_date) or '/'
+        return super().create(vals_list)
 
     def button_approve(self, force=False):
         """≙ ``button_approve`` (``odoo19c: :615-619``)."""
@@ -408,10 +445,6 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
           (``:631``). ``_validate_distribution`` depende de
           ``get_relevant_plans`` (``analytic_mixin.py:53``); unidad
           ``purchase-analytic-validation-0397``.
-
-        ``name`` se asigna aquí y no en ``create``, que es la divergencia
-        anterior a esta unidad (secuencia ``purchase.order``, unidad
-        ``purchase-order-sequence-0397``).
         """
         for order in self:
             if order.state not in (self.STATE_DRAFT, self.STATE_SENT):
@@ -420,9 +453,6 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
             if error_msg:
                 raise UserError(error_msg)
             order._add_supplier_to_product()
-            if not order.name:
-                order.write({'name': order._generate_purchase_name(),
-                             'date_order': order.date_order or timezone.now()})
             if order._approval_allowed():
                 order.button_approve()
             else:

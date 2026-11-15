@@ -41,7 +41,9 @@ def test_purchase_order_confirm_state_machine(db):
     )
     po.button_confirm()
     assert po.state == PurchaseOrder.STATE_PURCHASE
-    assert po.name.startswith('P-')
+    # ``objects.create`` no pasa por el ``create`` del ORM: el nombre se
+    # queda en el valor por defecto de la fuente.
+    assert po.name == 'New'
     assert po.date_order is not None
 
 
