@@ -63,3 +63,17 @@ pruebas de acceso y ninguna de las de grupos.
   cargar.
 - La seguridad de purchase es la unidad siguiente (`purchase-headers-and-security-0397`,
   citada a `TASK-API-0122`).
+
+## Medición de las 26 filas que no cargan (2026-11-15, sobre el registro)
+
+Instrumento: filas del CSV de la fuente cuyo `model_<tabla>` no corresponde a
+un modelo de `MODELS_BY_NAME` con `_name` propio.
+
+| Causa | Filas | Modelos | Sucesor |
+|---|---|---|---|
+| modelo portado sin `_name` | 10 | `account.analytic.line`, `account.analytic.plan`, `account.analytic.applicability`, `account.analytic.distribution.model` (addon `analytic`), `account.invoice.report` | `analytic-model-headers-0121` |
+| asistente transitorio abstracto (sin tabla, sin fila en `ir.model`) | 11 | secure_entries, automatic_entry, autopost_bills, resequence, validate_account_move, move_reversal, move_send, move_send_batch, accrued_orders, merge, merge_line | el mismo bloqueo que HR declaró; se cierra cuando los transitorios tengan tabla |
+| modelo sin puerto | 5 | `account.root` (2), `account.code.mapping` (2), `account.payment.register` (1) | `account-unported-models-0121` |
+
+*Ciega a:* un modelo registrado bajo otro `_name` que la fuente; la búsqueda por
+literal del nombre en `addons/` y `src/` dio 0 para los tres sin puerto.
