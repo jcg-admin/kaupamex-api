@@ -70,7 +70,7 @@ import models
 from django.utils import timezone
 from exceptions import UserError
 from orm.environments import (
-    get_current_company, get_current_uid, get_current_user)
+    get_current_company, get_current_uid, get_current_user, sudo)
 from tools.translate import _
 
 from addons.account.models.account_document_import_mixin import (
@@ -401,16 +401,13 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
 
         Una orden que no está en ``draft``/``sent`` se salta, no se rehúsa.
 
-        Dos llamadas de la fuente quedan pendientes, cada una con su fila
-        en el plan (diseño ``purchase-order-state-machine.md``):
+        Una llamada de la fuente queda pendiente, con su fila en el plan
+        (diseño ``purchase-order-state-machine.md``):
 
         * pendiente: ``order.order_line._validate_analytic_distribution()``
           (``:631``). ``_validate_distribution`` depende de
           ``get_relevant_plans`` (``analytic_mixin.py:53``); unidad
           ``purchase-analytic-validation-0397``.
-        * pendiente: ``order._add_supplier_to_product()`` (``:633``). En la
-          línea faltan ``product_uom_id`` y ``selected_seller_id``; unidad
-          ``purchase-add-supplier-to-product-0397``.
 
         ``name`` se asigna aquí y no en ``create``, que es la divergencia
         anterior a esta unidad (secuencia ``purchase.order``, unidad
@@ -422,6 +419,7 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
             error_msg = order._confirmation_error_message()
             if error_msg:
                 raise UserError(error_msg)
+            order._add_supplier_to_product()
             if not order.name:
                 order.write({'name': order._generate_purchase_name(),
                              'date_order': order.date_order or timezone.now()})
@@ -430,6 +428,66 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
             else:
                 order.write({'state': self.STATE_TO_APPROVE})
         return True
+
+    def _prepare_supplier_info(self, partner, line, price, currency):
+        """≙ ``_prepare_supplier_info`` (``odoo19c: :670-680``).
+
+        Las claves son los nombres de ``product.supplierinfo`` en este
+        árbol (``partner``, ``currency``): el modelo es de Django y sus FK
+        no llevan el sufijo ``_id``.
+        """
+        sellers = list(line.product_id.product_tmpl.seller_ids.all())
+        return {
+            'partner': partner,
+            'sequence': (max(seller.sequence for seller in sellers) + 1
+                         if sellers else 1),
+            'min_qty': 1.0,
+            'price': price,
+            'currency': currency,
+            'discount': line.discount,
+            'delay': 0,
+        }
+
+    def _add_supplier_to_product(self):
+        """≙ ``_add_supplier_to_product`` (``odoo19c: :682-707``).
+
+        Añade el proveedor a ``seller_ids`` de la plantilla si no lo tiene y
+        si tiene 10 proveedores o menos. Un contacto no se añade: se añade su
+        empresa. La escritura va con elevación, como el ``sudo()`` de la
+        fuente.
+        """
+        vendor = self.partner_id
+        if not vendor:
+            return
+        partner = vendor.parent if vendor.parent_id else vendor
+        for line in self.order_line:
+            product = line.product_id
+            if not product:
+                continue
+            template = product.product_tmpl
+            sellers = list(template.seller_ids.all())
+            seller_partners = {seller.partner_id for seller in sellers}
+            if seller_partners & {partner.pk, vendor.pk} or len(sellers) > 10:
+                continue
+            price = line.price_unit
+            # El precio pasa a la unidad de la plantilla, que es la de la
+            # tarifa del proveedor.
+            default_uom = template.uom
+            if line.product_uom_id and line.product_uom_id != default_uom:
+                price = Decimal(str(line.product_uom_id._compute_price(
+                    float(price), default_uom)))
+            supplierinfo = self._prepare_supplier_info(
+                partner, line, price, line.currency_id)
+            # Si la orden va a un contacto, la tarifa nueva se crea sobre la
+            # empresa y conserva el nombre y el código del producto.
+            selected = line.selected_seller_id
+            if selected:
+                supplierinfo['product_name'] = selected.product_name
+                supplierinfo['product_code'] = selected.product_code
+                supplierinfo['product_uom'] = line.product_uom_id
+            with sudo():
+                template.write(
+                    {'seller_ids': [fields.Command.create(supplierinfo)]})
 
     def button_cancel(self):
         """≙ ``button_cancel`` (``odoo19c: :641-649``).

@@ -54,3 +54,20 @@ proveedores o menos:
 4. Con más de 10 proveedores no se añade nada.
 5. Una unidad distinta a la de la plantilla convierte el precio.
 6. Con `selected_seller_id` se copian `product_name` y `product_code`.
+
+## Medido al implementar
+
+- **La rama de `selected_seller_id` no se alcanza por el flujo de la propia
+  fuente.** `_get_filtered_sellers` sólo deja tarifas del contacto o de su
+  empresa (`odoo19c: product/models/product_product.py:1040`), y esas dos
+  ya son `already_seller` (`purchase_order.py:689`). La alcanza un addon que
+  redefine la selección; la prueba la alcanza redefiniendo el cómputo. La
+  rama se porta igual: es un símbolo de la fuente con un consumidor
+  posible.
+- `_prepare_supplier_info` devuelve los nombres de `product.supplierinfo`
+  de este árbol (`partner`, `currency`). El modelo es de Django y sus FK no
+  llevan el sufijo `_id`.
+- Anulación. Cada mitad retirada tumba exactamente su caso:
+  - la rama de `selected_seller_id` tumba el caso del nombre y el código;
+  - la empresa del contacto tumba el caso del contacto;
+  - el tope de 10 tumba el caso de los once proveedores.

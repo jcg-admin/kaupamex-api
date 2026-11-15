@@ -36,8 +36,10 @@ MX) para consistencia.
 from decimal import Decimal
 
 from django.core.validators import MinValueValidator
+from django.db import models as dj_models
 import fields
 import models
+from django.utils import timezone
 
 from addons.base_setup.settings_access import get_setting
 from addons.analytic.models.analytic_mixin import AnalyticMixin
@@ -90,6 +92,19 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
         help_text='Technical field for UX purpose.')
     #: ≙ ``is_downpayment`` (``odoo19c: purchase_order_line.py:95``).
     is_downpayment = fields.Boolean(default=False)
+    #: ≙ ``product_uom_id`` (``odoo19c: purchase_order_line.py:36``,
+    #: ``ondelete='restrict'``). La fuente lo fija en el onchange del
+    #: producto (``:386``).
+    product_uom_id = fields.Many2one(
+        'uom.Uom', verbose_name='Unit', null=True, blank=True,
+        on_delete=dj_models.PROTECT, related_name='+',
+        db_column='product_uom_id')
+    #: ≙ ``selected_seller_id`` (``purchase_order_line.py:96``): la tarifa del
+    #: proveedor que aplica a la línea, calculada y sin columna.
+    selected_seller_id = fields.Many2one(
+        'product.ProductSupplierinfo', store=False,
+        compute='_compute_selected_seller_id',
+        on_delete=dj_models.SET_NULL, related_name='+')
     product_qty = models.PositiveIntegerField(
         default=1, validators=[MinValueValidator(1)],
         help_text='Cantidad (Odoo product_qty).',
@@ -126,6 +141,30 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
         """≙ ``currency_id`` (``related='order_id.currency_id'``, sin
         ``store``) — ver docstring del módulo."""
         return self.order_id.currency_id if self.order_id_id else None
+
+    def _compute_selected_seller_id(self):
+        """≙ ``_compute_selected_seller_id`` (``:266-278``)."""
+        for line in self:
+            if line.product_id:
+                params = line._get_select_sellers_params()
+                order_date = line.order_id.date_order or timezone.now()
+                seller = line.product_id._select_seller(
+                    partner_id=line.partner_id,
+                    quantity=abs(line.product_qty),
+                    date=timezone.localdate(order_date),
+                    uom_id=line.product_uom_id,
+                    params=params)
+                line.selected_seller_id = seller or None
+            else:
+                line.selected_seller_id = None
+
+    def _get_select_sellers_params(self):
+        """≙ ``_get_select_sellers_params`` (``:753-758``)."""
+        self.ensure_one()
+        return {
+            'order_id': self.order_id,
+            'force_uom': True,
+        }
 
     def _sync_company(self):
         """Sincroniza ``company_id`` con el de la orden — divergencia
