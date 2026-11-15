@@ -141,7 +141,17 @@
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
-   "id": "purchase-invoice-link-0397",
+   "id": "purchase-product-0397",
+   "task": "TASK-API-0397",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "account-copy-data-business-fields-0397",
+   "task": "TASK-API-0397",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "purchase-from-bill-0397",
    "task": "TASK-API-0397",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   }
@@ -443,6 +453,7 @@
   "purchase-order-partner-0397",
   "purchase-order-state-machine-0397",
   "purchase-add-supplier-to-product-0397",
+  "purchase-invoice-link-0397",
   "purchase-order-sequence-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
