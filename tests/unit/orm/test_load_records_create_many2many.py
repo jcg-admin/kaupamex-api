@@ -49,3 +49,28 @@ def test_a_plain_id_list_is_a_set():
         'implied_ids': [_group_user().pk],
     }])
     assert list(group.implied_ids.all()) == [_group_user()]
+
+
+def _group_system():
+    return IrModelData.ref('base.group_system')
+
+
+def test_link_on_the_reverse_side_adds_the_implying_group():
+    """En la fuente ``implied_by_ids`` es un ``Many2many`` escribible sobre la
+    misma tabla con las columnas invertidas (``res_groups.py:197-199``).
+    ``account/security/account_security.xml`` lo escribe con
+    ``Command.link(ref('base.group_system'))``."""
+    [group] = ResGroups._load_records_create([{
+        'name': 'Carga con LINK inverso',
+        'implied_by_ids': [(4, _group_system().pk, 0)],
+    }])
+    assert list(group.implied_by_ids.all()) == [_group_system()]
+    assert group in _group_system().implied_ids.all()
+
+
+def test_the_reverse_side_is_written_on_an_existing_record():
+    [group] = ResGroups._load_records_create([{'name': 'Inverso existente'}])
+    group._load_records_write({
+        'implied_by_ids': [(4, _group_system().pk, 0)],
+    })
+    assert list(group.implied_by_ids.all()) == [_group_system()]

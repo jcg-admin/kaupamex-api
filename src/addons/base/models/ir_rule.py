@@ -282,10 +282,18 @@ class IrRule(TimeStampedModel):
         """
         ``@api.constrains('active', 'domain_force', 'model_id')`` — ``:64-73``.
 
-        Valida que el dominio **parsee y se traduzca**, no que devuelva filas.
-        La fuente hace ``Domain(domain).validate(model)``; aquí el equivalente
-        es ``domains.to_q``, que revienta ante un campo inexistente o un
-        operador desconocido.
+        Valida el dominio contra el modelo de la regla, como la fuente:
+        ``model = self.env[rule.model_id.model].sudo();
+        Domain(domain).validate(model)`` (``:70-72``). ``validate`` optimiza
+        con el modelo (``OptimizationLevel.FULL``), así que un campo
+        inexistente levanta, y los operadores que sólo se resuelven con el
+        modelo —``parent_of``/``child_of`` sobre la jerarquía— se resuelven en
+        vez de rechazarse. Traducirlo sin modelo (``to_q(domain)``) rechazaba
+        ``('company_id', 'parent_of', company_ids)``, que once reglas de
+        ``account/security/account_security.xml`` declaran.
+
+        La consulta vacía se arma también: ``filter`` resuelve los lookups de
+        Django al construirse y levanta ``FieldError`` sin tocar la base.
 
         Por qué importa que se valide al guardar y no al evaluar: un dominio
         roto en una regla **activa** rompe toda consulta sobre su modelo, y el
@@ -295,17 +303,10 @@ class IrRule(TimeStampedModel):
             return
         try:
             domain = safe_eval(self.domain_force, self._eval_context())
-            q = domains.to_q(domain)
-            # ``domains.to_q`` traduce SIN mirar el modelo: medido, un campo
-            # inexistente sale como ``('no_existe__in', [1])`` sin quejarse. La
-            # validación contra el modelo es la segunda mitad, y es la que la
-            # fuente pide explícitamente: ``model =
-            # self.env[rule.model_id.model]
-            # .sudo(); Domain(domain).validate(model)`` (``:70-71``). Aquí el
-            # equivalente es armar la consulta: ``filter`` resuelve los lookups
-            # al construirse y levanta ``FieldError`` sin tocar la base.
             app_label, model_name = self.model_name.split('.', 1)
-            apps.get_model(app_label, model_name).objects.none().filter(q)
+            model = apps.get_model(app_label, model_name)
+            Domain(domain).validate(model)
+            model.objects.none().filter(domains.to_q(domain, model))
         except Exception as exc:
             raise ValidationError('Dominio inválido: %s' % exc)
 

@@ -3177,8 +3177,10 @@ class RecordLoaderMixin(FieldSqlMixin):
         fuente.
 
         Una lista de triples de ``Command``, una lista de ids o ``False`` no se
-        pueden asignar sobre el lado directo de un muchos-a-muchos de Django;
-        se aplican tras guardar la fila con :func:`apply_many2many_commands`.
+        pueden asignar sobre ninguno de los dos lados de un muchos-a-muchos de
+        Django; se aplican tras guardar la fila con
+        :func:`apply_many2many_commands`. El inverso (``ManyToManyRel``) entra
+        también: en la fuente es otro ``Many2many`` sobre la misma tabla.
         Los portadores diferidos del cargador (``ManyToManySet``,
         ``ManyToManyLink``) siguen su camino propio.
         """
@@ -3202,7 +3204,7 @@ class RecordLoaderMixin(FieldSqlMixin):
                 values.pop(fname)
                 popped[field.name] = [
                     (6, 0, list(value.values_list('pk', flat=True)))]
-            elif (isinstance(field, ManyToManyField)
+            elif (isinstance(field, (ManyToManyField, ManyToManyRel))
                     and not isinstance(value, (ManyToManySet, ManyToManyLink))
                     and (value is False or value is None
                          or is_command_list(value)
@@ -3509,9 +3511,12 @@ class RecordLoaderMixin(FieldSqlMixin):
         para que un modelo intervenga en la creación desde datos.
 
         La fuente crea con ``self.create(vals_list)``, que interpreta los
-        triples de ``Command`` del lado directo de un ``Many2many``
-        (``Many2many.write_real``). Aquí ``create`` no existe en todo modelo,
-        así que el lado directo se aparta y se aplica con la fila ya guardada
+        triples de ``Command`` de un ``Many2many`` (``Many2many.write_real``)
+        en los dos sentidos: allá el inverso —``implied_by_ids`` frente a
+        ``implied_ids``— es otro ``Many2many`` sobre la misma tabla. Aquí es
+        un ``ManyToManyRel`` y se aplica por su manager igual que el directo.
+        Aquí ``create`` no existe en todo modelo, así que los dos lados se
+        apartan y se aplican con la fila ya guardada
         con :func:`apply_many2many_commands`, como hace
         ``_load_records_write`` (diseño ``module-install-cycle.md``, L4c).
         """
@@ -3521,7 +3526,8 @@ class RecordLoaderMixin(FieldSqlMixin):
             scalar, relational = cls._load_records_split_relational(vals)
             many2many = {
                 name: scalar.pop(name) for name in list(scalar)
-                if isinstance(registry_.get(name), ManyToManyField)
+                if isinstance(registry_.get(name),
+                              (ManyToManyField, ManyToManyRel))
             }
             record = cls.objects.using(using).create(
                 **cls._load_records_coerce_vals(scalar))

@@ -30,10 +30,13 @@
     # La arista medida hacia `authz` es el gate de capacidad de las vistas
     # DRF (DEC-11), no dependencia de datos — no se declara (ver lote 2).
     'depends': [
-        'base',      # ResCompany, ResPartner, ResCurrency, ResBank, SystemParameter
-        'product',   # Product y su UoM — la línea de factura factura un producto
+        # ResCompany, ResPartner, ResCurrency, ResBank, SystemParameter
+        'base',
+        # Product y su UoM — la línea de factura factura un producto
+        'product',
         'uom',       # Uom — la cantidad de la línea lleva su unidad
-        'analytic',  # AccountAnalyticLine/Plan/DistributionModel — 6 chain_method
+        # AccountAnalyticLine/Plan/DistributionModel — 6 chain_method
+        'analytic',
         # `onboarding` se AÑADIÓ el 2026-08-19 (tanda #75/#398 tramo 3): hasta
         # entonces la única arista era onboarding→account y por eso no se
         # declaraba; al portar account/models/onboarding_onboarding{,_step}.py
@@ -44,6 +47,18 @@
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',
+    # Seguridad de la fuente (``odoo19c: account/__manifest__.py``, clave
+    # ``data``), por ``load_data`` en el ciclo de instalación. El XML declara
+    # sus siete omisiones en la cabecera. ``ir.model.access.csv`` es copia
+    # fiel sin 26 filas cuyo modelo no tiene fila en ``ir.model``: 10 de
+    # modelos portados sin ``_name`` (cuatro de ``analytic`` y
+    # ``account.invoice.report``), 11 de asistentes transitorios abstractos y
+    # 5 de modelos sin puerto (``account.root``, ``account.code.mapping``,
+    # ``account.payment.register``). Diseño: ``designs/account-security.md``.
+    'data': [
+        'security/account_security.xml',
+        'security/ir.model.access.csv',
+    ],
     'application': True,   # módulo vendible del catálogo L0
     'installable': True,
     'auto_install': False,

@@ -56,7 +56,15 @@ class ComputeStoredFields(migrations.RunPython):
             # La columna es nueva: su valor almacenado es desconocido. Sin
             # retirar la caché, un cómputo que coincide con lo que la caché
             # ya tenía no marca nada sucio y el volcado no escribe.
-            Model._invalidate_cache(model, self.field_names, ids)
+            # Por el registro de campos y no por ``_fields``: un modelo de
+            # Django con un relacionado almacenado (``account.move.line``
+            # ``parent_state``) no lleva ``_fields``. Es lo que
+            # ``_invalidate_cache`` hace campo a campo.
+            for name in self.field_names:
+                invalidate = getattr(fields_of[name], '_invalidate_cache',
+                                     None)
+                if invalidate is not None:
+                    invalidate(environment, ids)
             for name in self.field_names:
                 environment.add_to_compute(fields_of[name], ids)
             Model.flush_model(model, self.field_names)

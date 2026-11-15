@@ -85,6 +85,7 @@ from django.db import models as dj_models
 
 from addons.account.models.account_move import AccountMove
 from addons.base.models.res_partner import ResPartner
+from orm.model_classes import note_model_extended_by
 
 
 def _add_if_absent(model, name, field):
@@ -172,9 +173,14 @@ def invoice_ids(partner):
 def apply_account_extensions():
     """Cuelga la mitad contable sobre ``res.partner`` — ≙ ``_inherit``.
 
-    **Todavía no cableado** en ``AccountConfig._EXTENSIONES`` — mismo
-    estado que el resto de archivos de este pase.
+    Cableado en ``AccountConfig._EXTENSIONES``. La extensión se anota como la
+    anota ``extend_model``: en la fuente ``_reflect_models`` escribe
+    ``account.model_res_partner`` porque ``account`` es un módulo que extiende
+    el modelo (``odoo19c: odoo/addons/base/models/ir_model.py:462-475``), y la
+    fila ``access_res_partner_group_account_manager`` de
+    ``account/security/ir.model.access.csv`` lo cita sin prefijo.
     """
+    note_model_extended_by('account', ResPartner)
     # --- FKs company_dependent → FK simple ---------------------------
     _add_if_absent(
         ResPartner,

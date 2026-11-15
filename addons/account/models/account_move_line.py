@@ -56,6 +56,12 @@ class AccountMoveLine(AnalyticMixin, models.Model):
         related_name='line_ids',
         help_text='Asiento al que pertenece (Odoo move_id, requerido).',
     )
+    #: ≙ ``parent_state``
+    #: (``odoo19c: account/models/account_move_line.py:68``),
+    #: el estado del asiento almacenado en la línea. Lo citan la regla
+    #: ``account_invoice_line_rule_portal`` y las líneas en borrador.
+    parent_state = fields.Selection(related='move_id.state', store=True,
+                                    max_length=8, null=True, blank=True)
     account = fields.Many2one(
         'account.AccountAccount',
         on_delete=models.PROTECT,

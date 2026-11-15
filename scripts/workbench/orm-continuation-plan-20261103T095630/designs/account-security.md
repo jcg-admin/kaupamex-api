@@ -77,3 +77,25 @@ un modelo de `MODELS_BY_NAME` con `_name` propio.
 
 *Ciega a:* un modelo registrado bajo otro `_name` que la fuente; la búsqueda por
 literal del nombre en `addons/` y `src/` dio 0 para los tres sin puerto.
+
+## Lo que la carga destapó (2026-11-15), y cómo se cerró
+
+Cargar la copia fiel fue el instrumento: cada fallo del cargador nombró un
+hueco que se cerró en el mismo pase o se declaró con su causa medida.
+
+| Fallo al cargar | Causa | Desenlace |
+|---|---|---|
+| `implied_by_ids` con `Command.link` en `group_validate_bank_account` | el cargador sólo aplicaba comandos al lado directo de un muchos-a-muchos; en la fuente el inverso es otro `Many2many` sobre la misma tabla (`res_groups.py:197-199`) | **cerrado**: `_load_records_create` y `_pop_many2many_values` tratan `ManyToManyRel` igual que `ManyToManyField` |
+| `('company_id', 'parent_of', company_ids)` rechazado | `IrRule._check_domain` traducía con `to_q(domain)` sin modelo; la fuente valida con `Domain(domain).validate(model)` (`ir_rule.py:70-72`) | **cerrado**: `_check_domain` en la forma de la fuente |
+| `company_ids` en `account_comp_rule` | `account.account` está portado con `company` singular | **omitida**, declarada en la cabecera; sucesor `account-account-company-ids-0121` |
+| `parent_state` en `account_invoice_line_rule_portal` | campo ausente en `account.move.line` | **portado**: `Selection(related='move_id.state', store=True)` + migración 0039 con cómputo de filas existentes |
+| 0039 no calculaba sobre `account.move.line` | `ComputeStoredFields` invalidaba por `_fields`, que un modelo de Django no lleva | **cerrado**: invalida campo a campo por el registro |
+| `model_res_partner` sin prefijo en el CSV | `account` extiende `res.partner` sin anotar la extensión, así que no recibía `account.model_res_partner` (`ir_model.py:462-475`) | **cerrado**: `apply_account_extensions` la anota con `note_model_extended_by` |
+
+Resultado: 37 de 43 registros del XML y 99 de 125 filas del CSV, con las
+siete omisiones del XML y las 26 filas del CSV declaradas con su causa.
+
+Control de anulación: retirado `security/ir.model.access.csv` del manifest,
+caen exactamente las 3 pruebas de acceso y siguen las 5 de grupos, reglas y
+xmlid. La primera versión de la prueba no discriminaba —las filas venían de
+la carga al crear la base— y la fixture las retira ahora antes de medir.
