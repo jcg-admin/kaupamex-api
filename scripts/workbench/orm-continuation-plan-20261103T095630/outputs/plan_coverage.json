@@ -184,6 +184,11 @@
    "id": "account-security-0121",
    "task": "TASK-API-0121",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "account-account-company-ids-0121",
+   "task": "TASK-API-0121",
+   "reason": "waits for account-security-0121"
   }
  ],
  "unrepresented": [
