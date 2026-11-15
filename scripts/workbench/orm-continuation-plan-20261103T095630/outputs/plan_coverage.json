@@ -132,27 +132,57 @@
   },
   {
    "id": "purchase-headers-and-security-0397",
-   "task": "TASK-API-0397",
+   "task": "TASK-API-0122",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
    "id": "purchase-analytic-validation-0397",
-   "task": "TASK-API-0397",
+   "task": "TASK-API-0122",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
    "id": "purchase-product-0397",
-   "task": "TASK-API-0397",
+   "task": "TASK-API-0122",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
    "id": "account-copy-data-business-fields-0397",
-   "task": "TASK-API-0397",
+   "task": "TASK-API-0121",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
    "id": "purchase-from-bill-0397",
-   "task": "TASK-API-0397",
+   "task": "TASK-API-0122",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "account-check-company-auto-0121",
+   "task": "TASK-API-0121",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "account-bank-statement-line-inherits-0121",
+   "task": "TASK-API-0121",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "account-sequence-mixin-attributes-0121",
+   "task": "TASK-API-0121",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "analytic-model-headers-0121",
+   "task": "TASK-API-0121",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "account-unported-models-0121",
+   "task": "TASK-API-0121",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "account-security-0121",
+   "task": "TASK-API-0121",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   }
  ],
@@ -454,7 +484,8 @@
   "purchase-order-state-machine-0397",
   "purchase-add-supplier-to-product-0397",
   "purchase-invoice-link-0397",
-  "purchase-order-sequence-0397"
+  "purchase-order-sequence-0397",
+  "account-model-headers-0121"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
