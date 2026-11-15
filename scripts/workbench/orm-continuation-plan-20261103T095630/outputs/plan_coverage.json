@@ -181,14 +181,9 @@
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
-   "id": "account-security-0121",
-   "task": "TASK-API-0121",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
-  },
-  {
    "id": "account-account-company-ids-0121",
    "task": "TASK-API-0121",
-   "reason": "waits for account-security-0121"
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
   }
  ],
  "unrepresented": [
@@ -490,7 +485,8 @@
   "purchase-add-supplier-to-product-0397",
   "purchase-invoice-link-0397",
   "purchase-order-sequence-0397",
-  "account-model-headers-0121"
+  "account-model-headers-0121",
+  "account-security-0121"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
