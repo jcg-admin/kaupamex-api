@@ -83,6 +83,12 @@ MAXINT = 2147483647
 class AccountBankStatementLine(models.Model):
     """``account.bank.statement.line`` — línea de movimiento bancario."""
 
+    #: Atributos de clase de ``account.bank.statement.line``, verbatim
+    #: (``odoo19c: account/models/account_bank_statement_line.py:12-15``).
+    _name = 'account.bank.statement.line'
+    _description = "Bank Statement Line"
+    _order = "internal_index desc"
+
     # Enlace _inherits (Odoo move_id, account_bank_statement_line.py:25-30) —
     # Many2one required + cascade, NO herencia multi-tabla (ver docstring).
     move = fields.Many2one(

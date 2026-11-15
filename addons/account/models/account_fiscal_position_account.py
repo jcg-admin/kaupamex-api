@@ -19,6 +19,12 @@ import models
 class AccountFiscalPositionAccount(models.Model):
     """``account.fiscal.position.account`` — cuenta origen → cuenta destino."""
 
+    #: Atributos de clase de ``account.fiscal.position.account``, verbatim
+    #: (``odoo19c: account/models/partner.py:310-312``).
+    _name = 'account.fiscal.position.account'
+    _description = 'Accounts Mapping of Fiscal Position'
+    _rec_name = 'position_id'
+
     position = fields.Many2one(
         'account.AccountFiscalPosition',
         null=False, on_delete=models.CASCADE,

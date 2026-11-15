@@ -29,6 +29,11 @@ from addons.account.models.account_partial_reconcile import (
 class AccountFullReconcile(models.Model):
     """``account.full.reconcile`` — marca un grupo de apuntes como saldado."""
 
+    #: Atributos de clase de ``account.full.reconcile``, verbatim
+    #: (``odoo19c: account/models/account_full_reconcile.py:6-7``).
+    _name = 'account.full.reconcile'
+    _description = "Full Reconcile"
+
     class Meta:
         db_table = 'account_full_reconcile'
         ordering = ['id']

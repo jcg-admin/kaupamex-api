@@ -60,6 +60,11 @@ class AccountPartialReconcile(models.Model):
     ``account.partial.reconcile`` — arista de conciliación entre dos apuntes.
     """
 
+    #: Atributos de clase de ``account.partial.reconcile``, verbatim
+    #: (``odoo19c: account/models/account_partial_reconcile.py:11-12``).
+    _name = 'account.partial.reconcile'
+    _description = "Partial Reconcile"
+
     debit_move = fields.Many2one(
         'account.AccountMoveLine',
         null=False, on_delete=models.CASCADE,

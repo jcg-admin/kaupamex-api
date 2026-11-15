@@ -35,6 +35,11 @@ class AccountCashRounding(models.Model):
     ``account.cash.rounding`` — perfil de redondeo de efectivo por factura.
     """
 
+    #: Atributos de clase de ``account.cash.rounding``, verbatim
+    #: (``odoo19c: account/models/account_cash_rounding.py:15-16``).
+    _name = 'account.cash.rounding'
+    _description = 'Account Cash Rounding'
+
     STRATEGY_BIGGEST_TAX = 'biggest_tax'
     STRATEGY_ADD_INVOICE_LINE = 'add_invoice_line'
     STRATEGIES = [

@@ -71,6 +71,12 @@ import fields
 class AccountBankStatement(models.Model):
     """``account.bank.statement`` — estado de cuenta bancario."""
 
+    #: Atributos de clase de ``account.bank.statement``, verbatim
+    #: (``odoo19c: account/models/account_bank_statement.py:11-13``).
+    _name = 'account.bank.statement'
+    _description = "Bank Statement"
+    _order = "first_line_index desc"
+
     name = fields.Char(
         max_length=255,
         blank=True,

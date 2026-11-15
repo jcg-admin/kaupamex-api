@@ -15,6 +15,11 @@ import models
 class AccountIncoterms(models.Model):
     """``account.incoterms`` — término de comercio internacional (Incoterm)."""
 
+    #: Atributos de clase de ``account.incoterms``, verbatim
+    #: (``odoo19c: account/models/account_incoterms.py:8-9``).
+    _name = 'account.incoterms'
+    _description = 'Incoterms'
+
     name = fields.Char(
         max_length=255,
         help_text='Nombre del Incoterm (Odoo name, requerido, traducible).',

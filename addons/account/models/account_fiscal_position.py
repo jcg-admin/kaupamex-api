@@ -46,6 +46,12 @@ class AccountFiscalPosition(models.Model):
     ``account.fiscal.position`` — mapeo de impuestos/cuentas por país/tercero.
     """
 
+    #: Atributos de clase de ``account.fiscal.position``, verbatim
+    #: (``odoo19c: account/models/partner.py:27-29``).
+    _name = 'account.fiscal.position'
+    _description = 'Fiscal Position'
+    _order = 'sequence'
+
     sequence = fields.Integer(
         default=10,
         help_text=(

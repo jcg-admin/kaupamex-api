@@ -64,6 +64,12 @@ from addons.base.models import _reject_hierarchy_cycle
 class AccountGroup(models.Model):
     """``account.group`` — nodo del árbol de agrupación por rango de código."""
 
+    #: Atributos de clase de ``account.group``, verbatim
+    #: (``odoo19c: account/models/account_account.py:1498-1500``).
+    _name = 'account.group'
+    _description = 'Account Group'
+    _order = 'code_prefix_start'
+
     parent = fields.Many2one(
         'self',
         on_delete=models.CASCADE,

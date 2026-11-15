@@ -51,6 +51,11 @@ class AccountLockException(models.Model):
     ``account.lock_exception`` — excepción temporal a un candado de fecha.
     """
 
+    #: Atributos de clase de ``account.lock_exception``, verbatim
+    #: (``odoo19c: account/models/account_lock_exception.py:12-13``).
+    _name = 'account.lock_exception'
+    _description = "Account Lock Exception"
+
     STATE_ACTIVE = 'active'
     STATE_REVOKED = 'revoked'
     STATE_EXPIRED = 'expired'

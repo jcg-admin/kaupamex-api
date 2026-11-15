@@ -17,6 +17,11 @@ import models
 class AccountJournalGroup(models.Model):
     """``account.journal.group`` — agrupador de diarios para reportes."""
 
+    #: Atributos de clase de ``account.journal.group``, verbatim
+    #: (``odoo19c: account/models/account_journal.py:17-18``).
+    _name = 'account.journal.group'
+    _description = "Account Journal Group"
+
     name = fields.Char(
         max_length=255,
         help_text=(

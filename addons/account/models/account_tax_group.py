@@ -23,6 +23,12 @@ import models
 class AccountTaxGroup(models.Model):
     """``account.tax.group`` — agrupador de impuestos (Odoo ``account``)."""
 
+    #: Atributos de clase de ``account.tax.group``, verbatim
+    #: (``odoo19c: account/models/account_tax.py:26-28``).
+    _name = 'account.tax.group'
+    _description = 'Tax Group'
+    _order = 'sequence asc, id'
+
     name = fields.Char(
         max_length=255,
         help_text='Nombre del grupo (Odoo name, requerido).',

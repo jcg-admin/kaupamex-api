@@ -44,6 +44,11 @@ import models
 class AccountPaymentMethod(models.Model):
     """``account.payment.method`` — catálogo de métodos de pago disponibles."""
 
+    #: Atributos de clase de ``account.payment.method``, verbatim
+    #: (``odoo19c: account/models/account_payment_method.py:8-9``).
+    _name = 'account.payment.method'
+    _description = "Payment Methods"
+
     PAYMENT_TYPES = [
         ('inbound', 'Entrante'),
         ('outbound', 'Saliente'),
@@ -102,6 +107,12 @@ class AccountPaymentMethodLine(models.Model):
     """
     ``account.payment.method.line`` — método de pago habilitado en un diario.
     """
+
+    #: Atributos de clase de ``account.payment.method.line``, verbatim
+    #: (``odoo19c: account/models/account_payment_method.py:96-98``).
+    _name = 'account.payment.method.line'
+    _description = "Payment Methods"
+    _order = 'sequence, id'
 
     name = fields.Char(
         max_length=255,

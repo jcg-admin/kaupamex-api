@@ -146,6 +146,12 @@ def _currency_round(currency, amount):
 class AccountPaymentTerm(models.Model):
     """``account.payment.term`` — plazo de pago (distribución en cuotas)."""
 
+    #: Atributos de clase de ``account.payment.term``, verbatim
+    #: (``odoo19c: account/models/account_payment_term.py:12-14``).
+    _name = 'account.payment.term'
+    _description = "Payment Terms"
+    _order = "sequence, id"
+
     name = fields.Char(
         max_length=255,
         help_text='Nombre del plazo de pago (Odoo name, requerido).',
@@ -431,6 +437,12 @@ class AccountPaymentTerm(models.Model):
 
 class AccountPaymentTermLine(models.Model):
     """``account.payment.term.line`` — cuota de un plazo de pago."""
+
+    #: Atributos de clase de ``account.payment.term.line``, verbatim
+    #: (``odoo19c: account/models/account_payment_term.py:282-284``).
+    _name = 'account.payment.term.line'
+    _description = "Payment Terms Line"
+    _order = "id"
 
     value = fields.Selection(
         max_length=8,

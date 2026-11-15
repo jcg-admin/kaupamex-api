@@ -69,6 +69,14 @@ from tools.translate import _
 class AccountReconcileModel(models.Model):
     """``account.reconcile.model`` — regla que propone conciliaciones."""
 
+    #: Atributos de clase de ``account.reconcile.model``, verbatim
+    #: (``odoo19c: account/models/account_reconcile_model.py:92-95``).
+    _name = 'account.reconcile.model'
+    _description = ('Preset to create journal entries during a invoices and '
+                    'payments matching')
+    _inherit = ['mail.thread']
+    _order = 'sequence, id'
+
     TRIGGERS = [
         ('manual', 'Manual'),
         ('auto_reconcile', 'Automática'),
@@ -248,6 +256,13 @@ class AccountReconcileModelLine(models.Model):
     """
     ``account.reconcile.model.line`` — línea que la regla genera al aplicarse.
     """
+
+    #: Atributos de clase de ``account.reconcile.model.line``, verbatim
+    #: (``odoo19c: account/models/account_reconcile_model.py:9-12``).
+    _name = 'account.reconcile.model.line'
+    _inherit = ['analytic.mixin']
+    _description = 'Rules for the reconciliation model'
+    _order = 'sequence, id'
 
     AMOUNT_TYPES = [
         ('fixed', 'Fijo'),

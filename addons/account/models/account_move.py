@@ -35,6 +35,19 @@ class AccountMove(SequenceMixin, models.Model):
     columna entera.
     """
 
+    #: Atributos de clase de ``account.move``, verbatim
+    #: (``odoo19c: account/models/account_move.py:73-81``).
+    _name = 'account.move'
+    _inherit = ['portal.mixin', 'mail.thread.main.attachment',
+                'mail.activity.mixin', 'sequence.mixin',
+                'product.catalog.mixin', 'account.document.import.mixin']
+    _description = "Journal Entry"
+    _order = 'date desc, name desc, invoice_date desc, id desc'
+    _mail_post_access = 'read'
+    _sequence_index = "journal_id"
+    _rec_names_search = ['name', 'partner_id.name', 'ref']
+    _mailing_enabled = True
+
     #: Los tres atributos de configuración del mixin, espejo de la referencia.
     sequence_field = 'name'
     sequence_date_field = 'date'

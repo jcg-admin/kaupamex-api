@@ -174,6 +174,12 @@ HORIZONTAL_SPLIT_SIDES = [
 class AccountReport(models.Model):
     """``account.report`` — la declaración de un reporte contable."""
 
+    #: Atributos de clase de ``account.report``, verbatim
+    #: (``odoo19c: account/models/account_report.py:45-47``).
+    _name = 'account.report'
+    _description = "Accounting Report"
+    _order = 'sequence, id'
+
     name = fields.Char(
         max_length=255,
         help_text='Nombre del reporte (Odoo name, requerido, traducible).',
@@ -435,6 +441,12 @@ class AccountReport(models.Model):
 class AccountReportLine(models.Model):
     """``account.report.line`` — una fila jerárquica del reporte."""
 
+    #: Atributos de clase de ``account.report.line``, verbatim
+    #: (``odoo19c: account/models/account_report.py:350-352``).
+    _name = 'account.report.line'
+    _description = "Accounting Report Line"
+    _order = 'sequence, id'
+
     name = fields.Char(
         max_length=255,
         help_text='Etiqueta de la línea (Odoo name, requerido, traducible).',
@@ -552,6 +564,17 @@ class AccountReportExpression(models.Model):
     ``account.report.expression`` — cómo se calcula una columna de una línea.
     """
 
+    #: Atributos de clase de ``account.report.expression``, verbatim
+    #: (``odoo19c: account/models/account_report.py:580-582``).
+    _name = 'account.report.expression'
+    _description = "Accounting Report Expression"
+    _rec_name = 'report_line_name'
+
+    #: ≙ ``report_line_name``
+    #: (``odoo19c: account/models/account_report.py:585``),
+    #: el ``_rec_name`` de la expresión.
+    report_line_name = fields.Char(
+        'Report Line Name', related='report_line.name', store=False)
     report_line = fields.Many2one(
         'account.AccountReportLine',
         null=False, on_delete=models.CASCADE,
@@ -710,6 +733,12 @@ class AccountReportExpression(models.Model):
 class AccountReportColumn(models.Model):
     """``account.report.column`` — una columna del reporte."""
 
+    #: Atributos de clase de ``account.report.column``, verbatim
+    #: (``odoo19c: account/models/account_report.py:933-935``).
+    _name = 'account.report.column'
+    _description = "Accounting Report Column"
+    _order = 'sequence, id'
+
     name = fields.Char(
         max_length=255,
         help_text=(
@@ -776,6 +805,12 @@ class AccountReportExternalValue(models.Model):
     un periodo anterior: cantidades que el contador introduce contra una
     expresión concreta y que el motor ``external`` suma al resultado.
     """
+
+    #: Atributos de clase de ``account.report.external.value``, verbatim
+    #: (``odoo19c: account/models/account_report.py:948-951``).
+    _name = 'account.report.external.value'
+    _description = 'Accounting Report External Value'
+    _order = 'date, id'
 
     name = fields.Char(
         max_length=255,

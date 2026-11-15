@@ -14,7 +14,7 @@ from django.db import DEFAULT_DB_ALIAS
 
 from addons.base.data.res_users_data import public_user_seed, seed_public_user
 from addons.base.models import IrModelData, ResCompany, ResUsers
-from orm.environments import Environment, get_transaction
+from orm.environments import Environment, _live_envs, get_transaction
 
 pytestmark = pytest.mark.django_db
 
@@ -40,12 +40,20 @@ def test_the_flush_catalogue_restores_it():
 
 
 def test_a_flush_without_default_env_writes_as_the_public_user(monkeypatch):
-    """El respaldo de la fuente: lo pendiente sin dueño se vuelca."""
-    with Environment('default'):
+    """El respaldo de la fuente: lo pendiente sin dueño se vuelca.
+
+    La fuente recorre ``transaction.envs``, un ``WeakSet``: el respaldo vuelca
+    a través de un entorno vivo (``odoo/orm/environments.py:591-597``). La
+    prueba retiene el suyo; sin esa referencia el recolector lo libera al
+    salir del ``with`` y el resultado dependía de que otra prueba anterior
+    hubiera dejado uno vivo.
+    """
+    with Environment('default') as env:
         company = ResCompany.objects.create(name='pub-flush',
                                             code='pub-flush')
     transaction = get_transaction()
     monkeypatch.setattr(transaction, 'default_env', None)
+    assert env in _live_envs(transaction)
     transaction.flush()
     assert not transaction._has_pending()
     assert ResCompany.objects.filter(pk=company.pk).exists()

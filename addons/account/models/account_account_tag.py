@@ -40,6 +40,11 @@ from tools.translate import _
 class AccountAccountTag(models.Model):
     """``account.account.tag`` — etiqueta de cuenta/impuesto/producto."""
 
+    #: Atributos de clase de ``account.account.tag``, verbatim
+    #: (``odoo19c: account/models/account_account_tag.py:8-9``).
+    _name = 'account.account.tag'
+    _description = 'Account Tag'
+
     APPLICABILITIES = [
         ('accounts', 'Cuentas'),
         ('taxes', 'Impuestos'),

@@ -17,6 +17,13 @@ import models
 class AccountPayment(models.Model):
     """``account.payment`` — registro de un pago entrante o saliente."""
 
+    #: Atributos de clase de ``account.payment``, verbatim
+    #: (``odoo19c: account/models/account_payment.py:8-11``).
+    _name = 'account.payment'
+    _inherit = ['mail.thread.main.attachment', 'mail.activity.mixin']
+    _description = "Payments"
+    _order = "date desc, name desc"
+
     PAYMENT_TYPES = [
         ('outbound', 'Enviar'),
         ('inbound', 'Recibir'),
