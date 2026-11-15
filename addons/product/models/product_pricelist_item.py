@@ -60,7 +60,7 @@ Qué NO se porta, con su medición
   conversor con fecha y compañía no; el cálculo devuelve el precio en la
   moneda del producto y **declara** cuál es, en vez de convertir mal.
 - **La conversión de unidad** (``product_uom._compute_price(p, uom)``):
-  ``Uom.compute_price`` sí está portado, así que se **usa** cuando el llamador
+  ``Uom._compute_price`` sí está portado, así que se **usa** cuando el llamador
   pasa la unidad destino; lo que no se porta es sacarla del contexto de la
   petición, que este archivo no conoce.
 - **``base='pricelist'`` recursivo**: una regla puede basarse en **otra
@@ -343,7 +343,7 @@ class ProductPricelistItem(TimeStampedModel):
             product_uom = getattr(product, 'uom', None)
             if to_uom is None or product_uom is None or product_uom == to_uom:
                 return float(amount)
-            return product_uom.compute_price(float(amount), to_uom)
+            return product_uom._compute_price(float(amount), to_uom)
 
         if self.compute_price == COMPUTE_FIXED:
             return convert(self.fixed_price)

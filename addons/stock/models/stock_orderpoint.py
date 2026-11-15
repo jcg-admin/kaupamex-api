@@ -1276,9 +1276,10 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         if not multiplo or self.product_id is None or self.product.uom is None:
             return qty_to_order
         unidad = self.product.uom
-        cantidad = unidad.compute_quantity(qty_to_order, multiplo, round=False)
+        cantidad = unidad._compute_quantity(qty_to_order, multiplo,
+                                            round=False)
         cantidad = multiplo.round(cantidad, rounding_method='UP')
-        return multiplo.compute_quantity(cantidad, unidad, round=False)
+        return multiplo._compute_quantity(cantidad, unidad, round=False)
 
     @classmethod
     def get_horizon_days(cls, orderpoints=None):

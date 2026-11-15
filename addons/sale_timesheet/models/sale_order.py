@@ -15,7 +15,7 @@ Los dos agregados que sí se pueden medir hoy
 pedido que **no** pasan por ``so_line``: agregan sobre
 ``account.analytic.line.order``, la columna que ``models/hr_timesheet.py``
 cuelga en este mismo addon. Los dos se portan enteros, incluida la conversión
-de unidad — ``Uom.compute_quantity`` existe en este árbol
+de unidad — ``Uom._compute_quantity`` existe en este árbol
 (``api: addons/uom/models/uom_uom.py:310``) y
 ``ResCompany.project_time_mode_id``
 / ``timesheet_encode_uom_id`` los cuelga ``hr_timesheet``
@@ -145,7 +145,7 @@ def timesheet_total_duration(self):
         getattr(company, 'timesheet_encode_uom_id', None) if company else None
     )
     if source_uom is not None and target_uom is not None:
-        total = source_uom.compute_quantity(
+        total = source_uom._compute_quantity(
             total, target_uom, rounding_method='HALF-UP'
         )
     return round(total)

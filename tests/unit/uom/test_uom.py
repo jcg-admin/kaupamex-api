@@ -61,11 +61,11 @@ def unidades(precision_product_unit):
 
 
 def test_conversion_gramo_a_tonelada(unidades):
-    assert unidades['gram'].compute_quantity(1020000, unidades['ton']) == 1.02
+    assert unidades['gram']._compute_quantity(1020000, unidades['ton']) == 1.02
 
 
 def test_conversion_de_precio_gramo_a_tonelada(unidades):
-    assert unidades['gram'].compute_price(2, unidades['ton']) == 2000000.0
+    assert unidades['gram']._compute_price(2, unidades['ton']) == 2000000.0
 
 
 def test_docena_a_unidad_no_arrastra_error_de_precision(unidades):
@@ -74,11 +74,11 @@ def test_docena_a_unidad_no_arrastra_error_de_precision(unidades):
     Si el factor se guardara con precisión insuficiente daría 12.0000000000047
     y el redondeo lo subiría a 13 — la regresión que la referencia documenta.
     """
-    assert unidades['dozen'].compute_quantity(1, unidades['unit']) == 12.0
+    assert unidades['dozen']._compute_quantity(1, unidades['unit']) == 12.0
 
 
 def test_gramo_a_kilogramo_redondea_a_la_precision_del_destino(unidades):
-    assert unidades['gram'].compute_quantity(1234, unidades['kgm']) == 1.24
+    assert unidades['gram']._compute_quantity(1234, unidades['kgm']) == 1.24
 
 
 # --- Redondeo (referencia: test_20_rounding) -------------------------------
@@ -95,7 +95,7 @@ def test_redondea_hacia_arriba_con_cero_decimales(
     precision_product_unit.digits = 0
     precision_product_unit.save()
 
-    assert unidades['unit'].compute_quantity(2, score) == 1
+    assert unidades['unit']._compute_quantity(2, score) == 1
 
 
 # --- check_qty (referencia: test_30_quantity) ------------------------------

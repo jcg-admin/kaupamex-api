@@ -119,7 +119,7 @@ def timesheet_total_duration(self):
         getattr(company, 'timesheet_encode_uom_id', None) if company else None
     )
     if source_uom is not None and target_uom is not None:
-        total = source_uom.compute_quantity(
+        total = source_uom._compute_quantity(
             total, target_uom, rounding_method='HALF-UP'
         )
     return round(total)

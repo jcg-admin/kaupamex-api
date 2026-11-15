@@ -122,7 +122,8 @@ TRACKING_CHOICES = [
     ('none', 'Por cantidad'),
 ]
 
-#: ≙ ``packaging_reserve_method`` (``odoo19c: stock/models/product.py:1302-1306``).
+#: ≙ ``packaging_reserve_method``
+#: (``odoo19c: stock/models/product.py:1302-1306``).
 #: Vocabulario verbatim y en el mismo orden que la fuente.
 PACKAGING_RESERVE_METHOD_CHOICES = [
     ('full', 'Reservar sólo empaques completos'),
@@ -393,16 +394,16 @@ def _adjust_uom_quantities(self, qty, quant_uom):
     unidad de origen (``stock.propagate_uom = '1'``) o se convierte a la del
     quant. En ambos casos el redondeo es ``HALF-UP``, verbatim de la fuente.
 
-    Nombre nuestro del convertidor: ``compute_quantity``. La referencia lo
-    declara ``_compute_quantity``; la despromoción es preexistente en el addon
-    ``uom`` y entra en el barrido de la tarea **#337**, no se corrige aquí para
-    no mezclar un rename de API con este porte.
+    El convertidor es ``_compute_quantity``, con el nombre de la fuente; la
+    despromoción que tenía el addon ``uom`` se corrigió en la unidad
+    ``purchase-add-supplier-to-product-0397``.
     """
     SystemParameter = apps.get_model('base', 'SystemParameter')
     if SystemParameter.get_param('stock.propagate_uom') != '1':
-        return (self.compute_quantity(qty, quant_uom, rounding_method='HALF-UP'),
+        return (self._compute_quantity(qty, quant_uom,
+                                       rounding_method='HALF-UP'),
                 quant_uom)
-    return (self.compute_quantity(qty, self, rounding_method='HALF-UP'), self)
+    return (self._compute_quantity(qty, self, rounding_method='HALF-UP'), self)
 
 
 # === el motor de cantidades (``odoo19c: :146-536``) =========================
@@ -416,16 +417,18 @@ def _adjust_uom_quantities(self, qty, quant_uom):
 #    ``self.env.context`` (``location``, ``warehouse_id``, ``lot_id``,
 #    ``owner_id``, ``package_id``, ``from_date``, ``to_date``, ``strict``,
 #    ``skip_in_progress``, ``owners``, ``with_expiration``). Aquí
-#    ``orm.environments`` sólo lleva el canal del dato (``get_current_companies``)
-#    y el de elevación, no un diccionario libre, así que cada clave es un
-#    argumento con nombre. Es el mismo idioma que ya usa ``StockQuant._gather``.
+#    ``orm.environments`` sólo lleva el canal del dato
+#    (``get_current_companies``) y el de elevación, no un diccionario libre,
+#    así que cada clave es un argumento con nombre. Es el mismo idioma que ya
+#    usa ``StockQuant._gather``.
 # 2. **``Domain`` → ``Q``.** La clase ``Domain`` de ``odoo/orm/domains.py`` no
 #    está portada (tarea **#356**); ``orm.domains`` es su espejo sobre ``Q``,
 #    que es el tipo que el ORM de destino consume.
 # 3. **El CTE recursivo → ``parent_path``.** La referencia arma un
 #    ``WITH RECURSIVE descendants`` y su propio comentario dice por qué: evitar
 #    que el ORM inyecte «un montón de ids de ubicación» en la consulta. Aquí la
-#    ruta materializada ya existe (``stock_location.py``, ``compute_parent_path``)
+#    ruta materializada ya existe (``stock_location.py``,
+#    ``compute_parent_path``)
 #    y un ``parent_path__startswith`` da el mismo conjunto sin subconsulta — es
 #    el idioma que ``stock_location.py:412,444`` ya usa.
 
@@ -707,7 +710,7 @@ def _in_product_uom(move):
     origin, target = move.product_uom, move.product.uom
     if origin is None or target is None:
         return qty
-    return origin.compute_quantity(qty, target)
+    return origin._compute_quantity(qty, target)
 
 
 def _round_to(uom, value):

@@ -547,7 +547,8 @@ class StockScrap(MailThread, TimeStampedModel):
             self.product, self.location,
             lot=self.lot, package=self.package, owner=self.owner, strict=True,
         )
-        cantidad = self.product_uom.compute_quantity(self.scrap_qty, self.product.uom)
+        cantidad = self.product_uom._compute_quantity(
+            self.scrap_qty, self.product.uom)
         return float_compare(float(disponible), float(cantidad),
                              precision_digits=precision) >= 0
 
@@ -573,7 +574,7 @@ class StockScrap(MailThread, TimeStampedModel):
                 'default_product_id': self.product_id,
                 'default_location_id': self.location_id,
                 'default_scrap_id': self.pk,
-                'default_quantity': self.product_uom.compute_quantity(
+                'default_quantity': self.product_uom._compute_quantity(
                     self.scrap_qty, self.product.uom),
                 'default_product_uom_name': self.product.uom_name,
             },

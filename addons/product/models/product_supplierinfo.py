@@ -50,7 +50,7 @@ no por gusto:
    ``price_discounted`` en tiempo de ejecución.
 
 **El precio que la divergencia cobra** está en la conversión de unidad:
-``Uom.compute_price`` multiplica por ``factor``, que es ``Float``
+``Uom._compute_price`` multiplica por ``factor``, que es ``Float``
 (``uom/models/uom_uom.py:104``), así que **no se le puede pasar un
 ``Decimal``**. ``price_discounted`` no lo llama: reconstruye el mismo ratio
 (``to_unit.factor / self.factor``, verbatim de ``uom_uom.py:306-313``) como
@@ -340,7 +340,7 @@ class ProductSupplierinfo(TimeStampedModel):
         revés daría lo mismo aquí, pero el orden es el que documenta qué
         significa el número: *"lo que cuesta una unidad de las nuestras"*.
 
-        La conversión **no** llama a ``Uom.compute_price``: ese método
+        La conversión **no** llama a ``Uom._compute_price``: ese método
         multiplica por ``factor``, que es ``Float``, y ``Decimal * float``
         lanza ``TypeError``. Se reconstruye su ratio
         (``to_unit.factor / self.factor``, ``uom_uom.py:306-313``) en

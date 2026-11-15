@@ -1224,7 +1224,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         toca_cantidad = campos is None or bool(
             {'product_uom_qty', 'product_uom', 'product'} & set(campos))
         if toca_cantidad and self.product_uom_id and self.product_id:
-            in_product = self.product_uom.compute_quantity(
+            in_product = self.product_uom._compute_quantity(
                 float(self.product_uom_qty or 0), self.product.uom,
                 rounding_method='HALF-UP')
             self.product_qty = Decimal(str(in_product))
@@ -1646,10 +1646,10 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         }
         if quantity:
             redondeo = DecimalPrecision.precision_get('Product Unit')
-            in_uom = self.product.uom.compute_quantity(
+            in_uom = self.product.uom._compute_quantity(
                 quantity, self.product_uom, rounding_method='HALF-UP')
             in_uom = float_round(in_uom, precision_digits=redondeo)
-            de_vuelta = self.product_uom.compute_quantity(
+            de_vuelta = self.product_uom._compute_quantity(
                 in_uom, self.product.uom, rounding_method='HALF-UP')
             if float_compare(quantity, de_vuelta, precision_digits=redondeo) == 0:
                 vals = dict(vals, quantity=in_uom)
@@ -1723,10 +1723,11 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                 (quant.location_id, quant.lot_id, quant.package_id, quant.owner_id))
             exacta = False
             if actualizable is not None:
-                in_uom = self.product.uom.compute_quantity(
-                    cantidad, actualizable.product_uom, rounding_method='HALF-UP')
+                in_uom = self.product.uom._compute_quantity(
+                    cantidad, actualizable.product_uom,
+                    rounding_method='HALF-UP')
                 in_uom = float_round(in_uom, precision_digits=redondeo)
-                de_vuelta = actualizable.product_uom.compute_quantity(
+                de_vuelta = actualizable.product_uom._compute_quantity(
                     in_uom, self.product.uom, rounding_method='HALF-UP')
                 exacta = float_compare(cantidad, de_vuelta,
                                        precision_digits=redondeo) == 0
@@ -1779,11 +1780,13 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         agrupado = {}
         for k, grupo in groupby(lineas, key=key_of):
             agrupado[k] = sum(
-                ml.product_uom.compute_quantity(float(ml.quantity), ml.product.uom)
+                ml.product_uom._compute_quantity(float(ml.quantity),
+                                                 ml.product.uom)
                 for ml in grupo)
         return agrupado
 
-    def _get_available_move_lines_out(self, assigned_moves_ids, partially_available_moves_ids):
+    def _get_available_move_lines_out(self, assigned_moves_ids,
+                                      partially_available_moves_ids):
         """≙ ``_get_available_move_lines_out`` (``odoo19c: :2004-2028``).
 
         Lo que los **hermanos ya se llevaron**, por la misma combinación. Suma
@@ -1809,7 +1812,8 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         agrupado = {}
         for k, grupo in groupby(hechos, key=key_of):
             agrupado[k] = sum(
-                ml.product_uom.compute_quantity(float(ml.quantity), ml.product.uom)
+                ml.product_uom._compute_quantity(float(ml.quantity),
+                                                 ml.product.uom)
                 for ml in grupo)
         for k, grupo in groupby(reservados, key=key_of):
             agrupado[k] = sum(float(ml.quantity_product_uom) for ml in grupo)
@@ -1853,17 +1857,18 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         tocan** — ya están empaquetadas.
         """
         def en_uom_del_movimiento(quantity):
-            return self.product.uom.compute_quantity(
+            return self.product.uom._compute_quantity(
                 quantity, self.product_uom, round=False)
 
         plan = []
-        qty = self.product_uom.compute_quantity(qty, self.product.uom, round=False)
+        qty = self.product_uom._compute_quantity(qty, self.product.uom,
+                                                 round=False)
         for linea in self.move_line_ids.all():
             cantidad_linea = float(linea.quantity)
             if linea.product_uom.compare(cantidad_linea, 0) < 0:
                 continue
             if linea.product_uom != self.product.uom:
-                cantidad_linea = linea.product_uom.compute_quantity(
+                cantidad_linea = linea.product_uom._compute_quantity(
                     cantidad_linea, self.product.uom, round=False)
 
             if self.product_uom.is_zero(en_uom_del_movimiento(qty)):
@@ -1873,7 +1878,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             if self.product.uom.compare(cantidad_linea, qty) > 0:
                 recorte = qty
                 if linea.product_uom != self.product.uom:
-                    recorte = self.product.uom.compute_quantity(
+                    recorte = self.product.uom._compute_quantity(
                         qty, linea.product_uom, round=False)
                 plan.append(('update', linea, {'quantity': Decimal(str(recorte))}))
                 qty = 0
@@ -2352,8 +2357,9 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         for move in conjunto:
             if float_compare(float(move.quantity), float(move.product_uom_qty),
                              precision_digits=redondeo) < 0:
-                por_partir = move.product_uom.compute_quantity(
-                    float(move.product_uom_qty - move.quantity), move.product.uom,
+                por_partir = move.product_uom._compute_quantity(
+                    float(move.product_uom_qty - move.quantity),
+                    move.product.uom,
                     rounding_method='HALF-UP')
                 valores += move._split(Decimal(str(por_partir)))
         # ``_split`` devuelve las relaciones múltiples dentro del diccionario,
@@ -2435,9 +2441,9 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         # fuente y trabajan en coma flotante; las columnas son ``Decimal``. La
         # conversión va aquí, en la frontera (H-API-588, tarea **#344**).
         redondeo = DecimalPrecision.precision_get('Product Unit')
-        in_uom = self.product.uom.compute_quantity(
+        in_uom = self.product.uom._compute_quantity(
             float(qty), self.product_uom, rounding_method='HALF-UP')
-        de_vuelta = self.product_uom.compute_quantity(
+        de_vuelta = self.product_uom._compute_quantity(
             in_uom, self.product.uom, rounding_method='HALF-UP')
         if float_compare(float(qty), de_vuelta, precision_digits=redondeo) == 0:
             valores = self._prepare_move_split_vals(Decimal(str(in_uom)))
@@ -2451,7 +2457,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             valores['location'] = source_location
 
         # La cantidad del original baja en lo que se llevó el pendiente.
-        restante = self.product.uom.compute_quantity(
+        restante = self.product.uom._compute_quantity(
             float(max(Decimal('0'), self.product_qty - qty)), self.product_uom,
             round=False)
         self.product_uom_qty = Decimal(str(
@@ -2511,8 +2517,9 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         ordenes = []
         lote_por_nombre = {lot.name: lot for lot in lots}
         libres = []
-        free_uom_qty = self.product_uom.compute_quantity(
-            float(max(self.quantity or Decimal('0'), self.product_uom_qty or Decimal('0'))),
+        free_uom_qty = self.product_uom._compute_quantity(
+            float(max(self.quantity or Decimal('0'),
+                      self.product_uom_qty or Decimal('0'))),
             product.uom)
         asignados = set()
         for linea in lineas:
@@ -2524,7 +2531,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             elif nombre in lote_por_nombre:
                 lote = lote_por_nombre[nombre]
                 asignados.add(lote.pk)
-                free_uom_qty -= linea.product_uom.compute_quantity(
+                free_uom_qty -= linea.product_uom._compute_quantity(
                     float(linea.quantity or 0), product.uom)
                 ordenes.append(('update', linea, {'lot': lote}))
             else:
@@ -2549,7 +2556,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                     ordenes.append(('update', linea, {
                         'lot': lote, 'lot_name': lote.name,
                         'product_uom': uom, 'quantity': cantidad}))
-                    extra_uom_qty -= uom.compute_quantity(
+                    extra_uom_qty -= uom._compute_quantity(
                         float(cantidad), product.uom) - 1
                 else:
                     reservar = 1.0
@@ -2603,16 +2610,17 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             for linea in libres:
                 if product.uom.compare(extra_uom_qty, 0.0) <= 0:
                     break
-                in_product = linea.product_uom.compute_quantity(
+                in_product = linea.product_uom._compute_quantity(
                     float(linea.quantity or 0), product.uom)
                 reservar = min(in_product, extra_uom_qty)
                 ordenes.append(('create', None, {
                     'move': self, 'product': linea.product,
                     'product_uom': linea.product_uom,
-                    'location': linea.location, 'location_dest': linea.location_dest,
+                    'location': linea.location,
+                    'location_dest': linea.location_dest,
                     'company': linea.company, 'picking': linea.picking,
                     'picked': linea.picked,
-                    'quantity': Decimal(str(product.uom.compute_quantity(
+                    'quantity': Decimal(str(product.uom._compute_quantity(
                         reservar, linea.product_uom))),
                 }))
                 extra_uom_qty -= reservar
@@ -2811,7 +2819,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         sin_lote = 0
         nuevos = OrderedSet(lot.name for lot in lots if lot.name)
         for linea in self.move_line_ids.all():
-            in_uom = linea.product_uom.compute_quantity(
+            in_uom = linea.product_uom._compute_quantity(
                 float(linea.quantity or 0), self.product_uom)
             nombre = linea.lot.name if linea.lot_id else linea.lot_name
             if not nombre:
@@ -2834,7 +2842,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
 
         base = self.picking.location if self.picking_id else self.location
         uom = self.product_uom
-        minima = product.uom.compute_quantity(1.0, uom)
+        minima = product.uom._compute_quantity(1.0, uom)
         candidatos = StockQuant.objects.filter(
             product=product, lot__name__in=extra,
             lot__isnull=False,
@@ -2854,8 +2862,10 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             libre = float(self.product_uom_qty or 0) - asignada
             disponible_por_lote = defaultdict(float)
             for quant in candidatos.filter(base.child_of_domain('location')):
-                disponible_por_lote[quant.lot.name] += product.uom.compute_quantity(
-                    float((quant.quantity or 0) - (quant.reserved_quantity or 0)), uom)
+                free_qty = float((quant.quantity or 0)
+                                 - (quant.reserved_quantity or 0))
+                disponible_por_lote[quant.lot.name] += (
+                    product.uom._compute_quantity(free_qty, uom))
             # Cada lote se representa con una línea, así que de entrada se
             # reserva la unidad mínima por lote; el resto se reparte después.
             libre -= len(extra) * minima

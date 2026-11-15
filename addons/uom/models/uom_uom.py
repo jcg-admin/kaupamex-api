@@ -360,7 +360,7 @@ class Uom(TimeStampedModel):
             _as_float(value), precision_digits=self._precision_digits()
         )
 
-    def compute_quantity(
+    def _compute_quantity(
         self,
         qty: float,
         to_unit: 'Uom',
@@ -388,7 +388,7 @@ class Uom(TimeStampedModel):
             )
         return amount
 
-    def compute_price(self, price: float, to_unit: 'Uom') -> float:
+    def _compute_price(self, price: float, to_unit: 'Uom') -> float:
         """Convierte un precio a la unidad destino (Odoo ``:196-203``).
 
         Inverso de la cantidad: si la unidad destino es mayor, su precio sube.
@@ -409,7 +409,7 @@ class Uom(TimeStampedModel):
         No usa el operador módulo: la cantidad por empaque puede ser flotante y
         daría resultados falsos (``8 % 1.6 == 1.5999999999999996``).
         """
-        packaging_qty = self.compute_quantity(1, uom)
+        packaging_qty = self._compute_quantity(1, uom)
         if self == uom:
             return product_qty
         if product_qty and packaging_qty:

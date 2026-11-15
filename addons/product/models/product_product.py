@@ -534,7 +534,7 @@ class ProductProduct(TimeStampedModel):
             # La cantidad, en la unidad del proveedor.
             quantity_uom_seller = quantity
             if quantity_uom_seller and uom_id and uom_id != seller.product_uom:
-                quantity_uom_seller = uom_id.compute_quantity(
+                quantity_uom_seller = uom_id._compute_quantity(
                     quantity_uom_seller, seller.product_uom
                 )
 
