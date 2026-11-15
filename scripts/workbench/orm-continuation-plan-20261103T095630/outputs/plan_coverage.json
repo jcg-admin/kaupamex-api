@@ -144,11 +144,6 @@
    "id": "purchase-invoice-link-0397",
    "task": "TASK-API-0397",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
-  },
-  {
-   "id": "purchase-order-sequence-0397",
-   "task": "TASK-API-0397",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
   }
  ],
  "unrepresented": [
@@ -447,7 +442,8 @@
   "purchase-res-company-0397",
   "purchase-order-partner-0397",
   "purchase-order-state-machine-0397",
-  "purchase-add-supplier-to-product-0397"
+  "purchase-add-supplier-to-product-0397",
+  "purchase-order-sequence-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
