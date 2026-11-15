@@ -3,6 +3,8 @@
 
 from django.db import migrations, models
 
+from orm.migration_operations import ComputeStoredFields
+
 
 class Migration(migrations.Migration):
 
@@ -30,4 +32,6 @@ class Migration(migrations.Migration):
                 verbose_name="Bills",
             ),
         ),
+        ComputeStoredFields('purchase', 'purchaseorder', [
+            'invoice_ids', 'invoice_count']),
     ]
