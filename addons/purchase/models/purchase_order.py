@@ -64,7 +64,6 @@ no existía aquí (``grep -c currency_rate`` daba **0**). El mecanismo —
 import uuid
 from decimal import Decimal
 
-from django.conf import settings
 from django.core.exceptions import ValidationError
 import fields
 import models
@@ -118,14 +117,19 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
         default='',
         help_text='Referencia de la orden (Odoo purchase.order.name).',
     )
-    # Odoo purchase.order.partner_id — proveedor (res.partner). Aquí AUTH_USER.
+    #: ≙ ``partner_id`` (``odoo19c: :91-94``): el proveedor es un contacto.
+    #: ``null=True`` mientras haya órdenes sin proveedor; la fuente lo exige.
     partner_id = fields.Many2one(
-        settings.AUTH_USER_MODEL,
+        'base.ResPartner',
+        verbose_name='Vendor',
         null=True,
         blank=True,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         related_name='purchase_orders',
-        help_text='Proveedor (Odoo partner_id).',
+        db_index=True,
+        help_text=(
+            'You can find a vendor by its Name, TIN, Email or Internal '
+            'Reference.'),
         db_column='partner_id',
     )
     #: ≙ ``priority`` (``odoo19c: :78-79``).

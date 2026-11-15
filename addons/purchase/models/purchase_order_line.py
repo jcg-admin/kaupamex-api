@@ -56,6 +56,15 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
 
     #: ≙ ``sequence`` (``odoo19c: :22``).
     sequence = fields.Integer(string='Sequence', default=10)
+    #: ≙ ``partner_id`` (``odoo19c: :84``): el proveedor de la orden,
+    #: almacenado para filtrar líneas por proveedor.
+    partner_id = fields.Many2one(
+        'base.ResPartner', verbose_name='Partner',
+        related='order_id.partner_id',
+        store=True, readonly=True, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='purchase_line_ids',
+        db_column='partner_id',
+    )
 
     order_id = fields.Many2one(
         'purchase.PurchaseOrder', null=False, on_delete=models.CASCADE,

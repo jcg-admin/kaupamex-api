@@ -5183,6 +5183,31 @@ def _notify_m2m_modified(sender, instance, action, reverse, model,
             record.modified([field.name])
 
 
+def _sync_fk_attname(records, ids, field, value):
+    """Deja el ``attname`` de las filas en cómputo con el id asignado.
+
+    Un cómputo puede asignar un ``ForeignKey`` por el descriptor de Django
+    (``row.partner_id = v``), que escribe ``__dict__[attname]``, o por clave
+    (``row['partner_id'] = v``), que va a ``field.write`` y llena sólo la
+    caché. :func:`orm.fields._cache_computed_values` relee el ``attname``
+    para el primer caso; sin esta sincronización, en el segundo la relectura
+    cargaba de la base el valor previo y lo volvía a escribir sucio, y el
+    vaciado guardaba el valor viejo (``designs/purchase-order-partner.md``).
+    """
+    if value is None or value is False:
+        pk = None
+    elif isinstance(value, int):
+        pk = value
+    elif getattr(value, '_ids', None) is not None:
+        pk = value._ids[0] if value._ids else None
+    else:
+        pk = getattr(value, 'pk', None)
+    wanted = set(ids)
+    for row in records:
+        if row._ids and row._ids[0] in wanted:
+            row.__dict__[field.attname] = pk
+
+
 def _recompute_field(self, field, ids=None):
     """Procesa el recalculo pendiente de ``field``.
 
@@ -9662,6 +9687,8 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
         if protected:
             # filas en cómputo: sin lógica de negocio ni recálculo
             field.write(self.browse(tuple(protected)), value)
+            if isinstance(field, ForeignKey):
+                _sync_fk_attname(self, protected, field, value)
 
         if new:
             # filas nuevas: sin lógica de negocio. El cubo lo porta

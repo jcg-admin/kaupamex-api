@@ -16,7 +16,7 @@ from decimal import Decimal
 
 import pytest
 
-from addons.base.models import ResCompany, ResUsers
+from addons.base.models import ResCompany, ResPartner
 from addons.product.models import ProductProduct, ProductTemplate
 from addons.purchase.models import PurchaseOrder, PurchaseOrderLine
 from addons.stock.models import StockLocation, StockMove
@@ -57,9 +57,7 @@ def variant(db):
 @pytest.fixture
 def line(db, variant):
     order = PurchaseOrder.objects.create(
-        partner_id=ResUsers.objects.create_user(
-            login='proveedor@kaupamex.mx', password='x'
-        )
+        partner_id=ResPartner.objects.create(name='Proveedor')
     )
     return PurchaseOrderLine.objects.create(
         order_id=order, product_id=variant, price_unit=Decimal('10.00')

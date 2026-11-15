@@ -2269,8 +2269,12 @@ def _install_field_descriptor(field, cls):
     # cómputo asigna. Con el ``ForeignKeyDeferredAttribute`` de Django la
     # asignación del cómputo sólo tocaba el ``__dict__`` de la instancia, y
     # una restricción que lo leyera en el mismo cómputo veía el valor viejo.
-    if (type(current) is ForeignKeyDeferredAttribute
-            and field.store and not field.related):
+    # Un ``related`` almacenado entra igual: su valor también lo escribe un
+    # cómputo (``_compute_related``) y se lee de la caché. Excluirlo dejaba
+    # la lectura en el ``__dict__`` o en la base, y un registro recién creado
+    # leía ``None`` aunque la caché ya tuviera el valor
+    # (``designs/purchase-order-partner.md``).
+    if type(current) is ForeignKeyDeferredAttribute and field.store:
         setattr(cls, field.attname, StoredMany2oneIdDescriptor(field))
         return
     # Re-invocable desde ``Field.setup``: un campo ``related=`` no tiene

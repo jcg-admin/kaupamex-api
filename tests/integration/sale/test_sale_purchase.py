@@ -5,9 +5,9 @@ Tests — addons ``purchase`` + ``sale_purchase`` (venta de servicio → compra)
 from decimal import Decimal
 
 import pytest
-from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 
+from addons.base.models import ResPartner
 from addons.purchase.models import PurchaseOrder, PurchaseOrderLine
 from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.sale_purchase.models import SaleLinePurchaseLink
@@ -25,16 +25,13 @@ def _as_superuser():
         yield
 
 
-User = get_user_model()
-
 _vendor_seq = [0]
 
 
 def _vendor():
+    """El proveedor es un contacto (``odoo19c: purchase_order.py:91-94``)."""
     _vendor_seq[0] += 1
-    return User.objects.create_user(
-        login=f'prov{_vendor_seq[0]}@kaupamex.mx', password='x'
-    )
+    return ResPartner.objects.create(name=f'Proveedor {_vendor_seq[0]}')
 
 
 def test_purchase_order_confirm_state_machine(db):
