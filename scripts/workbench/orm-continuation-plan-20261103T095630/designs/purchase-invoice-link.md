@@ -47,3 +47,33 @@ Referencia: `odoo19c: addons/purchase/models/account_invoice.py:523-560`,
    `cancel` ni en `draft`, y cancela si todas están en borrador.
 4. Borrar la línea de compra deja `purchase_line_id` en NULL
    (`ondelete='set null'`).
+
+## Medido al implementar
+
+- **Ni el `create` ni el `write` de `account.move.line` llegan a anunciar
+  nada.** Es un modelo de Django sin el mixin de acceso: `create` del ORM le
+  exige `_check_field_access`, y sus filas nacen por `objects.create`. El
+  disparo de la fuente (crear, escribir o borrar la línea anuncia
+  `purchase_line_id`) se reproduce desde sus señales:
+  - `pre_save` guarda la orden anterior;
+  - `post_save` y `post_delete` dejan en `env.add_to_compute` los dos
+    campos de las órdenes afectadas.
+  Anulación: sin la orden anterior, o sin `post_delete`, cae el caso de
+  mover la línea.
+- **Dos defectos de la raíz para un Many2many almacenado y calculado sobre
+  `BaseModel` hacia un comodelo de Django.** Es el primero de su tipo en el
+  árbol.
+  1. `_flush_m2m` pedía el gestor con `getattr`, y en un `BaseModel` eso es
+     el recordset. Ahora usa `orm.commands.related_manager`.
+  2. `_RelationalMulti.write` desviaba el comodelo de Django a la escritura
+     genérica de `Field`, que dejaba el valor sucio en la caché. El volcado
+     escribía otro valor. Almacenado y sobre filas reales, ahora va por
+     `write_batch` y `write_real`, como en la fuente.
+  Anulación: sin el 1 caen tres casos; sin el 2, dos. Otros dos cambios que
+  probé —volcar antes de leer y sincronizar la caché en `write_real`— no
+  hacían caer ningún caso y se retiraron.
+- Pendientes, con su fila en el plan:
+  - `purchase_line_warn_msg` (`purchase-product-0397`);
+  - `_copy_data_extend_business_fields`
+    (`account-copy-data-business-fields-0397`);
+  - `_prepare_line_values_for_purchase` (`purchase-from-bill-0397`).

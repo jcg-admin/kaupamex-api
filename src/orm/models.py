@@ -5492,8 +5492,11 @@ def _flush_m2m(row, field, value):
     Una fila sin ``pk`` no llega aqui: :func:`_flush` solo recorre las que el
     registro de sucios nombra por id, y una fila nueva no tiene ninguno.
     """
-    manager = getattr(row, field.name)
-    manager.set([] if value is None else value)
+    # El gestor se pide con :func:`~orm.commands.related_manager` y no con
+    # ``getattr``: en un ``BaseModel`` leer el campo devuelve el recordset
+    # (``AccessQuerySet``), que no tiene ``set``. El primer M2M calculado y
+    # almacenado sobre ``BaseModel`` es ``purchase.order.invoice_ids``.
+    related_manager(row, field.name).set([] if value is None else value)
 
 
 def flush_model(self, fnames=None):

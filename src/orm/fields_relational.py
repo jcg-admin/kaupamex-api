@@ -3155,9 +3155,17 @@ class _RelationalMulti:
         (sin recordset propio) guarda en caché el ``QuerySet`` del comodelo,
         que es la forma en que este árbol representa ese valor; conserva la
         escritura genérica de ``models.Field`` (``fields.py:1501-1518``),
-        resuelta en tiempo de llamada.
+        resuelta en tiempo de llamada. Salvo almacenado sobre filas reales:
+        ahí la tabla intermedia se escribe por ``write_batch``/``write_real``
+        como en la fuente; con la escritura genérica el valor quedaba sucio y
+        el volcado escribía otro (``purchase.order.invoice_ids``).
         """
-        if not hasattr(_relational_multi_comodel(self), '_from_ids'):
+        stored_real = (getattr(self, 'store', True) and isinstance(
+            self, models.ManyToManyField) and all(
+                isinstance(getattr(record, 'pk', None), int)
+                for record in _as_records(records)))
+        if (not hasattr(_relational_multi_comodel(self), '_from_ids')
+                and not stored_real):
             return models.Field.write(self, records, value)
         records = _as_records(records)
         get_environment().remove_to_compute(

@@ -16,3 +16,8 @@ class PurchaseConfig(AppConfig):
         importlib.import_module(
             f'{self.name}.models.res_company'
         ).apply_purchase_extensions()
+        # ≙ ``purchase/models/account_invoice.py``: el vínculo de la línea de
+        # factura con la línea de compra.
+        importlib.import_module(
+            f'{self.name}.models.account_invoice'
+        ).apply_account_move_line_extensions()

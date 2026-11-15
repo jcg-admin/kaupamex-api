@@ -65,6 +65,7 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
+import api
 import fields
 import models
 from django.utils import timezone
@@ -209,6 +210,14 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
         related='company_id.po_lock', store=False)
     #: ≙ ``user_id`` (``odoo19c: :157-159``): el comprador, por defecto el
     #: usuario que actúa.
+    #: ≙ ``invoice_ids`` e ``invoice_count`` (``odoo19c: :125-126``): las
+    #: facturas de las líneas, calculadas y almacenadas.
+    invoice_ids = fields.Many2many(
+        'account.AccountMove', compute='_compute_invoice', store=True,
+        copy=False, blank=True, related_name='+', verbose_name='Bills')
+    invoice_count = fields.Integer(
+        compute='_compute_invoice', store=True, copy=False, default=0,
+        verbose_name='Bill Count')
     user_id = fields.Many2one(
         'base.ResUsers', verbose_name='Buyer', null=True, blank=True,
         default=_default_buyer, on_delete=models.SET_NULL,
@@ -402,6 +411,23 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
     def amount_total(self) -> Decimal:
         return self._sum_lines('price_total')
 
+    @api.depends('order_line.invoice_lines.move')
+    def _compute_invoice(self):
+        """≙ ``_compute_invoice`` (``odoo19c: :70-75``).
+
+        ``mapped('order_line.invoice_lines.move_id')`` de la fuente:
+        ``invoice_lines`` es el inverso de una FK de ``account.move.line``,
+        un modelo de Django, y ``mapped`` no recorre su gestor; las facturas
+        se leen por la relación.
+        """
+        move_model = type(self).invoice_ids.field.related_model
+        for order in self:
+            invoice_ids = list(move_model.objects.filter(
+                line_ids__purchase_line_id__order_id=order.id).distinct(
+            ).values_list('pk', flat=True))
+            order.invoice_ids = invoice_ids
+            order.invoice_count = len(invoice_ids)
+
     @classmethod
     def create(cls, vals_list):
         """≙ ``create`` (``odoo19c: :393-406``).
@@ -520,18 +546,20 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
                     {'seller_ids': [fields.Command.create(supplierinfo)]})
 
     def button_cancel(self):
-        """≙ ``button_cancel`` (``odoo19c: :641-649``).
-
-        pendiente: la guarda de facturas (``:645-647``) lee
-        ``po.invoice_ids``, que la fuente calcula desde
-        ``account.move.line.purchase_line_id``; ese campo da 0 en
-        ``addons/account/models``. Unidad ``purchase-invoice-link-0397``.
-        """
+        """≙ ``button_cancel`` (``odoo19c: :641-649``)."""
         locked_orders = self.filtered(lambda order: order.locked)
         if locked_orders:
             raise UserError(_(
                 'Unable to cancel purchase order(s): %s. You must first '
                 'unlock them.', locked_orders.mapped('display_name')))
+        orders_with_invoices = self.filtered(lambda order: any(
+            invoice.state not in ('cancel', 'draft')
+            for invoice in order.invoice_ids))
+        if orders_with_invoices:
+            raise UserError(_(
+                'Unable to cancel purchase order(s): %s. You must first '
+                'cancel their related vendor bills.',
+                orders_with_invoices.mapped('display_name')))
         self.write({'state': self.STATE_CANCEL})
 
     def button_lock(self):
