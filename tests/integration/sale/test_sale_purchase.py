@@ -5,7 +5,6 @@ Tests — addons ``purchase`` + ``sale_purchase`` (venta de servicio → compra)
 from decimal import Decimal
 
 import pytest
-from django.core.exceptions import ValidationError
 
 from addons.base.models import ResPartner
 from addons.purchase.models import PurchaseOrder, PurchaseOrderLine
@@ -37,9 +36,6 @@ def _vendor():
 def test_purchase_order_confirm_state_machine(db):
     product = make_product(name='Insumo', price=Decimal('58.00'))
     po = PurchaseOrder.objects.create(partner_id=_vendor())
-    # No se puede confirmar sin líneas.
-    with pytest.raises(ValidationError):
-        po.button_confirm()
     PurchaseOrderLine.objects.create(
         order_id=po, product_id=product, price_unit=Decimal('58.00')
     )

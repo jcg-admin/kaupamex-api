@@ -68,10 +68,14 @@ from django.core.exceptions import ValidationError
 import fields
 import models
 from django.utils import timezone
+from exceptions import UserError
+from orm.environments import (
+    get_current_company, get_current_uid, get_current_user)
+from tools.translate import _
 
 from addons.account.models.account_document_import_mixin import (
     AccountDocumentImportMixin)
-from addons.base.models import ResCurrency, TimeStampedModel
+from addons.base.models import ResCompany, ResCurrency, TimeStampedModel
 from addons.mail.models import MailActivityMixin, MailThread
 from addons.portal.models.portal_mixin import PortalMixin
 from addons.product.models.product_catalog_mixin import ProductCatalogMixin
@@ -81,6 +85,11 @@ from addons.product.models.product_catalog_mixin import ProductCatalogMixin
 #: ``SaleOrder._loaded_company_id``
 #: (``api: addons/sale/models/sale_order.py:855-861``).
 _SIN_CARGAR = object()
+
+
+def _default_buyer():
+    """≙ ``default=lambda self: self.env.user`` (``odoo19c: :159``)."""
+    return get_current_uid()
 
 
 class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
@@ -101,11 +110,13 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
 
     STATE_DRAFT = 'draft'
     STATE_SENT = 'sent'
+    STATE_TO_APPROVE = 'to approve'
     STATE_PURCHASE = 'purchase'
     STATE_CANCEL = 'cancel'
     STATE_CHOICES = [
         (STATE_DRAFT, 'Solicitud de cotización'),
         (STATE_SENT, 'Cotización enviada'),
+        (STATE_TO_APPROVE, 'Por aprobar'),
         (STATE_PURCHASE, 'Orden de compra'),
         (STATE_CANCEL, 'Cancelada'),
     ]
@@ -157,7 +168,27 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
         choices=STATE_CHOICES,
         default=STATE_DRAFT,
         help_text='Estado (Odoo purchase.order.state).',
+        db_index=True,
+        copy=False,
     )
+    #: ≙ ``date_approve`` (``odoo19c: :90``).
+    date_approve = fields.Datetime(
+        'Confirmation Date', null=True, blank=True, db_index=True,
+        copy=False)
+    #: ≙ ``locked`` (``odoo19c: :112-116``).
+    locked = fields.Boolean(
+        default=False, copy=False,
+        help_text='Locked Purchase Orders cannot be modified.')
+    #: ≙ ``lock_confirmed_po`` (``odoo19c: :117``).
+    lock_confirmed_po = fields.Selection(
+        related='company_id.po_lock', store=False)
+    #: ≙ ``user_id`` (``odoo19c: :157-159``): el comprador, por defecto el
+    #: usuario que actúa.
+    user_id = fields.Many2one(
+        'base.ResUsers', verbose_name='Buyer', null=True, blank=True,
+        default=_default_buyer, on_delete=models.SET_NULL,
+        related_name='purchase_orders_as_buyer', db_index=True,
+        db_column='user_id')
     # Odoo purchase.order.note.
     note = fields.Text(
         blank=True,
@@ -351,27 +382,118 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
         # P-<uuid>.
         return f'P-{uuid.uuid4().hex[:8].upper()}'
 
+    def button_approve(self, force=False):
+        """≙ ``button_approve`` (``odoo19c: :615-619``)."""
+        self = self.filtered(lambda order: order._approval_allowed())
+        self.write({'state': self.STATE_PURCHASE,
+                    'date_approve': timezone.now()})
+        self.filtered(lambda order: order.lock_confirmed_po == 'lock').write(
+            {'locked': True})
+        return {}
+
+    def button_draft(self):
+        """≙ ``button_draft`` (``odoo19c: :621-623``)."""
+        self.write({'state': self.STATE_DRAFT})
+        return {}
+
     def button_confirm(self):
+        """≙ ``button_confirm`` (``odoo19c: :625-639``).
+
+        Una orden que no está en ``draft``/``sent`` se salta, no se rehúsa.
+
+        Dos llamadas de la fuente quedan pendientes, cada una con su fila
+        en el plan (diseño ``purchase-order-state-machine.md``):
+
+        * pendiente: ``order.order_line._validate_analytic_distribution()``
+          (``:631``). ``_validate_distribution`` depende de
+          ``get_relevant_plans`` (``analytic_mixin.py:53``); unidad
+          ``purchase-analytic-validation-0397``.
+        * pendiente: ``order._add_supplier_to_product()`` (``:633``). En la
+          línea faltan ``product_uom_id`` y ``selected_seller_id``; unidad
+          ``purchase-add-supplier-to-product-0397``.
+
+        ``name`` se asigna aquí y no en ``create``, que es la divergencia
+        anterior a esta unidad (secuencia ``purchase.order``, unidad
+        ``purchase-order-sequence-0397``).
         """
-        Confirma la RFQ → orden de compra (Odoo purchase.order.button_confirm).
-        """
-        if self.state not in (self.STATE_DRAFT, self.STATE_SENT):
-            raise ValidationError(
-                'Solo una RFQ (draft/sent) puede confirmarse.'
-            )
-        if not self.order_line:
-            raise ValidationError(
-                'No se puede confirmar una orden sin líneas.'
-            )
-        if not self.name:
-            self.name = self._generate_purchase_name()
-        self.state = self.STATE_PURCHASE
-        self.date_order = self.date_order or timezone.now()
-        self.save(update_fields=['name', 'state', 'date_order', 'write_date'])
-        return self
+        for order in self:
+            if order.state not in (self.STATE_DRAFT, self.STATE_SENT):
+                continue
+            error_msg = order._confirmation_error_message()
+            if error_msg:
+                raise UserError(error_msg)
+            if not order.name:
+                order.write({'name': order._generate_purchase_name(),
+                             'date_order': order.date_order or timezone.now()})
+            if order._approval_allowed():
+                order.button_approve()
+            else:
+                order.write({'state': self.STATE_TO_APPROVE})
+        return True
 
     def button_cancel(self):
-        """Cancela la orden (Odoo purchase.order.button_cancel)."""
-        self.state = self.STATE_CANCEL
-        self.save(update_fields=['state', 'write_date'])
-        return self
+        """≙ ``button_cancel`` (``odoo19c: :641-649``).
+
+        pendiente: la guarda de facturas (``:645-647``) lee
+        ``po.invoice_ids``, que la fuente calcula desde
+        ``account.move.line.purchase_line_id``; ese campo da 0 en
+        ``addons/account/models``. Unidad ``purchase-invoice-link-0397``.
+        """
+        locked_orders = self.filtered(lambda order: order.locked)
+        if locked_orders:
+            raise UserError(_(
+                'Unable to cancel purchase order(s): %s. You must first '
+                'unlock them.', locked_orders.mapped('display_name')))
+        self.write({'state': self.STATE_CANCEL})
+
+    def button_lock(self):
+        """≙ ``button_lock`` (``odoo19c: :651-652``)."""
+        self.locked = True
+
+    def button_unlock(self):
+        """≙ ``button_unlock`` (``odoo19c: :654-655``)."""
+        self.locked = False
+
+    def _confirmation_error_message(self):
+        """≙ ``_confirmation_error_message`` (``odoo19c: :657-668``)."""
+        self.ensure_one()
+        if any(
+            not line.display_type
+            and not line.is_downpayment
+            and not line.product_id
+            for line in self.order_line
+        ):
+            return _('Some order lines are missing a product, you need to '
+                     'correct them before going further.')
+        return False
+
+    def _approval_allowed(self):
+        """≙ ``_approval_allowed`` (``odoo19c: :1251-1260``).
+
+        ``env.company`` es la empresa activada en contexto; sin empresa en
+        contexto (cron, migraciones, pruebas) se usa la de la orden. Una
+        orden sin empresa —la columna admite NULL hasta su relleno, igual que
+        ``sale.order``— toma la política por defecto de ``res.company``.
+
+        ``purchase.group_purchase_manager`` todavía no está sembrado: hasta
+        que lo esté, ``has_group`` devuelve ``False``, el mismo resultado
+        que para un usuario sin el grupo.
+        """
+        self.ensure_one()
+        current = get_current_company()
+        env_company = (ResCompany.objects.get(pk=current) if current
+                       else None)
+        company = self.company_id or env_company
+        policy = (company.po_double_validation if company else
+                  ResCompany._meta.get_field('po_double_validation').default)
+        if policy == 'one_step':
+            return True
+        if policy == 'two_step':
+            threshold = (env_company or company).currency._convert(
+                company.po_double_validation_amount, self.currency_id,
+                company, self.date_order or timezone.now().date())
+            if self.amount_total() < threshold:
+                return True
+        user = get_current_user()
+        return bool(user) and user.has_group(
+            'purchase.group_purchase_manager')

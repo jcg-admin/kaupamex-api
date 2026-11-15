@@ -1522,6 +1522,44 @@ class NonStoredMany2oneAccessor(ForwardManyToOneDescriptor):
         return value
 
 
+def _value_written_by_another_instance(field, instance, value):
+    """El valor de la columna tras una escritura hecha por otra instancia.
+
+    En la fuente un registro no guarda valores: ``Field.__get__`` lee de
+    ``env.cache`` (``odoo19c: odoo/orm/fields.py:1668-1673``), así que dos
+    registros de la misma fila leen lo mismo. Aquí la instancia de Django
+    guarda su copia en ``__dict__`` y la lectura rápida la devuelve tal cual;
+    si OTRA instancia de la fila escribió el campo, esa copia quedó atrás.
+    ``write`` deja la fila en ``transaction.field_written`` cuando la
+    escritura llega a la fila (tras su ``save``); si está ahí
+    y la caché tiene otro valor, la copia se refresca desde la caché, y el
+    ``__set__`` siguiente compara contra el valor vigente. Un valor sucio en
+    la caché —asignado y sin guardar— no refresca nada.
+
+    El registro de un ``Many2one`` no pasa por aquí: su descriptor ya lee de
+    la caché (``test_written_by_another_instance.py``, caso del padre).
+    """
+    transaction = get_environment().transaction
+    written = transaction.field_written.get(field)
+    if not written:
+        return value
+    pk = instance.__dict__.get(instance._meta.pk.attname)
+    if pk is None or pk not in written:
+        return value
+    if pk in transaction.field_dirty.get(field, ()):
+        # La caché lleva una asignación que todavía no llegó a la fila: no es
+        # el valor de la fila, y quien carga la fila de la base para tener su
+        # imagen previa (``ResPartner.save``) tiene que ver lo guardado.
+        return value
+    cached = field._get_cache(get_environment()).get(pk, SENTINEL)
+    if cached is SENTINEL:
+        return value
+    if field.convert_to_cache(value, instance, validate=False) == cached:
+        return value
+    instance.__dict__[field.attname] = cached
+    return cached
+
+
 class FieldDescriptor(DeferredAttribute):
     """Lectura y escritura de campos mediante el enganche nativo de Django.
 
@@ -1570,7 +1608,8 @@ class FieldDescriptor(DeferredAttribute):
             if field.store and not field.compute and not field.related:
                 ids = getattr(instance, '_ids', None)
                 if ids is None or len(ids) == 1:
-                    value = instance.__dict__[field.attname]
+                    value = _value_written_by_another_instance(
+                        field, instance, instance.__dict__[field.attname])
                     # ``Json.convert_to_record`` entrega una copia también
                     # aquí: esta rama es el acierto de caché del almacén
                     # Django, y un ``None`` sale como ``False``, como en la
@@ -1859,6 +1898,13 @@ class FieldDescriptor(DeferredAttribute):
         """
         field = self.field
         previous = instance.__dict__.get(field.attname, SENTINEL)
+        if (previous is not SENTINEL and field.store and not field.compute
+                and not field.related):
+            # La copia de ``__dict__`` puede ir atrás de lo que otra instancia
+            # de la fila escribió; comparar contra ella tomaría por no-op una
+            # escritura real.
+            previous = _value_written_by_another_instance(
+                field, instance, previous)
         # El atributo de instancia se escribe SIEMPRE: es de donde ``save()``
         # de Django lee la columna, y de donde la lee
         # ``_cache_computed_values`` tras el cómputo.

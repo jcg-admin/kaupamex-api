@@ -3134,6 +3134,17 @@ class RecordLoaderMixin(FieldSqlMixin):
                         fname for fname in LOG_ACCESS_COLUMNS
                         if fname in written]
                 self.save(update_fields=update_fields)
+                # La escritura llegó a la fila: otra instancia que la haya
+                # leído antes tiene ahora una copia vieja en ``__dict__``.
+                # Una asignación sin ``write`` NO entra: no llegó a la fila y
+                # ``_origin`` sigue leyendo lo guardado (ver
+                # ``Transaction.field_written``).
+                if self.pk:
+                    written_ids = env().transaction.field_written
+                    for fname in update_fields:
+                        field = fields_written.get(fname)
+                        if field is not None:
+                            written_ids[field].add(self.pk)
             if reparented:
                 _parent_store_update(self)
             if relational:

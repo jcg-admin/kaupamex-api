@@ -82,6 +82,14 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
         max_length=255, blank=True, default='',
         help_text='Descripción de la línea (Odoo purchase.order.line.name).',
     )
+    #: ≙ ``display_type`` (``odoo19c: purchase_order_line.py:91-94``).
+    display_type = fields.Selection(
+        [('line_section', 'Section'), ('line_subsection', 'Subsection'),
+         ('line_note', 'Note')],
+        max_length=16, null=True, blank=True,
+        help_text='Technical field for UX purpose.')
+    #: ≙ ``is_downpayment`` (``odoo19c: purchase_order_line.py:95``).
+    is_downpayment = fields.Boolean(default=False)
     product_qty = models.PositiveIntegerField(
         default=1, validators=[MinValueValidator(1)],
         help_text='Cantidad (Odoo product_qty).',

@@ -84,3 +84,45 @@ consumidores. La secuencia se registra como `purchase-order-sequence-0397`.
 
 Anulación: con `_approval_allowed` reducido a `return True` caen los casos 3
 y 5-bis (`to approve`). Con la guarda de `locked` retirada cae el caso 8.
+
+## Defecto de la raíz del ORM que destapó esta unidad
+
+**Síntoma.** `button_confirm` sobre la orden de la prueba devolvía `True`,
+fijaba `date_approve` y dejaba `state == 'draft'`.
+
+**Causa medida.** La fuente tiene una sola caché: un registro no guarda
+valores, y `Field.__get__` lee de `env.cache`
+(`odoo19c: odoo/orm/fields.py:1668-1673`). Por eso dos registros de la misma
+fila leen lo mismo. Aquí cada instancia de Django guarda su copia en
+`__dict__`, y la lectura rápida de una columna ordinaria
+(`FieldDescriptor.__get__`) la devuelve sin consultar la caché. Lo que
+`button_approve` escribía con `self.filtered(...)`, que es otra instancia de
+la misma fila, llegaba a la base y a la caché, pero no al `__dict__` de la
+instancia que ya había leído `state`. Reproducido sin compras:
+`partner.name` leído, `partner.browse(partner.id).write({'name': ...})`, y
+`partner.name` seguía devolviendo el valor viejo.
+
+**Arreglo.**
+- `write`, después de su `save`, deja la fila en
+  `transaction.field_written[campo]`.
+- La lectura rápida y la comparación de `__set__` refrescan su copia desde la
+  caché cuando la fila está marcada, el valor de la caché ya está guardado
+  (no aparece en `field_dirty`) y es distinto.
+- La asignación en memoria sin `write` no marca nada, así que `_origin` y la
+  imagen previa que lee `ResPartner.save` siguen viendo lo guardado. Esos dos
+  consumidores fallaban con una primera versión que marcaba en `Field.write`.
+
+**Anulación.**
+- Sin la marca caen el caso del ORM y cuatro casos de compras.
+- Sin el refresco de la lectura cae su caso.
+- Sin el refresco de `__set__` cae el caso de reescribir el valor viejo.
+- El caso del `Many2one` pasa con o sin el refresco, porque su descriptor ya
+  lee la caché. Queda como control.
+- `sync_written_cache` se retiró: ningún caso dependía de él.
+
+*Métrica:* aserciones de `tests/unit/orm/test_written_by_another_instance.py`
+y de `tests/unit/purchase/test_purchase_order_state_machine.py`, con cada
+mitad retirada por separado.
+*Ciega a:* una fila que se escribe por `QuerySet.update` o por SQL crudo
+después de una escritura del ORM en la misma transacción. Ahí la caché queda
+vieja, igual que en la fuente sin `invalidate_model`.

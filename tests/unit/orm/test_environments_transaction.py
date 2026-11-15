@@ -127,6 +127,10 @@ class TestTheTransaction:
         los tres últimos es invención nuestra: la fuente los declara en su
         propio ``__slots__`` (``odoo19c: odoo/orm/environments.py:555-558``).
 
+        **Diez** desde ``field_written``, y éste SÍ es nuestro: lo exige la
+        segunda caché (el ``__dict__`` de cada instancia de Django), que la
+        fuente no tiene. Su razón está en el docstring de la clase.
+
         Los dos de la fuente que aquí **no** están —``registry`` y
         ``_Transaction__file_open_tmp_paths``— llevan su divergencia declarada
         en el docstring de la clase.
@@ -139,6 +143,7 @@ class TestTheTransaction:
             'field_data',
             'field_data_patches',
             'field_dirty',
+            'field_written',
             'protected',
             'tocompute',
         )

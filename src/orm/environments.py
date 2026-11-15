@@ -393,6 +393,9 @@ class Transaction:
                        volcado aún a la base
     ``field_data_patches`` los ids que un x2many suma a un valor que todavía no
                        está en caché
+    ``field_written``  ``FieldDescriptor.__get__``/``__set__`` — las filas que
+                       ``write`` escribió; no está en la fuente, ver su
+                       comentario en ``__init__``
     ``protected``      ``Field.compute_value`` — los campos que un cómputo
                        protege mientras corre, apilados por alcance
     ``tocompute``      ``Field.recompute`` — los cómputos pendientes
@@ -432,7 +435,7 @@ class Transaction:
     """
     __slots__ = ('cache', 'default_env', 'envs', 'field_cache_memo',
                  'field_data', 'field_data_patches', 'field_dirty',
-                 'protected', 'tocompute')
+                 'field_written', 'protected', 'tocompute')
 
     def __init__(self):
         #: ``{campo: datos_gestionados_por_el_campo}``. Suele ser un mapa de
@@ -441,6 +444,18 @@ class Transaction:
         self.field_data = defaultdict(dict)
         #: ``{campo: OrderedSet[id]}`` — lo cambiado en caché y aún no escrito.
         self.field_dirty = defaultdict(OrderedSet)
+        #: ``{campo: set[id]}`` — las filas reales que ``Field.write`` escribió
+        #: en esta transacción. **No está en la fuente**, y lo exige la segunda
+        #: caché de este stack: la fuente tiene una sola (``env.cache``) y un
+        #: registro no guarda valores, así que todo registro de la misma fila
+        #: lee lo último escrito. Aquí cada instancia de Django guarda su copia
+        #: en ``__dict__``, y la lectura rápida de una columna ordinaria la
+        #: devuelve sin mirar la caché. Con esta marca,
+        #: ``FieldDescriptor.__get__`` sabe que la copia de otra instancia de
+        #: la misma fila puede haber quedado atrás y la toma de la caché. No se
+        #: vacía al volcar: la copia vieja sigue siendo vieja después de que la
+        #: escritura llegue a la base.
+        self.field_written = defaultdict(set)
         #: ``{campo: {id: [ids]}}`` — ids que sumar al valor de un x2many que
         #: todavía no está en caché.
         self.field_data_patches = defaultdict(lambda: defaultdict(list))
@@ -571,6 +586,7 @@ class Transaction:
         self.field_cache_memo.clear()
         self.field_data_patches.clear()
         self.field_dirty.clear()
+        self.field_written.clear()
         self.tocompute.clear()
 
 
