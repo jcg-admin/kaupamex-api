@@ -13,7 +13,7 @@ from django.db import models as dj_models
 from addons.base.models import ResCompany, ResPartner
 from addons.product.models import ProductSupplierinfo
 from addons.uom.models import Uom
-from orm.environments import sudo
+from orm.environments import env, sudo
 from orm.registry import MODELS_BY_NAME
 from tests.factories.product_factory import make_product
 
@@ -100,6 +100,25 @@ def test_the_discounted_unit_price(order):
 def test_without_discount_the_discounted_price_is_the_price(order):
     line = _line(order, discount=Decimal('0'))
     assert line.price_unit_discounted == Decimal('100')
+
+
+def test_the_discounted_price_keeps_decimal_precision(order):
+    """``price_unit * (1 - discount / 100)`` sin redondeo, como la fuente
+    (``odoo19c: purchase_order_line.py:152-155``), y en ``Decimal``: ningún
+    tramo pasa por ``float``."""
+    line = _line(order, price_unit=Decimal('99.99'), discount=Decimal('12.5'))
+    assert line.price_unit_discounted == Decimal('87.49125')
+    assert isinstance(line.price_unit_discounted, Decimal)
+
+
+def test_a_full_discount_leaves_nothing(order):
+    line = _line(order, discount=Decimal('100'))
+    assert line.price_unit_discounted == Decimal('0')
+
+
+def test_a_new_line_without_price_reads_zero():
+    line = env()['purchase.order.line'].new({})
+    assert line.price_unit_discounted == 0
 
 
 def test_the_unit_price_in_the_product_unit(order):

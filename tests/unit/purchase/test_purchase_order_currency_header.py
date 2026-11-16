@@ -230,9 +230,6 @@ class TestOrderLineCompanyAndCurrency:
         )
         assert line.currency_id == usd
 
-    @pytest.mark.xfail(strict=True, reason=(
-        'Un related sin columna no se lee sobre un registro de new(): '
-        'orm-nonstored-compute-on-new-records-0397.'))
     def test_line_currency_id_is_empty_without_an_order(self, variant):
         """``related='order_id.currency_id'`` sobre una línea nueva sin orden.
 

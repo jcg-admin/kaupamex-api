@@ -5093,9 +5093,15 @@ def _filter_not_equal_ids(self, records, cache_value):
     sin convertir la pk de Django ni cambiar este filtrado de escritura.
     """
     field_cache = self._get_cache(get_environment())
+    # La guarda excluye el ``None`` de la fila de Django sin guardar, y sólo
+    # a él: un ``NewId`` también es falso (``bool(NewId)`` es ``False``, como
+    # en la fuente) y SÍ es una clave de caché válida. Con ``if id_`` el
+    # resultado de un cómputo sobre un registro de ``new()`` se descartaba
+    # aquí, bajo protección, y la lectura levantaba *Compute method failed
+    # to assign* (``orm-nonstored-compute-on-new-records-0397``).
     return tuple(
         id_ for id_ in record_ids(records)
-        if id_ and field_cache.get(id_, SENTINEL) != cache_value
+        if id_ is not None and field_cache.get(id_, SENTINEL) != cache_value
     )
 
 

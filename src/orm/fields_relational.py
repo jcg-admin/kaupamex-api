@@ -2012,6 +2012,42 @@ def _many2many_convert_to_cache(self, value, record, validate=True):
 
 
 models.ManyToManyField.convert_to_cache = _many2many_convert_to_cache
+
+
+def _many2many_convert_to_record(self, value, record):
+    """≙ ``_RelationalMulti.convert_to_record`` (``odoo19c: odoo/orm/
+    fields_relational.py:643-653``): de la caché al registro, el recordset del
+    comodelo con esos ids, filtrado por ``active`` salvo ``active_test=False``
+    en el contexto del campo o del entorno.
+
+    Sin este método el campo heredaba el de :class:`~django.db.models.Field`,
+    que devuelve el valor de caché tal cual: un ``Many2many`` calculado o
+    related leía la tupla de ids, y el ``write_new`` de la fuente
+    (``:1607``), que pide ``record[self.name]._ids``, fallaba sobre ella.
+
+    Con un comodelo de Django la caché guarda su ``QuerySet`` (ver
+    :func:`_many2many_convert_to_cache`) y se entrega tal cual; su vacío es el
+    ``QuerySet`` vacío, no ``False``.
+    """
+    comodel = self.related_model
+    if not hasattr(comodel, '_from_ids'):
+        if value is None or value is False:
+            return comodel._default_manager.none()
+        return models.Field.convert_to_record(self, value, record)
+    if not isinstance(value, (tuple, list)):
+        return models.Field.convert_to_record(self, value, record)
+    environment = get_environment()
+    ids = tuple(value)
+    corecords = comodel._from_ids(environment, ids, ids)
+    active_name = getattr(comodel, '_active_name', None)
+    context = getattr(self, 'context', None) or {}
+    if active_name and context.get(
+            'active_test', environment.context.get('active_test', True)):
+        corecords = corecords.filtered(active_name)
+    return corecords
+
+
+models.ManyToManyField.convert_to_record = _many2many_convert_to_record
 models.ManyToOneRel.convert_to_write = _reverse_one2many_only(
     _reverse_one2many_convert_to_write)
 models.ManyToOneRel._update_cache = _reverse_one2many_only(

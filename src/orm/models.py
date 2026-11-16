@@ -6528,7 +6528,17 @@ def _forward_get(self, instance, cls=None):
         # ni su propia clave.
         instance.check_access('read')
     if ids is None or len(ids) <= 1 or not to_records:
-        value = _DJANGO_FORWARD_GET(self, instance, cls)
+        try:
+            value = _DJANGO_FORWARD_GET(self, instance, cls)
+        except self.RelatedObjectDoesNotExist:
+            # Django levanta cuando una FK con ``null=False`` no tiene valor.
+            # Sobre un registro de ``new()`` esa obligación es del guardado,
+            # no de la lectura: la fuente lee el valor nulo del campo, el
+            # recordset vacío del comodelo (``odoo19c: odoo/orm/fields.py:
+            # 1793-1806``). Una fila persistida conserva el error de Django.
+            if not isinstance(getattr(instance, 'pk', None), NewId):
+                raise
+            value = None
         # ≙ ``Many2one.convert_to_record`` (``odoo19c: odoo/orm/
         # fields_relational.py:354-358``): sin valor, el recordset vacío del
         # comodelo, no ``None``. Sólo cuando quien lee es un registro
