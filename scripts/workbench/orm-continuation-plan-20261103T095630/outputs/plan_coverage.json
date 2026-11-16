@@ -131,11 +131,6 @@
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
-   "id": "purchase-headers-and-security-0397",
-   "task": "TASK-API-0122",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
-  },
-  {
    "id": "purchase-analytic-validation-0397",
    "task": "TASK-API-0122",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
@@ -183,6 +178,16 @@
   {
    "id": "account-account-company-ids-0121",
    "task": "TASK-API-0121",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "purchase-report-models-0122",
+   "task": "TASK-API-0122",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "product-model-headers-0122",
+   "task": "TASK-API-0122",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   }
  ],
@@ -476,6 +481,7 @@
   "basemodel-adoption-hr-comodels-0397",
   "basemodel-adoption-hr-core-0397",
   "basemodel-adoption-res-partner-category-0397",
+  "purchase-headers-and-security-0397",
   "basemodel-adoption-hr-employee-location-0397",
   "purchase-order-header-0397",
   "purchase-order-mixins-0397",
