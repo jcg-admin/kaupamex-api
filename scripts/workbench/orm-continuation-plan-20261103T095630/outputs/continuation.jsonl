@@ -464,3 +464,4 @@
 {"utc": "2026-11-16T04:38:05Z", "epoch": 1794803885.741, "kind": "accepted", "item": "purchase-line-amounts-0122", "commitExit": 0, "commit": "a36a2145"}
 {"utc": "2026-11-16T05:33:33Z", "epoch": 1794807213.371, "kind": "attempt", "item": "purchase-line-related-0122", "attempt": 0, "model": "conversational-session", "outcome": "success", "source": "preexisting", "verifyExit": 0, "commit": "9acab88c", "verifyTail": ["    warnings.warn(", "-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html", "111 passed, 1 xfailed, 2 warnings in 39.29s"]}
 {"utc": "2026-11-16T05:33:33Z", "epoch": 1794807213.371, "kind": "accepted", "item": "purchase-line-related-0122", "commitExit": 0, "commit": "9acab88c"}
+{"utc": "2026-11-16T20:24:17Z", "epoch": 1794860657.792, "kind": "hard_block", "item": "gate-evidence-scratch-reclaim-0485", "reason": "sin obligaciones"}

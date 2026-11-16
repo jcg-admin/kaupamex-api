@@ -211,3 +211,41 @@ publicarse.
 
 Total recuperado comprobado: 5 312 512 (§8) + 120 987 648 = **126 300 160
 bytes**.
+
+## 13. `gate-evidence-scratch-reclaim-0485` (2026-11-16T20:25:07)
+
+Implementado en `api@920b86ad` como subcomando `reclaim` de
+`probes/persist_gate_evidence.py`: las fases MARK RECLAIMABLE y CLEANUP que
+faltaban tras PERSIST. Una copia del scratchpad se retira sólo si:
+
+1. su `sha256` figura en una fila de `outputs/gates/index.tsv` con el mismo
+   nombre (el nombre solo no basta: otra copia homónima se conserva);
+2. el archivo del banco existe, tiene ese hash, está en `HEAD` con el mismo
+   blob de git y no tiene cambios locales;
+3. ningún proceso la tiene abierta (`lsof`).
+
+Cada decisión, retire o no, se anexa a `outputs/gates/reclaimed.tsv`;
+`--mark-only` la registra sin retirar.
+
+**Verificación.** 7 pruebas (`probes/test_persist_gate_evidence_reclaim.py`,
+fuera del `pytest.ini` con `-c /dev/null`). Anulación: sin la comprobación
+del blob en `HEAD` cae exactamente la prueba del banco sin commitear; sin la
+de `lsof`, exactamente la de la copia abierta. Restaurado, 7 de 7.
+
+**Primera ejecución real**, `--mark-only` sobre los 577 `*.log` del
+scratchpad: 577 `kept:not-in-index`, 0 retirados. Es el resultado correcto:
+los duplicados exactos ya salieron en §8 (p. ej. `fullgate-nid.log`, que el
+índice registra en `full-head-a3723a61`, ya no está en el scratchpad), y
+`multidb-nid.log`, que el gate en curso escribe, tampoco tiene fila.
+
+*Métrica:* decisiones del subcomando por copia.
+*Ciega a:* un log persistido bajo otro nombre de archivo — se conserva,
+que es el error seguro.
+
+**Lo que no cierra.** `settle_item.py` rehúsa asentar la unidad
+(`hard_block`, «sin obligaciones», registrado en `continuation.jsonl`): no
+porta ningún símbolo de `odoo19c:`, así que no tiene obligación de
+referencia contra la que asentarse. No se inventó una ni se retiró la clave
+`obligations` para pasar la guarda. La unidad queda implementada y
+verificada, sin asiento del controlador; si cuenta para `TASK-API-0485`, que
+sigue `in_progress`, lo decide el ejecutor.
