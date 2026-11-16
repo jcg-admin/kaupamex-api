@@ -78,11 +78,12 @@ Clasificación:
   `company_122020071908891_db`, y las familias `orm_x2hokp_t41_*`,
   `orm_x2hokp_dev*`, `orm_x2hokp_preserve`, `orm_x2hokp_probe`,
   `orm_refproc_*`. No se borran.
-- **Compartidas, preexistentes a cada gate**:
+- **Heredadas por todo gate, no compartidas por diseño** (corregido en §11):
   `company_11710386656870_db`, `company_11710386656871_db`,
   `company_201103761692838_db`, `company_201103761692839_db` aparecen en
-  `companies_before` **y** `companies_after` de 33 registros: sobreviven a
-  todo gate por diseño. No son desechables.
+  `companies_before` **y** `companies_after` de 33 registros porque cada gate
+  posterior las encontró y, por diseño, no toca lo que ya existía. No son
+  desechables mientras su propiedad no se demuestre.
 - **De las pruebas**: `orm_x2hokp_qa` y `orm_x2hokp_qa_gw0..3` (las de
   `--reuse-db` y `-n 4`).
 
@@ -162,3 +163,51 @@ scratchpad acumula. `persist_gate_evidence.py` copia el log al banco y lo
 versiona, pero la copia del scratchpad queda; 134 de ellas eran duplicados
 exactos. El paso MARK RECLAIMABLE que su cabecera nombra no se ejecuta sobre la
 fuente. Sucesor: `gate-evidence-scratch-reclaim-0485`.
+
+## 11. Conciliación de las bases históricas (2026-11-16T20:20:31)
+
+Fecha de creación de cada base (`mtime` de `base/<oid>/PG_VERSION`), en
+sólo lectura:
+
+| Creada | Base |
+|---|---|
+| 2026-11-09 19:20:13 | `orm_bootstrap_b42418e0a4d4` |
+| 2026-11-09 19:31:11 | `company_201103761692838_db` |
+| 2026-11-09 19:46:21 | `company_201103761692839_db` |
+| 2026-11-10 01:05:40 | `orm_bootstrap_276bbe3da956` |
+| 2026-11-10 01:16:43 | `company_11710386656870_db` |
+| 2026-11-10 01:30:16 | `company_11710386656871_db` |
+| 2026-11-12 23:38:30 | `orm_bootstrap_12769386391b` |
+| 2026-11-13 00:18:17 | `company_122020071908891_db` |
+
+Cada `orm_bootstrap_*` va seguido, 11 a 40 minutos después, de sus bases
+`company_*`: es la forma de una ejecución de `run_multidb_isolation.py`
+(base de prueba y luego las empresas que aprovisiona). Son **tres ejecuciones
+interrumpidas** anteriores al registro de intención (`intent.json` aparece por
+primera vez en `ci-multidb-provision-e9fb9b5b`, 2026-11-13 20:18), y por eso
+`--reclaim` no puede reclamarlas. La primera ya estaba documentada con su
+causa en `outputs/residual-databases-20261109.md` (reclamo del contenedor) y
+lleva **directiva del ejecutor de no eliminarla**.
+
+Estado: **conciliadas por inferencia** (nombre que sólo forma ese guion, rol de
+esta VM, secuencia temporal), **no demostradas**. Ninguna se borra. Las de
+`orm_x2hokp_probe`, `orm_x2hokp_dev*`, `orm_x2hokp_t41_*`,
+`orm_refproc_*` y `orm_x2hokp_preserve` (2026-11-02 a 2026-11-11) son bases
+de trabajo de esta VM sin registro de ciclo de vida; siguen pendientes.
+
+## 12. Compresión verificada del scratchpad
+
+Los logs y copias SQLite **únicos** —no reconstruibles: son instantáneas de
+ejecuciones y del store— se comprimieron en lugar de retirarse. Cada archivo
+cerrado (más de un día sin modificar, ningún proceso abierto según `lsof`)
+se comprimió con `gzip -9`; el original se retiró sólo si `gzip -t` pasaba
+y el `sha256` de lo descomprimido coincidía con el del original. 30 archivos,
+140 605 350 bytes a 19 543 334. Disponible antes 979 689 472, después
+1 100 677 120: **120 987 648 bytes recuperados**, sin pérdida de información.
+El manifiesto (nombre, tamaño, `sha256` original, archivo comprimido) está en
+`outputs/scratch-compression-manifest-20261116.tsv`. No se versionan los
+archivos: son copias locales de trabajo, de contenido no evaluado para
+publicarse.
+
+Total recuperado comprobado: 5 312 512 (§8) + 120 987 648 = **126 300 160
+bytes**.
