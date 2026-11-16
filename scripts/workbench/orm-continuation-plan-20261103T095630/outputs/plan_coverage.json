@@ -136,11 +136,6 @@
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
-   "id": "purchase-product-0397",
-   "task": "TASK-API-0122",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
-  },
-  {
    "id": "account-copy-data-business-fields-0397",
    "task": "TASK-API-0121",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
@@ -187,6 +182,11 @@
   },
   {
    "id": "product-model-headers-0122",
+   "task": "TASK-API-0122",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "purchase-line-checks-0122",
    "task": "TASK-API-0122",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   }
@@ -491,6 +491,7 @@
   "purchase-add-supplier-to-product-0397",
   "purchase-invoice-link-0397",
   "purchase-order-sequence-0397",
+  "purchase-product-0397",
   "account-model-headers-0121",
   "account-security-0121"
  ],
