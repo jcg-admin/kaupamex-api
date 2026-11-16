@@ -136,11 +136,6 @@
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
-   "id": "account-copy-data-business-fields-0397",
-   "task": "TASK-API-0121",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
-  },
-  {
    "id": "purchase-from-bill-0397",
    "task": "TASK-API-0122",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
@@ -189,6 +184,46 @@
    "id": "purchase-line-checks-0122",
    "task": "TASK-API-0122",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "account-reverse-moves-copy-0121",
+   "task": "TASK-API-0121",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "purchase-line-amounts-0122",
+   "task": "TASK-API-0122",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "purchase-line-related-0122",
+   "task": "TASK-API-0122",
+   "reason": "waits for purchase-line-amounts-0122"
+  },
+  {
+   "id": "purchase-line-qty-invoiced-0122",
+   "task": "TASK-API-0122",
+   "reason": "waits for purchase-line-related-0122"
+  },
+  {
+   "id": "purchase-line-qty-received-0122",
+   "task": "TASK-API-0122",
+   "reason": "waits for purchase-line-related-0122"
+  },
+  {
+   "id": "purchase-line-price-and-dates-0122",
+   "task": "TASK-API-0122",
+   "reason": "waits for purchase-line-qty-invoiced-0122, purchase-line-qty-received-0122"
+  },
+  {
+   "id": "purchase-line-lifecycle-0122",
+   "task": "TASK-API-0122",
+   "reason": "waits for purchase-line-price-and-dates-0122"
+  },
+  {
+   "id": "purchase-product-actions-0397",
+   "task": "TASK-API-0122",
+   "reason": "waits for purchase-line-related-0122"
   }
  ],
  "unrepresented": [
@@ -492,6 +527,7 @@
   "purchase-invoice-link-0397",
   "purchase-order-sequence-0397",
   "purchase-product-0397",
+  "account-copy-data-business-fields-0397",
   "account-model-headers-0121",
   "account-security-0121"
  ],
