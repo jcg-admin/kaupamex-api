@@ -196,3 +196,25 @@ cubren las dos.
   en `_end_of_chain`, caen exactamente 2 casos —el de
   `test_related_many2many_end_of_chain.py` y el de los related de producto
   y empresa de la línea— y pasan los otros 11 de esos dos archivos.
+
+## Orden 4 → 3 (medido 2026-11-16T18:47:22)
+
+`_compute_qty_invoiced` (unidad 3) depende de `qty_received` y lo usa en
+`qty_to_invoice` (`odoo19c: :164-177`); la unidad 4 no depende de la 3.
+Se implementa la 4 primero.
+
+## Unidad 4 — `purchase-line-qty-received-0122`
+
+Contrato (`odoo19c: purchase_order_line.py:58-81,216-261,707-728`):
+
+| Símbolo | Fuente | Aquí |
+|---|---|---|
+| `qty_received_method` | `Selection([('manual','Manual')])`, calculado almacenado | igual; `purchase_stock` añade `stock_moves` (su unidad) |
+| `qty_received` | `Float`, calculado almacenado, `inverse`, `compute_sudo`, `digits='Product Unit'` | `Decimal` de cuatro decimales, como `product_qty` |
+| `qty_received_manual` | `Float`, `copy=False` | ídem |
+| `qty_received_at_date` | sin columna, `depends_context('accrual_entry_date')` | ídem |
+| `_prepare_qty_received`, `_inverse_qty_received`, `_date_in_the_past` | — | métodos homónimos |
+| `_track_qty_received` | `message_post_with_source('purchase.track_po_line_qty_received_template')` | **bloqueado**: `message_post_with_source` no existe en `addons/mail` (0 definiciones; la fuente: `mail/models/mail_thread.py:2621`). Sucesor `mail-message-post-with-source-0121` |
+
+`_track_qty_received` sólo la llama `write` (unidad 6), así que el bloqueo
+no detiene la cadena de cantidades.
