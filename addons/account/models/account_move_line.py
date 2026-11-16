@@ -26,6 +26,8 @@ from decimal import Decimal
 import api
 import fields
 import models
+from orm.environments import env
+from orm.models import CopyMixin
 from addons.analytic.models.analytic_mixin import AnalyticMixin
 from addons.product.models.product_supplierinfo import ProductSupplierinfo
 
@@ -271,6 +273,43 @@ class AccountMoveLine(AnalyticMixin, models.Model):
 
     def __str__(self) -> str:
         return f'{self.name or self.account} {self.debit}/{self.credit}'
+
+    def copy_data(self, default=None, seen=None):
+        """≙ ``AccountMoveLine.copy_data`` (``odoo19c: account/models/
+        account_move_line.py:2071-2086``), sobre la copia genérica.
+
+        La fuente recorre el conjunto; aquí ``copy_data`` responde por una
+        instancia (``CopyMixin``), así que el cuerpo es el de una vuelta del
+        bucle. Las claves son las de la copia genérica: ``account_id`` es el
+        ``attname`` del FK ``account``.
+
+        La copia genérica llega por adopción y no por la MRO, así que el
+        ``super()`` de la fuente se escribe con la función del mixin, la
+        misma forma con que el ORM copia un hijo (``CopyMixin.copy_data``).
+        """
+        vals = CopyMixin.copy_data(self, default=default, seen=seen)
+        if vals is None:
+            return vals
+        is_invoice = self.move.is_invoice(True)
+        # Don't copy the name of a payment term line.
+        if self.display_type == 'payment_term' and is_invoice:
+            del vals['name']
+        # Don't copy restricted fields of notes
+        if self.display_type in ('line_section', 'line_subsection',
+                                 'line_note'):
+            del vals['balance']
+            del vals['account_id']
+        # Will be recomputed from the price_unit
+        if self.display_type == 'product' and is_invoice:
+            del vals['balance']
+        if env().context.get('include_business_fields'):
+            self._copy_data_extend_business_fields(vals)
+        return vals
+
+    def _copy_data_extend_business_fields(self, values):
+        """≙ ``_copy_data_extend_business_fields`` (``odoo19c: :3765-3766``):
+        la base no añade nada. La extienden ``purchase`` (``purchase_line_id``)
+        y ``sale`` (``sale_line_ids``)."""
 
     @api.depends('debit', 'credit')
     def _compute_balance(self):

@@ -28,14 +28,12 @@ dos campos, que es el recálculo pendiente de la fuente.
 
 Pendientes, cada uno con su fila en el plan:
 
-* pendiente: ``purchase_line_warn_msg`` y su cómputo (``:530,556-560``):
-  lee ``product.purchase_line_warn_msg``, que cuelga
-  ``purchase/models/product.py`` y no está portado; unidad
-  ``purchase-product-0397``.
-* pendiente: ``_copy_data_extend_business_fields`` (``:532-535``): extiende
-  un método de ``account.move.line`` que no existe en este árbol (medido:
-  0 hits en ``addons/account``); unidad
-  ``account-copy-data-business-fields-0397``.
+* portado en ``purchase/models/product.py``: ``purchase_line_warn_msg`` y
+  su cómputo (``:530,556-560``), junto al campo de producto que lee
+  (unidad ``purchase-product-0397``).
+* portado aquí: ``_copy_data_extend_business_fields`` (``:532-535``), sobre
+  la base que ``account`` declara junto a ``copy_data`` (unidad
+  ``account-copy-data-business-fields-0397``).
 * pendiente: ``_prepare_line_values_for_purchase`` (``:537-...``): su
   consumidor es la creación de órdenes desde facturas, que no está portada;
   unidad ``purchase-from-bill-0397``.
@@ -46,6 +44,7 @@ from django.db.models.signals import post_delete, post_save, pre_save
 
 import fields
 from orm.environments import env
+from orm.method_chain import wrap_method
 from orm.model_classes import extend_model
 
 #: Atributo con que ``pre_save`` deja en la fila la orden que tenía antes.
@@ -96,6 +95,13 @@ def _announce_deleted_line(sender, instance, **kwargs):
                              or _order_id_of(instance),))
 
 
+def _copy_data_extend_business_fields(self, previous, values):
+    """≙ ``_copy_data_extend_business_fields`` (``odoo19c: :532-535``)."""
+    # OVERRIDE to copy the 'purchase_line_id' field as well.
+    previous(values)
+    values['purchase_line_id'] = self.purchase_line_id_id
+
+
 def apply_account_move_line_extensions():
     """≙ ``_inherit = 'account.move.line'`` de ``purchase``."""
     extend_model(
@@ -115,6 +121,8 @@ def apply_account_move_line_extensions():
         },
     )
     line_model = apps.get_model('account', 'AccountMoveLine')
+    wrap_method(line_model, '_copy_data_extend_business_fields',
+                _copy_data_extend_business_fields)
     pre_save.connect(_remember_previous_order, sender=line_model,
                      dispatch_uid='purchase_invoice_previous_order')
     post_save.connect(_announce_saved_line, sender=line_model,

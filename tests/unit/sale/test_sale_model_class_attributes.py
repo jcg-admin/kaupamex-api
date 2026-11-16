@@ -250,6 +250,7 @@ def test_db_table_matches_name_replace_dot_underscore(
 #: constante nuestra}). El nombre de la constante varía porque un archivo
 #: puede extender más de un modelo (analytic.py extiende dos).
 EXTENSION_ONLY_CLASSES = [
+    ('account_move_line.py', 'AccountMoveLine', {'_inherit': '_inherit'}),
     (
         'analytic.py',
         'AccountAnalyticLine',

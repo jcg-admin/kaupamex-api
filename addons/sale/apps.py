@@ -52,6 +52,12 @@ class SaleConfig(AppConfig):
         importlib.import_module(
             f'{self.name}.models.ir_actions_report'
         ).apply_sale_report_extensions()
+        # ≙ ``sale/models/account_move_line.py:36-39``: la copia de una línea
+        # de factura con ``include_business_fields`` lleva sus líneas de
+        # pedido.
+        importlib.import_module(
+            f'{self.name}.models.account_move_line'
+        ).apply_sale_account_move_line_extensions()
         # La cuenta de anticipo pertenece a la empresa: un renglón en el
         # mapa de cuentas de propiedad del cargador del plan —
         # ≙ ``sale/models/chart_template.py`` de la fuente. Va en ``ready()``

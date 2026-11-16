@@ -85,11 +85,13 @@ Divergencias declaradas (por símbolo)
   exclusión de navegación que ``AccountDebitNoteWizard``).
 - ``reverse_moves`` con ``is_modify=True``: la referencia además **recrea**
   el asiento original (``move.copy_data(...)`` filtrando líneas de
-  producto/sección). ``copy_data`` no existe en este árbol (medido en el
-  porte de ``account_debit_note``); la recreación copia explícitamente los
-  campos del movimiento y sus líneas de producto/sección/nota — los
-  ``display_type`` de la referencia, contra el vocabulario que el puerto
-  de ``account_move_line`` declara.
+  producto/sección). Cuando esto se escribió ``copy_data`` no existía en
+  este árbol (medido en el porte de ``account_debit_note``); hoy existe
+  —``CopyMixin``, y el override de ``account.move.line`` con
+  ``include_business_fields``— pero esta recreación todavía copia
+  explícitamente los campos del movimiento y sus líneas de
+  producto/sección/nota. Llevarla a ``copy()`` como la fuente es la unidad
+  ``account-reverse-moves-copy-0121``.
 - ``_modify_default_reverse_values``: la mitad del adjunto de proveedor
   (``message_main_attachment_id`` + ``attachment_ids``) está bloqueada por
   el chatter de ``mail`` sobre ``account.move`` (no portado aquí); se porta
