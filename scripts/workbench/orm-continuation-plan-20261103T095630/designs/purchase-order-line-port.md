@@ -143,3 +143,29 @@ Fuera de la unidad, con sucesor:
   casos de `test_purchase_line_amounts.py` (los que tienen impuesto y la
   migración); sobreviven la tabla, el campo de cantidad y la línea sin
   impuestos.
+
+## Unidad 2 — `purchase-line-related-0122` (2026-11-16T04:14:14)
+
+Contrato (`odoo19c: purchase_order_line.py:19-21,35,38,42-45,54,85-90,
+105-111,152-162,229-235,467-472,510-529`):
+
+| Símbolo | Fuente | Aquí |
+|---|---|---|
+| `state` | `related='order_id.state'` | related sin columna |
+| `date_order`, `date_approve` | related de la orden, `readonly` | related sin columna |
+| `currency_id` | `related='order_id.currency_id'` | hoy `@property`; pasa a related (es el campo de moneda de los `Monetary`) |
+| `product_type` | `related='product_id.type'` | related; `type` vive en `product.template` y `product.product` lo hereda por `_inherits` |
+| `tax_calculation_rounding_method` | `related='company_id.tax_calculation_rounding_method'` | related; el campo lo añade `account` a `res.company` (`account/models/res_company.py:701`) |
+| `product_template_attribute_value_ids` | `related='product_id.product_template_attribute_value_ids'` | related a `product_template_attribute_values`, el nombre que el porte de `product.product` usa (divergencia de nombre ajena, de `product-model-headers-0122`) |
+| `product_no_variant_attribute_value_ids` | `Many2many('product.template.attribute.value', ondelete='restrict')` | tabla por defecto de la fuente: `product_template_attribute_value_purchase_order_line_rel` |
+| `translated_product_name` | `compute` con `lang` del proveedor | sin columna |
+| `price_unit_product_uom` | `compute`, `uom._compute_price` | sin columna |
+| `price_unit_discounted` | `compute` | sin columna |
+| `technical_price_unit` | `Float` almacenado | `Monetary` (precio en `Decimal`, como `price_unit`) |
+| `parent_id` | `compute='_compute_parent_id'` | sin columna |
+| `allowed_uom_ids` | `compute`, unidades del producto y de sus tarifas | sin columna; la tarifa nombra su unidad `product_uom` |
+| `name` | `Text`, calculado almacenado | `Text` aquí; el cálculo es la unidad 5 |
+
+Las cifras que el diseño deja como cota: `display_type` es `Selection` con
+`null=True` y la fuente usa `False`; las comparaciones `not line.display_type`
+cubren las dos.
