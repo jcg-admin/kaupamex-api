@@ -21,3 +21,8 @@ class PurchaseConfig(AppConfig):
         importlib.import_module(
             f'{self.name}.models.account_invoice'
         ).apply_account_move_line_extensions()
+        # ≙ ``purchase/models/product.py``: lo que cuelga en ``product`` y el
+        # aviso de compra de la línea de factura.
+        importlib.import_module(
+            f'{self.name}.models.product'
+        ).apply_purchase_product_extensions()

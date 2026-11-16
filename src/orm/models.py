@@ -5904,8 +5904,16 @@ def _precomputable_fields(instance):
     """
     given = getattr(instance, '_explicit_values', None) or frozenset()
     pending = {}
+    own_model = type(instance)._meta.concrete_model
     for name, field in model_field_registry(type(instance)).items():
         if not getattr(field, 'precompute', False):
+            continue
+        # Un campo que el modelo sólo delega por ``_inherits`` es en la fuente
+        # un ``related`` nuevo, sin ``precompute`` (``model_classes.py:
+        # 493-508``): su cómputo corre en el padre. El registro de aquí
+        # devuelve el campo del padre, así que se reconoce por su dueño.
+        owner = getattr(field, 'model', None)
+        if owner is not None and owner._meta.concrete_model is not own_model:
             continue
         if not getattr(field, 'readonly', False):
             if name in given or getattr(field, 'attname', name) in given:

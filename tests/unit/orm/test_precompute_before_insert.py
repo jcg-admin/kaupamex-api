@@ -425,3 +425,16 @@ def saved_line(db):
         product_uom_qty=Decimal('1'),
         price_unit=Decimal('100.00'),
     )
+
+
+def test_a_field_inherited_by_delegation_is_not_precomputed_by_the_child():
+    """≙ ``_add_inherited_fields`` (``odoo19c: odoo/orm/model_classes.py:
+    493-508``): el campo que un hijo hereda por ``_inherits`` es un
+    ``related`` nuevo, sin ``precompute``. El cómputo corre en el padre; el
+    hijo no lo tiene ni tiene por qué tenerlo."""
+    product = apps.get_model('product', 'ProductProduct')()
+    own = {name for name, field in model_field_registry(
+        type(product)).items()
+        if getattr(field, 'precompute', False)
+        and field.model._meta.concrete_model is type(product)}
+    assert set(orm_models._precomputable_fields(product)) == own

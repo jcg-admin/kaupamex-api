@@ -32,6 +32,7 @@ from addons.stock.models import (
 )
 from addons.uom.models.uom_uom import Uom
 from exceptions import UserError
+from orm.environments import sudo
 from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.integration
@@ -256,7 +257,10 @@ def test_changing_the_uom_with_moves_in_another_unit_is_blocked(db):
         state='confirmed',
     )
 
-    with pytest.raises(UserError):
+    # ``_update_uom`` corre con el entorno de quien escribe la plantilla
+    # (``product.template.write``), y ``purchase`` lee sus líneas con control
+    # de acceso como la fuente: hace falta un actor con permiso.
+    with sudo(), pytest.raises(UserError):
         product._update_uom(unit)
 
 

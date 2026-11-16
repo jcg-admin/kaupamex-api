@@ -62,3 +62,62 @@ Diferencias de nombre en el puerto que el porte respeta:
 5. `_trigger_uom_warning` es verdadero si el producto tiene líneas de compra.
 6. `purchase_line_warn_msg` llega a la línea de factura sólo con el grupo
    `purchase.group_warning_purchase`. Sin el grupo sembrado, sale vacío.
+
+## Ajuste medido antes de implementar (2026-11-16)
+
+- `purchase.order.line` no tiene `product_uom_qty`, que es lo que
+  `ProductProduct._compute_purchased_product_qty` suma (`product.py:75`). La
+  fuente lo declara almacenado y calculado (`purchase_order_line.py:24,
+  484-490`, `@api.depends('product_uom_id', 'product_qty',
+  'product_id.uom_id')`). Entra en esta unidad, con su migración y el cómputo
+  sobre filas existentes; convertir dentro del cómputo del producto sería
+  inventar una ruta que la fuente no tiene.
+- `purchase.group_warning_purchase` ya está sembrado
+  (`purchase-headers-and-security-0397`): el caso 6 se prueba con el grupo,
+  no sólo sin él.
+- En el puerto `product.template` y `product.product` tienen `_fields`, así
+  que los calculados se declaran como campos con `compute=` y no como
+  propiedades.
+
+## Resultado (2026-11-16)
+
+Portados 10 de los 15 símbolos de `product.py`, más `product_uom_qty` de la
+línea y el aviso de compra de la línea de factura. Los 5 restantes son
+`purchase-product-actions-0397`, con su causa en la cabecera del módulo.
+
+Lo que la implementación destapó:
+
+| Fallo | Causa | Desenlace |
+|---|---|---|
+| `_compute_purchase_method` buscado en `product.product` | `_precomputable_fields` incluía los campos que el hijo sólo delega por `_inherits`; en la fuente son `related` nuevos sin `precompute` (`model_classes.py:493-508`) | **cerrado** en `orm/models.py`, con su prueba en `test_precompute_before_insert.py` |
+| `'int' object has no attribute 'uom_id'` | en `product` los FK de Django son `uom`/`product_tmpl`; `uom_id` es el `attname` | se leen por su nombre del puerto |
+| grupos de `_read_group` como `QuerySet` | agrupado por un FK hacia un modelo de Django el puerto entrega una fila en un `QuerySet` | `_group_record` desenvuelve |
+| línea sin unidad | la fuente lo impide con el CHECK de `purchase_order_line.py:99`, que el puerto no tiene | la prueba crea la línea con unidad; sucesor `purchase-line-checks-0122` |
+| línea sin unidad en `_compute_product_uom_qty` | rama `if not self: return qty` de `uom.uom._compute_quantity` (`:162-163`) | portada |
+
+Controles de anulación (cada uno restaurado y comprobado con `cmp`):
+
+| Anulación | Caen |
+|---|---|
+| sin la rama de servicio en `_compute_purchase_method` | 2 (servicio, cambio de tipo) |
+| sin la ventana de un año en `purchased_product_qty` | 1 |
+| sin el chequeo de `group_warning_purchase` | 1 (sin el grupo) |
+| sin la empresa de la orden en `_get_filtered_supplier` | 1 |
+
+Migraciones 0016 y 0022 probadas sobre filas existentes con valores no
+triviales (36 = 3 docenas; `purchase` para un servicio con la columna en
+`receive`).
+
+La primera suite completa (5 rojos, sin contar los 15 de `test_multidb_isolation`)
+destapó tres defectos del porte, corregidos y vueltos a anular:
+
+- `_get_filtered_supplier` con `params={'order_id': None}`: en la fuente el
+  valor es un registro vacío cuyo `company_id` es falso; se porta esa
+  semántica (3 pruebas de `purchase_stock`);
+- `_update_uom` reescribía con `objects.update`, que no pasa por la caché del
+  ORM; la fuente asigna sobre el conjunto (`po_lines.product_uom_id = ...`).
+  Ahora es `write` + `flush_recordset`;
+- `test_stock_product_surface_extra.py` llamaba a `_update_uom` sin usuario.
+  `purchase` lee sus líneas con control de acceso como la fuente, que corre
+  con el entorno de quien escribe la plantilla; la prueba actúa como
+  superusuario.

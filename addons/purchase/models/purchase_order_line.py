@@ -37,6 +37,7 @@ from decimal import Decimal
 
 from django.core.validators import MinValueValidator
 from django.db import models as dj_models
+import api
 import fields
 import models
 from django.utils import timezone
@@ -109,6 +110,12 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
         default=1, validators=[MinValueValidator(1)],
         help_text='Cantidad (Odoo product_qty).',
     )
+    #: ≙ ``product_uom_qty`` (``odoo19c: purchase_order_line.py:24``): la
+    #: cantidad en la unidad del producto. La suma
+    #: ``ProductProduct._compute_purchased_product_qty`` (``product.py:75``).
+    product_uom_qty = fields.Float(
+        'Total Quantity', compute='_compute_product_uom_qty', store=True,
+        null=True, blank=True)
     price_unit = fields.Monetary(
         max_digits=12, decimal_places=2,
         help_text='Odoo price_unit (IVA incl.).',
@@ -141,6 +148,23 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
         """≙ ``currency_id`` (``related='order_id.currency_id'``, sin
         ``store``) — ver docstring del módulo."""
         return self.order_id.currency_id if self.order_id_id else None
+
+    @api.depends('product_uom_id', 'product_qty', 'product_id.uom_id')
+    def _compute_product_uom_qty(self):
+        """≙ ``_compute_product_uom_qty`` (``odoo19c: :484-490``)."""
+        for line in self:
+            # ``product.uom`` es el ``uom_id`` de la fuente: en ``product`` los
+            # FK de Django no llevan el sufijo y ``uom_id`` es su ``attname``.
+            # Una línea sin unidad copia la cantidad: es la rama
+            # ``if not self: return qty`` de ``uom.uom._compute_quantity``
+            # (``odoo19c: uom/models/uom_uom.py:162-163``).
+            product = line.product_id
+            if (product and line.product_uom_id
+                    and product.uom != line.product_uom_id):
+                line.product_uom_qty = line.product_uom_id._compute_quantity(
+                    line.product_qty, product.uom)
+            else:
+                line.product_uom_qty = line.product_qty
 
     def _compute_selected_seller_id(self):
         """≙ ``_compute_selected_seller_id`` (``:266-278``)."""
