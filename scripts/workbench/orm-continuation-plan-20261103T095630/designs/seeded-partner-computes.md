@@ -61,3 +61,25 @@ segunda fuente de verdad del cómputo.
   Anulación (calcular sólo `commercial_company_name`): caen exactamente las
   4 que dependen de `commercial_partner_id`; sobrevive la de dependencias.
 - El contrato real es aprovisionar desde cero: ci-multidb vuelve a correr.
+
+## Ejecución invalidada por la propia observación (2026-11-16T22:28:48)
+
+El gate ci-multidb de `db586906` (`outputs/gates/ci-multidb-db586906/`)
+salió 1 passed, 14 errors, todos `DeadlockDetected` en la migración de la
+base de empresa. El registro del servidor nombra a los dos procesos:
+
+```text
+Process 20532: SET CONSTRAINTS "sale_order_user_id_9857f812_fk_res_users_id" IMMEDIATE; ALTER TABLE "sale_order" DROP CONSTRAINT "sale_order_user_id_9857f812_fk_res_users_id"
+Process 22205: select string_agg(p.id||'->'||coalesce(p.commercial_partner_id::text,'NULL'),' ') from res_users u join res_partner p on p.id=u.partner_id
+```
+
+El 22205 era la consulta del `Monitor` de esta sesión, que cada 20 s leía
+`res_users` y `res_partner` de la base que el gate migraba. Quitar una FK
+toma `AccessExclusiveLock` sobre las dos tablas; la lectura tenía una y
+esperaba la otra, y PostgreSQL mató a la migración. **La ejecución no prueba
+ni refuta `0116`**: la migración murió antes del `post_migrate`.
+
+Regla que se sigue desde aquí: mientras un gate corre, se le observa por su
+log, su proceso y el sistema de archivos, **nunca con una consulta a sus
+bases**. Lo que se quiera saber de esas bases se lee después, sobre la
+evidencia que el gate deja.

@@ -1,0 +1,11 @@
+{
+ "databases": [
+  "orm_bootstrap_271f541207d6",
+  "company_271607762687540_db",
+  "company_271607762687541_db"
+ ],
+ "role": "orm_x2hokp",
+ "revision": "db586906c983b2274d65ea31752cc1d6243f2295",
+ "boot_id": "2340d74b-dc41-4fe9-a0f9-943424169975",
+ "started": "2026-11-16T21:03:33Z"
+}
