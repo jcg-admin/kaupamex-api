@@ -10,6 +10,13 @@ queda como ``-``.
 
 Uso: python persist_gate_evidence.py <banco> <nombre> <kind> <revisión>
          <resultado esperado> <limitación> <archivo>...
+     python persist_gate_evidence.py reclaim <banco> [--mark-only] <copia>...
+
+``reclaim`` es MARK RECLAIMABLE y CLEANUP, después de commitear el banco: una
+copia del scratchpad se retira sólo si su ``sha256`` figura en una fila del
+índice, el archivo del banco con ese nombre está en ``HEAD`` con el mismo blob
+y sin cambios locales, y ningún proceso la tiene abierta. Cada decisión queda
+en ``outputs/gates/reclaimed.tsv``; ``--mark-only`` la anota sin retirar.
 """
 import csv
 import hashlib
@@ -17,6 +24,7 @@ import json
 import pathlib
 import re
 import shutil
+import subprocess
 import sys
 
 COLUMNS = ['execution_id', 'kind', 'revision', 'database', 'exit',
@@ -87,5 +95,88 @@ def main(bench, name, kind, revision, expected, limitation, *files):
           row['errors'])
 
 
+RECLAIM_COLUMNS = ['source', 'sha256', 'bank_file', 'decision']
+
+
+def _open_paths(paths):
+    """Las rutas de ``paths`` que algún proceso tiene abiertas (``lsof``)."""
+    if not paths:
+        return set()
+    result = subprocess.run(['lsof', '-Fn', '--', *map(str, paths)],
+                            capture_output=True, text=True)
+    return {line[1:] for line in result.stdout.splitlines()
+            if line.startswith('n')}
+
+
+def _git(repo, *args):
+    return subprocess.run(['git', '-C', str(repo), *args],
+                          capture_output=True, text=True)
+
+
+def _bank_file(gates, digest, name):
+    """El archivo del banco que el índice registra con ese nombre y hash."""
+    index = gates / 'index.tsv'
+    if not index.exists():
+        return None
+    with index.open(encoding='utf-8') as handle:
+        for row in csv.DictReader(handle, delimiter='\t'):
+            if f'{name}:{digest}' in row['files'].split(';'):
+                return gates / row['execution_id'] / name
+    return None
+
+
+def _decide(gates, source, digest, open_paths):
+    bank = _bank_file(gates, digest, source.name)
+    if bank is None:
+        return None, 'kept:not-in-index'
+    if not bank.exists() or sha256(bank) != digest:
+        return bank, 'kept:bank-modified'
+    repo = pathlib.Path(_git(gates, 'rev-parse', '--show-toplevel')
+                        .stdout.strip())
+    relative = bank.resolve().relative_to(repo.resolve()).as_posix()
+    blob = _git(repo, 'hash-object', str(source.resolve())).stdout.strip()
+    head = _git(repo, 'rev-parse', '--verify', '-q',
+                f'HEAD:{relative}').stdout.strip()
+    if not blob or head != blob:
+        return bank, 'kept:not-in-head'
+    if _git(repo, 'diff', '--quiet', 'HEAD', '--', relative).returncode:
+        return bank, 'kept:bank-modified'
+    if str(source.resolve()) in open_paths:
+        return bank, 'kept:open'
+    return bank, 'reclaimable'
+
+
+def reclaim(bench, *sources):
+    mark_only = '--mark-only' in sources
+    sources = [pathlib.Path(s) for s in sources if s != '--mark-only']
+    gates = pathlib.Path(bench) / 'outputs' / 'gates'
+    open_paths = _open_paths([s.resolve() for s in sources if s.exists()])
+    rows = []
+    for source in sources:
+        if not source.is_file():
+            continue
+        digest = sha256(source)
+        bank, decision = _decide(gates, source, digest, open_paths)
+        if decision == 'reclaimable' and not mark_only:
+            source.unlink()
+            decision = 'removed'
+        rows.append({'source': str(source), 'sha256': digest,
+                     'bank_file': str(bank or '-'), 'decision': decision})
+    ledger = gates / 'reclaimed.tsv'
+    exists = ledger.exists()
+    with ledger.open('a', newline='', encoding='utf-8') as handle:
+        writer = csv.DictWriter(handle, RECLAIM_COLUMNS, delimiter='\t',
+                                lineterminator='\n')
+        if not exists:
+            writer.writeheader()
+        writer.writerows(rows)
+    for row in rows:
+        print(row['decision'], row['source'])
+    return rows
+
+
 if __name__ == '__main__':
-    main(*sys.argv[1:])
+    if sys.argv[1:2] == ['reclaim']:
+        reclaim(*sys.argv[2:])
+    else:
+        main(*sys.argv[1:])
