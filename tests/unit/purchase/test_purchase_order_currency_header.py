@@ -26,6 +26,7 @@ from addons.base.models import ResCompany, ResCurrency, ResUsers
 from addons.base.models.res_currency import ResCurrencyRate
 from addons.product.models import ProductProduct, ProductTemplate
 from addons.purchase.models import PurchaseOrder, PurchaseOrderLine
+from orm.environments import env
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -229,9 +230,15 @@ class TestOrderLineCompanyAndCurrency:
         )
         assert line.currency_id == usd
 
-    def test_line_currency_id_is_none_without_an_order(self, variant):
-        """Degradación defensiva: sin ``order_id`` no hay de dónde leer."""
-        line = PurchaseOrderLine(
-            product_id=variant, price_unit=Decimal('10.00')
-        )
-        assert line.currency_id is None
+    @pytest.mark.xfail(strict=True, reason=(
+        'Un related sin columna no se lee sobre un registro de new(): '
+        'orm-nonstored-compute-on-new-records-0397.'))
+    def test_line_currency_id_is_empty_without_an_order(self, variant):
+        """``related='order_id.currency_id'`` sobre una línea nueva sin orden.
+
+        La fuente lee el vacío del eslabón (``odoo19c: odoo/orm/fields.py:
+        692``); el registro nuevo es el de ``new()``.
+        """
+        line = env()['purchase.order.line'].new(
+            {'product_id': variant.pk, 'price_unit': Decimal('10.00')})
+        assert not line.currency_id

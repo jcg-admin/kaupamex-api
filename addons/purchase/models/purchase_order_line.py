@@ -46,7 +46,7 @@ from django.utils import timezone
 
 from addons.analytic.models.analytic_mixin import AnalyticMixin
 from addons.base.models import TimeStampedModel
-from orm.environments import env
+from orm.environments import context_scope, env
 
 
 class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
@@ -83,8 +83,11 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
         related_name='purchase_order_lines', help_text='Odoo product_id.',
         db_column='product_id',
     )
-    name = fields.Char(
-        max_length=255, blank=True, default='',
+    #: ≙ ``name`` (``odoo19c: :19-20``): ``Text``. Su cálculo almacenado
+    #: (``_compute_price_unit_and_date_planned_and_name``) es la unidad
+    #: ``purchase-line-price-and-dates-0122``.
+    name = fields.Text(
+        'Description', blank=True, default='',
         help_text='Descripción de la línea (Odoo purchase.order.line.name).',
     )
     #: ≙ ``display_type`` (``odoo19c: purchase_order_line.py:91-94``).
@@ -153,6 +156,58 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
     price_tax = fields.Monetary(
         'Tax', max_digits=16, decimal_places=2,
         compute='_compute_amount', store=True, null=True, blank=True)
+    #: ≙ los related de la fuente (``odoo19c: :38,54,85-90,105``), sin
+    #: columna.
+    #: ``product.product`` delega ``type`` en su plantilla con una propiedad,
+    #: no con un campo (``product/models/product_product.py:5-40``), así que
+    #: la cadena nombra el eslabón de la delegación.
+    product_type = fields.Selection(
+        related='product_id.product_tmpl.type', readonly=True)
+    state = fields.Selection(related='order_id.state', store=False)
+    currency_id = fields.Many2one(
+        related='order_id.currency_id', string='Currency', related_name='+')
+    date_order = fields.Datetime(
+        related='order_id.date_order', string='Order Date', readonly=True)
+    date_approve = fields.Datetime(
+        related='order_id.date_approve', string='Confirmation Date',
+        readonly=True)
+    tax_calculation_rounding_method = fields.Selection(
+        related='company_id.tax_calculation_rounding_method',
+        string='Tax calculation rounding method', readonly=True)
+    #: ``product.product`` nombra el campo
+    #: ``product_template_attribute_values``
+    #: (divergencia de nombre del porte de ``product``).
+    product_template_attribute_value_ids = fields.Many2many(
+        related='product_id.product_template_attribute_values',
+        readonly=True, related_name='+')
+    #: ≙ ``product_no_variant_attribute_value_ids`` (``odoo19c: :106``), con
+    #: la tabla que la fuente deriva.
+    product_no_variant_attribute_value_ids = fields.Many2many(
+        'product.ProductTemplateAttributeValue',
+        string='Product attribute values that do not create variants',
+        relation='product_template_attribute_value_purchase_order_line_rel',
+        column1='purchase_order_line_id',
+        column2='product_template_attribute_value_id',
+        related_name='+', blank=True)
+    #: ≙ los cómputos sin columna (``odoo19c: :21,35,42-45,107-111``).
+    translated_product_name = fields.Text(
+        compute='_compute_translated_product_name')
+    allowed_uom_ids = fields.Many2many(
+        'uom.Uom', compute='_compute_allowed_uom_ids', related_name='+')
+    price_unit_product_uom = fields.Float(
+        string='Unit Price Product UoM',
+        compute='_compute_price_unit_product_uom',
+        help="The Price of one unit of the product's Unit of Measure")
+    price_unit_discounted = fields.Monetary(
+        'Unit Price (Discounted)', compute='_compute_price_unit_discounted')
+    parent_id = fields.Many2one(
+        'purchase.PurchaseOrderLine', string='Parent Section Line',
+        compute='_compute_parent_id', related_name='+')
+    #: ≙ ``technical_price_unit`` (``odoo19c: :112``): ``Float`` almacenado;
+    #: aquí ``Monetary`` como ``price_unit``.
+    technical_price_unit = fields.Monetary(
+        max_digits=16, decimal_places=4, null=True, blank=True,
+        help='Technical field for price computation')
     # Odoo purchase.order.line.company_id — ver docstring del módulo
     # (tarea #266).
     company_id = fields.Many2one(
@@ -171,12 +226,6 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
 
     def __str__(self) -> str:
         return f'{self.name or self.product_id} ×{self.product_qty}'
-
-    @property
-    def currency_id(self):
-        """≙ ``currency_id`` (``related='order_id.currency_id'``, sin
-        ``store``) — ver docstring del módulo."""
-        return self.order_id.currency_id if self.order_id_id else None
 
     @api.depends('product_uom_id', 'product_qty', 'product_id.uom_id')
     def _compute_product_uom_qty(self):
@@ -236,6 +285,85 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
         if update_fields is not None and 'company_id' not in update_fields:
             kwargs['update_fields'] = [*update_fields, 'company_id']
         return super().save(*args, **kwargs)
+
+    @api.depends('discount', 'price_unit')
+    def _compute_price_unit_discounted(self):
+        """≙ ``_compute_price_unit_discounted`` (``odoo19c: :152-155``)."""
+        for line in self:
+            line.price_unit_discounted = (
+                line.price_unit or Decimal('0')) * (
+                1 - (line.discount or Decimal('0')) / 100)
+
+    @api.depends('product_uom_id', 'price_unit')
+    def _compute_price_unit_product_uom(self):
+        """≙ ``_compute_price_unit_product_uom`` (``odoo19c: :157-162``)."""
+        for line in self:
+            line.price_unit_product_uom = (
+                not line.display_type and not line.is_downpayment
+                and line.product_uom_id
+                and line.product_uom_id._compute_price(
+                    float(line.price_unit), line.product_id.uom)) or 0.0
+
+    @api.depends('product_id', 'product_id.uom_id', 'product_id.uom_ids',
+                 'product_id.seller_ids',
+                 'product_id.seller_ids.product_uom_id')
+    def _compute_allowed_uom_ids(self):
+        """≙ ``_compute_allowed_uom_ids`` (``odoo19c: :229-235``).
+
+        La tarifa nombra su unidad ``product_uom`` y la plantilla sus
+        unidades ``uom_ids``; ``uom`` es el ``uom_id`` del producto.
+        """
+        for line in self:
+            product = line.product_id
+            if not product:
+                line.allowed_uom_ids = []
+                continue
+            seller_uoms = [
+                seller.product_uom
+                for seller in product.product_tmpl.seller_ids.all()
+                if seller.product_uom_id and seller.product_id in {
+                    None, product.pk}]
+            units = [product.uom, *product.product_tmpl.uom_ids.all(),
+                     *seller_uoms]
+            line.allowed_uom_ids = list(dict.fromkeys(
+                unit for unit in units if unit))
+
+    @api.depends('product_id')
+    def _compute_translated_product_name(self):
+        """≙ ``_compute_translated_product_name`` (``odoo19c: :467-472``)."""
+        for line in self:
+            if not line.product_id:
+                line.translated_product_name = False
+                continue
+            # ``product.product`` es un modelo de Django sin ``with_context``:
+            # el contexto se fija con su equivalente en este ORM.
+            with context_scope(lang=line.partner_id.lang
+                               if line.partner_id else None):
+                line.translated_product_name = line.product_id.display_name
+
+    def _compute_parent_id(self):
+        """≙ ``_compute_parent_id`` (``odoo19c: :510-529``)."""
+        purchase_order_lines = set(self)
+        for order, lines in self.grouped('order_id').items():
+            if not order:
+                for line in lines:
+                    line.parent_id = None
+                continue
+            # Un Many2one de este ORM rechaza ``False``: el vacío es ``None``.
+            last_section = None
+            last_sub = None
+            for line in order.order_line.sorted('sequence'):
+                if line.display_type == 'line_section':
+                    last_section = line
+                    if line in purchase_order_lines:
+                        line.parent_id = None
+                    last_sub = None
+                elif line.display_type == 'line_subsection':
+                    if line in purchase_order_lines:
+                        line.parent_id = last_section
+                    last_sub = line
+                elif line in purchase_order_lines:
+                    line.parent_id = last_sub or last_section or None
 
     @api.depends('product_qty', 'price_unit', 'tax_ids', 'discount')
     def _compute_amount(self):

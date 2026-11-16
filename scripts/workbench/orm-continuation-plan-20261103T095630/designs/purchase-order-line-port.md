@@ -169,3 +169,30 @@ Contrato (`odoo19c: purchase_order_line.py:19-21,35,38,42-45,54,85-90,
 Las cifras que el diseño deja como cota: `display_type` es `Selection` con
 `null=True` y la fuente usa `False`; las comparaciones `not line.display_type`
 cubren las dos.
+
+### Medido al implementar la unidad 2
+
+- `product_type` sigue la cadena `product_id.product_tmpl.type`: el porte de
+  `product.product` delega `type` con una propiedad, no con un campo, y el
+  recorrido del related lee campos (`KeyError: 'type'`).
+- Un `related` que termina en un `Many2many` de un modelo de Django leía el
+  gestor relacionado, no iterable; la fuente lee el recordset. Corregido en
+  `orm.fields._end_of_chain`, con su prueba
+  (`tests/unit/orm/test_related_many2many_end_of_chain.py`).
+- `translated_product_name` lee `display_name` bajo
+  `context_scope(lang=…)`: `product.product` es un modelo de Django sin
+  `with_context`.
+- `parent_id` asigna `None` donde la fuente asigna `False`: el Many2one de
+  este ORM rechaza `False`.
+- `price_unit_discounted` con descuento 0: `discount or 0` daba `1 - 0/100`
+  en `float` y `Decimal * float` fallaba; caso añadido.
+- **Hueco del ORM, sucesor `orm-nonstored-compute-on-new-records-0397`:**
+  ningún calculado o related sin columna se lee sobre un registro de
+  `new()` (medido en `test_orm.multi.name`,
+  `purchase.order.lock_confirmed_po` y los related de esta línea). La
+  prueba de la propiedad retirada `currency_id` queda como `xfail` estricto
+  que nombra el sucesor.
+- Control de anulación del arreglo del ORM: retirada la rama del `Manager`
+  en `_end_of_chain`, caen exactamente 2 casos —el de
+  `test_related_many2many_end_of_chain.py` y el de los related de producto
+  y empresa de la línea— y pasan los otros 11 de esos dos archivos.

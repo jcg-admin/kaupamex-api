@@ -3987,7 +3987,13 @@ def _end_of_chain(value, related_field):
     """
     if value is None:
         return null_record_value(related_field)
-    return value[related_field.name]
+    result = value[related_field.name]
+    # Un ``Many2many`` leído sobre un modelo de Django devuelve su gestor
+    # relacionado; la fuente lee el recordset de sus registros. El
+    # equivalente es el ``QuerySet`` del gestor.
+    if isinstance(result, models.Manager):
+        return result.all()
+    return result
 
 
 def _field_traverse_related(self, record):
