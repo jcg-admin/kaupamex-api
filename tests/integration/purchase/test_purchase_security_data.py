@@ -163,7 +163,7 @@ def _two_step_order(threshold):
               'currency_id': company.currency_id}])
         MODELS_BY_NAME['purchase.order.line'].create([{
             'order_id': order.id, 'name': 'Insumo',
-            'price_unit': Decimal('100.00'),
+            'price_unit': Decimal('100.00'), 'product_qty': 1,
             'product_id': make_product(name='Insumo dos niveles',
                                        price=Decimal('100.00')).pk}])
     return order

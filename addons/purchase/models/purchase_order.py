@@ -396,9 +396,18 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
         self._loaded_date_order = self.date_order
 
     def _sum_lines(self, attr: str) -> Decimal:
-        # Odoo purchase.order._amount_all (suma de las líneas).
+        """Suma una columna de importe de las líneas contables.
+
+        ``_amount_all`` de la fuente (``odoo19c: purchase_order.py:29-44``)
+        agrega con ``_get_tax_totals_summary``, que aquí no existe: sucesores
+        ``account-tax-totals-summary-0121`` y ``purchase-order-amounts-0122``.
+        Mientras, se suman las columnas que ``_compute_amount`` de la línea
+        ya almacena, sin las líneas de sección o nota (``:32``).
+        """
         return sum(
-            (getattr(line, attr)() for line in self.order_line),
+            (getattr(line, attr) or Decimal('0.00')
+             for line in self.order_line.filtered(
+                 lambda line: not line.display_type)),
             Decimal('0.00'),
         ).quantize(Decimal('0.01'))
 

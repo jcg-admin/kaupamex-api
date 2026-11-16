@@ -79,3 +79,67 @@ va tras 5, porque `date_planned` es parte del CHECK de líneas contables.
 
 `purchase.order` (91 ausentes) se descompone en su propio diseño cuando la
 línea esté completa; sus importes dependen de la unidad 1.
+
+## Unidad 1 — `purchase-line-amounts-0122` (2026-11-16T03:54:33)
+
+Contrato (`odoo19c: purchase_order_line.py:23,34,38-40,46-48,106-143`):
+
+- `tax_ids = fields.Many2many('account.tax', …)`: tabla por defecto de la
+  fuente, `'%s_%s_rel' % tuple(sorted(tablas))` (`fields_relational.py:1291`)
+  → `account_tax_purchase_order_line_rel`, columnas
+  `purchase_order_line_id` y `account_tax_id`.
+- `product_qty`: `Float(digits='Product Unit', required=True)`, **sin
+  default**. El `PositiveIntegerField(default=1, MinValue(1))` de aquí
+  inventa un default y un mínimo que la fuente no tiene; un pedido de 2.5 kg
+  no cabía. Se declara como `quantity` de `account.move.line`
+  (`Monetary(max_digits=16, decimal_places=4)`): mismo `digits='Product
+  Unit'`, mismo mecanismo de pila (`Decimal`), ya declarado en ese archivo.
+- `price_subtotal`, `price_total` (`Monetary`) y `price_tax` (`Float`):
+  `compute='_compute_amount', store=True`. Divergencia de pila declarada,
+  la misma que `sale.order.line`: `price_tax` va en `Monetary` porque el
+  motor y los importes son `Decimal`.
+- `_compute_amount` y `_prepare_base_line_for_taxes_computation` sobre el
+  motor de `account.tax` que ya existe (`account_tax.py:1102,1222,1877`),
+  que trabaja en `Decimal`.
+
+Lo que sale de esta unidad: el IVA fijo (`get_setting('iva_rate')`). Con
+la fuente, una línea sin `tax_ids` no lleva impuesto, y una con un IVA del
+16 % incluido en el precio da 200 + 32 = 232.
+
+Consumidores que cambian en el mismo pase: `PurchaseOrder._sum_lines`
+(llamaba `getattr(line, attr)()`), `purchase_requisition/models/
+purchase.py:400` (`price_subtotal()`), y las 16 creaciones de línea en
+pruebas que omiten `product_qty` (medido por un recorrido de las llamadas
+`create(`; la fuente lo exige).
+
+Fuera de la unidad, con sucesor:
+
+- `amount_untaxed`/`amount_tax`/`amount_total` de la orden siguen como
+  métodos que suman las columnas: el `_amount_all` de la fuente
+  (`purchase_order.py:29-44`) usa `_get_tax_totals_summary`, que **no existe**
+  aquí (`grep -n "def _get_tax_totals_summary" addons/account` → 0).
+  Sucesores: `account-tax-totals-summary-0121` y
+  `purchase-order-amounts-0122`.
+- `price_unit` y `discount` son calculados almacenados en la fuente
+  (`_compute_price_unit_and_date_planned_and_name`); el cómputo es la
+  unidad 5.
+
+### Medido al implementar la unidad 1
+
+- `price_total_cc` de `purchase_requisition` se calculaba en `save()`
+  (tarea #191, cuando el ORM no tenía motor de `@api.depends`). Con
+  `price_subtotal` como calculado almacenado, `save()` lo leía antes de que
+  se calculara y daba 0. Se porta como en la fuente: calculado almacenado con
+  `@api.depends('price_subtotal', 'order_id.currency_rate')`
+  (`odoo19c: purchase_requisition/models/purchase.py:257-263`), y la
+  migración 0017 lo recalcula.
+- `product_uom_qty` es `Float` y `product_qty` ahora `Decimal`: el cómputo
+  convierte con `float()` (`uom._compute_quantity` multiplica `float`).
+- Pruebas que creaban órdenes sin `company_id` o líneas sin `product_qty`:
+  la fuente exige los dos (`purchase_order.py:155`, `purchase_order_line.py:
+  23`); se completaron los datos de prueba, no el código.
+- Control de anulación: con `tax_ids=self.tax_ids.none()` en
+  `_prepare_base_line_for_taxes_computation` caen exactamente 6 de los 9
+  casos de `test_purchase_line_amounts.py` (los que tienen impuesto y la
+  migración); sobreviven la tabla, el campo de cantidad y la línea sin
+  impuestos.

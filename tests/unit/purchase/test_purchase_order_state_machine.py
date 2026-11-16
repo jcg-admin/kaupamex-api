@@ -35,7 +35,7 @@ def _order(company, price='100.00', product=True, **line_values):
         [{'partner_id': vendor.pk, 'company_id': company.pk,
           'currency_id': company.currency_id}])
     values = {'order_id': order.id, 'name': 'Eleke',
-              'price_unit': Decimal(price), **line_values}
+              'price_unit': Decimal(price), 'product_qty': 1, **line_values}
     if product:
         values['product_id'] = make_product(
             name='Insumo SM', price=Decimal(price)).pk

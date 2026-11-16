@@ -3,9 +3,11 @@
 Adaptación fiel de Odoo ``purchase.order.line`` (``purchase/models/
 purchase_order_line.py``, idéntico en 18 y 19): línea de una orden de compra.
 Núcleo verificado en ambas versiones — ``name``/``product_qty``/
-``price_unit``/``discount``/``product_id``/``order_id`` + ``price_subtotal``
-computado. Espeja el desglose por línea de ``sale.order.line`` (IVA-incluido
-MX) para consistencia.
+``price_unit``/``discount``/``product_id``/``order_id``, ``tax_ids`` y los
+importes almacenados que ``_compute_amount`` calcula con el motor de
+``account.tax`` (``odoo19c: :106-136``). El resto del porte de la clase está
+descompuesto en unidades: ``scripts/workbench/
+orm-continuation-plan-20261103T095630/designs/purchase-order-line-port.md``.
 
 ``company_id``/``currency_id`` (tarea #266), dependencias de ``price_total_cc``
 ===============================================================================
@@ -35,16 +37,16 @@ MX) para consistencia.
 """
 from decimal import Decimal
 
-from django.core.validators import MinValueValidator
+from django.apps import apps
 from django.db import models as dj_models
 import api
 import fields
 import models
 from django.utils import timezone
 
-from addons.base_setup.settings_access import get_setting
 from addons.analytic.models.analytic_mixin import AnalyticMixin
 from addons.base.models import TimeStampedModel
+from orm.environments import env
 
 
 class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
@@ -106,9 +108,13 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
         'product.ProductSupplierinfo', store=False,
         compute='_compute_selected_seller_id',
         on_delete=dj_models.SET_NULL, related_name='+')
-    product_qty = models.PositiveIntegerField(
-        default=1, validators=[MinValueValidator(1)],
-        help_text='Cantidad (Odoo product_qty).',
+    #: ≙ ``product_qty`` (``odoo19c: :23``): ``Float(digits='Product Unit',
+    #: required=True)``, sin valor por defecto. Se declara como ``quantity``
+    #: de ``account.move.line`` (``Decimal``, cuatro decimales): mismo
+    #: ``digits``, mismo mecanismo de pila.
+    product_qty = fields.Monetary(
+        'Quantity', max_digits=16, decimal_places=4,
+        help_text='Odoo product_qty (digits="Product Unit", required).',
     )
     #: ≙ ``product_uom_qty`` (``odoo19c: purchase_order_line.py:24``): la
     #: cantidad en la unidad del producto. La suma
@@ -124,6 +130,29 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
         max_digits=5, decimal_places=2, default=Decimal('0.00'),
         help_text='Descuento % de la línea (Odoo discount).',
     )
+    #: ≙ ``tax_ids`` (``odoo19c: :34``), con la tabla que la fuente deriva
+    #: (``'%s_%s_rel' % tuple(sorted(tablas))``,
+    #: ``fields_relational.py:1291``).
+    tax_ids = fields.Many2many(
+        'account.AccountTax', string='Taxes',
+        relation='account_tax_purchase_order_line_rel',
+        column1='purchase_order_line_id', column2='account_tax_id',
+        related_name='+', blank=True,
+        context={'active_test': False, 'hide_original_tax_ids': True})
+    #: ≙ ``price_subtotal``/``price_total``/``price_tax`` (``odoo19c:
+    #: :46-48``), almacenados y calculados por ``_compute_amount``.
+    #: ``price_tax`` es ``Float`` en la fuente y aquí ``Monetary``: el motor de
+    #: ``account.tax`` y los importes son ``Decimal`` (la misma divergencia de
+    #: pila que ``sale.order.line``).
+    price_subtotal = fields.Monetary(
+        'Subtotal', max_digits=16, decimal_places=2,
+        compute='_compute_amount', store=True, null=True, blank=True)
+    price_total = fields.Monetary(
+        'Total', max_digits=16, decimal_places=2,
+        compute='_compute_amount', store=True, null=True, blank=True)
+    price_tax = fields.Monetary(
+        'Tax', max_digits=16, decimal_places=2,
+        compute='_compute_amount', store=True, null=True, blank=True)
     # Odoo purchase.order.line.company_id — ver docstring del módulo
     # (tarea #266).
     company_id = fields.Many2one(
@@ -161,10 +190,12 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
             product = line.product_id
             if (product and line.product_uom_id
                     and product.uom != line.product_uom_id):
+                # ``product_uom_qty`` es ``Float`` y ``product_qty`` se
+                # guarda en ``Decimal`` (ver su declaración).
                 line.product_uom_qty = line.product_uom_id._compute_quantity(
-                    line.product_qty, product.uom)
+                    float(line.product_qty), product.uom)
             else:
-                line.product_uom_qty = line.product_qty
+                line.product_uom_qty = float(line.product_qty)
 
     def _compute_selected_seller_id(self):
         """≙ ``_compute_selected_seller_id`` (``:266-278``)."""
@@ -206,16 +237,39 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
             kwargs['update_fields'] = [*update_fields, 'company_id']
         return super().save(*args, **kwargs)
 
-    # Desglose por línea — espeja sale.order.line (Odoo _compute_amount).
-    def price_total(self) -> Decimal:
-        gross = (self.price_unit * self.product_qty
-                 * (Decimal('1') - self.discount / Decimal('100')))
-        return gross.quantize(Decimal('0.01'))
+    @api.depends('product_qty', 'price_unit', 'tax_ids', 'discount')
+    def _compute_amount(self):
+        """≙ ``_compute_amount`` (``odoo19c: :106-117``)."""
+        AccountTax = apps.get_model('account', 'AccountTax')
+        for line in self:
+            company = line.company_id or env().company
+            base_line = line._prepare_base_line_for_taxes_computation()
+            AccountTax._add_tax_details_in_base_line(base_line, company)
+            AccountTax._round_base_lines_tax_details([base_line], company)
+            line.price_subtotal = (
+                base_line['tax_details']['total_excluded_currency'])
+            line.price_total = (
+                base_line['tax_details']['total_included_currency'])
+            line.price_tax = line.price_total - line.price_subtotal
 
-    def price_tax(self) -> Decimal:
-        rate = get_setting('iva_rate')
-        return (self.price_total() * rate
-                / (1 + rate)).quantize(Decimal('0.01'))
+    def _prepare_base_line_for_taxes_computation(self):
+        """ Convert the current record to a dictionary in order to use the
+        generic taxes computation method defined on account.tax.
 
-    def price_subtotal(self) -> Decimal:
-        return self.price_total() - self.price_tax()
+        ≙ ``odoo19c: :119-136``.
+
+        :return: A python dictionary.
+        """
+        self.ensure_one()
+        order = self.order_id
+        company = order.company_id or env().company
+        AccountTax = apps.get_model('account', 'AccountTax')
+        return AccountTax._prepare_base_line_for_taxes_computation(
+            self,
+            tax_ids=self.tax_ids.all(),
+            quantity=self.product_qty,
+            partner_id=order.partner_id,
+            currency_id=order.currency_id or company.currency,
+            rate=order.currency_rate,
+            name=self.name,
+        )

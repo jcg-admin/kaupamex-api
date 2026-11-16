@@ -70,7 +70,8 @@ Lo portado
    * - ``PurchaseOrderLine.company_currency_id`` (``:258``)
      - ``property`` (era ``related=`` sin ``store``) — tarea #266
    * - ``PurchaseOrderLine._compute_price_total_cc`` (``:260-263``)
-     - método homónimo, invocado en ``save()`` — tarea #266
+     - método homónimo, calculado almacenado con ``@api.depends`` como en la
+       fuente (``purchase-line-amounts-0122``)
 
 Lo NO portado, por causa
 --------------------------
@@ -198,6 +199,7 @@ from collections import defaultdict
 
 from decimal import Decimal
 
+import api
 import fields
 import models
 from addons.base.models import TimeStampedModel
@@ -319,7 +321,7 @@ def get_tender_best_lines(self):
     mismo precio queden ambas marcadas. Se conserva.
 
     D-3a CERRADA (tarea #266): compara con ``price_total_cc`` —moneda de la
-    empresa— en vez de ``price_subtotal()``, igual que la fuente
+    empresa— en vez de ``price_subtotal``, igual que la fuente
     (``odoo19c: :197-217``). Ya no exige que las alternativas compartan
     divisa. D-3b sigue abierta: la lista de mejores fechas sale **vacía**
     porque ``date_planned`` no existe en la línea de este árbol — ver
@@ -382,6 +384,7 @@ def company_currency_id(self):
     return self.company_id.currency if self.company_id_id else None
 
 
+@api.depends('price_subtotal', 'order_id.currency_rate')
 def _compute_price_total_cc(self):
     """≙ ``_compute_price_total_cc`` (``odoo19c: :260-263``).
 
@@ -389,36 +392,20 @@ def _compute_price_total_cc(self):
     ``PurchaseOrder.currency_rate`` sea ``fields.Monetary`` (``Decimal``) y
     no ``fields.Float`` como en la fuente: ``Decimal / float`` levanta
     ``TypeError`` en Python (ver docstring de
-    ``api: addons/purchase/models/purchase_order.py``).
+    ``api: addons/purchase/models/purchase_order.py``). Es un calculado
+    almacenado, como en la fuente: depende de ``price_subtotal``, que
+    ``_compute_amount`` de la línea calcula a su vez.
     """
-    order = self.order_id
-    rate = (
-        order.currency_rate
-        if order is not None and order.currency_rate
-        else Decimal('1.0')
-    )
-    self.price_total_cc = (self.price_subtotal() / rate).quantize(
-        Decimal('0.01')
-    )
-
-
-def save_price_total_cc(self, previous, *args, **kwargs):
-    """Recompila ``price_total_cc`` antes de persistir — este ORM no dispara
-    ``@api.depends`` (tarea #191).
-
-    Instalado con ``wrap_method`` (no ``chain_method``): la previa llega **en
-    la mano**, ligada al receptor, porque necesito mutar ``update_fields`` y
-    pasárselo yo mismo — con ``chain_method`` la mutación de ``kwargs`` no
-    llega a la previa (cada llamada con ``**kwargs`` empaqueta un ``dict``
-    nuevo en el frame receptor; medido al escribir esto, no supuesto). La
-    previa es ``PurchaseOrderLine.save()`` de ``purchase`` (sincroniza
-    ``company_id``) y, tras ella, el ``save()`` de Django.
-    """
-    self._compute_price_total_cc()
-    update_fields = kwargs.get('update_fields')
-    if update_fields is not None and 'price_total_cc' not in update_fields:
-        kwargs['update_fields'] = [*update_fields, 'price_total_cc']
-    return previous(*args, **kwargs)
+    for line in self:
+        order = line.order_id
+        rate = (
+            order.currency_rate
+            if order is not None and order.currency_rate
+            else Decimal('1.0')
+        )
+        line.price_total_cc = (
+            (line.price_subtotal or Decimal('0')) / rate
+        ).quantize(Decimal('0.01'))
 
 
 # --- purchase.order.line ---------------------------------------------------
@@ -520,7 +507,8 @@ def apply_purchase_requisition_purchase_extensions():
                 blank=True,
                 max_digits=12,
                 decimal_places=2,
-                default=Decimal('0.00'),
+                compute='_compute_price_total_cc',
+                store=True,
                 verbose_name='Subtotal en moneda de la empresa',
                 help_text=(
                     'Odoo price_total_cc ("Company Subtotal", compute, '
@@ -535,5 +523,4 @@ def apply_purchase_requisition_purchase_extensions():
             'action_clear_quantities': action_clear_quantities,
             '_compute_price_total_cc': _compute_price_total_cc,
         },
-        overrides={'save': save_price_total_cc},
     )

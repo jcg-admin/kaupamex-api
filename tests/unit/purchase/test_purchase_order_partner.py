@@ -7,7 +7,7 @@ purchase-order-partner.md``.
 """
 import pytest
 
-from addons.base.models import ResPartner
+from addons.base.models import ResCompany, ResPartner
 from orm.environments import sudo
 from orm.registry import MODELS_BY_NAME
 
@@ -22,14 +22,17 @@ def _as_superuser():
 
 
 def _order(partner):
+    # ``company_id`` es requerido en la fuente (``purchase_order.py:155``).
+    company = ResCompany.objects.create(name='Compras proveedor 0397')
     [order] = MODELS_BY_NAME['purchase.order'].create(
-        [{'partner_id': partner.pk}])
+        [{'partner_id': partner.pk, 'company_id': company.pk}])
     return order
 
 
 def _line(order):
     [line] = MODELS_BY_NAME['purchase.order.line'].create(
-        [{'order_id': order.id, 'name': 'Eleke', 'price_unit': 10}])
+        [{'order_id': order.id, 'name': 'Eleke', 'price_unit': 10,
+          'product_qty': 1}])
     return line
 
 

@@ -8,7 +8,7 @@ addons/purchase_requisition/models/purchase.py``,
 (``:192-235``). Antes de la tarea #266, ``purchase.order`` no declaraba
 ``company_id``/``currency_id``/``currency_rate`` (Causa D del docstring del
 módulo), así que ``get_tender_best_lines`` comparaba con
-``line.price_subtotal()`` — degradación D-3, correcta sólo si todas las
+``line.price_subtotal`` — degradación D-3, correcta sólo si todas las
 alternativas comparten moneda.
 
 **Qué haría fallar a cada control se declara en su caso.** El caso central
@@ -84,7 +84,8 @@ def _alternative(company, currency, variant, price_unit, group=None):
         order.purchase_group = group
         order.save()
     PurchaseOrderLine.objects.create(
-        order_id=order, product_id=variant, price_unit=price_unit
+        order_id=order, product_id=variant, price_unit=price_unit,
+        product_qty=1,
     )
     return order
 
@@ -97,16 +98,17 @@ class TestPriceTotalCcAndCompanyCurrencyId:
     ):
         """
         Sin conversión (misma moneda), ``price_total_cc`` ==
-        ``price_subtotal()``.
+        ``price_subtotal``.
         """
         order = PurchaseOrder.objects.create(
             company_id=company, currency_id=mxn
         )
         line = PurchaseOrderLine.objects.create(
-            order_id=order, product_id=variant, price_unit=Decimal('100.00')
+            order_id=order, product_id=variant, price_unit=Decimal('100.00'),
+            product_qty=1,
         )
         line.refresh_from_db()
-        assert line.price_total_cc == line.price_subtotal().quantize(
+        assert line.price_total_cc == line.price_subtotal.quantize(
             Decimal('0.01')
         )
 
@@ -114,7 +116,7 @@ class TestPriceTotalCcAndCompanyCurrencyId:
         self, company, mxn, usd, variant
     ):
         """Qué haría fallar al control: no dividir — dejar
-        ``price_total_cc == price_subtotal()`` aunque la orden esté en otra
+        ``price_total_cc == price_subtotal`` aunque la orden esté en otra
         moneda.
         """
         day_rate = Decimal('0.05')
@@ -129,14 +131,15 @@ class TestPriceTotalCcAndCompanyCurrencyId:
             company_id=company, currency_id=usd
         )
         line = PurchaseOrderLine.objects.create(
-            order_id=order, product_id=variant, price_unit=Decimal('10.00')
+            order_id=order, product_id=variant, price_unit=Decimal('10.00'),
+            product_qty=1,
         )
         line.refresh_from_db()
-        expected = (line.price_subtotal() / order.currency_rate).quantize(
+        expected = (line.price_subtotal / order.currency_rate).quantize(
             Decimal('0.01')
         )
         assert line.price_total_cc == expected
-        assert line.price_total_cc != line.price_subtotal().quantize(
+        assert line.price_total_cc != line.price_subtotal.quantize(
             Decimal('0.01')
         )
 
@@ -150,7 +153,8 @@ class TestPriceTotalCcAndCompanyCurrencyId:
             company_id=company, currency_id=mxn
         )
         line = PurchaseOrderLine.objects.create(
-            order_id=order, product_id=variant, price_unit=Decimal('10.00')
+            order_id=order, product_id=variant, price_unit=Decimal('10.00'),
+            product_qty=1,
         )
         line.refresh_from_db()
         assert line.company_currency_id == mxn
@@ -167,7 +171,7 @@ class TestGetTenderBestLinesD3a:
         1 USD = 20 MXN (``currency_rate`` = 0.05). La línea en pesos cuesta
         100 (IVA incl.); la línea en dólares cuesta 10 (IVA incl.) — un
         número menor, pero equivalen a ~200 pesos. Comparar por
-        ``price_subtotal()`` crudo elegiría la de dólares por ser el número
+        ``price_subtotal`` crudo elegiría la de dólares por ser el número
         más chico; comparar por ``price_total_cc`` —moneda de la empresa—
         elige la de pesos, que es la que de verdad cuesta menos.
         """
@@ -193,7 +197,7 @@ class TestGetTenderBestLinesD3a:
 
         # Qué haría fallar al control: comparar sin convertir.
         assert (
-            usd_line.price_subtotal() < mxn_line.price_subtotal()
+            usd_line.price_subtotal < mxn_line.price_subtotal
         ), 'la premisa del caso es que el número CRUDO en USD es menor'
         assert (
             usd_line.price_total_cc > mxn_line.price_total_cc
@@ -214,7 +218,8 @@ class TestGetTenderBestLinesD3a:
             company_id=company, currency_id=mxn
         )
         PurchaseOrderLine.objects.create(
-            order_id=order, product_id=variant, price_unit=Decimal('10.00')
+            order_id=order, product_id=variant, price_unit=Decimal('10.00'),
+            product_qty=1,
         )
         _best_price_ids, best_date_ids, _best_unit_price_ids = (
             order.get_tender_best_lines()

@@ -6,7 +6,8 @@ from decimal import Decimal
 
 import pytest
 
-from addons.base.models import ResPartner
+from addons.account.models import AccountTax
+from addons.base.models import ResCompany, ResPartner
 from addons.purchase.models import PurchaseOrder, PurchaseOrderLine
 from addons.sale.models import SaleOrder, SaleOrderLine
 from addons.sale_purchase.models import SaleLinePurchaseLink
@@ -48,18 +49,30 @@ def test_purchase_order_confirm_state_machine(db):
 
 
 def test_purchase_line_tax_breakdown(db):
+    """El desglose sale de ``tax_ids`` y del motor de ``account.tax``.
+
+    ≙ ``_compute_amount`` (``odoo19c: purchase/models/purchase_order_line.py:
+    106-117``): un IVA del 16 % incluido en el precio da 232 de total, 32 de
+    impuesto y 200 de base.
+    """
+    company = ResCompany.objects.create(name='Compras desglose')
+    tax = AccountTax.objects.create(
+        name='IVA 16', amount=Decimal('16'), company=company,
+        type_tax_use='purchase', price_include=True)
     product = make_product(name='Insumo', price=Decimal('116.00'))
-    po = PurchaseOrder.objects.create(partner_id=_vendor())
+    po = PurchaseOrder.objects.create(partner_id=_vendor(), company_id=company)
     line = PurchaseOrderLine.objects.create(
         order_id=po,
         product_id=product,
         price_unit=Decimal('116.00'),
         product_qty=2,
     )
-    # IVA 16% incluido: total 232.00 → tax 32.00 → subtotal 200.00.
-    assert line.price_total() == Decimal('232.00')
-    assert line.price_tax() == Decimal('32.00')
-    assert line.price_subtotal() == Decimal('200.00')
+    line.write({'tax_ids': [(6, 0, [tax.pk])]})
+    line.flush_recordset()
+    line.refresh_from_db()
+    assert line.price_total == Decimal('232.00')
+    assert line.price_tax == Decimal('32.00')
+    assert line.price_subtotal == Decimal('200.00')
     assert po.amount_total() == Decimal('232.00')
     assert po.amount_untaxed() == Decimal('200.00')
 
