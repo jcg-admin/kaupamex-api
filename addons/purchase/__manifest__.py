@@ -26,6 +26,17 @@
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',
+    # Seguridad de la fuente (``odoo19c: purchase/__manifest__.py:12-14``).
+    # El XML declara sus tres omisiones en la cabecera; el CSV es copia fiel
+    # sin 10 filas cuyo modelo no tiene fila en ``ir.model``: 7 de modelos sin
+    # puerto (``purchase.bill.line.match``, ``bill.to.po.wizard``,
+    # ``purchase.bill.union``, ``purchase.report``) y 3 de modelos portados
+    # sin ``_name`` (``product.supplierinfo``, ``product.pricelist.item``,
+    # ``account.analytic.line``). Diseño: ``designs/purchase-security.md``.
+    'data': [
+        'security/purchase_security.xml',
+        'security/ir.model.access.csv',
+    ],
     'application': True,
     'installable': True,
     'auto_install': False,
