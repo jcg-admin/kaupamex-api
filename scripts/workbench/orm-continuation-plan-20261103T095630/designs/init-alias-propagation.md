@@ -159,3 +159,15 @@ Para no pagar otro ciclo de 35 min por un error así:
   (archivo temporal ya retirado).
 
 Se repite el ci-multidb sobre un snapshot nuevo.
+
+## Cierre (2026-11-17)
+
+El ci-multidb vigente es `outputs/gates/ci-multidb-provision-b314f6e7`:
+15 passed, 0 failures, con los casos de esta unidad
+(`test_company_init_writes_only_the_selected_base`,
+`test_init_models_runs_both_inits_in_the_selected_base`,
+`test_users_init_encrypts_only_in_the_selected_base`). Certifica
+`b314f6e7`, no `HEAD`: después tocaron el área `44ce4bcf` (instantánea de
+una fila invalidada) y `3aa7e887` (máquina de estados de compra), así que
+el próximo ci-multidb corre sobre la revisión que los contiene. El
+asentamiento usa el `verify` focalizado del plan.
