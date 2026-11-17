@@ -53,3 +53,35 @@ la regla «usada por un pago» no tiene contra qué evaluarse.
 - Borrar el diario deja la línea con `journal_id` nulo.
 - Anulación prevista: con `CASCADE` de nuevo, cae el caso del `delete()`
   crudo; sin el `unlink` portado, cae el del `unlink`.
+
+## 6. Implementación y verificación (2026-11-17)
+
+**Adopción de `BaseModel` (clase A).** `AccountPaymentMethod` y
+`AccountPaymentMethodLine` derivaban de `models.Model`: sin `unlink` ni
+`search` con condiciones (`_check_field_access` vive en `FieldSqlMixin`, que
+llega por `TimeStampedModel` → `RecordLoaderMixin`, como en los 43 modelos que
+ya lo adoptaron). La fuente declara los dos sobre `models.Model` con
+`_log_access` por defecto. Pasan a `models.BaseModel, TimeStampedModel`; el
+cambio de bases no altera el esquema (`makemigrations --check`: sin cambios).
+La sobrescritura `delete` de instancia se retira: era un mecanismo propio en el
+sitio del `unlink` de la fuente.
+
+Migración `account/0041_restrict_payment_method_line`: `payment_method` →
+`PROTECT`, `journal` → `SET_NULL`. Contrato: 29 passed, 73 xfailed (antes 75).
+
+Anulaciones (cada una restaurada por copia byte a byte, `cmp` sin diferencia):
+
+| Anulación | Cae exactamente |
+|---|---|
+| `payment_method` → `CASCADE` | `test_a_raw_delete_of_a_method_with_lines_is_protected` y la fila del contrato |
+| `unlink` sin borrar las líneas | `test_unlink_of_the_method_removes_its_lines_first` y `test_unlink_removes_lines` |
+| `journal` → `CASCADE` | `test_deleting_the_journal_keeps_the_line_without_journal` y la fila del contrato |
+
+`test_delete_cascades_lines` pasa a `test_unlink_removes_lines`: borrar por
+`delete()` de Django ahora se rehúsa (≙ el `restrict` de la clave), y el
+contrato de la fuente es `unlink`, que comprueba la ACL; corre con `sudo()`.
+
+Sucesor registrado: `account-payment-method-line-field-0515` (plan.jsonl).
+
+*Métrica:* veredicto por caso con y sin cada pieza.
+*Ciega a:* el `unlink` de la línea usada por un pago, que no existe aún.
