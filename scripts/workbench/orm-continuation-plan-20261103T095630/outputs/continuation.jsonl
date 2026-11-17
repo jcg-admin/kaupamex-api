@@ -499,3 +499,4 @@
 {"utc": "2026-11-17T16:11:56Z", "epoch": 1794931916.836, "kind": "accepted", "item": "orm-init-alias-propagation-0515", "commitExit": 0, "commit": "4aaf5da9"}
 {"utc": "2026-11-17T17:49:55Z", "epoch": 1794937795.692, "kind": "attempt", "item": "orm-new-record-stored-compute-0485", "attempt": 0, "model": "conversational-session", "outcome": "success", "source": "preexisting", "verifyExit": 0, "commit": "3996dacd", "verifyTail": ["    warnings.warn(", "-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html", "180 passed, 80 xfailed, 2 warnings in 56.60s"]}
 {"utc": "2026-11-17T17:49:55Z", "epoch": 1794937795.693, "kind": "accepted", "item": "orm-new-record-stored-compute-0485", "commitExit": 0, "commit": "3996dacd"}
+{"utc": "2026-11-17T20:33:26Z", "epoch": 1794947606.781, "kind": "hard_block", "item": "account-payment-method-line-related-0515", "reason": "sin obligaciones"}
