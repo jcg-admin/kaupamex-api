@@ -299,17 +299,23 @@ def _write_line(line, values):
         line.save(update_fields=list(values))
 
 
-def apply_one2many_commands(record, rel, value, create=False):
+def apply_one2many_commands(record, rel, value, create=False, domain=None):
     """Aplica los comandos de un One2many en el entorno que
     :func:`_check_sudo_commands` decide para el comodelo — ≙ la cabecera de
     ``One2many.write_real`` (``odoo19c: odoo/orm/fields_relational.py:
-    975-977``)."""
+    975-977``).
+
+    ``domain`` es el ``Domain`` con que la fuente busca lo que ``SET`` y
+    ``CLEAR`` retiran: el de ``get_comodel_domain`` del campo y el inverso
+    sobre el registro. Sin él se retira toda fila del inverso."""
     with _check_sudo_commands(_record_env(record),
                               rel.related_model) as environment:
-        _apply_one2many_triples(record, rel, value, create, environment)
+        _apply_one2many_triples(record, rel, value, create, environment,
+                                domain)
 
 
-def _apply_one2many_triples(record, rel, value, create, environment):
+def _apply_one2many_triples(record, rel, value, create, environment,
+                            domain=None):
     """Aplica los comandos de un One2many sobre su inverso — ≙
     ``One2many.write_real`` (``odoo19c: odoo/orm/fields_relational.py:
     969-1045``), rama almacenada, para un solo registro.
@@ -322,9 +328,13 @@ def _apply_one2many_triples(record, rel, value, create, environment):
     ``MissingError``. En ``create`` un ``SET``/``CLEAR`` no borra nada: se
     lee como ``LINK``, como en la fuente (``allow_full_delete``).
 
-    pendiente: el ``domain`` del One2many (``get_comodel_domain``) en
-    ``SET``/``CLEAR`` y el ``context`` del campo; ningún inverso de Django
-    los declara aquí.
+    ``SET`` y ``CLEAR`` retiran sólo lo que ``comodel.search(domain)``
+    encuentra (``:1041-1042``): dos One2many sobre el mismo inverso,
+    separados por dominio, no se pisan. Un comodelo de Django sin
+    ``BaseModel`` no tiene ``search`` y filtra con el mismo dominio.
+
+    pendiente: el ``context`` del campo; ningún inverso de Django lo
+    declara aquí.
     """
     comodel = rel.related_model
     records = comodel_records(environment, comodel)
@@ -335,6 +345,14 @@ def _apply_one2many_triples(record, rel, value, create, environment):
 
     def current_ids():
         return list(comodel._base_manager.filter(**{inverse: record.pk})
+                    .values_list('pk', flat=True))
+
+    def removable_ids():
+        if domain is None:
+            return current_ids()
+        if hasattr(records, 'search'):
+            return list(records.search(domain).ids)
+        return list(comodel._base_manager.filter(domain._to_q(comodel))
                     .values_list('pk', flat=True))
 
     def unlink(ids):
@@ -399,7 +417,7 @@ def _apply_one2many_triples(record, rel, value, create, environment):
                 continue
             flush()
             keep = set(line_ids)
-            unlink([i for i in current_ids() if i not in keep])
+            unlink([i for i in removable_ids() if i not in keep])
             flush()
             for line in _line_rows(records, line_ids):
                 _write_line(line, {inverse: record.pk})

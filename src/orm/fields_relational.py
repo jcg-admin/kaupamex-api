@@ -493,6 +493,13 @@ class One2many:
     # son de ``_RelationalMulti``: viven como ``_relational_multi_*`` al
     # final del módulo y se instalan aquí y en ``ManyToManyField``.
 
+    def _removal_domain(self, record, inverse):
+        """Lo que ``SET`` y ``CLEAR`` buscan para retirar — ≙
+        ``get_comodel_domain(model) & Domain(inverse, 'in', recs.ids)``
+        (``odoo19c: odoo/orm/fields_relational.py:1041``)."""
+        return (_multi_comodel_domain(self, record)
+                & _domain(inverse.name, 'in', [record.pk]))
+
     def write_real(self, records_commands_list, create=False):
         """≙ ``One2many.write_real`` (``:969-1076``): los comandos en la base,
         sobre el ``Many2one`` inverso, con las colas de crear, borrar y
@@ -501,7 +508,8 @@ class One2many:
         for records, commands in records_commands_list:
             for record in records:
                 apply_one2many_commands(
-                    record, inverse.remote_field, commands, create=create)
+                    record, inverse.remote_field, commands, create=create,
+                    domain=self._removal_domain(record, inverse))
 
     def write_new(self, records_commands_list):
         """≙ ``One2many.write_new`` (``:1078-1121``): nada va a la base; el
@@ -744,7 +752,9 @@ class One2many:
         if is_command_list(value):
             # Los siete comandos de la fuente — ≙ ``One2many.write_real``
             # (``odoo19c: odoo/orm/fields_relational.py:969``).
-            apply_one2many_commands(instance, inverse.remote_field, value)
+            apply_one2many_commands(
+                instance, inverse.remote_field, value,
+                domain=self._removal_domain(instance, inverse))
             return
         nuevos = list(value or ())
         vivos = [obj.pk for obj in nuevos if obj.pk is not None]
