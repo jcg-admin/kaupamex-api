@@ -39,6 +39,11 @@ corte fiscal); ``foreign_vat_header_mode``/``action_create_foreign_taxes``
 
 import fields
 import models
+from django.db.models import Q
+from orm.environments import get_current_company
+
+from addons.base.models import ResCountry
+from addons.base.models.ir_model import IrModelData
 
 
 class AccountFiscalPosition(models.Model):
@@ -213,3 +218,101 @@ class AccountFiscalPosition(models.Model):
             for row in self.account_ids.select_related('account_dest').all()
         }
         return mapping.get(account.pk, account)
+
+    # -- resolución automática (odoo19c: partner.py:208-280) ---------------
+
+    @classmethod
+    def _get_first_matching_fpos(cls, fiscal_positions, partner):
+        """≙ ``_get_first_matching_fpos`` (``odoo19c: partner.py:208-213``).
+
+        La primera de ``fiscal_positions`` que pasa las cinco validaciones
+        para ``partner``: primero las de la empresa más específica (más
+        empresas madre), luego por ``sequence``. Sin ninguna, la posición
+        vacía (``cls()``, cuyo ``map_tax`` deja los impuestos tal cual).
+
+        **Divergencia de receptor, declarada:** la fuente recorre ``self``;
+        aquí el conjunto llega como argumento, porque el modelo es de Django
+        y su instancia es una sola fila.
+        """
+        def specificity(fpos):
+            company = fpos.company
+            return (-len(company.parent_ids) if company else 0,
+                    fpos.sequence)
+        checks = cls._get_fpos_validation_functions(partner)
+        for fpos in sorted(fiscal_positions, key=specificity):
+            if all(check(fpos) for check in checks):
+                return fpos
+        return cls()
+
+    @classmethod
+    def _get_fpos_validation_functions(cls, partner):
+        """≙ ``_get_fpos_validation_functions`` (``odoo19c: partner.py:
+        215-243``): VAT exigido, rango de código postal, estado, país y
+        grupo de países (con sus estados excluidos)."""
+        company = get_current_company()
+
+        def in_country_group(fpos):
+            group = fpos.country_group
+            if group is None:
+                return True
+            if partner.country_id not in set(
+                    group.country_ids.values_list('pk', flat=True)):
+                return False
+            excluded = set(
+                group.exclude_state_ids.values_list('pk', flat=True))
+            return not partner.state_id or partner.state_id not in excluded
+
+        return [
+            lambda fpos: (not fpos.vat_required
+                          or partner._get_vat_required_valid(company=company)),
+            lambda fpos: (not (fpos.zip_from and fpos.zip_to)
+                          or (partner.zip and fpos.zip_from <= partner.zip
+                              <= fpos.zip_to)),
+            lambda fpos: (not fpos.state_ids.exists()
+                          or fpos.state_ids.filter(
+                              pk=partner.state_id).exists()),
+            lambda fpos: (fpos.country_id is None
+                          or partner.country_id == fpos.country_id),
+            in_country_group,
+        ]
+
+    @classmethod
+    def _get_fiscal_position(cls, partner, delivery=None):
+        """≙ ``_get_fiscal_position`` (``odoo19c: partner.py:245-280``).
+
+        La posición fiscal de ``partner``: la que el socio declara a mano y,
+        si no hay, la primera automática (``auto_apply``) de la empresa
+        activa que valide para la dirección de entrega.
+
+        **Divergencia declarada:** en la fuente
+        ``property_account_position_id`` depende de la empresa
+        (``with_company``); aquí es una FK simple del socio
+        (``account/models/partner.py``), así que se lee sin empresa.
+        """
+        if not partner:
+            return cls()
+        company = get_current_company()
+        intra_eu = vat_exclusion = False
+        company_vat = company.vat if company else ''
+        if company_vat and partner.vat:
+            europe = IrModelData._xmlid_to_res_id('base.europe')
+            eu_country_codes = set(ResCountry.objects.filter(
+                country_groups=europe).values_list('code', flat=True)) \
+                if europe else set()
+            eu_country_codes = {code.upper() for code in eu_country_codes}
+            intra_eu = (company_vat[:2].upper() in eu_country_codes
+                        and partner.vat[:2].upper() in eu_country_codes)
+            vat_exclusion = company_vat[:2] == partner.vat[:2]
+        if not delivery or (intra_eu and vat_exclusion
+                            and partner.country_id == company.country_id):
+            delivery = partner
+        manual_fiscal_position = (delivery.property_account_position_id
+                                  or partner.property_account_position_id)
+        if manual_fiscal_position:
+            return manual_fiscal_position
+        if not partner.country_id:
+            return cls()
+        candidates = cls.objects.filter(auto_apply=True).filter(
+            Q(company__isnull=True)
+            | Q(company__in=company.parent_ids if company else []))
+        return cls._get_first_matching_fpos(candidates, delivery)

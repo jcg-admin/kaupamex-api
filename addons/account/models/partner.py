@@ -170,6 +170,13 @@ def invoice_ids(partner):
 # --------------------------------------------------------------------
 
 
+def _get_vat_required_valid(partner, company=None):
+    """Hook for determining VAT validity with more complex VAT
+    requirements (like VIES) — ≙ ``_get_vat_required_valid``
+    (``odoo19c: account/models/partner.py:873-876``)."""
+    return bool(partner.vat)
+
+
 def apply_account_extensions():
     """Cuelga la mitad contable sobre ``res.partner`` — ≙ ``_inherit``.
 
@@ -414,6 +421,7 @@ def apply_account_extensions():
 
     # --- compute-only → funciones, no columnas ------------------------
     ResPartner.credit = property(credit)
+    ResPartner._get_vat_required_valid = _get_vat_required_valid
     ResPartner.total_invoiced = property(total_invoiced)
     ResPartner.account_move_count = property(account_move_count)
     ResPartner.supplier_invoice_count = property(supplier_invoice_count)

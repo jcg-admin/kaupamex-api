@@ -5,15 +5,16 @@ Adaptación de ``odoo19c: addons/base_vat/models/res_partner.py``
 preservados (DEC-KX-03). Su manifiesto declara ``LGPL-3``, así que el
 mecanismo es **copia + adaptación** del fuente, no reimplementación.
 
-Porte BLOQUEADO — 60 de 64 símbolos
+Porte BLOQUEADO — 61 de 64 símbolos
 ====================================
 
-Los cuatro que no se portan tienen su arista declarada símbolo a símbolo, y
+Los tres que no se portan tienen su arista declarada símbolo a símbolo, y
 todos apuntan a **un** destino medido:
 
-- ``account.res.partner._check_vat`` y sus tres hermanos de la misma familia
-  (``_run_vat_checks`` base, ``_get_vat_required_valid``,
-  ``_get_country_specific_vat_variants``). La fuente los declara en
+- ``account.res.partner._check_vat`` y sus dos hermanos de la misma familia
+  (``_run_vat_checks`` base y ``_get_country_specific_vat_variants``).
+  El cuarto, ``_get_vat_required_valid``, ya se porta: su ``super()`` existe
+  en ``addons/account/models/partner.py``. La fuente los declara en
   ``odoo19c: addons/account/models/partner.py:847-959`` — **no** en ``base``,
   así que portarlos aquí sería el defecto de sitio que :ref:`h-api-568`
   registra. Medido:
@@ -162,9 +163,9 @@ Símbolo a símbolo — los métodos
      - portado
      - Python puro
    * - ``_get_vat_required_valid`` (``:952``)
-     - bloqueado
-     - BLOQUEADO por ``account.res.partner._get_vat_required_valid`` — su
-       cuerpo abre con ese ``super()``. Sucesor: **#460**
+     - portado
+     - encadenado con ``wrap_method`` sobre la versión de ``account``
+       (``addons/account/models/partner.py``), que es su ``super()``
    * - ``create`` (``:964``) · ``write`` (``:970``)
      - portados
      - un solo ``overrides={'save': …}``: aquí la mutación tiene una entrada,
@@ -253,10 +254,13 @@ from addons.base.models.ir_module import IrModule
 from addons.base.models.res_company import ResCompany
 from addons.base.models.res_country import ResCountry
 from addons.base.models.res_country_group import ResCountryGroup
-from addons.base.models.res_partner import EU_EXTRA_VAT_CODES
+from addons.base.models.res_partner import EU_EXTRA_VAT_CODES, ResPartner
 from addons.base_vat.validators import validate_rfc
 from exceptions import ValidationError
-from orm.environments import env, get_context, get_current_company, sudo
+from orm.environments import (
+    company_scope, env, get_context, get_current_company, sudo,
+)
+from orm.method_chain import wrap_method
 from orm.model_classes import extend_model
 from tools.misc import hash_sign
 from tools.translate import _
@@ -824,16 +828,29 @@ def _get_country_specific_vat_variants(self, normalized_vat, country_prefix):
         'en account.res.partner y no existe en este árbol (tarea #460).')
 
 
-def _get_vat_required_valid(self, company=None):
-    """BLOQUEADO por ``account.res.partner._get_vat_required_valid`` — razón:
-    la fuente lo marca ``OVERRIDE`` y **combina** con ``super()``
-    (``vat_required_valid and self.vies_valid``); sin la previa el ``and`` no
-    tiene primer operando. Medido en el encabezado del módulo: 0 definiciones.
-    Sucesor: tarea **#460**.
+def _get_vat_required_valid(self, previous, company=None):
+    """≙ ``_get_vat_required_valid`` (``odoo19c: :952-962``), ``OVERRIDE``.
+
+    El cuerpo abre con ``super()`` —la versión de ``account``
+    (``addons/account/models/partner.py``)— y la endurece con el veredicto
+    VIES cuando la empresa valida contra VIES y el partner cae en la UE o en
+    un país con posición fiscal propia. ``previous`` es ese ``super()``, ya
+    ligado al partner (``orm.method_chain.wrap_method``).
+
+    ``self.with_company(company)`` de la fuente es aquí ``company_scope``:
+    ``perform_vies_validation`` lee la empresa activa del contexto.
     """
-    raise NotImplementedError(
-        '_get_vat_required_valid está bloqueado: su super() vive en '
-        'account.res.partner y no existe en este árbol (tarea #460).')
+    vat_required_valid = previous(company=company)
+    if company is None or company.country is None:
+        return vat_required_valid
+    with company_scope(company.pk):
+        performs_vies = self.perform_vies_validation
+    country = self.country
+    if performs_vies and (
+            'EU' in (company.country.country_group_codes or [])
+            or (country is not None and country.has_foreign_fiscal_position)):
+        vat_required_valid = vat_required_valid and self.vies_valid
+    return vat_required_valid
 
 
 # === Los validadores por país =============================================
@@ -1529,7 +1546,6 @@ def apply_base_vat_extensions():
         '_build_vat_error_message': _build_vat_error_message,
         '_format_vat_number': _format_vat_number,
         '_convert_hu_local_to_eu_vat': _convert_hu_local_to_eu_vat,
-        '_get_vat_required_valid': _get_vat_required_valid,
         '_ie_check_char': _ie_check_char,
         'is_valid_ruc_ec': is_valid_ruc_ec,
         'check_vat_al': check_vat_al,
@@ -1577,6 +1593,8 @@ def apply_base_vat_extensions():
         'save': save,
         '_create_contact_parent_company': _create_contact_parent_company,
     }, luego=_hang_precompiled_regexes)
+    # ≙ el ``super()`` de la fuente: la versión de ``account`` va EN LA MANO.
+    wrap_method(ResPartner, '_get_vat_required_valid', _get_vat_required_valid)
 
 
 def _hang_precompiled_regexes(model):
