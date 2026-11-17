@@ -259,7 +259,11 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
         fk = type(self)._inherits_fields.get(name)
         if fk is not None:
             try:
-                delegate = getattr(self, fk, None)
+                # La clave de ``_inherits`` puede ser el ``attname`` de la FK
+                # (``product_tmpl_id``), que en Django da el entero; el
+                # delegado se lee por el nombre del campo, que da el registro.
+                delegate = getattr(
+                    self, type(self)._meta.get_field(fk).name, None)
                 if delegate is not None:
                     if not self.__dict__.get(CURRENT_USER_SU):
                         _check_delegate_access(delegate, 'read')

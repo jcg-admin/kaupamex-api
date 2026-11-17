@@ -178,6 +178,28 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
     qty_received_manual = fields.Monetary(
         'Manual Received Qty', max_digits=16, decimal_places=4,
         copy=False, null=True, blank=True)
+    #: ≙ ``qty_invoiced``/``qty_to_invoice`` (``odoo19c: :58,66-67``):
+    #: ``Float(digits='Product Unit')`` en la fuente, ``Decimal`` de cuatro
+    #: decimales aquí, como ``product_qty``. ``invoice_lines`` (``:56``) es el
+    #: inverso que ``purchase`` cuelga en ``account.move.line``
+    #: (``account_invoice.py``).
+    qty_invoiced = fields.Monetary(
+        'Billed Qty', max_digits=16, decimal_places=4,
+        compute='_compute_qty_invoiced', store=True,
+        null=True, blank=True)
+    qty_to_invoice = fields.Monetary(
+        'To Invoice Quantity', max_digits=16, decimal_places=4,
+        compute='_compute_qty_invoiced', store=True, readonly=True,
+        null=True, blank=True)
+    #: ≙ ``qty_invoiced_at_date``/``amount_to_invoice_at_date``
+    #: (``odoo19c: :75-80``): sin columna, dependen de
+    #: ``accrual_entry_date``.
+    qty_invoiced_at_date = fields.Monetary(
+        'Billed', max_digits=16, decimal_places=4,
+        compute='_compute_qty_invoiced_at_date')
+    amount_to_invoice_at_date = fields.Monetary(
+        'Amount', max_digits=16, decimal_places=4,
+        compute='_compute_amount_to_invoice_at_date')
     #: ≙ ``qty_received_at_date`` (``odoo19c: :70-74``): sin columna,
     #: depende del contexto ``accrual_entry_date``.
     qty_received_at_date = fields.Monetary(
@@ -457,6 +479,117 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                 line.qty_received_manual = line.qty_received
             else:
                 line.qty_received_manual = Decimal('0')
+
+    @api.depends('invoice_lines.move.state', 'invoice_lines.quantity',
+                 'qty_received', 'product_uom_qty', 'order_id.state')
+    def _compute_qty_invoiced(self):
+        """≙ ``odoo19c: :164-177``."""
+        invoiced_quantities = self._prepare_qty_invoiced()
+        for line in self:
+            line.qty_invoiced = invoiced_quantities[line]
+            if line.order_id.state == 'purchase':
+                if line.product_id.purchase_method == 'purchase':
+                    line.qty_to_invoice = (
+                        (line.product_qty or Decimal('0'))
+                        - line.qty_invoiced)
+                else:
+                    line.qty_to_invoice = (
+                        (line.qty_received or Decimal('0'))
+                        - line.qty_invoiced)
+            else:
+                line.qty_to_invoice = Decimal('0')
+
+    @api.depends('qty_invoiced')
+    @api.depends_context('accrual_entry_date')
+    def _compute_qty_invoiced_at_date(self):
+        """≙ ``odoo19c: :179-188``."""
+        if not self._date_in_the_past():
+            for line in self:
+                line.qty_invoiced_at_date = line.qty_invoiced
+            return
+        invoiced_quantities = self._prepare_qty_invoiced()
+        for line in self:
+            line.qty_invoiced_at_date = invoiced_quantities[line]
+
+    def _prepare_qty_invoiced(self):
+        """≙ ``odoo19c: :190-200``. ``Decimal`` en vez de ``float``.
+
+        Una línea de factura sin unidad es el recordset vacío de la fuente,
+        cuyo ``_compute_quantity`` devuelve la cantidad tal cual.
+        """
+        invoiced_qties = defaultdict(Decimal)
+        for line in self:
+            for inv_line in line._get_invoice_lines():
+                move = inv_line.move
+                if (move.state not in ['cancel']
+                        or move.payment_state == 'invoicing_legacy'):
+                    uom = inv_line.product_uom_id
+                    quantity = inv_line.quantity or Decimal('0')
+                    if uom:
+                        quantity = uom._compute_quantity(
+                            quantity, line.product_uom_id)
+                    if move.move_type == 'in_invoice':
+                        invoiced_qties[line] += quantity
+                    elif move.move_type == 'in_refund':
+                        invoiced_qties[line] -= quantity
+        return invoiced_qties
+
+    def _get_invoice_lines(self):
+        """≙ ``odoo19c: :202-211``.
+
+        ``invoice_lines`` es el inverso de una FK de ``account.move.line``,
+        un modelo de Django: el ``filtered`` de la fuente es aquí un filtro
+        sobre su ``QuerySet``, con la misma condición.
+        """
+        self.ensure_one()
+        move_line_model = type(self).invoice_lines.rel.related_model
+        lines = move_line_model.objects.filter(
+            purchase_line_id=self.id).select_related(
+            'move', 'product_uom_id')
+        if self.env.context.get('accrual_entry_date'):
+            accrual_date = fields.Date.from_string(
+                self.env.context['accrual_entry_date'])
+            return lines.filter(move__invoice_date__isnull=False,
+                                move__invoice_date__lte=accrual_date)
+        return lines
+
+    @api.depends('price_unit', 'qty_invoiced_at_date',
+                 'qty_received_at_date')
+    @api.depends_context('accrual_entry_date')
+    def _compute_amount_to_invoice_at_date(self):
+        """≙ ``odoo19c: :280-285``."""
+        for line in self:
+            qty_to_invoice = (
+                (line.qty_received_at_date or Decimal('0'))
+                - (line.qty_invoiced_at_date or Decimal('0')))
+            if line.product_uom_id:
+                qty_to_invoice = line.product_uom_id._compute_quantity(
+                    qty_to_invoice, line.product_id.uom)
+            line.amount_to_invoice_at_date = (
+                qty_to_invoice * line._get_gross_price_unit())
+
+    def _get_gross_price_unit(self):
+        """≙ ``odoo19c: :492-508``."""
+        self.ensure_one()
+        price_unit = self.price_unit or Decimal('0')
+        if self.discount:
+            price_unit = price_unit * (1 - self.discount / 100)
+        taxes = self.tax_ids.all()
+        if taxes:
+            qty = self.product_qty or 1
+            price_unit = taxes.compute_all(
+                price_unit,
+                currency=self.order_id.currency_id,
+                quantity=qty,
+                rounding_method='round_globally',
+            )['total_void']
+            price_unit = price_unit / qty
+        product_uom = self.product_id.uom
+        if self.product_uom_id and product_uom and (
+                self.product_uom_id.pk != product_uom.pk):
+            price_unit *= Decimal(repr(
+                product_uom.factor / self.product_uom_id.factor))
+        return price_unit
 
     @api.model
     def _date_in_the_past(self):
