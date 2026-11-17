@@ -85,6 +85,31 @@ class AccountPaymentMethod(models.BaseModel, TimeStampedModel):
     def __str__(self) -> str:
         return f'{self.name} ({self.payment_type})'
 
+    @classmethod
+    def create(cls, vals_list):
+        """≙ ``create`` (``odoo19c: addons/account/models/
+        account_payment_method.py:20-24``): tras crear, enlaza cada método
+        ``multi`` a los diarios que pueden alojarlo."""
+        payment_methods = super().create(vals_list)
+        methods_info = payment_methods._get_payment_method_information()
+        return payment_methods._auto_link_payment_methods(payment_methods,
+                                                          methods_info)
+
+    def _auto_link_payment_methods(self, payment_methods, methods_info):
+        """≙ ``_auto_link_payment_methods`` (``:26-38``): una línea por
+        diario elegible para cada método de modo ``multi``."""
+        for method in payment_methods:
+            information = methods_info.get(method.code, {})
+            if information.get('mode') == 'multi':
+                method_domain = method._get_payment_method_domain(method.code)
+                journals = self.env['account.journal'].search(method_domain)
+                self.env['account.payment.method.line'].create([{
+                    'name': method.name,
+                    'payment_method_id': method.id,
+                    'journal_id': journal.id,
+                } for journal in journals])
+        return payment_methods
+
     @api.model
     def _get_payment_method_domain(self, code, with_currency=True,
                                    with_country=True):

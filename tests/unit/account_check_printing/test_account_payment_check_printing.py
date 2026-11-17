@@ -22,10 +22,20 @@ from addons.account_check_printing.models.res_currency import (
 )
 from addons.base.models import ResCompany, ResCurrency
 from exceptions import UserError, ValidationError
+from orm.environments import sudo
 
 apply_account_check_printing_currency_extensions()
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def _as_superuser():
+    """Los datos se escriben como superusuario, como en las pruebas de la
+    fuente: con ``account.journal`` sobre ``BaseModel`` la ACL aplica
+    (``designs/journal-payment-method-lines.md``)."""
+    with sudo():
+        yield
 
 
 @pytest.fixture

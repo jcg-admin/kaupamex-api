@@ -21,11 +21,24 @@ from addons.account_check_printing.models.account_payment import (
     CheckPrintingPaymentInfo,
 )
 from addons.authz_reauth.models import ReauthSession
-from addons.base.models import ResCompany
+from addons.base.models import IrModelData, ResCompany
 
 PRINT_CHECKS_URL = '/api/v2/admin/finance/checks/print/'
 
 pytestmark = pytest.mark.integration
+
+
+@pytest.fixture
+def admin_user(admin_user, company):
+    """El administrador de la plataforma, con derechos de facturación y
+    dentro de la empresa cuyos cheques imprime: en la fuente lo hace un
+    usuario de ``account.group_account_invoice``, el grupo que lee
+    ``account.journal`` (``odoo19c: addons/account/security/
+    ir.model.access.csv:56``), y la regla multiempresa del diario exige su
+    empresa entre las permitidas."""
+    admin_user.group_ids.add(IrModelData.ref('account.group_account_invoice'))
+    admin_user.company_ids.add(company)
+    return admin_user
 
 
 def _elevate(client, user):

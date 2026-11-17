@@ -17,8 +17,18 @@ from addons.account_check_printing.models.account_journal import (
 )
 from addons.base.models import ResCompany
 from exceptions import ValidationError
+from orm.environments import sudo
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def _as_superuser():
+    """Los datos se escriben como superusuario, como en las pruebas de la
+    fuente: con ``account.journal`` sobre ``BaseModel`` la ACL aplica
+    (``designs/journal-payment-method-lines.md``)."""
+    with sudo():
+        yield
 
 
 @pytest.fixture

@@ -28,6 +28,16 @@ from addons.account.services import (
 from tests.factories.product_factory import make_category, make_product
 from addons.base.models import ResCompany
 from addons.sale.models import SaleOrder
+from orm.environments import sudo
+
+
+@pytest.fixture(autouse=True)
+def _as_superuser():
+    """Los datos se escriben como superusuario, como en las pruebas de la
+    fuente: con ``account.journal`` sobre ``BaseModel`` la ACL aplica
+    (``designs/journal-payment-method-lines.md``)."""
+    with sudo():
+        yield
 
 
 @pytest.fixture
