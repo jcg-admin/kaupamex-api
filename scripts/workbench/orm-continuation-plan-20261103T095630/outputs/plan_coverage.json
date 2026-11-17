@@ -239,6 +239,21 @@
    "id": "purchase-line-core-0122",
    "task": "TASK-API-0122",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "orm-pending-computes-durable-0516",
+   "task": "TASK-API-0516",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "orm-many2many-django-comodel-create-0485",
+   "task": "TASK-API-0485",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "orm-new-record-stored-compute-0485",
+   "task": "TASK-API-0485",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
   }
  ],
  "unrepresented": [
@@ -551,6 +566,7 @@
   "purchase-line-qty-received-0122",
   "purchase-line-price-and-dates-0122",
   "orm-related-scalar-unsaved-0485",
+  "orm-many2many-django-comodel-new-0485",
   "account-tax-included-price-0121",
   "account-fiscal-position-resolution-0121",
   "purchase-order-fiscal-header-0535",
