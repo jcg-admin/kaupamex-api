@@ -31,6 +31,7 @@ COLUMNS = ['execution_id', 'kind', 'revision', 'database', 'exit',
            'passed', 'failed', 'errors', 'xfailed', 'seconds',
            'expected', 'observed', 'limitation', 'files']
 SUMMARY = re.compile(r'(\d+) (passed|failed|errors?|xfailed)')
+EXIT_MARK = re.compile(r'^EXIT=(\d+)$')
 
 
 def sha256(path):
@@ -51,6 +52,33 @@ def counts(paths):
     return found
 
 
+def exit_mark(paths):
+    """La salida del proceso que la suite anota al final de su log
+    (``EXIT=<n>``); ``None`` si ningún log la trae."""
+    found = None
+    for path in paths:
+        if path.suffix != '.log':
+            continue
+        for line in path.read_text(errors='replace').splitlines():
+            match = EXIT_MARK.match(line)
+            if match:
+                found = int(match.group(1))
+    return found
+
+
+def verdict(totals, exit_status):
+    """Tres estados: ``fallo`` si algo falló, dio error o el proceso salió
+    distinto de cero; ``sin-medir`` si no hay ni resumen ni salida; si no,
+    ``verde``. Un resumen sin ``failed`` no basta: los errores y la salida
+    cuentan."""
+    if not totals and exit_status == '-':
+        return 'sin-medir'
+    if (totals.get('failed') or totals.get('error')
+            or exit_status not in (0, '-')):
+        return 'fallo'
+    return 'verde'
+
+
 def main(bench, name, kind, revision, expected, limitation, *files):
     target = pathlib.Path(bench) / 'outputs' / 'gates' / name
     target.mkdir(parents=True, exist_ok=True)
@@ -65,6 +93,9 @@ def main(bench, name, kind, revision, expected, limitation, *files):
             record = json.loads(path.read_text())
     totals = counts(copied)
     exit_status = record.get('pytest_exit', '-')
+    if exit_status == '-':
+        marked = exit_mark(copied)
+        exit_status = '-' if marked is None else marked
     row = {
         'execution_id': name, 'kind': kind, 'revision': revision,
         'database': record.get('database', '-'), 'exit': exit_status,
@@ -76,9 +107,7 @@ def main(bench, name, kind, revision, expected, limitation, *files):
         'expected': expected, 'observed': '-', 'limitation': limitation,
         'files': ';'.join(f'{p.name}:{sha256(p)}' for p in copied),
     }
-    failed = row['failed'] if isinstance(row['failed'], int) else 0
-    row['observed'] = ('fallo' if failed or exit_status not in (0, '-')
-                       else 'verde')
+    row['observed'] = verdict(totals, exit_status)
     index = target.parent / 'index.tsv'
     rows = []
     if index.exists():
