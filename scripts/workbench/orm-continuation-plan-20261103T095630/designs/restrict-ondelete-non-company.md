@@ -63,3 +63,11 @@ las comprobaciones sólo en la llamada de arriba (`source is None`), antes de
 reunir. Reemplaza al receptor de `pre_delete`; no es un segundo mecanismo.
 Pruebas: `tests/unit/orm/test_restrict_ondelete_non_company.py` (7) y la
 prueba de contrato (24 passed, 75 xfailed).
+
+## Verificación del bloque A (2026-11-17, sobre `9b913a70`)
+
+- Subconjunto derivado (13 directorios: `tests/unit/{base,orm,account,website,stock,hr,purchase,modules,mail,sale_timesheet}`, `tests/integration/{base,test_orm,sale}`): **8500 passed, 65 skipped, 81 xfailed**, `EXIT=0`, 1019 s.
+- Anulación del ajuste en `Collector.collect` (guarda a `if False and …`): en `tests/unit/orm/test_restrict_ondelete_non_company.py` caen **exactamente 2 de 7**, los dos casos `test_a_mapped_account_is_refused_with_the_source_message[account_src|account_dest]`: el `ProtectedError` del `PROTECT` se adelanta al mensaje de la fuente. Restaurado con `git diff --stat` vacío y el bytecode borrado: 7 passed.
+
+*Métrica:* veredicto de pytest por caso con y sin la guarda.
+*Ciega a:* el orden de `collect` en cascadas de más de un nivel, que este conjunto no ejercita.
