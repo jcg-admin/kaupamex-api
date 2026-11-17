@@ -234,6 +234,21 @@
    "id": "orm-float-monetary-convert-to-cache-0485",
    "task": "TASK-API-0485",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "account-payment-method-line-field-0515",
+   "task": "TASK-API-0515",
+   "reason": "waits for account-journal-payment-method-lines-0515"
+  },
+  {
+   "id": "account-payment-method-defaults-0515",
+   "task": "TASK-API-0515",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "account-journal-payment-method-lines-0515",
+   "task": "TASK-API-0515",
+   "reason": "waits for account-payment-method-defaults-0515"
   }
  ],
  "unrepresented": [
@@ -558,7 +573,8 @@
   "mail-source-resolution-0121",
   "seeded-partner-computes-0516",
   "purchase-line-track-qty-received-0122",
-  "orm-new-record-stored-compute-0485"
+  "orm-new-record-stored-compute-0485",
+  "account-payment-method-line-related-0515"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
