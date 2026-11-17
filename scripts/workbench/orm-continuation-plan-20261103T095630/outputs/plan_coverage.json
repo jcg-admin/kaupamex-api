@@ -183,7 +183,7 @@
   {
    "id": "purchase-line-checks-0122",
    "task": "TASK-API-0122",
-   "reason": "waits for purchase-line-price-and-dates-0122"
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
    "id": "account-reverse-moves-copy-0121",
@@ -191,8 +191,13 @@
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
-   "id": "purchase-line-price-and-dates-0122",
-   "task": "TASK-API-0122",
+   "id": "analytic-mixin-distribution-compute-0121",
+   "task": "TASK-API-0121",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "orm-related-scalar-unsaved-0485",
+   "task": "TASK-API-0485",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
@@ -203,7 +208,7 @@
   {
    "id": "purchase-line-lifecycle-0122",
    "task": "TASK-API-0122",
-   "reason": "waits for purchase-line-price-and-dates-0122"
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
    "id": "purchase-product-actions-0397",
@@ -549,6 +554,7 @@
   "purchase-line-related-0122",
   "purchase-line-qty-invoiced-0122",
   "purchase-line-qty-received-0122",
+  "purchase-line-price-and-dates-0122",
   "account-tax-included-price-0121",
   "account-fiscal-position-resolution-0121",
   "purchase-order-fiscal-header-0535",
