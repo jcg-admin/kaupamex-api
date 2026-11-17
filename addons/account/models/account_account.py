@@ -15,6 +15,9 @@ fabricado; ambos valores existen en 19). Ver audit.
 
 from bisect import bisect_left
 
+from django.apps import apps
+from django.db.models import Q
+
 import api
 import fields
 import models
@@ -379,3 +382,17 @@ class AccountAccount(models.Model):
             _('No hay código disponible a partir de «%(code)s».')
             % {'code': start_code}
         )
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_except_linked_to_fiscal_position(self):
+        """≙ ``_unlink_except_linked_to_fiscal_position`` (``odoo19c:
+        addons/account/models/account_account.py:1142-1145``): una cuenta
+        mapeada por una posición fiscal no se borra; el mensaje de la fuente
+        llega antes que el ``ProtectedError`` del mapeo."""
+        mapping = apps.get_model('account', 'AccountFiscalPositionAccount')
+        if mapping.objects.filter(
+                Q(account_src=self) | Q(account_dest=self)).exists():
+            raise UserError(_(
+                'You cannot remove/deactivate the accounts "%s" which are set '
+                'on the account mapping of a fiscal position.',
+                f'{self.code} - {self.name}'))

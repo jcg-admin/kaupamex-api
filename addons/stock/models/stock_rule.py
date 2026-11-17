@@ -496,7 +496,7 @@ class StockRule(TimeStampedModel):
     )
     location_dest = fields.Many2one(
         'stock.StockLocation',
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         related_name='rules_in',
         db_index=True,
         help_text=(

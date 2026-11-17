@@ -27,8 +27,11 @@ Medido en el Consumer: `AccountPaymentMethod` no declara `unlink`,
 
 ## Orden
 
-1. Tramo A (`PROTECT` puro): `location_dest`, `picking_type`, el mapa de
-   `sale_timesheet` (2) y las dos de posición fiscal con su guarda.
+1. Tramo A (`PROTECT` puro): `location_dest`, el mapa de `sale_timesheet`
+   (2) y las dos de posición fiscal con su guarda. `picking_type` se queda
+   pendiente como representante ORM de la familia `restrict`: el candidato
+   alterno (`payment_method`) no sirve, porque en la fuente borrar el método
+   borra antes sus líneas y la prueba «se rehúsa» la contradiría.
 2. Tramo B: `AccountPaymentMethod.unlink` y luego su fila.
 3. Tramo C: `remove_move_reconcile` y `AccountMoveLine.unlink`, luego las
    dos filas de parciales.
@@ -42,3 +45,21 @@ borrar el padre borra antes a los hijos que la fuente borra.
 ## Lo que no cierra
 
 Las 20 filas `restrict` de `company` y las 47 `set null`: otros tramos.
+
+
+## Tramo A: la guarda llegaba tarde (2026-11-17)
+
+Con `PROTECT` y la guarda portada, borrar una cuenta mapeada daba
+`ProtectedError` en vez del `UserError` de la fuente. Flujo medido:
+
+| Capa | Evidencia |
+|---|---|
+| Referencia | `BaseModel.unlink`, `odoo19c: odoo/orm/models.py:4205-4208`: las `_ondelete_methods` corren al principio, antes de cualquier `DELETE`; `RESTRICT` lo aplica la base en el `DELETE`. Los hijos borrados en cascada no pasan por su `unlink` ni por sus `@api.ondelete` (`designs/foreign-keys-delete-contract.md`, fila `BaseModel.unlink`) |
+| Django 6.0.5 | `Model.delete` y `QuerySet.delete` llaman a `Collector.collect`, que comprueba `PROTECT` mientras reúne; `pre_delete` se envía después, en `Collector.delete` |
+| Consumer | `_run_ondelete_on_delete` colgaba de `pre_delete`: tarde, y además corría sobre los hijos en cascada |
+
+Corrección: `_run_ondelete_on_delete` envuelve `Collector.collect` y corre
+las comprobaciones sólo en la llamada de arriba (`source is None`), antes de
+reunir. Reemplaza al receptor de `pre_delete`; no es un segundo mecanismo.
+Pruebas: `tests/unit/orm/test_restrict_ondelete_non_company.py` (7) y la
+prueba de contrato (24 passed, 75 xfailed).

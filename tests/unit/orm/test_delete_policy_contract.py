@@ -47,6 +47,12 @@ CORRECTED = {
     'fleet.FleetVehicleAssignationLog.vehicle',
     # designs/new-line-recompute-flow.md
     'purchase.PurchaseOrderLine.company_id',
+    # designs/restrict-ondelete-non-company.md (tramo A)
+    'stock.StockRule.location_dest',
+    'sale_timesheet.ProjectSaleLineEmployeeMap.project',
+    'sale_timesheet.ProjectSaleLineEmployeeMap.employee',
+    'account.AccountFiscalPositionAccount.account_src',
+    'account.AccountFiscalPositionAccount.account_dest',
 }
 
 #: Política de Django que corresponde al ``ondelete`` de la fuente.

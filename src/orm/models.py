@@ -85,6 +85,7 @@ from contextvars import ContextVar
 from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import DatabaseError
 from django.db import DEFAULT_DB_ALIAS, connections, router
+from django.db.models.deletion import Collector
 
 import api
 
@@ -6150,22 +6151,37 @@ def _run_ondelete_checks(self, at_uninstall=False):
             check(self)
 
 
-@receiver(pre_delete, dispatch_uid='orm.models.run_ondelete_checks')
-def _run_ondelete_on_delete(sender, instance, **_ignored):
-    """Dispara las comprobaciones marcadas justo antes del DELETE.
+def _run_ondelete_on_delete(self, objs, source=None, *args, **kwargs):
+    """Corre las comprobaciones marcadas ANTES de reunir el borrado.
 
-    ``pre_delete`` corre dentro de la transaccion del borrado y antes de la
-    sentencia, que es donde la fuente las corre: un ``UserError`` levantado
-    aqui deja la fila intacta.
+    ≙ ``BaseModel.unlink`` (``odoo19c: odoo/orm/models.py:4205-4208``): las
+    ``_ondelete_methods`` corren al principio, antes de cualquier ``DELETE``,
+    y por tanto antes de que la base aplique ``RESTRICT``. Aquí el borrado lo
+    reúne ``Collector.collect`` de Django, que comprueba ``PROTECT`` mientras
+    reúne: en ``pre_delete`` la guarda llegaba tarde y el ``ProtectedError``
+    tapaba el mensaje de la fuente.
+
+    Sólo en la llamada de arriba (``source is None``): en la fuente los hijos
+    que la base borra en cascada **no** pasan por su ``unlink`` ni por sus
+    ``@api.ondelete``; las llamadas recursivas de ``collect`` con ``source``
+    son esa cascada.
 
     Su equivalente de ``MODULE_UNINSTALL_FLAG`` es la clave de contexto
     ``module_uninstall``, que el desinstalador activa. Con el contexto vacio
     —el caso normal— vale ``False`` y corren todas.
     """
-    if not registry.ondelete_methods(sender):
-        return
-    _run_ondelete_checks(
-        instance, at_uninstall=bool(get_context().get('module_uninstall')))
+    model = getattr(objs, 'model', None) or (
+        type(objs[0]) if len(objs) else None)
+    if source is None and model is not None and registry.ondelete_methods(
+            model):
+        at_uninstall = bool(get_context().get('module_uninstall'))
+        for instance in objs:
+            _run_ondelete_checks(instance, at_uninstall=at_uninstall)
+    return _DJANGO_COLLECT(self, objs, source, *args, **kwargs)
+
+
+_DJANGO_COLLECT = Collector.collect
+Collector.collect = _run_ondelete_on_delete
 
 
 Model._add_precomputed_values = _add_precomputed_values
