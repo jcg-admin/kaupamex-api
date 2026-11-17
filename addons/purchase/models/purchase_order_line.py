@@ -39,6 +39,7 @@ from collections import defaultdict
 from decimal import Decimal
 
 from django.apps import apps
+from markupsafe import escape
 from django.db import models as dj_models
 import api
 import fields
@@ -47,7 +48,31 @@ from django.utils import timezone
 
 from addons.analytic.models.analytic_mixin import AnalyticMixin
 from addons.base.models import TimeStampedModel
+from addons.mail.models.mail_thread import register_source_body
 from orm.environments import context_scope, env
+from tools.translate import _
+
+
+@register_source_body('purchase.track_po_line_qty_received_template')
+def _track_po_line_qty_received_body(record, values):
+    """El cuerpo de ``purchase.track_po_line_qty_received_template``.
+
+    ≙ ``odoo19c: addons/purchase/data/mail_templates.xml:18-26``, compuesto en
+    Python porque QWeb no se porta (DEC-EM-01, DEC-AF-08). ``t-esc`` escapa,
+    y aquí ``escape`` hace lo mismo; las cantidades salen como ``float``,
+    que es lo que la vista escribe (``float(qty_received)`` y el ``Float`` de
+    ``line.qty_received`` en la fuente).
+    """
+    line = values['line']
+    return (
+        '<div><strong>%s</strong><ul><li>%s:</li>%s %s -&gt; %s<br/></ul>'
+        '</div>' % (
+            escape(_('The received quantity has been updated.')),
+            escape(line.product_id.display_name),
+            escape(_('Received Quantity:')),
+            escape(str(float(line.qty_received or 0))),
+            escape(str(float(values['qty_received']))),
+        ))
 
 
 class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
@@ -590,6 +615,21 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
             price_unit *= Decimal(repr(
                 product_uom.factor / self.product_uom_id.factor))
         return price_unit
+
+    def _track_qty_received(self, new_qty):
+        """≙ ``odoo19c: :714-728``. Publica en la orden la nota del cambio de
+        cantidad recibida, salvo desde el asistente de devengo
+        (``accrual_entry_date``), que sólo calcula a una fecha pasada."""
+        self.ensure_one()
+        if self.env.context.get('accrual_entry_date'):
+            return
+        if (new_qty != self.qty_received
+                and self.order_id.state == 'purchase'):
+            self.order_id.message_post_with_source(
+                'purchase.track_po_line_qty_received_template',
+                render_values={'line': self, 'qty_received': new_qty},
+                subtype_xmlid='mail.mt_note',
+            )
 
     @api.model
     def _date_in_the_past(self):

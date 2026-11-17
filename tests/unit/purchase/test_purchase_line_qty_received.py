@@ -14,6 +14,7 @@ from django.db import connection
 from django.utils import timezone
 
 from addons.base.models import ResCompany, ResPartner
+from addons.base.models.ir_model import IrModelData
 from orm.environments import context_scope, env, sudo
 from orm.migration_operations import ComputeStoredFields
 from orm.registry import MODELS_BY_NAME
@@ -152,3 +153,41 @@ def test_migration_0019_fills_the_existing_lines(order):
             'SELECT qty_received_method, qty_received '
             'FROM purchase_order_line WHERE id = %s', [line.id])
         assert cursor.fetchone() == ('manual', Decimal('3.0000'))
+
+
+def test_a_received_quantity_change_posts_the_note_on_the_order(order):
+    """≙ ``_track_qty_received`` (``odoo19c: :714-728``) con el cuerpo de
+    ``purchase.track_po_line_qty_received_template``."""
+    line = _line(order)
+    order.button_confirm()
+    line.write({'qty_received_manual': Decimal('2')})
+    line.flush_recordset()
+    line.invalidate_recordset()
+    before = set(order.message_ids.values_list('pk', flat=True))
+    line._track_qty_received(Decimal('5'))
+    [message] = order.message_ids.exclude(pk__in=before)
+    assert message.body == (
+        '<div><strong>The received quantity has been updated.</strong>'
+        f'<ul><li>{line.product_id.display_name}:</li>Received Quantity: '
+        '2.0 -&gt; 5.0<br/></ul></div>')
+    assert message.subtype_id == IrModelData._xmlid_to_res_id('mail.mt_note')
+
+
+def test_no_note_without_a_change_or_outside_a_purchase_order(order):
+    line = _line(order)
+    before = order.message_ids.count()
+    line._track_qty_received(Decimal('5'))
+    assert order.message_ids.count() == before
+    order.button_confirm()
+    line.invalidate_recordset()
+    line._track_qty_received(line.qty_received or Decimal('0'))
+    assert order.message_ids.count() == before
+
+
+def test_no_note_from_the_accrual_wizard(order):
+    line = _line(order)
+    order.button_confirm()
+    before = order.message_ids.count()
+    with context_scope(accrual_entry_date='2026-01-01'):
+        line._track_qty_received(Decimal('5'))
+    assert order.message_ids.count() == before
