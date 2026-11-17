@@ -696,10 +696,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
     def _compute_tax_id(self):
         """≙ ``_compute_tax_id`` (``odoo19c: :146-152``).
 
-        ``line.with_company(line.company_id)`` es ``company_scope``. Asignar
-        un ``Many2many`` exige la fila guardada (``set`` de Django); la
-        fuente asigna sobre el registro, que en el formulario puede ser
-        nuevo. Aquí el cómputo se llama sobre líneas guardadas.
+        ``line.with_company(line.company_id)`` es ``company_scope``.
         """
         AccountTax = apps.get_model('account', 'AccountTax')
         for line in self:
@@ -714,8 +711,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                 taxes = AccountTax.objects.filter(
                     pk__in=line.product_id.supplier_taxes.values('pk'),
                 )._filter_taxes_by_company(line.company_id)
-                line.write({'tax_ids': [fields.Command.set(
-                    [tax.pk for tax in fpos.map_tax(taxes)])]})
+                line.tax_ids = fpos.map_tax(taxes)
 
     @api.model
     def _get_date_planned(self, seller, po=False):

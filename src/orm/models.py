@@ -6362,8 +6362,16 @@ def _x2many_descriptor_get(self, instance, cls=None):
         # columna (``res.users.name``). Sólo el lado directo: los accesores
         # inversos que Django crea solo no son campos de la fuente y
         # conservan el gestor.
-        if instance.pk is None or isinstance(instance.pk, NewId):
+        if instance.pk is None:
             return browse(comodel, ())
+        if isinstance(instance.pk, NewId):
+            # El registro de ``new()`` guarda su valor en la caché del campo
+            # (``Many2many.write_new``, ``odoo19c: odoo/orm/
+            # fields_relational.py:1596-1700``), como en la rama de comodelos
+            # ``BaseModel`` de abajo; devolver el vacío perdía lo asignado.
+            ids = env().transaction.field_data[self.field].get(
+                instance.pk, ())
+            return browse(comodel, list(ids))
         rows = _DJANGO_X2MANY_GET(self, instance, cls).all()
         return browse(comodel, list(rows.values_list('pk', flat=True)))
     if not (isinstance(instance, BaseModel) and isinstance(comodel, type)

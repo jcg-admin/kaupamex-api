@@ -3111,8 +3111,10 @@ def _many2many_write_relation(self, records_commands_list, new):
     for records, _commands in records_commands_list:
         for record in records:
             owners[record.pk] = record
+            # ``record_ids``: el valor de un comodelo de Django es su
+            # ``QuerySet``, sin ``_ids``.
             old_relation[record.pk] = OrderedSet(
-                getattr(record, self.name)._ids)
+                record_ids(getattr(record, self.name)))
     new_relation = {x: OrderedSet(ys) for x, ys in old_relation.items()}
     for records, commands in records_commands_list:
         for command in commands:
@@ -3200,8 +3202,11 @@ class _RelationalMulti:
             self, models.ManyToManyField) and all(
                 isinstance(getattr(record, 'pk', None), int)
                 for record in _as_records(records)))
+        new_records = all(
+            isinstance(getattr(record, 'pk', None), NewId)
+            for record in _as_records(records))
         if (not hasattr(_relational_multi_comodel(self), '_from_ids')
-                and not stored_real):
+                and not stored_real and not new_records):
             return models.Field.write(self, records, value)
         records = _as_records(records)
         get_environment().remove_to_compute(
@@ -3246,6 +3251,12 @@ class _RelationalMulti:
             assert all(isinstance(rid, NewId) for rid in record_ids), (
                 f'{normalized} contains a mix of real and new records. '
                 f'It is not supported.')
+            if not hasattr(_relational_multi_comodel(self), '_from_ids'):
+                # Un comodelo de Django no tiene registros de ``new()``: los
+                # ids del valor son filas reales y no se envuelven en
+                # ``NewId`` (la caché del registro nuevo guarda ints).
+                _many2many_write_relation(self, normalized, new=None)
+                return
             self.write_new(normalized)
 
     def create(self, record_values):
