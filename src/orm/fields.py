@@ -74,6 +74,8 @@ from exceptions import AccessError, MissingError
 from orm.commands import related_manager
 from orm.environments import (
     Environment,
+    current_snapshot_stamp,
+    next_snapshot_stamp,
     Query,
     env as get_environment,
     get_current_company,
@@ -1522,6 +1524,40 @@ class NonStoredMany2oneAccessor(ForwardManyToOneDescriptor):
         return value
 
 
+def _drop_stale_snapshot(field, instance):
+    """Descarta la copia de ``__dict__`` si su fila se invalidó después.
+
+    ≙ el fallo de caché de ``Field.__get__`` (``odoo19c: odoo/orm/
+    fields.py:1667-1700``): allá invalidar deja la fila sin valor y la lectura
+    siguiente va a la base. Aquí la instancia de Django guarda su copia, y
+    ``invalidate_recordset`` sólo alcanza la caché de la transacción; sin esto
+    la fila invalidada seguía leyendo su valor viejo. Sin la copia, la lectura
+    cae en la rama de fallo de caché, que relee la columna.
+
+    Un valor sucio —asignado y sin volcar— no se descarta: no es el de la
+    base, y descartarlo perdería la asignación.
+    """
+    transaction = get_environment().transaction
+    stamps = transaction.field_invalidated.get(field)
+    if not stamps:
+        return
+    pk = instance.__dict__.get(instance._meta.pk.attname)
+    if pk is None:
+        return
+    invalidated = max(stamps.get(pk, 0), stamps.get(None, 0))
+    if not invalidated:
+        return
+    seen = instance.__dict__.get('_orm_field_stamps', {}).get(
+        field.attname, instance.__dict__.get('_orm_snapshot_stamp', 0))
+    if seen >= invalidated:
+        return
+    if pk in transaction.field_dirty.get(field, ()):
+        return
+    del instance.__dict__[field.attname]
+    instance.__dict__.setdefault('_orm_field_stamps', {})[
+        field.attname] = current_snapshot_stamp()
+
+
 def _value_written_by_another_instance(field, instance, value):
     """El valor de la columna tras una escritura hecha por otra instancia.
 
@@ -1590,6 +1626,10 @@ class FieldDescriptor(DeferredAttribute):
             return self
 
         field = self.field
+        if (field.attname in instance.__dict__
+                and getattr(field, 'store', False)
+                and not instance.__dict__.get('_orm_building')):
+            _drop_stale_snapshot(field, instance)
         # Conservar el almacén nativo de Django durante construcción y para
         # columnas ordinarias ya cargadas. Antes, el descriptor sin setter
         # dejaba que Python resolviera exactamente esta lectura por __dict__.
@@ -4998,6 +5038,18 @@ def _invalidate_cache(self, env, ids=None):
     ``defaultdict`` el corchete **crea** la entrada, y un campo que nadie ha
     tocado quedaría con un cubo vacío por el mero hecho de invalidarlo.
     """
+    if getattr(self, 'store', False):
+        # Antes de mirar la caché: una instancia puede llevar la copia en
+        # ``__dict__`` aunque la caché no tenga entrada para su fila.
+        stamp = next_snapshot_stamp()
+        invalidated = env.transaction.field_invalidated[self]
+        if ids is None:
+            invalidated.clear()
+            invalidated[None] = stamp
+        else:
+            for id_ in ids:
+                invalidated[id_] = stamp
+
     cache = env.transaction.field_data.get(self)
     if not cache:
         return

@@ -240,25 +240,22 @@ def test_get_invoice_lines_wants_one_line(company):
 
 def test_the_invoiced_quantity_follows_its_bills(company):
     """El ``depends`` recorre ``invoice_lines.move_id.state`` y
-    ``invoice_lines.quantity`` (``odoo19c: :164``).
-
-    Se lee sobre un registro fresco: la copia que la instancia de Django
-    guarda en ``__dict__`` sobrevive hoy a ``invalidate_recordset`` (defecto
-    del ORM registrado en ``designs/stale-instance-snapshot.md``), y la
-    fuente no tiene esa copia. Lo que aquí se mide es el recálculo.
-    """
+    ``invoice_lines.quantity`` (``odoo19c: :164``), y la misma instancia lee
+    el valor nuevo tras invalidarse."""
     line = _line(company)
     move = _bill(company, line, '3')
     line.flush_recordset()
-    assert line.browse(line.id).qty_invoiced == Decimal('3')
+    line.invalidate_recordset()
+    assert line.qty_invoiced == Decimal('3')
     [bill_line] = AccountMoveLine.objects.filter(move=move)
     bill_line.quantity = Decimal('4')
     bill_line.save()
-    # Sin ``flush``: sólo el anuncio de la señal deja la fila pendiente.
-    assert line.browse(line.id).qty_invoiced == Decimal('4')
+    line.invalidate_recordset()
+    assert line.qty_invoiced == Decimal('4')
     move.state = 'cancel'
     move.save()
-    assert line.browse(line.id).qty_invoiced == 0
+    line.invalidate_recordset()
+    assert line.qty_invoiced == 0
 
 
 def test_migration_0020_fills_the_existing_lines(company):

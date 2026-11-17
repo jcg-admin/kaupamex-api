@@ -92,7 +92,8 @@ from exceptions import AccessError, LockError, MissingError, UserError
 from orm.environments import (
     context_scope, env, execute_query, get_context, get_current_company,
     get_current_cr,
-    get_current_uid, get_current_user, get_transaction, is_su,
+    current_snapshot_stamp, get_current_uid, get_current_user,
+    get_transaction, is_su,
     loading_log_access,
     sudo as elevate_privileges,
 )
@@ -7195,7 +7196,13 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
         return record
 
     def _install_singleton_triple(self):
-        """``(env, (pk,), (pk,))`` — el recordset de uno que la fila ES."""
+        """``(env, (pk,), (pk,))`` — el recordset de uno que la fila ES.
+
+        Sella además la copia de ``__dict__``: refleja la base hasta el
+        último sello emitido, y una invalidación anterior no la afecta
+        (``fields._drop_stale_snapshot``).
+        """
+        self.__dict__['_orm_snapshot_stamp'] = current_snapshot_stamp()
         self.env = env()
         self._ids = (self.pk,)
         self._prefetch_ids = self._ids

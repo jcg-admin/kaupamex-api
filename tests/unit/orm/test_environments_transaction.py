@@ -131,6 +131,11 @@ class TestTheTransaction:
         segunda caché (el ``__dict__`` de cada instancia de Django), que la
         fuente no tiene. Su razón está en el docstring de la clase.
 
+        **Once** desde ``field_invalidated``, también nuestro y por la misma
+        segunda caché: ``invalidate_recordset`` no alcanza la copia de
+        ``__dict__``, y sin el sello la fila invalidada leía su valor viejo
+        (``test_invalidate_drops_instance_snapshot.py``).
+
         Los dos de la fuente que aquí **no** están —``registry`` y
         ``_Transaction__file_open_tmp_paths``— llevan su divergencia declarada
         en el docstring de la clase.
@@ -143,6 +148,7 @@ class TestTheTransaction:
             'field_data',
             'field_data_patches',
             'field_dirty',
+            'field_invalidated',
             'field_written',
             'protected',
             'tocompute',

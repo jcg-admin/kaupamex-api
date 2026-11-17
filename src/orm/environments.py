@@ -435,7 +435,8 @@ class Transaction:
     """
     __slots__ = ('cache', 'default_env', 'envs', 'field_cache_memo',
                  'field_data', 'field_data_patches', 'field_dirty',
-                 'field_written', 'protected', 'tocompute')
+                 'field_invalidated', 'field_written', 'protected',
+                 'tocompute')
 
     def __init__(self):
         #: ``{campo: datos_gestionados_por_el_campo}``. Suele ser un mapa de
@@ -456,6 +457,14 @@ class Transaction:
         #: vacía al volcar: la copia vieja sigue siendo vieja después de que la
         #: escritura llegue a la base.
         self.field_written = defaultdict(set)
+        #: ``{campo: {id | None: sello}}`` — cuándo se invalidó cada fila de
+        #: un campo almacenado (``None``: el campo entero). **No está en la
+        #: fuente**, por la misma razón que ``field_written``: allá invalidar
+        #: deja sin valor a todo registro de la fila porque ninguno guarda
+        #: copia (``odoo19c: odoo/orm/fields.py:1642-1700``); aquí la copia de
+        #: ``__dict__`` sobrevive, y ``FieldDescriptor.__get__`` la descarta
+        #: si se cargó antes del sello. Ver :func:`next_snapshot_stamp`.
+        self.field_invalidated = defaultdict(dict)
         #: ``{campo: {id: [ids]}}`` — ids que sumar al valor de un x2many que
         #: todavía no está en caché.
         self.field_data_patches = defaultdict(lambda: defaultdict(list))
@@ -587,6 +596,7 @@ class Transaction:
         self.field_data_patches.clear()
         self.field_dirty.clear()
         self.field_written.clear()
+        self.field_invalidated.clear()
         self.tocompute.clear()
 
 
@@ -2238,3 +2248,21 @@ def loading_log_access():
     ``load_modules`` enciende al terminar.
     """
     return get_current_uid() == SUPERUSER_ID and not env().registry.ready
+
+
+#: Reloj monótono de las copias de instancia: un sello por invalidación de un
+#: campo almacenado y uno por fila cargada. Es global y no de la transacción
+#: porque una instancia puede sobrevivir a la transacción que la cargó, y un
+#: reloj que volviera a cero haría pasar por vigente una copia vieja.
+_snapshot_clock = [0]
+
+
+def next_snapshot_stamp():
+    """Avanza el reloj de copias y devuelve el sello nuevo."""
+    _snapshot_clock[0] += 1
+    return _snapshot_clock[0]
+
+
+def current_snapshot_stamp():
+    """El último sello emitido: lo que una copia cargada ahora ya refleja."""
+    return _snapshot_clock[0]
