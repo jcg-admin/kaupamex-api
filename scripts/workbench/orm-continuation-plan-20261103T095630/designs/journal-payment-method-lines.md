@@ -19,6 +19,9 @@ Cadena: `designs/payment-method-line-chain.md` §4, unidad 3, con `create` y
 - Extensión de `account_payment`
   (`odoo19c: addons/account_payment/models/account_journal.py:11-14`):
   `super()` y luego filtra por `payment_provider_state != 'disabled'`.
+  La instala `apply_account_payment_extensions` con `wrap_method`
+  (`previous` ≙ `super()`); prueba:
+  `tests/unit/account_payment/test_account_journal.py`.
 
 ## Medición previa (2026-11-17, sobre `9c8960bb`, sin commitear)
 
