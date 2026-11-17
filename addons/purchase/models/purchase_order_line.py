@@ -36,7 +36,12 @@ orm-continuation-plan-20261103T095630/designs/purchase-order-line-port.md``.
        514-517``).
 """
 from collections import defaultdict
+from contextlib import nullcontext
+from datetime import datetime, time
 from decimal import Decimal
+
+from dateutil.relativedelta import relativedelta
+from pytz import UTC
 
 from django.apps import apps
 from markupsafe import escape
@@ -46,10 +51,13 @@ import fields
 import models
 from django.utils import timezone
 
+from addons.account.models.account_fiscal_position import (
+    AccountFiscalPosition)
 from addons.analytic.models.analytic_mixin import AnalyticMixin
 from addons.base.models import TimeStampedModel
 from addons.mail.models.mail_thread import register_source_body
-from orm.environments import context_scope, env
+from orm.environments import company_scope, context_scope, env
+from tools.misc import get_lang
 from tools.translate import _
 
 
@@ -109,11 +117,12 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
         related_name='purchase_order_lines', help_text='Odoo product_id.',
         db_column='product_id',
     )
-    #: ≙ ``name`` (``odoo19c: :19-20``): ``Text``. Su cálculo almacenado
-    #: (``_compute_price_unit_and_date_planned_and_name``) es la unidad
-    #: ``purchase-line-price-and-dates-0122``.
+    #: ≙ ``name`` (``odoo19c: :19-20``): ``Text`` calculado almacenado y
+    #: editable, como ``price_unit`` y ``discount``.
     name = fields.Text(
         'Description', blank=True, default='',
+        compute='_compute_price_unit_and_date_planned_and_name', store=True,
+        readonly=False,
         help_text='Descripción de la línea (Odoo purchase.order.line.name).',
     )
     #: ≙ ``display_type`` (``odoo19c: purchase_order_line.py:91-94``).
@@ -153,10 +162,14 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
         null=True, blank=True)
     price_unit = fields.Monetary(
         max_digits=12, decimal_places=2,
+        compute='_compute_price_unit_and_date_planned_and_name', store=True,
+        readonly=False,
         help_text='Odoo price_unit (IVA incl.).',
     )
     discount = fields.Monetary(
         max_digits=5, decimal_places=2, default=Decimal('0.00'),
+        compute='_compute_price_unit_and_date_planned_and_name', store=True,
+        readonly=False,
         help_text='Descuento % de la línea (Odoo discount).',
     )
     #: ≙ ``tax_ids`` (``odoo19c: :34``), con la tabla que la fuente deriva
@@ -328,11 +341,15 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                 order_date = line.order_id.date_order or timezone.now()
                 seller = line.product_id._select_seller(
                     partner_id=line.partner_id,
-                    quantity=abs(line.product_qty),
+                    # ``product_qty`` es ``Decimal`` aquí y ``Float`` en la
+                    # fuente; ``_select_seller`` compara con ``float_compare``.
+                    quantity=abs(float(line.product_qty or 0)),
                     date=timezone.localdate(order_date),
                     uom_id=line.product_uom_id,
                     params=params)
-                line.selected_seller_id = seller or None
+                # ``_select_seller`` devuelve la lista de a lo sumo uno
+                # (``[:1]``) que aquí hace de recordset.
+                line.selected_seller_id = seller[0] if seller else None
             else:
                 line.selected_seller_id = None
 
@@ -661,3 +678,282 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
             rate=order.currency_rate,
             name=self.name,
         )
+
+    # --- Precio, fecha prevista y descripción (purchase-line-price-and-dates)
+    #
+    # Al final del cuerpo de la clase por la admisión de estilo, que fecha
+    # cada infracción heredada por su posición en el contenedor.
+
+    #: ≙ ``date_planned`` (``odoo19c: :25-28``).
+    date_planned = fields.Datetime(
+        'Expected Arrival', db_index=True, null=True, blank=True,
+        compute='_compute_price_unit_and_date_planned_and_name', store=True,
+        readonly=False,
+        help_text=(
+            'Delivery date expected from vendor. This date respectively '
+            "defaults to vendor pricelist lead time then today's date."))
+
+    def _compute_tax_id(self):
+        """≙ ``_compute_tax_id`` (``odoo19c: :146-152``).
+
+        ``line.with_company(line.company_id)`` es ``company_scope``. Asignar
+        un ``Many2many`` exige la fila guardada (``set`` de Django); la
+        fuente asigna sobre el registro, que en el formulario puede ser
+        nuevo. Aquí el cómputo se llama sobre líneas guardadas.
+        """
+        AccountTax = apps.get_model('account', 'AccountTax')
+        for line in self:
+            scope = (company_scope(line.company_id_id)
+                     if line.company_id_id else nullcontext())
+            with scope:
+                order = line.order_id
+                fpos = order.fiscal_position_id or (
+                    AccountFiscalPosition._get_fiscal_position(
+                        order.partner_id))
+                # filter taxes by company
+                taxes = AccountTax.objects.filter(
+                    pk__in=line.product_id.supplier_taxes.values('pk'),
+                )._filter_taxes_by_company(line.company_id)
+                line.write({'tax_ids': [fields.Command.set(
+                    [tax.pk for tax in fpos.map_tax(taxes)])]})
+
+    @api.model
+    def _get_date_planned(self, seller, po=False):
+        """Return the datetime value to use as Schedule Date
+        (``date_planned``) for PO Lines that correspond to the given
+        product.seller_ids, when ordered at `date_order_str`.
+
+        ≙ ``_get_date_planned`` (``odoo19c: :334-351``).
+
+        :param Model seller: used to fetch the delivery delay (if no seller
+                             is provided, the delay is 0)
+        :param Model po: purchase.order, necessary only if the PO line is
+                         not yet attached to a PO.
+        :rtype: datetime
+        :return: desired Schedule Date for the PO line
+        """
+        date_order = (po.date_order if po
+                      else self.order_id.date_order if self.order_id_id
+                      else None)
+        delay = relativedelta(days=seller.delay if seller else 0)
+        if date_order:
+            return date_order + delay
+        return datetime.today() + delay
+
+    @api.onchange('product_id')
+    def onchange_product_id(self):
+        """≙ ``onchange_product_id`` (``odoo19c: :366-380``)."""
+        # TODO: Remove when onchanges are replaced with computes
+        if not self.product_id:
+            return
+        if self.env.context.get('origin_po_id') and self.product_qty:
+            self._compute_tax_id()
+            return
+
+        # Reset date, price and quantity since _onchange_quantity will
+        # provide default values
+        self.price_unit = self.product_qty = self.technical_price_unit = (
+            Decimal('0'))
+
+        self._product_id_change()
+
+        self._suggest_quantity()
+
+    def _product_id_change(self):
+        """≙ ``_product_id_change`` (``odoo19c: :382-395``).
+
+        ``product_id.with_context(lang=…, partner_id=None, company_id=…)``
+        es ``context_scope`` sobre el mismo producto.
+        """
+        if not self.product_id:
+            return
+
+        self.product_uom_id = self.product_id.uom
+        with context_scope(
+                lang=get_lang(self.env, self.partner_id.lang
+                              if self.partner_id else None).code,
+                partner_id=None, company_id=self.company_id_id):
+            self.name = self._get_product_purchase_description(
+                self.product_id)
+
+        self._compute_tax_id()
+
+    @api.depends('product_qty', 'product_uom_id', 'company_id',
+                 'order_id.partner_id')
+    def _compute_price_unit_and_date_planned_and_name(self):
+        """≙ ``_compute_price_unit_and_date_planned_and_name``
+        (``odoo19c: :404-468``).
+
+        El ``strftime(DEFAULT_SERVER_DATETIME_FORMAT)`` de la fuente existe
+        porque su caché guarda cadenas; aquí se asigna el ``datetime``. El
+        ``product_id.with_context(seller_id=…, lang=…)`` es ``context_scope``
+        sobre el mismo producto. ``price_unit`` y ``technical_price_unit``
+        se comparan con el falso como cero, que es como la fuente lee un
+        ``Float`` vacío.
+
+        ``line.date_order`` de la fuente (``related='order_id.date_order'``)
+        se lee aquí por su cadena: sobre una línea sin guardar el ``related``
+        escalar no queda asignado (unidad ``orm-related-scalar-unsaved-0485``,
+        reproductor en ``designs/purchase-line-price-and-dates.md``).
+        """
+        AccountTax = apps.get_model('account', 'AccountTax')
+        for line in self:
+            # Una línea sin guardar no tiene facturas ni impuestos todavía:
+            # sus x2many son el recordset vacío de la fuente.
+            line_taxes = (line.tax_ids.all() if line.pk
+                          else AccountTax.objects.none())
+            if (not line.product_id
+                    or (line.pk and line.invoice_lines.exists())
+                    or not line.company_id
+                    or self.env.context.get('skip_uom_conversion')
+                    or ((line.technical_price_unit or 0)
+                        != (line.price_unit or 0))):
+                continue
+            params = line._get_select_sellers_params()
+            seller = line.selected_seller_id
+
+            if seller or not line.date_planned:
+                line.date_planned = line._get_date_planned(seller)
+
+            lang = get_lang(line.env, line.partner_id.lang
+                            if line.partner_id else None).code
+            # record product names to avoid resetting custom descriptions
+            default_names = []
+            display_names = []
+            vendors = line.product_id._prepare_sellers(params=params)
+            with context_scope(seller_id=None, partner_id=None, lang=lang):
+                without_seller_name = line.product_id.display_name
+                default_names.append(
+                    line._get_product_purchase_description(line.product_id))
+            for vendor in vendors:
+                with context_scope(seller_id=vendor.pk, lang=lang):
+                    default_names.append(
+                        line._get_product_purchase_description(
+                            line.product_id))
+                    display_names.append(line.product_id.display_name)
+            if not line.name or line.name in default_names:
+                with context_scope(
+                        seller_id=seller.pk if seller else None, lang=lang):
+                    line.name = line._get_product_purchase_description(
+                        line.product_id)
+            else:
+                # Checks that the product vendor and vendor name are correct
+                vendor_ids = [vendor.pk for vendor in vendors]
+                for vendor, display_name in zip(vendors, display_names):
+                    if line.name.startswith(display_name):
+                        if not seller:
+                            line.name = (without_seller_name
+                                         + line.name[len(display_name):])
+                        elif vendor.pk != seller.pk:
+                            line.name = (
+                                display_names[vendor_ids.index(seller.pk)]
+                                + line.name[len(display_name):])
+                        break
+
+            # If not seller, use the standard price. It needs a proper
+            # currency conversion.
+            product = line.product_id
+            if not seller:
+                partner = line.order_id.partner_id
+                unavailable_seller = [
+                    info for info in product.product_tmpl.seller_ids.all()
+                    if partner is not None and info.partner_id == partner.pk]
+                if (not unavailable_seller and line.price_unit
+                        and line.product_uom_id_id
+                        == line._origin.product_uom_id_id):
+                    # Avoid to modify the price unit if there is no price
+                    # list for this partner and the line has already one to
+                    # avoid to override unit price set manually.
+                    continue
+                line.discount = Decimal('0')
+                po_line_uom = line.product_uom_id or product.uom
+                price_unit = AccountTax._fix_tax_included_price_company(
+                    product.uom._compute_price(
+                        product.standard_price, po_line_uom),
+                    product.supplier_taxes.all(),
+                    line_taxes,
+                    line.company_id,
+                )
+                # ``cost_currency_id`` es aquí la propiedad ``cost_currency``
+                # de la plantilla.
+                line._reset_price_unit(
+                    product.product_tmpl.cost_currency._convert(
+                        price_unit, line.currency_id, line.company_id,
+                        line.order_id.date_order or timezone.localdate(),
+                        False))
+            else:
+                price_unit = AccountTax._fix_tax_included_price_company(
+                    seller.price, product.supplier_taxes.all(),
+                    line_taxes, line.company_id)
+                price_unit = seller.currency._convert(
+                    price_unit, line.currency_id, line.company_id,
+                    line.order_id.date_order or timezone.localdate(), False)
+                line._reset_price_unit(seller.product_uom._compute_price(
+                    price_unit, line.product_uom_id))
+                line.discount = seller.discount or Decimal('0')
+
+    def _reset_price_unit(self, price_unit):
+        """≙ ``_reset_price_unit`` (``odoo19c: :470-475``).
+
+        La fuente llama a ``self.update({...})``, que sobre un registro es
+        asignar cada campo. Aquí se asignan en la propia instancia: sobre una
+        línea sin guardar ``update`` reparte al cubo de filas nuevas y asigna
+        sobre otra instancia (unidad ``orm-related-scalar-unsaved-0485``).
+        """
+        self.ensure_one()
+        self.price_unit = price_unit
+        self.technical_price_unit = price_unit
+
+    def _suggest_quantity(self):
+        """Suggest a minimal quantity based on the seller
+
+        ≙ ``_suggest_quantity`` (``odoo19c: :535-551``).
+        """
+        if not self.product_id:
+            return
+        date = (self.order_id.date_order and self.order_id.date_order.date()
+                or timezone.localdate())
+        partner = self.order_id.partner_id
+        seller_min_qty = sorted(
+            (info for info in self.product_id.product_tmpl.seller_ids.all()
+             if partner is not None and info.partner_id == partner.pk
+             and (not info.product_id or info.product_id == self.product_id.pk)
+             and (not info.date_start or info.date_start <= date)
+             and (not info.date_end or info.date_end >= date)),
+            key=lambda info: info.min_qty)
+        if seller_min_qty:
+            self.product_qty = seller_min_qty[0].min_qty or Decimal('1')
+            self.product_uom_id = seller_min_qty[0].product_uom
+        else:
+            self.product_qty = Decimal('1')
+
+    def _get_product_purchase_description(self, product_lang):
+        """≙ ``_get_product_purchase_description`` (``odoo19c: :602-611``).
+
+        ``product_lang`` es el producto leído en el contexto que el llamador
+        abrió con ``context_scope``.
+        """
+        self.ensure_one()
+        name = product_lang.display_name
+        if product_lang.description_purchase:
+            name += '\n' + product_lang.description_purchase
+        for no_variant_attribute_value in (
+                self.product_no_variant_attribute_value_ids.all()):
+            name += ("\n" + no_variant_attribute_value.attribute_id.name
+                     + ': ' + no_variant_attribute_value.name)
+
+        return name
+
+    def _convert_to_middle_of_day(self, date):
+        """Return a datetime which is the noon of the input date(time)
+        according to order user's time zone, convert to UTC time.
+
+        ≙ ``_convert_to_middle_of_day`` (``odoo19c: :701-705``).
+        """
+        return self.order_id.get_order_timezone().localize(
+            datetime.combine(date, time(12))).astimezone(UTC).replace(
+                tzinfo=None)
+
+    def _update_date_planned(self, updated_date):
+        """≙ ``_update_date_planned`` (``odoo19c: :714-715``)."""
+        self.date_planned = updated_date

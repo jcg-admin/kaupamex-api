@@ -46,3 +46,32 @@ cómputo no lo pisa. `_reset_price_unit` escribe los dos a la vez. Es la
   porque su caché guarda cadenas; aquí se asigna el `datetime`.
 - `with_context(lang=…, seller_id=…)` sobre el producto: el contexto se
   aplica con `context_scope` sobre el mismo registro.
+
+## Medido al implementar
+
+- **Defecto del ORM, fuera de esta unidad.** Sobre una línea sin guardar,
+  leer `line.date_order` (`fields.Datetime(related='order_id.date_order')`)
+  levanta *Compute method failed to assign*, mientras que el `related`
+  `Many2one` `line.currency_id` sí resuelve. Reproductor mínimo:
+
+  ```python
+  [o] = MODELS_BY_NAME['purchase.order'].create(
+      [{'partner_id': v.pk, 'company_id': c.pk}])
+  line = MODELS_BY_NAME['purchase.order.line'](
+      order_id=o, name='x', product_qty=1, price_unit=1)
+  line.currency_id   # MXN
+  line.date_order    # ValueError
+  ```
+
+  Sospecha, sin medir: `BaseModel.__setitem__` (`src/orm/models.py:9708`)
+  reparte la fila sin `pk` al cubo `new` y asigna sobre `self.browse(...)`,
+  que puede no ser la instancia que se lee. Unidad registrada:
+  `orm-related-scalar-unsaved-0485`. El cómputo lee la cadena
+  `order_id.date_order`, que es lo que el `related` declara.
+- `_select_seller` devuelve la lista de a lo sumo uno (`[:1]`);
+  `_compute_selected_seller_id` asignaba la lista. Corregido aquí.
+- `product_qty` es `Decimal` y `_get_filtered_sellers` compara con
+  `float_compare`: el llamador convierte en la frontera.
+- `product.template.currency`/`cost_currency` y el `default` de
+  `product.supplierinfo.currency` se alinean con la fuente: sin ellos el
+  precio no tiene moneda de origen.

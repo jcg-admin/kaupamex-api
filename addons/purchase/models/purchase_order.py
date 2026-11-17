@@ -64,6 +64,7 @@ no existía aquí (``grep -c currency_rate`` daba **0**). El mecanismo —
 from contextlib import nullcontext
 from decimal import Decimal
 
+import pytz
 from django.core.exceptions import ValidationError
 from django.db import transaction
 import api
@@ -684,3 +685,17 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
                 if self.partner_id.buyer_id:
                     self.user_id = self.partner_id.buyer_id
         return {}
+
+    def get_order_timezone(self):
+        """ Returns the timezone of the order's user or the company's
+        partner or UTC if none of them are set.
+
+        ≙ ``get_order_timezone`` (``odoo19c: purchase_order.py:1274-1278``).
+        El ``partner_id`` de la empresa es aquí la FK ``partner``.
+        """
+        self.ensure_one()
+        return pytz.timezone(
+            (self.user_id.tz if self.user_id else None)
+            or (self.company_id.partner.tz
+                if self.company_id and self.company_id.partner else None)
+            or 'UTC')

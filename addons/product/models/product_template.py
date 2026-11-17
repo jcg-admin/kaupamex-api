@@ -98,6 +98,7 @@ que no filtra nada — que es la verdad de la fuente, no una simplificación.
 import fields
 import models
 from django.core.exceptions import ValidationError
+from orm.environments import env
 
 from addons.base.models.image_mixin import ImageMixin
 from addons.base.models.ir_config_parameter import SystemParameter
@@ -384,18 +385,28 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
 
     @property
     def currency(self):
-        """``_compute_currency_id`` — la moneda de la compañía del producto."""
-        return getattr(self.company, 'currency', None)
+        """``_compute_currency_id`` (``odoo19c: product_template.py:257-260``).
+
+        La moneda de la compañía del producto o, sin compañía, la de la
+        compañía principal: ``template.company_id.sudo().currency_id.id or
+        main_company.currency_id.id``.
+        """
+        company = self.company or ResCompany.get_main_company()
+        return getattr(company, 'currency', None)
 
     @property
     def cost_currency(self):
         """
         ``_compute_cost_currency_id`` — la moneda en que se expresa el coste.
 
-        Coincide con ``currency`` mientras no haya valoración de inventario en
-        otra divisa; ese caso lo resuelve ``stock_account``, no portado.
+        ≙ ``odoo19c: product_template.py:262-266``: la de la compañía del
+        producto o, sin compañía, la de la empresa **activa**
+        (``@api.depends_context('company')``), no la principal.
         """
-        return self.currency
+        if self.company is not None:
+            return self.company.currency
+        company = env().company
+        return company.currency if company is not None else None
 
     @property
     def uom_name(self):

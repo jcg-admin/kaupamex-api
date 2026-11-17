@@ -105,12 +105,21 @@ from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.product.models.product_product import ProductProduct
 from addons.product.models.product_template import ProductTemplate
 from addons.uom.models.uom_uom import Uom
+from orm.environments import env
 from tools.translate import _
 
 #: Divisor del porcentaje de descuento. Constante nombrada porque el ``/ 100``
 #: suelto de la fuente es lo que delata si alguien guarda ``0.15`` en vez de
 #: ``15`` en el campo.
 PERCENT_BASE = decimal.Decimal('100')
+
+
+def _default_currency():
+    """≙ ``default=lambda self: self.env.company.currency_id.id``
+    (``odoo19c: product_supplierinfo.py:36-39``): la moneda de la empresa
+    activa, o ninguna si no hay empresa en contexto."""
+    company = env().company
+    return company.currency_id if company is not None else None
 
 
 class ProductSupplierinfo(TimeStampedModel):
@@ -210,6 +219,7 @@ class ProductSupplierinfo(TimeStampedModel):
         on_delete=models.PROTECT,
         null=True,
         blank=True,
+        default=_default_currency,
         related_name='supplierinfo_ids',
         verbose_name='Moneda',
         help_text=(
