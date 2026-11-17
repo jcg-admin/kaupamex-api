@@ -5,7 +5,8 @@ Fecha: 2026-11-17. Revisión base: `d904519e`. Investigador de sólo lectura
 
 | Lote | Propuesta | Nivel |
 |---|---|---|
-| 0 | `proposals/lot-0-remaining-xfail-rows.md` | 3 — declarada, sin verificar |
+| 0 | `proposals/lot-0-remaining-xfail-rows.md` | 3 — declarada; el conteo (71 = 46 + 25, todas las `set null` con `null=True`) lo reprodujo el coordinador: nivel 2 sólo para ese conteo |
+| 1 | `proposals/lot-1-block-e-and-restrict-rows.md` (base `286faed0`, escrito por el investigador directamente aquí) | 3 — declarada, sin verificar |
 
 ## Lo que la propuesta afirma (sin promover)
 
@@ -28,3 +29,23 @@ Fecha: 2026-11-17. Revisión base: `d904519e`. Investigador de sólo lectura
 
 El coordinador reproduce cada comprobación decisiva antes de implementar
 un bloque; nada de esto es nivel 2 todavía.
+
+## Lote 1 (2026-11-17): lo que afirma, sin promover
+
+- `hr.HrVersion.employee`: basta `SET_NULL`; la fuente no recorre
+  `_inherits` al borrar.
+- `project.ProjectTask.project`: `Project` necesita `BaseModel` y un
+  `unlink` que borre sus tareas antes de `super()`.
+- Parciales de conciliación: `remove_move_reconcile` se llama desde
+  `AccountMoveLine.unlink` **y** desde `AccountMove.unlink`.
+- `stock.StockRule.picking_type`: sólo la política.
+- 22 filas hacia `res.company`: `PROTECT`; 7 archivos de prueba borran una
+  empresa y ninguno crea hijos de esas filas.
+
+| Fila abierta | Estado |
+|---|---|
+| DDL real de la fuente para `AccountBankStatementLine.company` | UNVERIFIED |
+| tamaño de adoptar `BaseModel` en `AccountMove`, `AccountMoveLine`, `AccountPartialReconcile` | MISSING — el mayor riesgo del bloque C |
+| `_unlink_except_last_version` de HR y versiones huérfanas | UNVERIFIED |
+| borrados de empresa fuera de la heurística estática | UNVERIFIED |
+| `StockRule.picking_type` es `null=True` aquí y `required` en la fuente | divergencia previa, sin tratar |
