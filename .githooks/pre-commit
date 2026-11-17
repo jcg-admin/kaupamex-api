@@ -462,4 +462,31 @@ if [ -f "$WRITE_PATH_CHECKER" ] && [ "${#STAGED_PY[@]}" -gt 0 ]; then
     fi
 fi
 
+# ---------------------------------------------------------------------------
+# Gate: un cambio de comportamiento en src/orm se apoya en el flujo medido de
+# la referencia (instruccion 4.3.2 §6; leccion del 2026-09-03: transaction_scope
+# inventado, convert_to_column diferido, nulabilidad de Integer afirmada sin
+# medir). Cada cita NUEVA ``≙ ``X.nombre`` (``:N``)`` u ``odoo19c: ruta:N``
+# tiene que resolver en la referencia, y una funcion cuyo CUERPO cambia exige
+# un diseno del banco que la nombre, cite la fuente y nombre su prueba. Un
+# cambio solo de docstring no lo exige. Sin la referencia rehusa (exit 2) y
+# se avisa: no mide el entorno de nadie, pero no calla que no midio.
+# Script: scripts/check_reference_flow.py.
+FLOW_CHECKER="$REPO_ROOT/scripts/check_reference_flow.py"
+if [ -f "$FLOW_CHECKER" ] && [ "${#STAGED_PY[@]}" -gt 0 ]; then
+    FLOW_OUT=$(python3 "$FLOW_CHECKER" 2>&1)
+    FLOW_RC=$?
+    if [ "$FLOW_RC" -eq 2 ]; then
+        echo "pre-commit: sin la referencia NO se mide el flujo de src/orm — skip" >&2
+    elif [ "$FLOW_RC" -eq 0 ]; then
+        echo "$FLOW_OUT"
+    else
+        echo "$FLOW_OUT" >&2
+        echo "pre-commit: cambio en src/orm sin flujo de referencia medido." >&2
+        echo "  Corregir la cita, o escribir el diseno (designs/*.md) que nombre" >&2
+        echo "  la funcion, cite la referencia y nombre su prueba." >&2
+        EXIT_CODE=1
+    fi
+fi
+
 exit "$EXIT_CODE"
