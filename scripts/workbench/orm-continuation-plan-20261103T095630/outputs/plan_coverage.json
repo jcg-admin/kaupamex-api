@@ -5,7 +5,7 @@
  "open_tasks": 71,
  "frontier": [
   {
-   "id": "base-company-init-paperformat-0515",
+   "id": "base-users-init-0515",
    "task": "TASK-API-0515"
   }
  ],
@@ -21,14 +21,9 @@
    "reason": "state failed"
   },
   {
-   "id": "base-users-init-0515",
-   "task": "TASK-API-0515",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
-  },
-  {
    "id": "orm-init-alias-propagation-0515",
    "task": "TASK-API-0515",
-   "reason": "waits for base-company-init-paperformat-0515, base-users-init-0515"
+   "reason": "waits for base-users-init-0515"
   },
   {
    "id": "orm-fk-delete-policy-contract-0515",
@@ -519,6 +514,7 @@
   "orm-read-group-properties-0485",
   "orm-write-multi-0485",
   "orm-adopt-schema-hooks-0515",
+  "base-company-init-paperformat-0515",
   "registry-cursor-unit-of-work-0485",
   "registry-caches-per-database-0485",
   "request-unit-of-work-0485",
