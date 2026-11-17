@@ -3202,11 +3202,8 @@ class _RelationalMulti:
             self, models.ManyToManyField) and all(
                 isinstance(getattr(record, 'pk', None), int)
                 for record in _as_records(records)))
-        new_records = all(
-            isinstance(getattr(record, 'pk', None), NewId)
-            for record in _as_records(records))
         if (not hasattr(_relational_multi_comodel(self), '_from_ids')
-                and not stored_real and not new_records):
+                and not stored_real):
             return models.Field.write(self, records, value)
         records = _as_records(records)
         get_environment().remove_to_compute(
@@ -3251,12 +3248,6 @@ class _RelationalMulti:
             assert all(isinstance(rid, NewId) for rid in record_ids), (
                 f'{normalized} contains a mix of real and new records. '
                 f'It is not supported.')
-            if not hasattr(_relational_multi_comodel(self), '_from_ids'):
-                # Un comodelo de Django no tiene registros de ``new()``: los
-                # ids del valor son filas reales y no se envuelven en
-                # ``NewId`` (la caché del registro nuevo guarda ints).
-                _many2many_write_relation(self, normalized, new=None)
-                return
             self.write_new(normalized)
 
     def create(self, record_values):

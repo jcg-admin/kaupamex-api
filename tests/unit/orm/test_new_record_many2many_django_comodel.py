@@ -10,6 +10,8 @@ impuestos de una línea de ``new()``.
 """
 import pytest
 
+import fields
+
 from addons.account.models import AccountTax
 from addons.base.models import ResCompany, ResPartner
 from orm.environments import env, sudo
@@ -66,3 +68,27 @@ def test_a_saved_record_still_reads_its_table(setup):
         'order_id': order.id, 'name': 'x', 'product_qty': 1,
         'price_unit': 1, 'tax_ids': [(6, 0, [tax.pk])]}])
     assert [t.pk for t in line.tax_ids] == [tax.pk]
+
+
+@pytest.mark.parametrize('form', ['rows', 'ids', 'commands'])
+def test_a_list_or_commands_are_read_back_on_a_new_record(setup, form):
+    """El ``onchange`` de la fuente asigna filas, ids o comandos; los tres
+    llegan a la caché como el ``QuerySet`` del comodelo."""
+    order, tax = setup
+    line = env()['purchase.order.line'].new(
+        {'order_id': order.pk, 'name': 'x'})
+    line.tax_ids = {'rows': [tax], 'ids': [tax.pk],
+                    'commands': [fields.Command.set([tax.pk])]}[form]
+    assert [t.pk for t in line.tax_ids] == [tax.pk]
+
+
+def test_link_and_unlink_commands_apply_to_the_current_value(setup):
+    order, tax = setup
+    other = AccountTax.objects.create(
+        name='Otro M2M 0485', amount=8, type_tax_use='purchase',
+        company=tax.company)
+    line = env()['purchase.order.line'].new(
+        {'order_id': order.pk, 'name': 'x', 'tax_ids': [tax.pk]})
+    line.tax_ids = [fields.Command.link(other.pk),
+                    fields.Command.unlink(tax.pk)]
+    assert [t.pk for t in line.tax_ids] == [other.pk]

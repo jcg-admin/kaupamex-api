@@ -6296,6 +6296,12 @@ def _many2many_descriptor_set(self, instance, value):
         if isinstance(instance.pk, NewId):
             # fila de ``new()``: sin lógica de negocio (``:1825-1832``) —
             # ``write_batch`` despacha a ``Many2many.write_new``.
+            if not issubclass(field.related_model, BaseModel):
+                # Comodelo de Django: la caché de este árbol guarda su
+                # ``QuerySet`` (divergencia declarada en
+                # ``_RelationalMulti.write``), así que el valor —comandos,
+                # lista o filas— se lleva a esa forma antes de escribirlo.
+                value = _django_comodel_rows(field, instance, value)
             with environment.protecting([field], instance):
                 instance.modified([field.name], before=True)
                 field.write(instance, value)
@@ -6309,6 +6315,40 @@ def _many2many_descriptor_set(self, instance, value):
         instance.write({field.name: value})
         return
     _DJANGO_MANY2MANY_SET(self, instance, value)
+
+
+def _django_comodel_rows(field, instance, value):
+    """El valor de un ``Many2many`` hacia un comodelo de Django, en la forma
+    de la caché de este árbol: el ``QuerySet`` de sus filas.
+
+    ≙ ``_RelationalMulti.convert_to_cache`` (``odoo19c: odoo/orm/
+    fields_relational.py:589-641``) para un comodelo sin recordset propio:
+    los comandos ``SET``/``LINK``/``UNLINK``/``DELETE``/``CLEAR`` se aplican
+    sobre el valor actual del registro, y una lista de filas o ids lo
+    reemplaza.
+    """
+    comodel = field.related_model
+    if isinstance(value, QuerySet):
+        return value
+    if not value:
+        return browse(comodel, ())
+    if not is_command_list(value):
+        return browse(comodel, list(record_ids(value)))
+    cached = env().transaction.field_data[field].get(instance.pk, ())
+    ids = list(record_ids(cached))
+    for command in value:
+        code = command[0]
+        if code == Command.SET:
+            ids = list(command[2])
+        elif code == Command.CLEAR:
+            ids = []
+        elif code == Command.LINK and command[1] not in ids:
+            ids.append(command[1])
+        elif code in (Command.UNLINK, Command.DELETE):
+            ids = [id_ for id_ in ids if id_ != command[1]]
+        else:
+            raise ValueError(f'Wrong value for {field}: {value}')
+    return browse(comodel, ids)
 
 
 def _saved(instance):
@@ -6369,9 +6409,11 @@ def _x2many_descriptor_get(self, instance, cls=None):
             # (``Many2many.write_new``, ``odoo19c: odoo/orm/
             # fields_relational.py:1596-1700``), como en la rama de comodelos
             # ``BaseModel`` de abajo; devolver el vacío perdía lo asignado.
-            ids = env().transaction.field_data[self.field].get(
+            cached = env().transaction.field_data[self.field].get(
                 instance.pk, ())
-            return browse(comodel, list(ids))
+            if isinstance(cached, QuerySet):
+                return cached
+            return browse(comodel, list(record_ids(cached)))
         rows = _DJANGO_X2MANY_GET(self, instance, cls).all()
         return browse(comodel, list(rows.values_list('pk', flat=True)))
     if not (isinstance(instance, BaseModel) and isinstance(comodel, type)
