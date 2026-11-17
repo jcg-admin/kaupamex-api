@@ -98,3 +98,124 @@ def test_an_incomplete_design_does_not_admit_it(design):
 def test_without_the_reference_it_refuses_to_count(tmp_path, capsys):
     assert gate.main(['--reference', str(tmp_path)]) == 2
     assert 'no se emite conteo' in capsys.readouterr().err
+
+
+# --- Addons y anterioridad (instrucción 4.3.3 §8) -------------------------
+# Diseño: scripts/workbench/orm-continuation-plan-20261103T095630/designs/
+# reference-flow-gate-addons.md. Las citas son de la referencia real.
+
+ACCOUNT = 'addons/account/models/account_payment_method.py'
+BASE = 'src/addons/base/models/res_partner.py'
+UNLINK = '≙ ``AccountPaymentMethod.unlink`` (``:90``)'
+FIELD_CITE = 'odoo19c: addons/account/models/account_payment_method.py:104-109'
+MODEL_OLD = ('class Line(models.Model):\n'
+             "    payment_method = fields.Many2one('m', "
+             'on_delete=models.CASCADE)\n\n'
+             '    def unlink(self):\n        return 1\n')
+MODEL_FIELD = MODEL_OLD.replace('CASCADE', 'PROTECT')
+MODEL_BODY = MODEL_OLD.replace('return 1', 'return 2')
+
+
+@pytest.mark.parametrize('path, text, accepted', [
+    (ACCOUNT, UNLINK, True),
+    (ACCOUNT, '≙ ``AccountPaymentMethod.unlink`` (``:20``)', False),
+    (BASE, '≙ ``ResPartner._check_parent_id`` (``:547``)', True),
+    (BASE, '≙ ``ResPartner._check_parent_id`` (``:10``)', False),
+])
+def test_an_addon_citation_resolves_against_its_mirror(path, text,
+                                                       accepted):
+    assert (gate.citation_problems(path, '', text) == []) is accepted
+
+
+@pytest.mark.parametrize('path, kind', [
+    ('src/orm/fields.py', 'A'),
+    (ACCOUNT, 'B'),
+    (BASE, 'B'),
+    ('addons/account/migrations/0041_x.py', 'C'),
+    ('addons/kaupamex_only/models/plan.py', 'E'),
+    ('addons/account/controllers/main.py', None),
+])
+def test_each_path_has_its_change_kind(path, kind):
+    assert gate.change_kind(path) == kind
+
+
+def test_an_addon_method_change_without_design_is_rejected():
+    problems = gate.flow_problems(ACCOUNT, MODEL_OLD, MODEL_BODY, {})
+    assert problems and 'Line.unlink cambia' in problems[0]
+
+
+def test_an_addon_field_change_without_design_is_rejected():
+    problems = gate.flow_problems(ACCOUNT, MODEL_OLD, MODEL_FIELD, {})
+    assert problems and 'Line.payment_method cambia' in problems[0]
+
+
+def test_an_addon_field_change_with_prior_design_is_admitted():
+    design = f'`payment_method` restrict, {FIELD_CITE}; prueba: {TEST}'
+    assert gate.flow_problems(ACCOUNT, MODEL_OLD, MODEL_FIELD,
+                              {'d.md': design}) == []
+
+
+def test_an_addon_docstring_only_change_needs_nothing():
+    old = 'class Line:\n    def f(self):\n        """A."""\n        return 1\n'
+    assert gate.flow_problems(ACCOUNT, old, old.replace('A.', 'B.'),
+                              {}) == []
+
+
+def test_a_new_migration_without_design_is_rejected():
+    path = 'addons/account/migrations/0041_restrict_x.py'
+    assert gate.flow_problems(path, None, 'x = 1\n', {})
+
+
+def test_a_new_migration_named_by_a_prior_design_is_admitted():
+    path = 'addons/account/migrations/0041_restrict_x.py'
+    design = f'Migración `0041_restrict_x`: {FIELD_CITE}; prueba: {TEST}'
+    assert gate.flow_problems(path, None, 'x = 1\n',
+                              {'d.md': design}) == []
+
+
+def test_an_edited_migration_is_not_judged_again():
+    path = 'addons/account/migrations/0041_restrict_x.py'
+    assert gate.flow_problems(path, 'x = 1\n', 'x = 2\n', {}) == []
+
+
+def test_an_unmirrored_model_needs_a_design_but_no_citation():
+    path = 'addons/kaupamex_only/models/plan.py'
+    assert gate.flow_problems(path, MODEL_OLD, MODEL_BODY, {})
+    design = f'`unlink` propio del L0, sin contraparte; prueba: {TEST}'
+    assert gate.flow_problems(path, MODEL_OLD, MODEL_BODY,
+                              {'d.md': design}) == []
+
+
+def test_a_design_only_in_the_index_does_not_precede_the_change():
+    design = f'`unlink` sigue {UNLINK}; prueba: {TEST}'
+    problems = gate.flow_problems(ACCOUNT, MODEL_OLD, MODEL_BODY, {},
+                                  staged_designs={'d.md': design})
+    assert problems and 'no precede' in problems[0]
+
+
+def test_a_prior_design_reused_unchanged_admits_the_change():
+    design = f'`unlink` sigue {UNLINK}; prueba: {TEST}'
+    assert gate.flow_problems(ACCOUNT, MODEL_OLD, MODEL_BODY,
+                              {'d.md': design},
+                              staged_designs={'d.md': design}) == []
+
+
+@pytest.mark.parametrize('path, measured', [
+    ('src/orm/models.py', True),
+    (ACCOUNT, True),
+    ('addons/account/migrations/0041_x.py', True),
+    ('addons/account/controllers/main.py', False),
+    ('scripts/check_reference_flow.py', False),
+])
+def test_the_scope_covers_orm_models_and_migrations(path, measured):
+    assert gate.in_scope(path) is measured
+
+
+@pytest.mark.parametrize('path, text, accepted', [
+    (ACCOUNT, 'odoo19c: account_payment_method.py:90-92', True),
+    (ACCOUNT, 'odoo19c: account_payment_method.py:999999', False),
+    (ACCOUNT, 'odoo19c: no_such_model.py:1', False),
+])
+def test_a_short_path_citation_resolves_in_the_mirror_package(path, text,
+                                                              accepted):
+    assert (gate.citation_problems(path, '', text) == []) is accepted
