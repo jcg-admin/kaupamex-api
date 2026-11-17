@@ -48,3 +48,27 @@ Si la conducta coincide con la de la referencia (lo deciden las pruebas
 discriminantes); dependencias no reconciliadas y divergencias sin decisión
 (no tienen forma léxica); controladores, wizards y archivos fuera de
 `models/` y `migrations/`; `src/tools`.
+
+## 6. Medición previa a integrar (2026-11-17, sobre `f66047bd`)
+
+Prototipo fuera del árbol (el árbol estaba bajo la F2 de `ed74f56d`).
+Pruebas del gate: 43 passed. Anulaciones, restauradas por copia:
+
+| Anulación | Cae exactamente |
+|---|---|
+| sin eje de addons (`change_kind` → `None` fuera de `src/orm`) | 9: las cuatro clases B/C/E de `test_each_path_has_its_change_kind`, los rechazos de método, campo y migración, el modelo sin espejo y el de anterioridad |
+| sin anterioridad (el índice cuenta como `HEAD`) | 1: `test_a_design_only_in_the_index_does_not_precede_the_change` |
+
+**Reproducción sobre los últimos 40 commits** (`probes/replay_reference_flow.py`,
+sólo lectura, diseños del padre de cada commit; el eje A ya existía y no se
+recuenta): 11 commits tocan modelos o migraciones de addon.
+
+- Primera versión: 6 con hallazgo, 36 hallazgos. 13 eran citas cortas
+  (`odoo19c: purchase_order.py:1274-1278`, relativas al addon) que el gate
+  resolvía sólo desde la raíz: falso positivo. Corregido: una ruta sin
+  directorio se busca en el paquete espejo (3 pruebas nuevas).
+- Tras la corrección: 4 con hallazgo, 16 hallazgos. En los 4 el diseño entró
+  en el mismo commit que el código (`9b913a70`, `d6ec96e9`, `c3521359`,
+  `ffdcfa69`): es exactamente lo que el eje de anterioridad prohíbe hacia
+  adelante. El resto son migraciones o métodos que ningún diseño previo
+  nombraba. No se reescriben esos commits: la regla es prospectiva.
