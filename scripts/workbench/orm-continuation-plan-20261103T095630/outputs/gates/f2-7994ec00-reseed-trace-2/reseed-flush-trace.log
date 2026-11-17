@@ -1,0 +1,1 @@
+FLUSH-NO-DEFAULT gw1 | tests/integration/service/test_db_provision.py::test_database_exists_catalog (teardown) | tocompute={} dirty={'base.ResPartner.commercial_partner_id': [18265], 'base.ResPartner.commercial_company_name': [18265], 'base.ResUsers.create_date': [1], 'base.ResUsers.write_date': [1]}
