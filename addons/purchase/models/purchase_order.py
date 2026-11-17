@@ -61,6 +61,7 @@ no existía aquí (``grep -c currency_rate`` daba **0**). El mecanismo —
        ``fields.Float`` de la fuente como ``Monetary`` por la misma razón).
 """
 
+from contextlib import nullcontext
 from decimal import Decimal
 
 from django.core.exceptions import ValidationError
@@ -71,11 +72,14 @@ import models
 from django.utils import timezone
 from exceptions import UserError
 from orm.environments import (
-    get_current_company, get_current_uid, get_current_user, sudo)
+    company_scope, get_current_company, get_current_uid, get_current_user,
+    sudo)
 from tools.translate import _
 
 from addons.account.models.account_document_import_mixin import (
     AccountDocumentImportMixin)
+from addons.account.models.account_fiscal_position import (
+    AccountFiscalPosition)
 from addons.base.models import (
     IrSequence, ResCompany, ResCurrency, TimeStampedModel)
 from addons.mail.models import MailActivityMixin, MailThread
@@ -622,3 +626,61 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
         user = get_current_user()
         return bool(user) and user.has_group(
             'purchase.group_purchase_manager')
+
+    # --- Cabecera fiscal (TASK-GEN-0535) ---------------------------------
+    #
+    # Al final del cuerpo de la clase y no junto a los demás campos: la
+    # admisión de estilo fecha cada infracción heredada por su posición en
+    # el contenedor, y un campo intercalado la desplaza.
+    #
+    # El ``domain`` de la fuente en ``fiscal_position_id`` y
+    # ``payment_term_id`` (``['|', ('company_id', '=', False), ('company_id',
+    # '=', company_id)]``) sólo acota el selector del formulario: la fuente no
+    # declara ``check_company`` en ninguno de los dos, así que no hay
+    # restricción de registro que portar. Divergencia declarada.
+
+    #: ≙ ``origin`` (``odoo19c: purchase_order.py:80-82``).
+    origin = fields.Char(
+        'Source', max_length=255, blank=True, default='', copy=False,
+        help_text=(
+            'Reference of the document that generated this purchase order '
+            'request (e.g. a sales order)'))
+    #: ≙ ``fiscal_position_id`` (``odoo19c: purchase_order.py:143``).
+    fiscal_position_id = fields.Many2one(
+        'account.AccountFiscalPosition', verbose_name='Fiscal Position',
+        null=True, blank=True, on_delete=models.SET_NULL, related_name='+',
+        db_column='fiscal_position_id')
+    #: ≙ ``payment_term_id`` (``odoo19c: purchase_order.py:153``).
+    payment_term_id = fields.Many2one(
+        'account.AccountPaymentTerm', verbose_name='Payment Terms',
+        null=True, blank=True, on_delete=models.SET_NULL, related_name='+',
+        db_column='payment_term_id')
+
+    @api.onchange('partner_id', 'company_id')
+    def onchange_partner_id(self):
+        """≙ ``onchange_partner_id`` (``odoo19c: purchase_order.py:444-457``).
+
+        Comentario de la fuente, verbatim: *"Ensures all properties and
+        fiscal positions are taken with the company of the order; if not
+        defined, with_company doesn't change anything."* Su
+        ``self.with_company(self.company_id)`` es aquí ``company_scope``, y
+        una orden sin empresa deja el contexto como estaba.
+
+        ``_get_fiscal_position`` devuelve el registro vacío cuando ninguna
+        posición aplica (≙ el recordset vacío de la fuente); se asigna
+        ``None``, que es lo que aquí vale «sin posición».
+        """
+        scope = (company_scope(self.company_id_id) if self.company_id_id
+                 else nullcontext())
+        with scope:
+            if not self.partner_id:
+                self.fiscal_position_id = None
+            else:
+                position = AccountFiscalPosition._get_fiscal_position(
+                    self.partner_id)
+                self.fiscal_position_id = position if position.pk else None
+                self.payment_term_id = (
+                    self.partner_id.property_supplier_payment_term_id)
+                if self.partner_id.buyer_id:
+                    self.user_id = self.partner_id.buyer_id
+        return {}

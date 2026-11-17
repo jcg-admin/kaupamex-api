@@ -16,6 +16,10 @@ class PurchaseConfig(AppConfig):
         importlib.import_module(
             f'{self.name}.models.res_company'
         ).apply_purchase_extensions()
+        # ≙ ``purchase/models/res_partner.py``: el comprador del proveedor.
+        importlib.import_module(
+            f'{self.name}.models.res_partner'
+        ).apply_purchase_partner_extensions()
         # ≙ ``purchase/models/account_invoice.py``: el vínculo de la línea de
         # factura con la línea de compra.
         importlib.import_module(

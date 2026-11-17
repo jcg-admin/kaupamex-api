@@ -40,7 +40,7 @@ corte fiscal); ``foreign_vat_header_mode``/``action_create_foreign_taxes``
 import fields
 import models
 from django.db.models import Q
-from orm.environments import get_current_company
+from orm.environments import env
 
 from addons.base.models import ResCountry
 from addons.base.models.ir_model import IrModelData
@@ -249,7 +249,7 @@ class AccountFiscalPosition(models.Model):
         """≙ ``_get_fpos_validation_functions`` (``odoo19c: partner.py:
         215-243``): VAT exigido, rango de código postal, estado, país y
         grupo de países (con sus estados excluidos)."""
-        company = get_current_company()
+        company = env().company
 
         def in_country_group(fpos):
             group = fpos.country_group
@@ -291,7 +291,7 @@ class AccountFiscalPosition(models.Model):
         """
         if not partner:
             return cls()
-        company = get_current_company()
+        company = env().company
         intra_eu = vat_exclusion = False
         company_vat = company.vat if company else ''
         if company_vat and partner.vat:

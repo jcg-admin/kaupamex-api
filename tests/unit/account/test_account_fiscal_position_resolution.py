@@ -14,7 +14,7 @@ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 @pytest.fixture
 def company():
     company = ResCompany.objects.create(code='fpos', name='FPOS')
-    with company_scope(company):
+    with company_scope(company.pk):
         yield company
 
 
@@ -93,7 +93,7 @@ def eu_company():
     spain = ResCountry.objects.get(code__iexact='ES')
     company = ResCompany.objects.create(
         code='fpos-eu', name='FPOS EU', country=spain, vat_check_vies=True)
-    with company_scope(company):
+    with company_scope(company.pk):
         yield company
 
 
