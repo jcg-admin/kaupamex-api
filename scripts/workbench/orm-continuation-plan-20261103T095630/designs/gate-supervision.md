@@ -78,3 +78,33 @@ pytest las habría aplicado. `--prepare` aplica antes las pendientes
 sin la bandera el preflight sigue sin escribir. Prueba:
 `test_preparation_migrates_only_a_database_with_pending_migrations`; con el
 `migrate` anulado cae exactamente ese caso (8 → 7).
+
+## Una base a medio resembrar pasa el preflight (2026-11-17)
+
+Medido: la F2 de `a72e109f` falló a los 7 min en el *setup* de una prueba
+de `gw1` con `Identificador externo no encontrado: base.user_root`. La
+ejecución anterior se cortó por `--maxfail=1` dentro del *teardown* que
+resiembra, justo entre crear la fila del usuario 1 y su XML-ID
+(`src/addons/base/data/res_users_data.py:51`). Estado de las cuatro bases:
+
+| Base | filas de `ir_model_data` | XML-ID de `base` sembrados |
+|---|---|---|
+| `orm_x2hokp_qa_gw0`, `gw2`, `gw3` | 1021 | `user_root`, `partner_root`, `public_user`, `public_partner`, `paperformat_euro` |
+| `orm_x2hokp_qa_gw1` | 595 | ninguno de los cinco |
+
+`REFERENCE_CHECKS` sólo miraba la fila de `res_users` y su socio, que sí
+estaban: `PREFLIGHT OK`.
+
+Cambio: `REFERENCE_CHECKS` de `scripts/gate_preflight.py` comprueba además
+los XML-ID `base.user_root`, `base.public_user` y `base.paperformat_euro`,
+uno por cada uno de los sembradores cuarto, quinto y sexto. Prueba:
+`tests/unit/scripts/test_gate_preflight.py`, borrando la fila del XML-ID
+dentro de la transacción de la prueba.
+
+Reparación de la base: no se construye nada. Un test transaccional sobre esa
+base (`DB_QA_NAME=<base>`) la vacía y la resiembra entera en su *teardown*,
+que es el mecanismo de `tests/conftest.py`.
+
+*Métrica:* presencia de tres filas de `ir_model_data`.
+*Ciega a:* un corte posterior al sexto sembrador; lo cubriría comparar el
+conteo de XML-ID entre bases, que queda sin construir mientras no ocurra.

@@ -1,0 +1,136 @@
+PREPARE orm_x2hokp_qa_gw0: 0 migraciones aplicadas
+PREPARE orm_x2hokp_qa_gw1: 0 migraciones aplicadas
+PREPARE orm_x2hokp_qa_gw2: 0 migraciones aplicadas
+PREPARE orm_x2hokp_qa_gw3: 0 migraciones aplicadas
+PREFLIGHT OK (4 bases medidas)
+bringing up nodes...
+bringing up nodes...
+
+E.........................sssssssss.sssssssss.ssssssss.................. [  0%]
+........................................................................ [  1%]
+........................................................................ [  1%]
+........................................................................ [  2%]
+........................................................................ [  2%]
+........................................................................ [  3%]
+........................................................................ [  3%]
+........................................................................ [  4%]
+........................................................................ [  4%]
+........................................................................ [  5%]
+........................................................................ [  5%]
+........................................................................ [  6%]
+........................................................................ [  6%]
+........................................................................ [  7%]
+........................................................................ [  7%]
+........................................................................ [  8%]
+........................................................................ [  8%]
+........................................................................ [  9%]
+........................................................................ [  9%]
+........................................................................ [ 10%]
+........................................................................ [ 10%]
+........................................................................ [ 11%]
+........................................................................ [ 11%]
+........................................................................ [ 12%]
+........................................................................ [ 13%]
+........................................................................ [ 13%]
+........................................................................ [ 14%]
+........................................................................ [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 15%]
+........................................................................ [ 16%]
+........................................................................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 17%]
+........................................................................ [ 18%]
+........................................................................ [ 18%]
+.
+==================================== ERRORS ====================================
+_ ERROR at setup of TestExistenciaDerivadaDeStockQuant.test_reserva_descuenta_de_la_disponibilidad _
+[gw1] linux -- Python 3.13.18 /home/user/kaupamex-api/.venv/bin/python
+src/tools/safe_eval.py:472: in safe_eval
+    return unsafe_eval(c, globals_dict, None)
+:1: in <module>
+    ???
+src/tools/convert.py:490: in id_get
+    return self.model_id_get(id_str, raise_if_not_found)[1]
+src/tools/convert.py:496: in model_id_get
+    return IrModelData._xmlid_to_res_model_res_id(
+src/addons/base/models/ir_model.py:3112: in _xmlid_to_res_model_res_id
+    return cls._xmlid_lookup(xmlid, using=using)
+src/tools/cache.py:141: in lookup
+    return self.lookup(*args, **kwargs)
+src/tools/cache.py:241: in lookup
+    value = self.method(*args, **kwargs)
+src/addons/base/models/ir_model.py:3100: in _xmlid_lookup
+    raise ValueError('Identificador externo no encontrado: %s' % xmlid)
+E   ValueError: Identificador externo no encontrado: base.user_root
+
+During handling of the above exception, another exception occurred:
+src/tools/convert.py:921: in _tag_root
+    handler(rec)
+src/tools/convert.py:654: in _tag_record
+    return self._tag_record_inner(rec, model, rec_model, rec_id,
+src/tools/convert.py:749: in _tag_record_inner
+    f_val = _eval_xml(self, field, using=self.using)
+src/tools/convert.py:238: in _eval_xml
+    return safe_eval(a_eval, context)
+src/tools/safe_eval.py:478: in safe_eval
+    raise ValueError('%r while evaluating\n%r' % (e, expr))
+E   ValueError: ValueError('Identificador externo no encontrado: base.user_root') while evaluating
+E   "[(4, ref('base.user_root'))]"
+
+The above exception was the direct cause of the following exception:
+.venv/lib/python3.13/site-packages/pytest_django/fixtures.py:140: in django_db_setup
+    db_cfg = setup_databases(
+.venv/lib/python3.13/site-packages/django/test/utils.py:207: in setup_databases
+    connection.creation.create_test_db(
+.venv/lib/python3.13/site-packages/django/db/backends/base/creation.py:85: in create_test_db
+    call_command(
+.venv/lib/python3.13/site-packages/django/core/management/__init__.py:195: in call_command
+    return command.execute(*args, **defaults)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:464: in execute
+    output = self.handle(*args, **options)
+.venv/lib/python3.13/site-packages/django/core/management/base.py:111: in wrapper
+    res = handle_func(*args, **kwargs)
+.venv/lib/python3.13/site-packages/django/core/management/commands/migrate.py:381: in handle
+    emit_post_migrate_signal(
+.venv/lib/python3.13/site-packages/django/core/management/sql.py:52: in emit_post_migrate_signal
+    models.signals.post_migrate.send(
+.venv/lib/python3.13/site-packages/django/dispatch/dispatcher.py:209: in send
+    response = receiver(signal=self, sender=sender, **named)
+src/addons/base/install_cycle.py:32: in load_modules_after_migrate
+    modules.loading.load_modules(using)
+src/modules/loading.py:274: in load_modules
+    load_data({}, 'init' if install else 'update', 'data',
+src/modules/loading.py:120: in load_data
+    convert_file(
+src/tools/convert.py:1015: in convert_file
+    convert_xml_import(module, handle, idref, mode, noupdate,
+src/tools/convert.py:1139: in convert_xml_import
+    obj.parse(doc.getroot())
+src/tools/convert.py:951: in parse
+    self._tag_root(de)
+src/tools/convert.py:936: in _tag_root
+    raise ParseError(
+E   tools.convert.ParseError: while parsing /home/user/kaupamex-api/addons/sales_team/security/sales_team_security.xml:38, somewhere inside
+E   <record id="group_sale_manager" model="res.groups">
+E               <field name="name">Administrator</field>
+E               <field name="sequence">30</field>
+E               <field name="comment">the user will have an access to the sales configuration as well as statistic reports.</field>
+E               <field name="privilege_id" ref="res_groups_privilege_sales"/>
+E               <field name="implied_ids" eval="[(4, ref('group_sale_salesman_all_leads'))]"/>
+E               <field name="user_ids" eval="[(4, ref('base.user_root'))]"/>
+E           </record>
+---------------------------- Captured stdout setup -----------------------------
+Catálogo técnico: 124 añadidos, 0 actualizados (alcance medido: 124 addon(s) en /home/user/kaupamex-api/src/addons, /home/user/kaupamex-api/addons).
+3 addon(s) declaran auto_install, tienen sus dependencias presentes y NO están instalados en esta base (alcance medido: 124 addon(s) con manifest de 124 en el árbol):
+  base  (depends: —)
+  authz  (depends: base)
+  authz_passkey  (depends: authz, base)
+------------------------------ Captured log setup ------------------------------
+ERROR    tools.convert:convert.py:240 Could not eval([(4, ref('base.user_root'))]) for user_ids in {'install_mode': True, 'install_module': 'sales_team', 'install_filename': '/home/user/kaupamex-api/addons/sales_team/security/sales_team_security.xml', 'install_xmlid': 'group_sale_manager'}
+=========================== short test summary info ============================
+ERROR tests/integration/product/test_product_variants_and_stock.py::TestExistenciaDerivadaDeStockQuant::test_reserva_descuenta_de_la_disponibilidad
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!! xdist.dsession.Interrupted: stopping after 1 failures !!!!!!!!!!!!!
+2566 passed, 27 skipped, 1 error in 454.95s (0:07:34)
+EXIT=2
