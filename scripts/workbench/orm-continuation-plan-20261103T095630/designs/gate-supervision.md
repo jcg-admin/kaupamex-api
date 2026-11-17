@@ -108,3 +108,26 @@ que es el mecanismo de `tests/conftest.py`.
 *Métrica:* presencia de tres filas de `ir_model_data`.
 *Ciega a:* un corte posterior al sexto sembrador; lo cubriría comparar el
 conteo de XML-ID entre bases, que queda sin construir mientras no ocurra.
+
+### Reparación ejecutada (2026-11-17, sobre `9630445e`)
+
+La vía prevista arriba —un test transaccional con `DB_QA_NAME=<base>`— no
+sirve y queda corregida: la sesión falla en el *setup* (`2 errors in 7.18s`)
+porque la carga de datos de la sesión ya necesita `base.user_root`, y nunca
+llega al *teardown* que resiembra.
+
+Lo que funcionó, sin código nuevo en el árbol: ejecutar el catálogo
+existente sobre la base, `tests.conftest.reseed(tests.conftest._SEEDERS)`
+con `DB_QA_NAME=orm_x2hokp_qa_gw1` y `config.settings.testing`. Después:
+
+| Medida | Antes | Después |
+|---|---|---|
+| filas de `ir_model_data` en `gw1` | 595 | 1020 |
+| preflight de las cuatro bases | `FALLA` (3 problemas en `gw1`) | `OK` |
+
+Queda una fila de diferencia con `gw0` (1021):
+`account.model_account_invoice_report` (`base.IrModel`). No se midió qué la
+crea ni si alguna prueba la lee; lo dirá la F2 de `9630445e`.
+
+Sucesor: `gate_preflight.py --prepare` sólo migra; una opción que resiembre
+una base rehusada evitaría el guion a mano. Sin construir.
