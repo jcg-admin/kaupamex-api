@@ -134,3 +134,13 @@ Dos defectos, los dos ocultos por la sincronización:
    `self.flush_model()` antes de `Rule._get_failing`, el equivalente de
    `execute_query` → `flush_query` (`odoo19c: odoo/orm/environments.py:515-535`).
    Anulado, cae exactamente ese caso.
+
+## 9. F2 sobre `940f00c6`: `or` sobre `Decimal` perdía la escala
+
+`test_sale_order_sms_confirmation_send`: el SMS decía `total $0` donde
+esperaba `$0.00`. `value or Decimal(0)` cambia `Decimal('0.00')` —un cero
+presente, falso en Python— por `Decimal(0)`. El `or` de la fuente opera
+sobre `float`, que no tiene escala. Corrección: sólo la ausencia
+(`None`/`False`) se lee como cero. Prueba
+`test_a_present_decimal_zero_keeps_its_scale`; anulado, caen exactamente
+ese caso y el SMS.

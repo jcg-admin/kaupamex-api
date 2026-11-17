@@ -361,8 +361,15 @@ def _decimal_convert_to_record(self, value, record):
     El cero es ``Decimal``: es el tipo con que este árbol declara el dinero
     (``falsy_value`` de ``Monetary`` en ``orm.fields``), y mezclar ``float``
     con ``Decimal`` levanta ``TypeError`` en la aritmética del consumidor.
+
+    Sólo se sustituye la ausencia (``None``/``False``). El ``or`` de la fuente
+    opera sobre ``float``, que no tiene escala; sobre ``Decimal`` un cero
+    presente (``Decimal('0.00')``) también es falso, y ``or`` lo cambiaría por
+    ``Decimal(0)`` perdiendo los decimales que el formato del importe usa.
     """
-    return value or decimal.Decimal(0)
+    if value is None or value is False:
+        return decimal.Decimal(0)
+    return value
 
 
 models.FloatField.convert_to_record = _float_convert_to_record

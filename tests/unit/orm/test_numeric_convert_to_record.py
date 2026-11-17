@@ -39,3 +39,11 @@ def test_a_primary_key_keeps_the_generic_conversion():
     assert models.AutoField(primary_key=True).convert_to_record(None, None) \
         is False
     assert models.CharField().convert_to_record(None, None) is False
+
+
+def test_a_present_decimal_zero_keeps_its_scale():
+    """``Decimal('0.00')`` es un cero presente, no una ausencia: conserva su
+    escala, que el formato de un importe (``$0.00``) usa."""
+    field = models.DecimalField(max_digits=12, decimal_places=2)
+    value = field.convert_to_record(Decimal('0.00'), None)
+    assert value.as_tuple().exponent == -2
