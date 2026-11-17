@@ -153,3 +153,93 @@ def test_the_amount_to_invoice_at_a_date(company):
     line.flush_recordset()
     line.invalidate_recordset()
     assert line.amount_to_invoice_at_date == Decimal('30')
+
+
+def _set_order_state(line, state):
+    order_model = type(line.order_id)
+    order_model.objects.filter(pk=line.order_id.id).update(state=state)
+    line.order_id.invalidate_recordset()
+    line.invalidate_recordset()
+
+
+def test_a_receipt_or_an_entry_does_not_count(company):
+    """Sólo ``in_invoice`` suma y ``in_refund`` resta (``odoo19c:
+    :195-199``); cualquier otro tipo de asiento se ignora."""
+    line = _line(company)
+    _bill(company, line, '3', move_type='in_receipt')
+    _bill(company, line, '4', move_type='entry')
+    assert line._prepare_qty_invoiced()[line] == 0
+
+
+def test_a_line_without_bills_has_nothing_invoiced(company):
+    line = _line(company)
+    assert line._prepare_qty_invoiced()[line] == 0
+    line.flush_recordset()
+    line.invalidate_recordset()
+    assert line.qty_invoiced == 0
+
+
+def test_only_a_purchase_order_has_something_to_invoice(company):
+    """``qty_to_invoice`` sólo es distinto de cero con
+    ``order_id.state == 'purchase'`` (``odoo19c: :171``): también ``done``
+    y ``cancel`` dan cero."""
+    line = _line(company)
+    line.order_id.button_confirm()
+    line.flush_recordset()
+    line.invalidate_recordset()
+    assert line.qty_to_invoice == Decimal('10')
+    for state in ('done', 'cancel'):
+        _set_order_state(line, state)
+        line._compute_qty_invoiced()
+        assert line.qty_to_invoice == 0, state
+
+
+def test_an_over_billed_line_has_a_negative_quantity_to_invoice(company):
+    line = _line(company, qty='2')
+    line.order_id.button_confirm()
+    _bill(company, line, '5')
+    line.flush_recordset()
+    line.invalidate_recordset()
+    assert line.qty_to_invoice == Decimal('-3')
+
+
+def test_today_is_not_in_the_past_and_undated_bills_are_left_out(company):
+    """``_date_in_the_past`` compara con ``<`` estricto (``odoo19c:
+    :708-712``) y ``_get_invoice_lines`` descarta las facturas sin
+    ``invoice_date`` (``:205-207``)."""
+    line = _line(company)
+    today = timezone.localdate()
+    _bill(company, line, '2', invoice_date=today - datetime.timedelta(days=5))
+    _bill(company, line, '3')
+    line.flush_recordset()
+    line.invalidate_recordset()
+    with context_scope(accrual_entry_date=today.isoformat()):
+        assert line.qty_invoiced_at_date == Decimal('5')
+    past = (today - datetime.timedelta(days=1)).isoformat()
+    with context_scope(accrual_entry_date=past):
+        assert line.qty_invoiced_at_date == Decimal('2')
+
+
+def test_get_invoice_lines_wants_one_line(company):
+    first, second = _line(company), _line(company)
+    with pytest.raises(ValueError):
+        (first | second)._get_invoice_lines()
+
+
+def test_the_invoiced_quantity_follows_its_bills(company):
+    """El ``depends`` recorre ``invoice_lines.move_id.state`` y
+    ``invoice_lines.quantity`` (``odoo19c: :164``)."""
+    line = _line(company)
+    move = _bill(company, line, '3')
+    line.flush_recordset()
+    line.invalidate_recordset()
+    assert line.qty_invoiced == Decimal('3')
+    [bill_line] = AccountMoveLine.objects.filter(move=move)
+    bill_line.quantity = Decimal('4')
+    bill_line.save()
+    line.invalidate_recordset()
+    assert line.qty_invoiced == Decimal('4')
+    move.state = 'cancel'
+    move.save()
+    line.invalidate_recordset()
+    assert line.qty_invoiced == 0
