@@ -114,3 +114,35 @@ demostrado su equivalencia contractual sobre una instancia de Django. El plan
 no tiene unidad que migre `Uom` a `BaseModel` (patrón existente:
 `(models.BaseModel, TimeStampedModel)`, p. ej. `designs/purchase-order-header.md:12`).
 Su apertura es decisión del ejecutor.
+
+## C. Reconciliación de la «#279» y mecanismo autorizado (2026-11-17, tercer pase)
+
+Lectura del store en sólo lectura
+(`thyrox/agent-results/agent_store.sqlite3`, tabla `tasks`): el ordinal
+`279` nombra **tres** tareas distintas —`TASK-API-0153` (*«stock no declara
+ningún ReportSpec propio»*), `TASK-GEN-0531` y `TASK-THYROX-0522`—, y
+ninguna trata del chatter. La «tarea #279» de
+`addons/stock/models/stock_move_line.py:239-245` (D-1) es una cita de ordinal
+en colisión: no identifica un sucesor. La autoridad del mecanismo es
+**TASK-API-0121** (fila 202, `in_progress`, *«Capa 0 · account, mail, stock,
+web…»*), con la unidad `mail-message-post-with-source-0121` del plan.
+
+Mecanismo autorizado (DEC-AF-08: se porta la responsabilidad, se sustituye el
+sustrato de presentación), con precedentes implementados:
+
+- `addons/crm/models/crm_lead.py:2081-2092`: «aquí no hay QWeb, así que el
+  resumen se compone con el mismo contenido» y se publica con
+  `message_post(body=…)`.
+- `addons/base_install_request/wizard/base_module_install_request.py:101-107`:
+  el cuerpo se compone en Python, «la vía "se construye"».
+- `addons/base_install_request/data/__init__.py:8-35`: plantilla `mail.template`
+  con sintaxis de Django, registrada por su xmlid.
+
+Para `message_post_with_source`: la fuente de tipo vista se resuelve por su
+xmlid a un constructor de cuerpo en Python, con el contenido de la plantilla;
+la de tipo `mail.template`, por la ruta existente. Lo local que falta:
+`subtype_xmlid`/`subtype_id` (hoy `message_post` acepta `subtype=` sin valor
+por defecto), `_raise_for_invalid_parameters`, `_get_source_from_ref` y el
+registro de constructores. `mail.compose.message` y `_action_send_mail` están
+ausentes, así que la rama de plantilla del contrato de la fuente queda como
+obligación abierta de TASK-API-0121, no se simula.
