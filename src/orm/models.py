@@ -419,6 +419,15 @@ class AccessQuerySet(QuerySet):
 
         Rule = apps.get_model('base', 'IrRule')
         group_ids = list(actor._get_group_ids()) if actor is not None else []
+        # La fuente evalúa las reglas en memoria
+        # (``self.sudo().filtered_domain(domain)``, ``odoo19c:
+        # odoo/orm/models.py:4131-4149``): leer el campo procesa antes su
+        # recálculo pendiente. Aquí la evaluación es SQL, así que lo pendiente
+        # se vuelca antes, como ``execute_query`` → ``flush_query`` en toda
+        # consulta de la fuente (``odoo19c: odoo/orm/environments.py:
+        # 515-535``). Sin esto un ``related`` almacenado recién creado se leía
+        # ``NULL`` y la regla de empresa ocultaba la fila.
+        self.flush_model()
         forbidden = Rule._get_failing(
             self, mode=operation, group_ids=tuple(group_ids), user=actor)
         if forbidden.exists():

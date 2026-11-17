@@ -109,3 +109,28 @@ la conducta de la línea, en
 Sucesor: `Float`/`Monetary.convert_to_cache` con el redondeo por dígitos y
 por moneda (`odoo19c: odoo/orm/fields_numeric.py:165-169,266-280`), unidad
 `orm-float-monetary-convert-to-cache-0485`.
+
+## 8. F2 sobre `32a654c8`: la regla de empresa leía el `related` sin volcar
+
+F2 se detuvo en el primer fallo (`--maxfail=1`, 7 min en vez de 22):
+`test_the_purchase_user_confirms_under_the_threshold`. La misma prueba pasa
+en `89921ece` sobre la misma base; bisección por anulación: la causa es
+retirar `_sync_company`.
+
+Dos defectos, los dos ocultos por la sincronización:
+
+1. **La prueba leía datos de preparación fuera de `sudo`.**
+   `order.company_id` como el usuario por omisión de la prueba sólo pasaba
+   porque `_sync_company` había dejado el valor en caché dentro de `sudo`.
+   En la fuente el registro sale de un entorno `su` y lo conserva; aquí el
+   entorno es el ambiente. Corrección: leerla en `sudo`, como el resto de la
+   preparación. El contrato que la prueba mide no cambia.
+2. **La regla de empresa veía `company_id` en `NULL`.** Tras `create`, el
+   `related` almacenado queda pendiente en `tocompute` (medido: columna
+   `NULL`; tras `flush_all`, el id de la empresa). La fuente evalúa las
+   reglas en memoria con `filtered_domain`
+   (`odoo19c: odoo/orm/models.py:4131-4149`), y leer procesa el recálculo;
+   aquí `AccessQuerySet._check_access` evalúa en SQL sin volcar. Corrección:
+   `self.flush_model()` antes de `Rule._get_failing`, el equivalente de
+   `execute_query` → `flush_query` (`odoo19c: odoo/orm/environments.py:515-535`).
+   Anulado, cae exactamente ese caso.
