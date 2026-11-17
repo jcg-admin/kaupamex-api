@@ -183,7 +183,7 @@
   {
    "id": "purchase-line-checks-0122",
    "task": "TASK-API-0122",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
+   "reason": "waits for purchase-line-price-and-dates-0122"
   },
   {
    "id": "account-reverse-moves-copy-0121",
@@ -193,7 +193,7 @@
   {
    "id": "purchase-line-qty-invoiced-0122",
    "task": "TASK-API-0122",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
+   "reason": "waits for purchase-line-qty-received-0122"
   },
   {
    "id": "purchase-line-qty-received-0122",
@@ -226,8 +226,18 @@
    "reason": "waits for account-tax-totals-summary-0121"
   },
   {
-   "id": "orm-nonstored-compute-on-new-records-0397",
-   "task": "TASK-API-0397",
+   "id": "mail-message-post-with-source-0121",
+   "task": "TASK-API-0121",
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
+  },
+  {
+   "id": "gate-evidence-scratch-reclaim-0485",
+   "task": "TASK-API-0485",
+   "reason": "state failed"
+  },
+  {
+   "id": "purchase-line-core-0122",
+   "task": "TASK-API-0122",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   }
  ],
@@ -536,7 +546,9 @@
   "account-model-headers-0121",
   "account-security-0121",
   "purchase-line-amounts-0122",
-  "purchase-line-related-0122"
+  "purchase-line-related-0122",
+  "orm-nonstored-compute-on-new-records-0397",
+  "seeded-partner-computes-0516"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
