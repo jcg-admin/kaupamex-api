@@ -44,15 +44,25 @@ class ComputeStoredFields(migrations.RunPython):
         if _schema_lags(model, connection):
             PENDING_COMPUTES.setdefault(connection.alias, []).append(self)
             return
-        self.compute_now()
+        self.compute_now(connection.alias)
 
-    def compute_now(self):
+    def compute_now(self, using):
+        """Calcula sobre las filas de la base ``using``, la que migra.
+
+        ≙ la fuente, que calcula con el ``env`` del cursor que migra. El
+        entorno declara esa conexión: ``get_current_cr()`` manda sobre la
+        empresa activa en el router (``orm.routers.domain_alias``), así que
+        la lectura de los ids, el cómputo y el volcado van a ``using``. Con
+        ``Environment(None, ...)`` el entorno no declaraba base y, en una
+        base de empresa, el cálculo no la alcanzaba
+        (``designs/seeded-partner-computes.md``).
+        """
         model = live_apps.get_model(self.app_label, self.model_name)
-        ids = list(model._base_manager.values_list('pk', flat=True))
-        if not ids:
-            return
         fields_of = model_field_registry(model)
-        with Environment(None, SUPERUSER_ID, {}) as environment:
+        with Environment(using, SUPERUSER_ID, {}) as environment:
+            ids = list(model._base_manager.values_list('pk', flat=True))
+            if not ids:
+                return
             # La columna es nueva: su valor almacenado es desconocido. Sin
             # retirar la caché, un cómputo que coincide con lo que la caché
             # ya tenía no marca nada sucio y el volcado no escribe.
@@ -156,6 +166,6 @@ def run_pending_computes(using='default', **kwargs):
         if _schema_lags(model, connection):
             waiting.append(operation)
         else:
-            operation.compute_now()
+            operation.compute_now(using)
     if waiting:
         PENDING_COMPUTES[using] = waiting

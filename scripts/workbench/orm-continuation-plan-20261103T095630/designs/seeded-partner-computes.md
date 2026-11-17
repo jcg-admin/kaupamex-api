@@ -83,3 +83,47 @@ Regla que se sigue desde aquí: mientras un gate corre, se le observa por su
 log, su proceso y el sistema de archivos, **nunca con una consulta a sus
 bases**. Lo que se quiera saber de esas bases se lee después, sobre la
 evidencia que el gate deja.
+
+## El gate de `eee4382f` refutó el arreglo: la causa estaba en la operación (2026-11-17T01:06:03)
+
+`outputs/gates/ci-multidb-eee4382f/`: el mismo `ParseError` de
+`account_security.xml:247` con `0116` aplicada. Las 5 pruebas de `0116`
+pasaban porque llaman a la operación sobre `default`, donde no hay
+diferencia que ver; eran ciegas al fenómeno de una base de empresa.
+
+**Reproducido sin el gate**, con una sonda que copia QA por plantilla a un
+`company_<N>_db`, anula el socio raíz en la copia y ejecuta
+`compute_now` bajo `company_scope`, como `_migrate_company_database`:
+
+```text
+antes   default (5730, 5730) empresa (5730, None)
+despues default (5730, 5730) empresa (5730, None)
+```
+
+**Causa.** `ComputeStoredFields.compute_now` abría `Environment(None,
+SUPERUSER_ID, {})`, que no declara base: `_cr` queda sin fijar y el cálculo
+no alcanzaba la conexión que se migra. La fuente calcula con el `env` del
+cursor que migra. Afecta a toda migración con `ComputeStoredFields` (16
+archivos) en toda base de empresa, no sólo a `0116`.
+
+**Arreglo (TASK-API-0516).** `compute_now(using)` abre
+`Environment(using, SUPERUSER_ID, {})`; `_compute` le pasa
+`schema_editor.connection.alias` y `run_pending_computes` su `using`. La
+lectura de los ids entra en el entorno. Con la sonda:
+
+```text
+antes   default (5730, 5730) empresa (5730, None)
+despues default (5730, 5730) empresa (5730, 5730)
+```
+
+**Verificación.** Dos pruebas nuevas en
+`tests/unit/orm/test_compute_stored_fields_operation.py` leen
+`get_current_cr()` en el volcado, que es lo que el router usa para elegir la
+base. Anulación (devolver `Environment(None, ...)`): caen exactamente esas
+dos, 9 sobreviven.
+
+La sonda dejó dos copias en su primera versión (`duplicate_database`
+termina las conexiones al origen y el `finally` falló sobre la conexión
+muerta): `company_825186220848_db` y `company_963269235496_db`, del rol
+`orm_x2hokp`, retiradas. La versión corregida reabre `default` y retira su
+copia.

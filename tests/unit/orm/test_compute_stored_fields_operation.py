@@ -13,7 +13,8 @@ import pytest
 from django.apps import apps
 from django.db import connection
 
-from orm.environments import Environment
+from orm import migration_operations
+from orm.environments import Environment, get_current_cr
 from orm.migration_operations import ComputeStoredFields, run_pending_computes
 from orm.utils import SUPERUSER_ID
 
@@ -88,3 +89,39 @@ def test_a_lagging_schema_waits_for_post_migrate(child):
     assert _stored(record_id)[0] == 4
     run_pending_computes(using=connection.alias)
     assert _stored(record_id)[0] == 4
+
+
+@pytest.fixture
+def flush_database(monkeypatch):
+    """La base que el router ve en el volcado: ``get_current_cr()`` manda
+    sobre la empresa activa (``orm.routers.domain_alias``)."""
+    seen = []
+    original = migration_operations.Model.flush_model
+
+    def spy(model, fnames=None):
+        seen.append(get_current_cr())
+        return original(model, fnames)
+
+    monkeypatch.setattr(migration_operations.Model, 'flush_model', spy)
+    return seen
+
+
+def test_the_compute_runs_on_the_migrated_connection(child, flush_database):
+    """≙ la fuente, que calcula con el ``env`` del cursor que migra. Con
+    ``Environment(None, ...)`` el entorno no declara base y, bajo el
+    ``company_scope`` de una base de empresa, el cálculo no la alcanzaba:
+    medido con una copia de QA como ``company_<N>_db``, el socio raíz siguió
+    en ``NULL`` (``designs/seeded-partner-computes.md``)."""
+    _run(ComputeStoredFields('test_orm', 'testormmodelchildm2o', ['size1']))
+    assert flush_database == [connection.alias]
+
+
+def test_a_pending_compute_runs_on_the_migrated_connection(
+        child, flush_database):
+    operation = ComputeStoredFields(
+        'test_orm', 'testormmodelchildm2o', ['size1'])
+    migration_operations.PENDING_COMPUTES.setdefault(
+        connection.alias, []).append(operation)
+    run_pending_computes(using=connection.alias)
+    assert flush_database == [connection.alias]
+    assert _stored(child[1])[0] == 4
