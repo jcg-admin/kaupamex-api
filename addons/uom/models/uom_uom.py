@@ -53,6 +53,7 @@ funciona, y protegerá lo que se siembre con identificador del módulo ``uom``.
 """
 
 import datetime
+from decimal import Decimal
 
 import fields
 import models
@@ -101,6 +102,19 @@ def _as_float(value):
     tiene), así que es su sitio.
     """
     return float(value) if value is not None else value
+
+
+def _like(original, value):
+    """Devuelve ``value`` con el tipo de ``original`` (``Decimal`` o
+    ``float``).
+
+    ``repr`` da la representación decimal más corta del ``float``, así que
+    ``6.0`` vuelve como ``Decimal('6.0')`` y no con la cola binaria de
+    ``Decimal(6.0000000001)``.
+    """
+    if isinstance(original, Decimal):
+        return Decimal(repr(value))
+    return value
 
 
 class Uom(TimeStampedModel):
@@ -366,18 +380,27 @@ class Uom(TimeStampedModel):
         to_unit: 'Uom',
         round: bool = True,
         rounding_method: str = 'UP',
+        raise_if_failure: bool = True,
     ) -> float:
         """Convierte ``qty`` de esta unidad a ``to_unit`` (Odoo ``:148-176``).
 
         La conversión pasa por el ``factor`` absoluto de ambas, que es lo que
         permite convertir entre unidades de la misma cadena sin acumular error.
+
+        ``raise_if_failure`` se declara como en la fuente y, como allí, no se
+        usa: la 19 no tiene ``uom.category`` y no hay conversión imposible.
+
+        Conserva el tipo: un ``Decimal`` entra y sale ``Decimal``; el cálculo
+        pasa por ``float`` porque ``float_round`` es puerto de un algoritmo de
+        coma flotante (ver ``_as_float``). ``if not self`` y ``ensure_one()``
+        de la fuente son invariantes de una instancia de Django, que es siempre
+        un único registro (``designs/uom-decimal-boundary.md``).
         """
         if not qty:
             return qty
-        if self == to_unit:
-            amount = qty
-        else:
-            amount = qty * self.factor
+        amount = _as_float(qty)
+        if self != to_unit:
+            amount = amount * self.factor
             if to_unit:
                 amount = amount / to_unit.factor
         if to_unit and round:
@@ -386,16 +409,18 @@ class Uom(TimeStampedModel):
                 precision_rounding=to_unit.rounding,
                 rounding_method=rounding_method,
             )
-        return amount
+        return _like(qty, amount)
 
     def _compute_price(self, price: float, to_unit: 'Uom') -> float:
         """Convierte un precio a la unidad destino (Odoo ``:196-203``).
 
         Inverso de la cantidad: si la unidad destino es mayor, su precio sube.
+        Conserva el tipo de ``price`` como ``_compute_quantity``.
         """
         if not price or not to_unit or self == to_unit:
             return price
-        return price * to_unit.factor / self.factor
+        amount = _as_float(price) * to_unit.factor / self.factor
+        return _like(price, amount)
 
     def check_qty(
         self,

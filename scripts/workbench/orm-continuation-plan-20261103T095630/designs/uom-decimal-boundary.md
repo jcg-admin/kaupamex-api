@@ -66,3 +66,40 @@ representación, no código por portar: un recordset vacío o múltiple de
 `uom.uom` no se puede construir. Si `Uom` migra a `BaseModel` (sucesor del
 inventario ORM), estas dos guardas pasan a ser obligatorias y sus controles
 se reabren. El control que sí aplica es `to_unit=None` (`if to_unit:`).
+
+## Precisión de Decimal → float → Decimal (medida 2026-11-17)
+
+Sonda en Python puro, 200 000 valores aleatorios por clase, escala 4:
+
+| Dígitos significativos | Fallos de ida y vuelta |
+|---|---|
+| 12, 13, 14, 15 | 0 |
+| 16 | 18 164 (ej. `904417079281.3122` → `…3123`, error 0.0001) |
+
+- La columna `(16, 4)` admite 16 dígitos: un valor con `|qty| ≥ 1e11` puede
+  perder el último decimal. La fuente tiene el mismo límite, porque allí la
+  cantidad es `float` de punta a punta; el porte no lo empeora, y no lo
+  mejora. Queda como límite declarado, no como defecto a corregir aquí.
+- Con `round=False` el resultado puede traer ruido binario más allá de la
+  escala de la columna (`0.1 × 3` → `Decimal('0.30000000000000004')`), igual
+  que el `float` de la fuente. Con `round=True` (el valor por defecto) el
+  resultado sale redondeado a `to_unit.rounding`.
+
+*Métrica:* igualdad `Decimal(repr(float(d))) == d`.
+*Ciega a:* la acumulación de error en una cadena de conversiones sucesivas
+sin redondeo intermedio.
+
+## F1 (2026-11-17)
+
+Subconjunto derivado con
+`grep -rlE "_compute_quantity|_compute_price|check_qty|addons\.uom|from addons.uom" --include=*.py tests/ | sed 's|/[^/]*$||' | sort | uniq -c`
+(12 directorios): `6644 passed, 39 skipped, 81 xfailed` en 806.96 s con
+`-n 4`. Anulación de `_like`: caen exactamente las 8 pruebas de tipo `Decimal`
+y sobreviven las 5 de `float`, cero y raíces distintas.
+
+## Primitivas de recordset en `Uom`: obligaciones NO verificadas
+
+`if not self` y `ensure_one()` no se pueden ejercitar sobre una instancia de
+Django. Eso no demuestra que sean equivalentes. Quedan como obligación no
+verificada hasta que `Uom` gane las primitivas de recordset o se demuestre la
+equivalencia contractual (investigación en curso, a registrar en `outputs/`).
