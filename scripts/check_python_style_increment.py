@@ -367,6 +367,28 @@ def verifier_hashes():
     }
 
 
+def qualification_environment(environ, root):
+    """El entorno de las pruebas de cualificación, aislado del repositorio.
+
+    Dentro de ``git commit -- <rutas>`` git exporta ``GIT_INDEX_FILE`` con
+    su índice temporal (y un hook hereda las demás variables locales). Las
+    pruebas crean repositorios propios: con esas variables su ``git`` lee el
+    índice del commit en curso y muere con ``bad object`` (7 de 99 casos el
+    2026-11-17). La lista exacta la publica git: ``rev-parse
+    --local-env-vars``.
+    """
+    environment = dict(environ)
+    for name in git('rev-parse', '--local-env-vars').decode().split():
+        environment.pop(name, None)
+    environment.pop('PYTEST_ADDOPTS', None)
+    environment.pop('PYTEST_PLUGINS', None)
+    environment.update(
+        PYTEST_DISABLE_PLUGIN_AUTOLOAD='1',
+        PYTHONPATH=str(root / 'scripts'),
+    )
+    return environment
+
+
 def qualify_checkers(entries, candidate, report):
     """Cualifica el candidato exacto; no acepta un recibo declarativo.
 
@@ -401,13 +423,7 @@ def qualify_checkers(entries, candidate, report):
             '--junitxml=' + str(junit),
         ]
         # No ejecuta el ORM ni usa PostgreSQL: sólo los fixtures ya existentes.
-        environment = dict(os.environ)
-        environment.pop('PYTEST_ADDOPTS', None)
-        environment.pop('PYTEST_PLUGINS', None)
-        environment.update(
-            PYTEST_DISABLE_PLUGIN_AUTOLOAD='1',
-            PYTHONPATH=str(root / 'scripts'),
-        )
+        environment = qualification_environment(os.environ, root)
         result = subprocess.run(
             command, cwd=root, env=environment, text=True, capture_output=True,
         )

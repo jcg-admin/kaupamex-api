@@ -1,4 +1,5 @@
 """Admisión explícita sin modificar los contratos globales de estilo."""
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -12,6 +13,11 @@ import pytest
 ROOT = Path(__file__).resolve().parents[3]
 GATE = ROOT / 'scripts/check_python_style.sh'
 DEBT = "historical_note = '" + 'a' * 90 + "'\n"
+_SPEC = importlib.util.spec_from_file_location(
+    'check_python_style_increment',
+    ROOT / 'scripts/check_python_style_increment.py')
+INCREMENT = importlib.util.module_from_spec(_SPEC)
+_SPEC.loader.exec_module(INCREMENT)
 
 
 def git(repo, *args):
@@ -494,3 +500,17 @@ def test_evidence_is_not_reused_when_verifier_changes(repo, monkeypatch):
         'Verifier changed' in reason
         for reason in json.loads(report.read_text())['reasons']
     )
+
+
+def test_qualification_drops_the_variables_that_point_at_the_repository():
+    """Dentro de ``git commit -- <rutas>`` llega ``GIT_INDEX_FILE``; las
+    pruebas de cualificación crean sus propios repositorios y no deben
+    leer ese índice. La identidad no apunta al repositorio y se conserva."""
+    environ = {'GIT_INDEX_FILE': '/tmp/index.lock', 'GIT_DIR': '/tmp/x.git',
+               'GIT_AUTHOR_NAME': 'Autor', 'PYTEST_ADDOPTS': '-x'}
+    environment = INCREMENT.qualification_environment(environ, ROOT)
+    assert 'GIT_INDEX_FILE' not in environment
+    assert 'GIT_DIR' not in environment
+    assert 'PYTEST_ADDOPTS' not in environment
+    assert environment['GIT_AUTHOR_NAME'] == 'Autor'
+    assert environment['PYTHONPATH'] == str(ROOT / 'scripts')
