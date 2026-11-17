@@ -196,14 +196,9 @@
    "reason": "waits for purchase-order-fiscal-header-0535"
   },
   {
-   "id": "account-fiscal-position-resolution-0121",
-   "task": "TASK-API-0121",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
-  },
-  {
    "id": "purchase-order-fiscal-header-0535",
    "task": "TASK-GEN-0535",
-   "reason": "waits for account-fiscal-position-resolution-0121"
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
    "id": "purchase-line-lifecycle-0122",
@@ -555,6 +550,7 @@
   "purchase-line-qty-invoiced-0122",
   "purchase-line-qty-received-0122",
   "account-tax-included-price-0121",
+  "account-fiscal-position-resolution-0121",
   "orm-nonstored-compute-on-new-records-0397",
   "mail-source-resolution-0121",
   "seeded-partner-computes-0516",
