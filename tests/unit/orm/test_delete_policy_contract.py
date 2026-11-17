@@ -45,6 +45,8 @@ CORRECTED = {
     # designs/fleet-restrict-ondelete.md
     'fleet.FleetVehicleOdometer.vehicle',
     'fleet.FleetVehicleAssignationLog.vehicle',
+    # designs/new-line-recompute-flow.md
+    'purchase.PurchaseOrderLine.company_id',
 }
 
 #: Política de Django que corresponde al ``ondelete`` de la fuente.

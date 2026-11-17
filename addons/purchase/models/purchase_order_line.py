@@ -19,14 +19,11 @@ orm-continuation-plan-20261103T095630/designs/purchase-order-line-port.md``.
    * - Símbolo de la referencia
      - Forma aquí
    * - ``company_id`` (``odoo19c: purchase_order_line.py:53``)
-     - campo homónimo, **stored**. La fuente lo declara
-       ``related='order_id.company_id', store=True, readonly=True``; este
-       ORM no dispara el ``related=`` con columna (``src/orm/models.py:
-       1495-1511`` sólo traversa el que **no** tiene ``store``), así que se
-       sincroniza en ``save()`` — mismo patrón que
-       ``AccountReconcileModelLine.company``/``_sync_company``
-       (``api: addons/account/models/account_reconcile_model.py:218-221,
-       273-276``).
+     - ``related='order_id.company_id', store=True, readonly=True``, como en
+       la fuente. Se sincronizaba en ``save()`` por una razón que ya no era
+       cierta («este ORM no dispara el ``related=`` con columna»): el mismo
+       modelo declara ``partner_id`` así. Diseño
+       ``designs/new-line-recompute-flow.md``.
    * - ``currency_id`` (``odoo19c: purchase_order_line.py:85``)
      - ``@property`` — la fuente lo declara
        ``related='order_id.currency_id'`` **sin** ``store``, así que aquí no
@@ -120,7 +117,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
     #: ≙ ``name`` (``odoo19c: :19-20``): ``Text`` calculado almacenado y
     #: editable, como ``price_unit`` y ``discount``.
     name = fields.Text(
-        'Description', blank=True, default='',
+        'Description', blank=True,
         compute='_compute_price_unit_and_date_planned_and_name', store=True,
         readonly=False,
         help_text='Descripción de la línea (Odoo purchase.order.line.name).',
@@ -167,7 +164,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
         help_text='Odoo price_unit (IVA incl.).',
     )
     discount = fields.Monetary(
-        max_digits=5, decimal_places=2, default=Decimal('0.00'),
+        max_digits=5, decimal_places=2, null=True, blank=True,
         compute='_compute_price_unit_and_date_planned_and_name', store=True,
         readonly=False,
         help_text='Descuento % de la línea (Odoo discount).',
@@ -295,14 +292,14 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
     technical_price_unit = fields.Monetary(
         max_digits=16, decimal_places=4, null=True, blank=True,
         help='Technical field for price computation')
-    # Odoo purchase.order.line.company_id — ver docstring del módulo
-    # (tarea #266).
+    #: ≙ ``company_id`` (``odoo19c: :53``): la empresa de la orden,
+    #: almacenada. Sin ``ondelete`` en la fuente, o sea ``set null``
+    #: (``odoo19c: odoo/orm/fields_relational.py:274-282``).
     company_id = fields.Many2one(
-        'base.ResCompany', null=True, blank=True, on_delete=models.CASCADE,
-        related_name='+', db_column='company_id',
-        help_text='Odoo company_id (related="order_id.company_id", '
-                  'store=True, readonly=True) — columna sincronizada en '
-                  'save(), ver docstring del módulo.',
+        'base.ResCompany', verbose_name='Company',
+        related='order_id.company_id',
+        store=True, readonly=True, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='+', db_column='company_id',
     )
 
     class Meta:
@@ -333,8 +330,10 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
             else:
                 line.product_uom_qty = float(line.product_qty)
 
+    @api.depends('product_id', 'product_id.seller_ids', 'partner_id',
+                 'product_qty', 'order_id.date_order', 'product_uom_id')
     def _compute_selected_seller_id(self):
-        """≙ ``_compute_selected_seller_id`` (``:266-278``)."""
+        """≙ ``_compute_selected_seller_id`` (``:265-278``)."""
         for line in self:
             if line.product_id:
                 params = line._get_select_sellers_params()
@@ -360,22 +359,6 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
             'order_id': self.order_id,
             'force_uom': True,
         }
-
-    def _sync_company(self):
-        """Sincroniza ``company_id`` con el de la orden — divergencia
-        declarada en el docstring del módulo (``related=…, store=True`` sin
-        motor de recompute)."""
-        self.company_id = (
-            self.order_id.company_id if self.order_id_id else None)
-
-    def save(self, *args, **kwargs):
-        """Sincroniza ``company_id`` antes de persistir — ver
-        ``_sync_company``."""
-        self._sync_company()
-        update_fields = kwargs.get('update_fields')
-        if update_fields is not None and 'company_id' not in update_fields:
-            kwargs['update_fields'] = [*update_fields, 'company_id']
-        return super().save(*args, **kwargs)
 
     @api.depends('discount', 'price_unit')
     def _compute_price_unit_discounted(self):

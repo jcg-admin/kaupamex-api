@@ -341,3 +341,29 @@ models.DecimalField.currency_field = None
 models.DecimalField.get_currency_field = _monetary_get_currency_field
 models.DecimalField._description_currency_field = (
     _monetary_description_currency_field)
+
+
+def _float_convert_to_record(self, value, record):
+    """``Float.convert_to_record`` — ≙ ``odoo19c:
+    odoo/orm/fields_numeric.py:171-172``: la ausencia se lee como ``0.0``.
+
+    Un calculado almacenado cuyo cómputo no asigna (una rama ``continue``)
+    deja el valor vacío en memoria; la fuente lo entrega como cero, y quien
+    lo usa en una operación aritmética nunca ve ``None``.
+    """
+    return value or 0.0
+
+
+def _decimal_convert_to_record(self, value, record):
+    """``Monetary.convert_to_record`` — ≙ ``odoo19c:
+    odoo/orm/fields_numeric.py:282-283``: la ausencia se lee como cero.
+
+    El cero es ``Decimal``: es el tipo con que este árbol declara el dinero
+    (``falsy_value`` de ``Monetary`` en ``orm.fields``), y mezclar ``float``
+    con ``Decimal`` levanta ``TypeError`` en la aritmética del consumidor.
+    """
+    return value or decimal.Decimal(0)
+
+
+models.FloatField.convert_to_record = _float_convert_to_record
+models.DecimalField.convert_to_record = _decimal_convert_to_record
