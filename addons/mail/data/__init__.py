@@ -9,6 +9,7 @@ Spec único que consumen la data-migration ``0002_seed_message_subtypes``
 
 from django.db import DEFAULT_DB_ALIAS
 
+from addons.base.models.ir_model import IrModelData
 from addons.mail.models import MailMessageSubtype
 
 CANONICAL_SUBTYPES = [
@@ -50,6 +51,33 @@ CRON_EMAIL_QUEUE = {
 }
 
 
+#: El xmlid de cada subtipo canónico, por su nombre: ``mail.mt_comment`` y
+#: ``mail.mt_note`` de ``odoo19c: addons/mail/data/``
+#: ``mail_message_subtype_data.xml``.
+#: Sin la fila de ``ir.model.data`` el ``subtype_xmlid`` de
+#: ``message_post_with_source`` no resuelve.
+SUBTYPE_XMLIDS = {
+    'Discussions': 'mail.mt_comment',
+    'Note': 'mail.mt_note',
+}
+
+
+def register_subtype_xmlids(subtype_model, ir_model_data, using):
+    """Graba el xmlid de cada subtipo canónico que todavía no lo tenga."""
+    for name, xmlid in SUBTYPE_XMLIDS.items():
+        module, _, xml_name = xmlid.partition('.')
+        if ir_model_data.objects.using(using).filter(
+                module=module, name=xml_name).exists():
+            continue
+        subtype = subtype_model.objects.using(using).filter(
+            name=name, res_model='').first()
+        if subtype is None:
+            continue
+        ir_model_data.objects.using(using).create(
+            module=module, name=xml_name, model='mail.message.subtype',
+            res_id=subtype.pk, noupdate=True)
+
+
 def seed(using=DEFAULT_DB_ALIAS):
     """Reinstala los subtipos canónicos (``update_or_create`` por nombre)."""
     for spec in CANONICAL_SUBTYPES:
@@ -58,3 +86,4 @@ def seed(using=DEFAULT_DB_ALIAS):
             res_model='',
             defaults={k: v for k, v in spec.items() if k != 'name'},
         )
+    register_subtype_xmlids(MailMessageSubtype, IrModelData, using)
