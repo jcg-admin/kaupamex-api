@@ -66,3 +66,29 @@ líneas; `_get_available_payment_method_lines('inbound')` devuelve sólo las
 de entrada; crear un método `multi` lo enlaza a los diarios elegibles; la
 extensión de `account_payment` sigue descartando las pasarelas inactivas
 (`tests/unit/account_payment/test_account_journal.py`).
+
+## Ampliación (2026-11-17, tras la conciliación de la prosa heredada)
+
+`designs/account-journal-inherited-prose.md` midió que la fuente declara
+`unlink` en el diario (`odoo19c: addons/account/models/
+account_journal.py:725-733`) y tres atributos de clase que aquí faltan
+(`:51-53`). Entran en esta unidad:
+
+- `AccountJournal.unlink`: borra sus líneas de método de pago con su
+  `unlink`, luego el diario, y después las cuentas bancarias que sólo
+  usaban los diarios borrados.
+- `_check_company_auto`, `_check_company_domain`, `_rec_names_search`.
+- Migración `0043_compute_journal_payment_method_lines`
+  (`ComputeStoredFields` sobre los dos One2many) para los diarios
+  existentes.
+
+Pruebas añadidas a `tests/unit/account/test_journal_payment_method_lines.py`:
+`unlink` del diario borra sus líneas; la cuenta bancaria que sólo él usaba
+se borra y la compartida con otro diario se conserva.
+
+Verificación antes de esta ampliación (sin commitear): subconjunto de 13
+directorios consumidores, 4543 passed, 40 skipped, 73 xfailed. Anulaciones
+(copia y restauración byte a byte): sin la restricción de tipo cae
+`test_a_general_journal_gets_no_lines`; sin distinguir `payment_type` caen
+4; sin el auto-enlace cae 1; sin el filtro de la extensión cae
+`test_excludes_line_of_inactive_provider`.
