@@ -231,7 +231,7 @@
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
-   "id": "orm-new-record-stored-compute-0485",
+   "id": "orm-float-monetary-convert-to-cache-0485",
    "task": "TASK-API-0485",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   }
@@ -557,7 +557,8 @@
   "orm-nonstored-compute-on-new-records-0397",
   "mail-source-resolution-0121",
   "seeded-partner-computes-0516",
-  "purchase-line-track-qty-received-0122"
+  "purchase-line-track-qty-received-0122",
+  "orm-new-record-stored-compute-0485"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
