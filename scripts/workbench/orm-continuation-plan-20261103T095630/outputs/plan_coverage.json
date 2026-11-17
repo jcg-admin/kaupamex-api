@@ -218,6 +218,11 @@
   {
    "id": "mail-message-post-with-source-0121",
    "task": "TASK-API-0121",
+   "reason": "waits for mail-compose-message-0121"
+  },
+  {
+   "id": "mail-compose-message-0121",
+   "task": "TASK-API-0121",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
@@ -233,7 +238,7 @@
   {
    "id": "purchase-line-track-qty-received-0122",
    "task": "TASK-API-0122",
-   "reason": "waits for mail-message-post-with-source-0121"
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
   }
  ],
  "unrepresented": [
@@ -545,6 +550,7 @@
   "purchase-line-qty-invoiced-0122",
   "purchase-line-qty-received-0122",
   "orm-nonstored-compute-on-new-records-0397",
+  "mail-source-resolution-0121",
   "seeded-partner-computes-0516"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
