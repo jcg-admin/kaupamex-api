@@ -67,3 +67,14 @@ de comando llevaba «pytest»: el preflight se rehusaba a sí mismo. Ahora
 excluye al proceso y a sus ancestros (`/proc/<pid>/stat`). Control en
 `test_the_launching_shell_is_not_competition`: con la exclusión reducida
 al propio pid cae exactamente ese caso (7 → 6 passed).
+
+## Preparación separada de la verificación (2026-11-17)
+
+El preflight rehusó la primera revisión con migraciones nuevas
+(`d6ec96e9`, `purchase.0023`/`0024`): «2 migraciones sin aplicar» en las
+cuatro bases. Era el caso normal, no una base dañada: con `--reuse-db`
+pytest las habría aplicado. `--prepare` aplica antes las pendientes
+(`migrate` por alias, con sus señales) y la verificación corre después;
+sin la bandera el preflight sigue sin escribir. Prueba:
+`test_preparation_migrates_only_a_database_with_pending_migrations`; con el
+`migrate` anulado cae exactamente ese caso (8 → 7).

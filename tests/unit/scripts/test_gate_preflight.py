@@ -89,3 +89,19 @@ def test_the_launching_shell_is_not_competition():
                             text=True, check=True)
     shell, competing = json.loads(result.stdout.strip().splitlines()[-1])
     assert shell not in competing
+
+
+def test_preparation_migrates_only_a_database_with_pending_migrations(
+        monkeypatch):
+    """Una revisión con migraciones nuevas es el caso normal: la
+    preparación las aplica; una base al día no recibe ``migrate``."""
+    calls = []
+    pending = {'orm_a': ['purchase.0023_x'], 'orm_b': []}
+    monkeypatch.setattr(gate_preflight, 'pending_migrations',
+                        lambda connection: pending[connection.alias[10:]])
+    monkeypatch.setattr(gate_preflight, 'call_command',
+                        lambda *args, **kwargs: calls.append(
+                            kwargs['database']))
+    assert gate_preflight.prepare_database('orm_a') == 1
+    assert gate_preflight.prepare_database('orm_b') == 0
+    assert calls == ['preflight_orm_a']

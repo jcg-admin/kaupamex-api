@@ -19,7 +19,11 @@ cortarse la migración) hizo fallar la carga de ``account_security.xml``.
 ``django_migrations`` no ven ninguna de las dos.
 
 Salida: ``0`` si todas las bases sirven; ``1`` con un renglón por problema;
-``2`` si no pudo medir (configuración ausente). No escribe en ninguna base.
+``2`` si no pudo medir (configuración ausente). No escribe en ninguna base,
+salvo con ``--prepare``: la PREPARACIÓN aplica antes las migraciones
+pendientes a cada base (``migrate``) y la verificación corre después. Son
+dos pasos separados de la ejecución de pytest: una revisión con migraciones
+nuevas es el caso normal, no una base dañada.
 """
 import argparse
 import os
@@ -28,6 +32,7 @@ import sys
 
 import django
 from django.conf import settings
+from django.core.management import call_command
 from django.db import connections
 from django.db.migrations.loader import MigrationLoader
 
@@ -134,7 +139,13 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--workers', type=int, default=0,
                         help='workers de xdist (-n); 0 = sin xdist')
+    parser.add_argument('--prepare', action='store_true',
+                        help='aplica antes las migraciones pendientes')
     args = parser.parse_args(argv)
+    if args.prepare:
+        for name in database_names(args.workers):
+            applied = prepare_database(name)
+            print(f'PREPARE {name}: {applied} migraciones aplicadas')
     problems = []
     others = competing_pytest(os.getpid())
     if others:
@@ -146,6 +157,20 @@ def main(argv=None):
     print(f'PREFLIGHT {"OK" if not problems else "FALLA"} '
           f'({len(database_names(args.workers))} bases medidas)')
     return 1 if problems else 0
+
+
+def prepare_database(name):
+    """Aplica a ``name`` las migraciones pendientes; devuelve cuántas.
+
+    Usa el mismo alias que la verificación. ``migrate`` corre con sus señales
+    (``post_migrate``), como en la carga normal de la suite.
+    """
+    connection = connection_for(name)
+    pending = pending_migrations(connection)
+    if pending:
+        call_command('migrate', database=connection.alias,
+                     interactive=False, verbosity=0)
+    return len(pending)
 
 
 if __name__ == '__main__':
