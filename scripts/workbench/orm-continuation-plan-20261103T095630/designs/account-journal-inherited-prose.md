@@ -37,7 +37,7 @@ borrados.
 | «#161 (mail.alias.mixin)» | VERIFIED_CURRENT (con matiz) | `TASK-GEN-0413`, pending; porta `mail.alias.mixin`, no la variante `.optional` que el diario nombra |
 | «sin `_name` no entra en el registro (tarea #333)» | mecanismo VERIFIED_CURRENT; tarea UNVERIFIED | `_register` exige `_name`; el ordinal tiene tres candidatas y ninguna nombra el tema |
 | «`_inherit` verbatim: nombra la extensión» | PARTIALLY_TRUE | en este ORM la lista es metadato: nada la lee en ejecución; el comportamiento sale del MRO |
-| (omitidos) `_check_company_auto`, `_check_company_domain`, `_rec_names_search` | IMPLEMENTATION_REQUIRED | la fuente los declara (`:51-53`) y el diario no |
+| (omitidos) `_check_company_auto`, `_check_company_domain`, `_rec_names_search` | VERIFIED_CURRENT (ya declarados) | `sed -n 38,50p addons/account/models/account_journal.py`: los tres están, con su cita a `:51-53` |
 
 ## Acciones
 
@@ -45,7 +45,7 @@ borrados.
    (`TASK-GEN-0413`); retirar los ordinales `#161`, `#163`, `#333`.
 2. Portar `AccountJournal.unlink` en la unidad
    `account-journal-payment-method-lines-0515` (ya adopta `BaseModel`).
-3. Declarar los tres atributos de clase que faltan.
+3. (Retirada.) Los tres atributos de clase ya están declarados.
 4. Herencia efectiva de los cuatro mixins: no se cambia aquí. Ningún
    consumidor usa hoy `message_`, `activity_`, `alias_` ni `access_url`
    sobre un diario (0 resultados); el alias depende de `TASK-GEN-0413`.
@@ -55,3 +55,12 @@ borrados.
 store leídas en modo sólo lectura.
 *Ciega a:* consumidores indirectos (una variable que contenga un diario sin
 llamarse `journal`) y el contenido en ejecución de `MODELS_BY_NAME`.
+
+## Corrección del coordinador (mismo día)
+
+La fila de los tres atributos de clase se escribió como
+IMPLEMENTATION_REQUIRED copiando el informe del lote 0, que leyó la fuente
+y no el Consumer. Medido después: el diario ya los declara. Es el defecto
+que 4.4.1 §8 nombra —una propuesta tratada como verificación—; la tabla
+`outputs/account-journal-payment-method-lines-0515/research/verdicts.tsv`
+la tenía como UNVERIFIED y ahora la cierra con su comando.

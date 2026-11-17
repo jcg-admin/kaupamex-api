@@ -71,13 +71,13 @@ extensión de `account_payment` sigue descartando las pasarelas inactivas
 
 `designs/account-journal-inherited-prose.md` midió que la fuente declara
 `unlink` en el diario (`odoo19c: addons/account/models/
-account_journal.py:725-733`) y tres atributos de clase que aquí faltan
-(`:51-53`). Entran en esta unidad:
+account_journal.py:725-733`) (`:725-733`). Entra en esta unidad:
 
 - `AccountJournal.unlink`: borra sus líneas de método de pago con su
   `unlink`, luego el diario, y después las cuentas bancarias que sólo
   usaban los diarios borrados.
-- `_check_company_auto`, `_check_company_domain`, `_rec_names_search`.
+- (Los tres atributos de clase de `:51-53` ya estaban declarados: medido
+  después, no entran.)
 - Migración `0043_compute_journal_payment_method_lines`
   (`ComputeStoredFields` sobre los dos One2many) para los diarios
   existentes.
