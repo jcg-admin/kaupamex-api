@@ -75,3 +75,19 @@ cómputo no lo pisa. `_reset_price_unit` escribe los dos a la vez. Es la
 - `product.template.currency`/`cost_currency` y el `default` de
   `product.supplierinfo.currency` se alinean con la fuente: sin ellos el
   precio no tiene moneda de origen.
+
+## Cerrado: `orm-related-scalar-unsaved-0485`
+
+Causa medida: `compute_value` protege los ids de la fila (`(None,)` para
+una fila de Django sin guardar) y, dentro del cómputo,
+`BaseModel.__setitem__` mandaba el id protegido a
+`field.write(self.browse((None,)), value)`; `browse` construye otra
+instancia y el valor no llegaba a la que se lee. La sospecha anterior
+—el cubo `new`— era el sitio equivocado: el cubo culpable era `protected`.
+
+Corrección: un id `None` va siempre al cubo de filas nuevas, que asigna
+sobre la propia instancia. Los `NewId` conservan el reparto de la fuente.
+La línea de compra vuelve a la forma de la fuente: `line.date_order` y
+`update` en `_reset_price_unit`. Pruebas:
+`tests/unit/orm/test_unsaved_row_assignment.py`; al anular la rama caen
+los dos casos protegidos y los seis de la línea que construyen filas nuevas.

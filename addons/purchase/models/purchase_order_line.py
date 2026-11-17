@@ -790,11 +790,6 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
         sobre el mismo producto. ``price_unit`` y ``technical_price_unit``
         se comparan con el falso como cero, que es como la fuente lee un
         ``Float`` vacío.
-
-        ``line.date_order`` de la fuente (``related='order_id.date_order'``)
-        se lee aquí por su cadena: sobre una línea sin guardar el ``related``
-        escalar no queda asignado (unidad ``orm-related-scalar-unsaved-0485``,
-        reproductor en ``designs/purchase-line-price-and-dates.md``).
         """
         AccountTax = apps.get_model('account', 'AccountTax')
         for line in self:
@@ -879,15 +874,14 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                 line._reset_price_unit(
                     product.product_tmpl.cost_currency._convert(
                         price_unit, line.currency_id, line.company_id,
-                        line.order_id.date_order or timezone.localdate(),
-                        False))
+                        line.date_order or timezone.localdate(), False))
             else:
                 price_unit = AccountTax._fix_tax_included_price_company(
                     seller.price, product.supplier_taxes.all(),
                     line_taxes, line.company_id)
                 price_unit = seller.currency._convert(
                     price_unit, line.currency_id, line.company_id,
-                    line.order_id.date_order or timezone.localdate(), False)
+                    line.date_order or timezone.localdate(), False)
                 line._reset_price_unit(seller.product_uom._compute_price(
                     price_unit, line.product_uom_id))
                 line.discount = seller.discount or Decimal('0')
@@ -895,14 +889,12 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
     def _reset_price_unit(self, price_unit):
         """≙ ``_reset_price_unit`` (``odoo19c: :470-475``).
 
-        La fuente llama a ``self.update({...})``, que sobre un registro es
-        asignar cada campo. Aquí se asignan en la propia instancia: sobre una
-        línea sin guardar ``update`` reparte al cubo de filas nuevas y asigna
-        sobre otra instancia (unidad ``orm-related-scalar-unsaved-0485``).
         """
         self.ensure_one()
-        self.price_unit = price_unit
-        self.technical_price_unit = price_unit
+        self.update({
+            'price_unit': price_unit,
+            'technical_price_unit': price_unit,
+        })
 
     def _suggest_quantity(self):
         """Suggest a minimal quantity based on the seller

@@ -9722,7 +9722,15 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
         protected_ids = protected_map[field] if field in protected_map else ()
         protected, new, other = [], [], []
         for record_id in self._ids:
-            if record_id in protected_ids:
+            if record_id is None:
+                # Una fila de Django sin ``pk`` no se reconstruye por id:
+                # ``browse((None,))`` crea OTRA instancia y el valor se queda
+                # en ella. Va siempre al cubo de filas nuevas, que asigna
+                # sobre la propia instancia, también cuando está protegida
+                # (dentro de su cómputo). Los ``NewId`` de ``new()`` sí se
+                # reconstruyen y conservan el reparto de la fuente.
+                new.append(record_id)
+            elif record_id in protected_ids:
                 protected.append(record_id)
             elif not record_id:
                 new.append(record_id)
