@@ -44,6 +44,13 @@ cumple el dominio no se toca.
 - `One2many.write_real` y `One2many.__set__` (`src/orm/fields_relational.py`)
   pasan `_multi_comodel_domain(self, record)`, el `Domain` de
   `get_comodel_domain`.
+- Precisión tras medir (2026-11-17): `payment_type` de la línea es un
+  relacionado no almacenado y `_to_q` crudo no lo traduce. La búsqueda se
+  hace como en la fuente, con `comodel.search(domain)`; `_to_q` queda para
+  un comodelo de Django sin `BaseModel`. Dos símbolos nuevos:
+  `_apply_one2many_triples.removable_ids` (lo que `SET`/`CLEAR` retiran) y
+  `One2many._removal_domain` (`get_comodel_domain & Domain(inverse, 'in',
+  recs.ids)`, `odoo19c: odoo/orm/fields_relational.py:1041`).
 - Los sitios de `src/orm/models.py` no cambian: dos son de creación
   (`allow_full_delete` falso: no retiran nada) y dos reciben la relación
   inversa de Django, que no declara dominio.
