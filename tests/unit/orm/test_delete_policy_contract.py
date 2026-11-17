@@ -53,6 +53,9 @@ CORRECTED = {
     'sale_timesheet.ProjectSaleLineEmployeeMap.employee',
     'account.AccountFiscalPositionAccount.account_src',
     'account.AccountFiscalPositionAccount.account_dest',
+    # designs/restrict-ondelete-payment-method-line.md (tramo B)
+    'account.AccountPaymentMethodLine.payment_method',
+    'account.AccountPaymentMethodLine.journal',
 }
 
 #: Política de Django que corresponde al ``ondelete`` de la fuente.

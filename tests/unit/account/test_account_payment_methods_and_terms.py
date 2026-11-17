@@ -38,7 +38,7 @@ from addons.account.models import (
     AccountPaymentTermLine,
 )
 from addons.base.models import ResCompany
-from orm.environments import Environment, user_scope
+from orm.environments import Environment, sudo, user_scope
 from orm.utils import SUPERUSER_ID
 from tools.misc import frozendict
 
@@ -100,7 +100,7 @@ class TestAccountPaymentMethod:
         assert info['manual']['mode'] == 'multi'
         assert info['manual']['type'] == ('bank', 'cash', 'credit')
 
-    def test_delete_cascades_lines(self, journal):
+    def test_unlink_removes_lines(self, journal):
         m = AccountPaymentMethod.objects.create(
             name='Manual', code='manual', payment_type='inbound'
         )
@@ -108,7 +108,8 @@ class TestAccountPaymentMethod:
             payment_method=m, journal=journal
         )
         line_pk = line.pk
-        m.delete()
+        with sudo():
+            m.unlink()
         assert not AccountPaymentMethodLine.objects.filter(pk=line_pk).exists()
 
 

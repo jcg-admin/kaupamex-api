@@ -39,9 +39,10 @@ No portado (declarado, no improvisado):
 import api
 import fields
 import models
+from addons.base.models import TimeStampedModel
 
 
-class AccountPaymentMethod(models.Model):
+class AccountPaymentMethod(models.BaseModel, TimeStampedModel):
     """``account.payment.method`` — catálogo de métodos de pago disponibles."""
 
     #: Atributos de clase de ``account.payment.method``, verbatim
@@ -97,13 +98,18 @@ class AccountPaymentMethod(models.Model):
             'manual': {'mode': 'multi', 'type': ('bank', 'cash', 'credit')},
         }
 
-    def delete(self, *args, **kwargs):
-        """Borra sus líneas antes de borrarse (Odoo ``unlink``)."""
-        self.method_line_ids.all().delete()
-        return super().delete(*args, **kwargs)
+    def unlink(self):
+        """≙ ``unlink`` (``odoo19c: addons/account/models/
+        account_payment_method.py:90-92``): borra sus líneas con su propio
+        ``unlink`` antes de borrarse. La clave ``payment_method`` es
+        ``restrict``, así que un ``DELETE`` sin este paso se rehúsa.
+        """
+        AccountPaymentMethodLine.search(
+            [('payment_method', 'in', self.ids)]).unlink()
+        return super().unlink()
 
 
-class AccountPaymentMethodLine(models.Model):
+class AccountPaymentMethodLine(models.BaseModel, TimeStampedModel):
     """
     ``account.payment.method.line`` — método de pago habilitado en un diario.
     """
@@ -129,7 +135,7 @@ class AccountPaymentMethodLine(models.Model):
     )
     payment_method = fields.Many2one(
         'account.AccountPaymentMethod',
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         related_name='method_line_ids',
         help_text='Método de pago (Odoo payment_method_id, requerido).',
     )
@@ -143,7 +149,7 @@ class AccountPaymentMethodLine(models.Model):
     )
     journal = fields.Many2one(
         'account.AccountJournal',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='payment_method_lines',
         null=True,
         blank=True,
