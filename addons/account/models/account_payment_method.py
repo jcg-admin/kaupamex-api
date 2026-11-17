@@ -166,31 +166,32 @@ class AccountPaymentMethodLine(models.BaseModel, TimeStampedModel):
         journal_code = self.journal.code if self.journal_id else '-'
         return f'{self.name} ({journal_code})'
 
-    # -- Odoo related fields (code, payment_type, company) — vía FK ----------
-    @property
-    def code(self):
-        """Odoo ``code`` (``related="payment_method_id.code"``)."""
-        return self.payment_method.code
-
-    @property
-    def payment_type(self):
-        """
-        Odoo ``payment_type`` (``related="payment_method_id.payment_type"``).
-        """
-        return self.payment_method.payment_type
-
-    @property
-    def company(self):
-        """Odoo ``company_id`` (``related="journal_id.company_id"``)."""
-        return self.journal.company if self.journal_id else None
-
-    @property
-    def default_account(self):
-        """
-        Odoo ``default_account_id``
-        (``related="journal_id.default_account_id"``).
-        """
-        return self.journal.default_account if self.journal_id else None
+    #: Forma N de ADR-029: relacionados sin columna, con el nombre de la
+    #: fuente (``odoo19c: addons/account/models/account_payment_method.py:
+    #: 122-129``). Como campos, y no ``property``, entran en un dominio: el
+    #: del diario filtra las líneas por ``payment_type``.
+    default_account_id = fields.Many2one(
+        'account.AccountAccount',
+        related='journal.default_account',
+        store=False,
+        help_text='Cuenta por defecto del diario (Odoo default_account_id).',
+    )
+    code = fields.Char(
+        related='payment_method.code',
+        store=False,
+        help_text='Código del método (Odoo code).',
+    )
+    payment_type = fields.Selection(
+        related='payment_method.payment_type',
+        store=False,
+        help_text='Tipo del método (Odoo payment_type).',
+    )
+    company_id = fields.Many2one(
+        'base.ResCompany',
+        related='journal.company',
+        store=False,
+        help_text='Empresa del diario (Odoo company_id).',
+    )
 
     @api.depends('payment_method.name')
     def _compute_name(self):

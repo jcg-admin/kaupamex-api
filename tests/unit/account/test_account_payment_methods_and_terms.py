@@ -141,8 +141,8 @@ class TestAccountPaymentMethodLine:
         )
         assert line.code == 'manual'
         assert line.payment_type == 'outbound'
-        assert line.company == company
-        assert line.default_account == journal.default_account
+        assert line.company_id == company
+        assert line.default_account_id == journal.default_account
 
 
 class TestAccountPaymentTermCheckLines:
