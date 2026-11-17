@@ -5,6 +5,7 @@ los dos defectos reales del 2026-11-17, reproducidos dentro de la
 transacción de la prueba, que se revierte: el socio del usuario ``id=1`` sin
 ``commercial_partner_id`` y una migración que la base no tiene.
 """
+import contextlib
 import importlib.util
 import json
 import os
@@ -13,7 +14,7 @@ import subprocess
 import sys
 
 import pytest
-from django.db import connection
+from django.db import connection, connections
 
 from addons.base.models import IrModelData, ResUsers
 
@@ -104,8 +105,42 @@ def test_the_launching_shell_is_not_competition():
     assert shell not in competing
 
 
+@contextlib.contextmanager
+def _scoped_aliases():
+    """Olvida al salir los alias que ``connection_for`` registre dentro.
+
+    ``connection_for`` añade ``preflight_<base>`` a ``connections``. En el
+    guion muere con el proceso; en la suite sobrevivía a la prueba, y un
+    test con ``databases='__all__'`` vaciaba después una base inexistente
+    (``database "orm_a" does not exist``, F2 de ``9630445e``).
+    """
+    before = set(connections.settings)
+    try:
+        yield
+    finally:
+        for alias in set(connections.settings) - before:
+            if alias in connections:
+                connections[alias].close()
+                del connections[alias]
+            del connections.settings[alias]
+
+
+@pytest.fixture
+def scoped_aliases():
+    with _scoped_aliases():
+        yield
+
+
+def test_the_aliases_a_test_registers_are_forgotten():
+    with _scoped_aliases():
+        gate_preflight.connection_for('orm_probe')
+        assert 'preflight_orm_probe' in connections.settings
+    assert 'preflight_orm_probe' not in connections.settings
+    assert 'preflight_orm_probe' not in list(connections)
+
+
 def test_preparation_migrates_only_a_database_with_pending_migrations(
-        monkeypatch):
+        monkeypatch, scoped_aliases):
     """Una revisión con migraciones nuevas es el caso normal: la
     preparación las aplica; una base al día no recibe ``migrate``."""
     calls = []
