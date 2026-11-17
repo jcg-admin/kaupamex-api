@@ -40,6 +40,7 @@ import api
 import fields
 import models
 from addons.base.models import TimeStampedModel
+from orm.domains import Domain
 
 
 class AccountPaymentMethod(models.BaseModel, TimeStampedModel):
@@ -83,6 +84,36 @@ class AccountPaymentMethod(models.BaseModel, TimeStampedModel):
 
     def __str__(self) -> str:
         return f'{self.name} ({self.payment_type})'
+
+    @api.model
+    def _get_payment_method_domain(self, code, with_currency=True,
+                                   with_country=True):
+        """≙ ``_get_payment_method_domain`` (``odoo19c: addons/account/
+        models/account_payment_method.py:40-61``): el dominio de los diarios
+        que pueden alojar el método de código ``code``.
+
+        Sin código, ``Domain.TRUE``. Si no, ``type`` en los tipos que declara
+        la información del código (bank, cash y credit por defecto), más la
+        moneda y el país cuando la información los declara.
+        """
+        if not code:
+            return Domain.TRUE
+        information = self._get_payment_method_information().get(code)
+        journal_types = information.get('type', ('bank', 'cash', 'credit'))
+        domain = Domain('type', 'in', journal_types)
+
+        if with_currency and (currency_ids := information.get(
+                'currency_ids')):
+            domain &= (
+                Domain('currency_id', '=', False)
+                & Domain('company_id.currency_id', 'in', currency_ids)
+            ) | Domain('currency_id', 'in', currency_ids)
+
+        if with_country and (country_id := information.get('country_id')):
+            domain &= Domain('company_id.account_fiscal_country_id', '=',
+                             country_id)
+
+        return domain
 
     @api.model
     def _get_payment_method_information(self):

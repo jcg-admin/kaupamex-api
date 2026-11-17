@@ -9,5 +9,8 @@ que ningún test afirma sobre estas filas: los tests siembran las suyas.
 """
 
 from .account_tags import MASTER_ACCOUNT_TAGS, seed_account_tags
+from .payment_methods import (MANUAL_PAYMENT_METHODS,
+                              seed_manual_payment_methods)
 
-__all__ = ['MASTER_ACCOUNT_TAGS', 'seed_account_tags']
+__all__ = ['MANUAL_PAYMENT_METHODS', 'MASTER_ACCOUNT_TAGS',
+           'seed_account_tags', 'seed_manual_payment_methods']

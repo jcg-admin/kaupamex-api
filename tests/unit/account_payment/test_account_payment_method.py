@@ -26,7 +26,7 @@ class TestGetPaymentMethodInformation:
         #   test_get_payment_method_information — no debe romperse por la
         #   extensión encadenada de este addon.
         m = AccountPaymentMethod.objects.create(
-            name='Manual', code='manual', payment_type='inbound'
+            name='Manual', code='tst_manual', payment_type='inbound'
         )
         info = m._get_payment_method_information()
         assert info['manual']['mode'] == 'multi'

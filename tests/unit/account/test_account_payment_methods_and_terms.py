@@ -69,32 +69,33 @@ def journal(company):
 class TestAccountPaymentMethod:
     def test_defaults(self):
         m = AccountPaymentMethod.objects.create(
-            name='Manual', code='manual', payment_type='inbound'
+            name='Manual', code='tst_manual', payment_type='inbound'
         )
         assert m.payment_type == 'inbound'
 
     def test_unique_code_payment_type(self):
         AccountPaymentMethod.objects.create(
-            name='Manual', code='manual', payment_type='inbound'
+            name='Manual', code='tst_manual', payment_type='inbound'
         )
         with transaction.atomic(), pytest.raises(IntegrityError):
             AccountPaymentMethod.objects.create(
-                name='Manual otra vez', code='manual', payment_type='inbound'
+                name='Manual otra vez', code='tst_manual',
+                payment_type='inbound',
             )
 
     def test_same_code_different_payment_type_allowed(self):
         # (code, payment_type) es la unicidad — mismo code, distinto type: OK.
         AccountPaymentMethod.objects.create(
-            name='Manual', code='manual', payment_type='inbound'
+            name='Manual', code='tst_manual', payment_type='inbound'
         )
         m2 = AccountPaymentMethod.objects.create(
-            name='Manual', code='manual', payment_type='outbound'
+            name='Manual', code='tst_manual', payment_type='outbound'
         )
         assert m2.pk is not None
 
     def test_get_payment_method_information(self):
         m = AccountPaymentMethod.objects.create(
-            name='Manual', code='manual', payment_type='inbound'
+            name='Manual', code='tst_manual', payment_type='inbound'
         )
         info = m._get_payment_method_information()
         assert info['manual']['mode'] == 'multi'
@@ -102,7 +103,7 @@ class TestAccountPaymentMethod:
 
     def test_unlink_removes_lines(self, journal):
         m = AccountPaymentMethod.objects.create(
-            name='Manual', code='manual', payment_type='inbound'
+            name='Manual', code='tst_manual', payment_type='inbound'
         )
         line = AccountPaymentMethodLine.objects.create(
             payment_method=m, journal=journal
@@ -116,7 +117,7 @@ class TestAccountPaymentMethod:
 class TestAccountPaymentMethodLine:
     def test_name_defaults_to_method_name(self, journal):
         m = AccountPaymentMethod.objects.create(
-            name='Transferencia', code='manual', payment_type='inbound'
+            name='Transferencia', code='tst_manual', payment_type='inbound'
         )
         line = AccountPaymentMethodLine.objects.create(
             payment_method=m, journal=journal
@@ -125,7 +126,7 @@ class TestAccountPaymentMethodLine:
 
     def test_name_explicit_not_overridden(self, journal):
         m = AccountPaymentMethod.objects.create(
-            name='Transferencia', code='manual', payment_type='inbound'
+            name='Transferencia', code='tst_manual', payment_type='inbound'
         )
         line = AccountPaymentMethodLine.objects.create(
             payment_method=m, journal=journal, name='Transferencia SPEI'
@@ -134,12 +135,12 @@ class TestAccountPaymentMethodLine:
 
     def test_related_properties(self, company, journal):
         m = AccountPaymentMethod.objects.create(
-            name='Manual', code='manual', payment_type='outbound'
+            name='Manual', code='tst_manual', payment_type='outbound'
         )
         line = AccountPaymentMethodLine.objects.create(
             payment_method=m, journal=journal
         )
-        assert line.code == 'manual'
+        assert line.code == 'tst_manual'
         assert line.payment_type == 'outbound'
         assert line.company_id == company
         assert line.default_account_id == journal.default_account
