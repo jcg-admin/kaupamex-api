@@ -131,3 +131,26 @@ crea ni si alguna prueba la lee; lo dirá la F2 de `9630445e`.
 
 Sucesor: `gate_preflight.py --prepare` sólo migra; una opción que resiembre
 una base rehusada evitaría el guion a mano. Sin construir.
+
+## Un alias de base que una prueba deja registrado (2026-11-17)
+
+La F2 de `9630445e` falló en el *teardown* de
+`tests/integration/service/test_db_provision.py::test_database_exists_catalog`
+con `database "orm_a" does not exist`. Esa prueba usa
+`databases='__all__'`: su `flush` recorre todos los alias de `connections`.
+`tests/unit/scripts/test_gate_preflight.py` llama a
+`gate_preflight.prepare_database('orm_a')`, y `connection_for` registra
+`preflight_orm_a` en `connections.settings` sin que nadie lo retire. El
+mismo error está en la primera ejecución de diagnóstico sobre `7994ec00`
+(dos apariciones de `orm_a` en su log); allí se leyó como el de la
+resiembra, que es otro defecto y también era real (segunda ejecución de
+diagnóstico, en otro worker).
+
+Cambio: la prueba corre dentro de `_scoped_aliases`, que al salir cierra y
+retira los alias que `connection_for` registró. Prueba:
+`test_the_aliases_a_test_registers_are_forgotten`; anulado el borrado, cae
+ese caso y ninguno más.
+
+*Métrica:* los alias `preflight_*` en `connections.settings` al terminar el
+módulo (0 con el cambio).
+*Ciega a:* otro módulo que registre alias por su cuenta.
