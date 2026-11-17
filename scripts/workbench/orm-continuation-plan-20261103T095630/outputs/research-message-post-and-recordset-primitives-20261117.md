@@ -42,21 +42,46 @@ Estado local:
 | vista `track_po_line_qty_received_template` | ausente: `addons/purchase` no tiene `data/` |
 | `mail.compose.message`, `_action_send_mail` | no medido |
 
-Dependencias, en orden: (1) motor QWeb `ir.qweb._render`; (2) carga de
-`<template>` como `ir.ui.view` con xmlid; (3) `MailRenderMixin`; (4)
+Dependencias, en orden: (1) [descartado: QWeb no se porta, ver la corrección]; (2) un registro de
+cuerpos por xmlid que sustituya a `ir.ui.view` (#279); (3) `MailRenderMixin` sin `ir.qweb`; (4)
 `_get_source_from_ref`; (5) `message_post` compatible (`subtype_id`, kwargs,
 `_raise_for_invalid_parameters`); (6) rama plantilla (`mail.compose.message`);
 (7) `_track_qty_received` y el gancho de `write` (`:316`).
 
-**Lo que este hallazgo no cierra.** El motor QWeb no tiene unidad ni TASK en
-`plan.jsonl` (búsqueda `qweb|ir_qweb|ir.qweb`: sólo la fila 274, que lo
-consume). Sin él, un porte de `message_post_with_source` sólo podría entregar
-la rama de plantilla o un cuerpo vacío, y las dos cosas están prohibidas
-(stub, mensaje falso). Desenlace: DESCONOCIDO con condición de cierre —
-que el ejecutor asigne al motor QWeb una unidad con TASK canónica (no se
-inventa aquí). Mientras tanto `mail-message-post-with-source-0121` y
-`purchase-line-track-qty-received-0122` siguen abiertas, bloqueadas por esa
-pieza.
+**Corrección (mismo día): QWeb NO se porta, y eso ya está decidido.** La
+primera redacción de este párrafo declaraba el motor QWeb «sin unidad ni
+TASK» y pedía al ejecutor una unidad para portarlo. Era falso: se buscó sólo
+en `plan.jsonl` y no en el registro de gobierno. Lo destapó la pregunta del
+ejecutor. Las decisiones vigentes son:
+
+- `kaupamex-docs: gestion/pm/api/iniciativas/modulo-employee-management/decisiones-modulo-employee-management.rst`,
+  **DEC-EM-01** (aprobada 2026-08-01): `web` se adapta a DRF + SPA React; el
+  templating QWeb (`ir.ui.view`, `ir.qweb.field.*`) «React reemplaza»
+  (`:110-111`; `analisis-web-nativo-drf-spa.rst:124-135`, «No aplica»).
+- `.../alinear-arbol-addons-a-familias-odoo/decisiones-alinear-arbol-addons-a-familias-odoo.rst`,
+  **DEC-AF-08** (`:361-403`): `views/` (plantillas QWeb) **no se porta**; su
+  propia ceguera declarada (`:468-472`) es la lógica de negocio embebida en
+  plantillas.
+- `hallazgo-H-API-796` (`:86-91`): «QWeb no se porta: el contrato del backend
+  es DRF + drf-spectacular y la vista la renderiza `ui`».
+- Precedentes de porte del mismo caso: `hallazgo-H-API-775` (`:171-175`), el
+  cuerpo de `mail.account_security_alert` va verbatim por `dispatch_email`; y
+  `addons/stock/models/stock_move_line.py:239-245` (D-1), el mensaje de
+  `stock.track_move_template` se arma igual y se devuelve como dict, con
+  sucesor **#279** («quién lo publica es una decisión de la familia `mail`»).
+
+Consecuencia para TASK-API-0121: el motor QWeb **no** es la dependencia. Lo
+que se porta es el contrato de `message_post_with_source` —firma,
+`_get_source_from_ref`, resolución de `subtype_xmlid` con `mail.mt_note` por
+defecto, kwargs prohibidos, un `message_post` por registro— con la fuente de
+tipo vista resuelta a un cuerpo producido sin QWeb, cuyo **contenido** es el
+de la plantilla (DEC-AF-08 exige no perder la lógica que la plantilla lleva).
+La forma de ese registro de cuerpos por xmlid es decisión de la familia
+`mail` y ya tiene sucesor: **#279** (cita de ordinal heredada; su
+`TASK-<CAPA>-NNNN` durable no se acuñó desde esta VM, que no escribe en el
+TaskStore). Hasta resolverla, `mail-message-post-with-source-0121` y
+`purchase-line-track-qty-received-0122` siguen abiertas; ningún stub ni
+mensaje vacío.
 
 ## B. Primitivas de recordset en `TimeStampedModel`/`Uom`
 
