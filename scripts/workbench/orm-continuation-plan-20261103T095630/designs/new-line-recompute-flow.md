@@ -144,3 +144,10 @@ sobre `float`, que no tiene escala. Corrección: sólo la ausencia
 (`None`/`False`) se lee como cero. Prueba
 `test_a_present_decimal_zero_keeps_its_scale`; anulado, caen exactamente
 ese caso y el SMS.
+
+## 10. F2 sobre `805fcdf7`: la columna que pasa a calculada se calcula
+
+`test_every_added_computed_column_is_computed` (guardián de TASK-API-0516)
+pide un `ComputeStoredFields` para `purchaseorderline.company_id`, que ahora
+es `related` con columna. Va en una migración nueva (`0025`), no en `0023`:
+`0023` ya está aplicada en las bases de prueba y no volvería a correr.
