@@ -33,7 +33,8 @@ Unidad: `account-payment-method-line-field-0515` (TASK-API-0515), paso 4 de
   `ResPartner` (`addons/account/models/partner.py:267-296`). Lectores de
   `payment.partner` en addons: 0 (`grep -rn "\.partner\b"` sobre
   `account_check_printing` y `account_payment`).
-- Sitios que crean un pago: 9, en `tests/unit/account_check_printing`,
+- Sitios que crean un pago: 8 (corregido el 2026-11-17: el noveno acierto
+  del `grep` era la declaración de la clase), en `tests/unit/account_check_printing`,
   `tests/unit/account_payment`, `tests/unit/account`,
   `tests/integration/account`.
 - `account_check_printing` declara por escrito («Divergencia 1») que modela
@@ -44,7 +45,7 @@ Unidad: `account-payment-method-line-field-0515` (TASK-API-0515), paso 4 de
 ## Pasos (cada uno con su prueba y su anulación)
 
 1. **Adopción**: `class AccountPayment(models.BaseModel, TimeStampedModel)`.
-   Los nueve sitios de creación pasan a ejecutarse con entorno (`sudo`).
+   Los ocho sitios de creación pasan a ejecutarse con entorno (`sudo`).
 2. **`partner`**: `res.partner`, `PROTECT`. Migración con paso de datos: el
    usuario se sustituye por su `partner`.
 3. **Campos y cómputos** de la tabla, con los nombres de la fuente
