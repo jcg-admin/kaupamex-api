@@ -8973,8 +8973,9 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
         delete"*.
 
         **Divergencia de mecanismo:** el ``DELETE`` lo emite el ``Collector``
-        de Django (``QuerySet.delete``). Su ``pre_delete`` corre las
-        comprobaciones ``@api.ondelete`` (:func:`_run_ondelete_checks`) y las
+        de Django (``QuerySet.delete``). Su ``collect`` de primer nivel
+        corre las comprobaciones ``@api.ondelete``
+        (:func:`_run_ondelete_checks`) y las
         cascadas de ``on_delete``, que aquí sustituyen al ``ON DELETE`` de las
         claves de la fuente. La limpieza de ``ir.model.data`` y
         ``ir.attachment`` sigue en manos de sus propios receptores de borrado.
