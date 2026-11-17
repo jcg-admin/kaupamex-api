@@ -5,7 +5,7 @@
  "open_tasks": 71,
  "frontier": [
   {
-   "id": "orm-init-alias-propagation-0515",
+   "id": "orm-fk-delete-policy-contract-0515",
    "task": "TASK-API-0515"
   }
  ],
@@ -19,11 +19,6 @@
    "id": "attachment-record-access",
    "task": "TASK-API-0397",
    "reason": "state failed"
-  },
-  {
-   "id": "orm-fk-delete-policy-contract-0515",
-   "task": "TASK-API-0515",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
    "id": "log-access-user-columns-0485",
@@ -511,6 +506,7 @@
   "orm-adopt-schema-hooks-0515",
   "base-company-init-paperformat-0515",
   "base-users-init-0515",
+  "orm-init-alias-propagation-0515",
   "registry-cursor-unit-of-work-0485",
   "registry-caches-per-database-0485",
   "request-unit-of-work-0485",
