@@ -15,7 +15,7 @@ import sys
 import pytest
 from django.db import connection
 
-from addons.base.models import ResUsers
+from addons.base.models import IrModelData, ResUsers
 
 pytestmark = pytest.mark.django_db
 
@@ -42,6 +42,19 @@ def test_a_missing_commercial_partner_is_reported():
         assert gate_preflight.reference_problems(cursor) == [
             'el socio del usuario id=1 no tiene commercial_partner_id '
             'calculado']
+
+
+@pytest.mark.parametrize('name, problem', [
+    ('user_root', 'falta el XML-ID base.user_root'),
+    ('public_user', 'falta el XML-ID base.public_user'),
+    ('paperformat_euro', 'falta el XML-ID base.paperformat_euro'),
+])
+def test_a_half_reseeded_database_is_reported(name, problem):
+    """El defecto real del 2026-11-17: una resiembra cortada dejó la fila
+    del usuario 1 sin su XML-ID y el preflight dio la base por buena."""
+    IrModelData.objects.filter(module='base', name=name).delete()
+    with connection.cursor() as cursor:
+        assert gate_preflight.reference_problems(cursor) == [problem]
 
 
 def test_no_migration_is_pending_on_the_suite_database():

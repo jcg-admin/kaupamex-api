@@ -52,6 +52,12 @@ REFERENCE_CHECKS = (
     ('SELECT 1 FROM res_users u JOIN res_partner p ON p.id = u.partner_id'
      ' WHERE u.id = 1 AND p.commercial_partner_id IS NOT NULL',
      'el socio del usuario id=1 no tiene commercial_partner_id calculado'),
+) + tuple(
+    # Una resiembra cortada deja la fila sin su XML-ID: uno por cada uno de
+    # los sembradores cuarto, quinto y sexto de ``tests/conftest.py``.
+    ("SELECT 1 FROM ir_model_data WHERE module = 'base'"
+     f" AND name = '{name}'", f'falta el XML-ID base.{name}')
+    for name in ('user_root', 'public_user', 'paperformat_euro')
 )
 
 
