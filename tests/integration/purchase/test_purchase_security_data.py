@@ -172,8 +172,12 @@ def _two_step_order(threshold):
 def _as(user, order, method):
     """Ejecuta como ``user``, miembro de la empresa de la orden y con ella
     activada: las reglas ``purchase_order_comp_rule`` filtran por
-    ``company_ids``."""
-    company = order.company_id
+    ``company_ids``. La empresa se lee como el resto de la preparación, en
+    ``sudo``: en la fuente el registro sale de un entorno ``su`` y lo
+    conserva; aquí el entorno es el ambiente, y fuera de ``sudo`` la lectura
+    pasaba sólo si otra lectura había dejado el valor en caché."""
+    with sudo():
+        company = order.company_id
     user.company_ids.add(company)
     with Environment('default', user.pk, {}), company_scope(company.pk):
         getattr(order, method)()
