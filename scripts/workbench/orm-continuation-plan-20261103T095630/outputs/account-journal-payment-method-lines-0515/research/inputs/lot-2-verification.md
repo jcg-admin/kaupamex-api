@@ -1,0 +1,12 @@
+Investigación de SOLO LECTURA en `/home/user/kaupamex-api`. No modifiques archivos, hooks ni CI; no hagas commits; no ejecutes pytest de integración ni migraciones; no ejecutes git checkout/restore/stash (hay cambios sin commitear de otra persona). Puedes ejecutar `python3 -c` de sólo lectura y `.venv/bin/python -m pytest tests/unit/scripts -q -p no:cacheprovider -p no:django` (pruebas de scripts sin base de datos) si te ayuda.
+
+Objetivo: preparar el diseño de un control preventivo de "prosa heredada material": afirmaciones en comentarios/docstrings que condicionan un cambio funcional y que pueden ser falsas hoy (p. ej. "no existe", "pendiente", "tarea #163", "TASK-API-0397", "divergencia", "equivalente", "verbatim", "no tiene consumidor", "lo proporciona Django").
+
+Preguntas (con archivo:línea y comandos):
+1. Lista los verificadores existentes en `scripts/` (`ls scripts/check_*.py`) y para cada uno su propósito en una línea (lee su docstring). Identifica cuáles ya detectan citas a tareas por ordinal (`#NNN`) o identidades `TASK-...`, o afirmaciones de ausencia. Mira especialmente `scripts/check_reference_flow.py` (cómo clasifica cambios A/B/C/D/E, cómo resuelve citas `≙` y `odoo19c:`) y cualquier `check_*task*`, `check_*citation*`, `check_silent_oks.py`.
+2. ¿Qué cableado tienen en `.githooks/pre-commit`? Lista el orden y si son bloqueantes.
+3. Mide la población: en los `.py` de `addons/` y `src/` cuántas apariciones hay de ordinales de tarea en comentarios (`grep -rnE "(tarea|task) #[0-9]+" --include=*.py addons src | wc -l`) y de `TASK-[A-Z]+-[0-9]{4}`; y de frases de ausencia ("no existe", "NO están", "no está portad", "sin porte", "pendiente"). Da conteos y 5 ejemplos reales de cada clase.
+4. Propón (en texto, sin escribir código en el repo) cómo extender `check_reference_flow.py` con un eje de prosa material: sólo sobre líneas de comentario/docstring NUEVAS o modificadas en un archivo dentro de su alcance, que (a) un ordinal `#NNN` sin identidad canónica produzca hallazgo; (b) una afirmación de ausencia de un modelo `'x.y'` produzca hallazgo si ese `_name` existe en el árbol (resoluble con `grep`/AST). Indica qué pruebas negativas y positivas harían falta (casos concretos tomados del árbol real, no inventados) y qué anulación demostraría que discrimina.
+5. Señala 3 pruebas existentes en `tests/` que sean tautológicas o no discriminantes (si las encuentras), con la razón.
+
+Entrega un informe markdown (~1000 palabras máx.) con evidencia por afirmación y lo que no pudiste medir.

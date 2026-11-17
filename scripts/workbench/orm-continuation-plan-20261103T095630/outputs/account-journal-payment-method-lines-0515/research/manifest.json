@@ -1,0 +1,38 @@
+{
+ "unit_id": "account-journal-payment-method-lines-0515",
+ "task_id": "TASK-API-0515",
+ "reference_revision": "odoo-tools@abe4040ec1",
+ "consumer_revision": "59c3fedd (HEAD al delegar; árbol con la unidad 3 sin commitear)",
+ "delegated_utc": "2026-11-17",
+ "permissions": "solo lectura; sin git add/commit/push; sin pytest de base de datos ni migraciones",
+ "persisted_by": "coordinador, extraído del transcript de cada subagente (los tres terminaron antes de la instrucción 4.4.1)",
+ "lots": [
+  {
+   "lot": "lot-0-reference",
+   "goal": "Flujo de referencia de account.journal, mixins, unlink, payment_method_line_id",
+   "input": "inputs/lot-0-reference.md",
+   "proposal": "proposals/lot-0-reference.md",
+   "status": "COMPLETED",
+   "sha256": "7653629093a3d4e5bfb26d3232f25f1e1cae72c713823d18f8dcc8c665f45db6",
+   "bytes": 7608
+  },
+  {
+   "lot": "lot-1-consumer-task",
+   "goal": "Consumer, registro, _inherit y conciliación de ordinales con TASK",
+   "input": "inputs/lot-1-consumer-task.md",
+   "proposal": "proposals/lot-1-consumer-task.md",
+   "status": "COMPLETED",
+   "sha256": "4fc1ae13378aaf39213032f673fc94dd2ba5c61d545b764d41b8bfce117baa0b",
+   "bytes": 7935
+  },
+  {
+   "lot": "lot-2-verification",
+   "goal": "Verificadores existentes, población de prosa heredada, pruebas no discriminantes",
+   "input": "inputs/lot-2-verification.md",
+   "proposal": "proposals/lot-2-verification.md",
+   "status": "COMPLETED",
+   "sha256": "c09153cc5f78530b372a73aa80c3fdbbcd0d374cd908b9b7760fe0c20b9f9047",
+   "bytes": 10454
+  }
+ ]
+}
