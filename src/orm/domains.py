@@ -1571,7 +1571,17 @@ class DomainCondition(Domain):
         3. **La ruta con punto pasa a la travesía de Django** (``a.b`` →
            ``a__b``). Es lo que :ref:`h-api-614` registró: el mapa anterior la
            pasaba tal cual y Django no resuelve el punto.
+
+        ``child_of``/``parent_of`` no llegan al compilador de hoja: como en
+        :meth:`_as_predicate` (≙ ``odoo19c: odoo/orm/domains.py:1045-1047``)
+        se sube a ``FULL``, donde ``_operator_hierarchy`` los reescribe
+        (``odoo19c: odoo/orm/domains.py:1707-1760``), y se compila el
+        resultado. En la fuente nunca llegan a SQL sin esa reescritura:
+        ``ir.rule._get_failing`` busca con ``search_count``, que optimiza
+        (``designs/domain-to-q-hierarchy.md``).
         """
+        if self.operator in ('child_of', 'parent_of'):
+            return self._optimize(model, OptimizationLevel.FULL)._to_q(model)
         field_expr, operator, value, constant = self._normalized()
         if constant is not None:
             return constant._to_q(model)
