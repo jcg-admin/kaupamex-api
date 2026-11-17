@@ -69,6 +69,7 @@ from orm.environments import get_transaction
 from orm.utils import SUPERUSER_ID
 from service.db import savepoint
 from orm.environments import _discard_connection_transaction, get_transaction
+from orm.environments import Environment
 from orm.registry import Registry, clear_cache
 from tests.cursor_support import TestCursor
 from pytest_django.plugin import blocking_manager_key
@@ -490,8 +491,27 @@ def pytest_runtest_teardown(item):
             or (marker.args and marker.args[0])):
         return
     with item.config.stash[blocking_manager_key].unblock():
-        for seed in _SEEDERS:
-            seed()
+        reseed(_SEEDERS)
+
+
+def reseed(seeders):
+    """Ejecuta ``seeders`` como lo hace la carga de datos de la fuente.
+
+    Allí la carga corre con un entorno de superusuario explícito
+    (``odoo19c: odoo/modules/loading.py:404``), así que el volcado nunca
+    recurre al usuario público. Aquí, tras el ``TRUNCATE``, la transacción
+    puede no tener ``default_env``: sembrar ``base.user_root`` deja campos
+    sucios, su ``commit`` los vuelca, y ``base.public_user`` se repone
+    después. Diseño: ``designs/reseed-default-environment.md``.
+    """
+    environment = Environment(DEFAULT_DB_ALIAS, SUPERUSER_ID, {})
+    transaction = environment.transaction
+    if transaction.default_env is None:
+        # El constructor sólo lo fija al crear el entorno; si ya había uno
+        # igual, lo devuelve sin tocar ``default_env``.
+        transaction.default_env = environment
+    for seed in seeders:
+        seed()
 
 
 # ─── Objetos SQL: retirados (H-DB-01) ───────────────────────────────────────
