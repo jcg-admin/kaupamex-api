@@ -67,8 +67,16 @@ recuenta): 11 commits tocan modelos o migraciones de addon.
   (`odoo19c: purchase_order.py:1274-1278`, relativas al addon) que el gate
   resolvía sólo desde la raíz: falso positivo. Corregido: una ruta sin
   directorio se busca en el paquete espejo (3 pruebas nuevas).
-- Tras la corrección: 4 con hallazgo, 16 hallazgos. En los 4 el diseño entró
-  en el mismo commit que el código (`9b913a70`, `d6ec96e9`, `c3521359`,
-  `ffdcfa69`): es exactamente lo que el eje de anterioridad prohíbe hacia
-  adelante. El resto son migraciones o métodos que ningún diseño previo
-  nombraba. No se reescriben esos commits: la regla es prospectiva.
+- Tras la corrección, medido por commit con la sonda versionada: 4 con
+  hallazgo, 16 hallazgos.
+  - `9b913a70`: 4 de anterioridad (el diseño del tramo A entró en el mismo
+    commit que `_unlink_except_linked_to_fiscal_position`, `account_src`,
+    `account_dest` y `location_dest`) y 3 migraciones que ningún diseño
+    nombra.
+  - `ffdcfa69` y `d6ec96e9`: sólo migraciones sin nombrar (1 y 2).
+  - `c3521359`: 2 migraciones y 4 métodos o campos que su diseño no nombra.
+  No se reescriben esos commits: la regla es prospectiva.
+
+  *Corregido el mismo día:* una primera redacción decía que en los 4 el
+  diseño había entrado con el código. La sonda contaba hallazgos, no
+  commits; medido por commit, la anterioridad falla sólo en `9b913a70`.
