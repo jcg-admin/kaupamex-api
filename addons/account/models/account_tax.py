@@ -681,6 +681,23 @@ class AccountTaxQuerySet(models.AccessQuerySet):
             ],
         }
 
+    # -- filtros por empresa (odoo19c: :5078-5089) ------------------------
+
+    def _filter_taxes_by_company(self, company):
+        """≙ ``_filter_taxes_by_company`` (``odoo19c: :5078-5089``).
+
+        Los impuestos de ``company``; si no tiene ninguno, los de su empresa
+        madre, y así hacia arriba hasta encontrar alguno. Un conjunto vacío
+        se devuelve tal cual.
+        """
+        if not self.exists():
+            return self
+        taxes, current = self.none(), company
+        while not taxes.exists() and current is not None:
+            taxes = self.filter(company=current)
+            current = current.parent
+        return taxes
+
 
 class AccountTaxAlternative(models.Model):
     """Tabla de sustitución de impuestos — ≙ ``account_tax_alternatives``
@@ -2955,3 +2972,30 @@ class AccountTax(models.Model):
             grouping_function=grouping_function,
             aggregate_function=aggregate_function,
         )
+
+    @classmethod
+    def _fix_tax_included_price(cls, price, prod_taxes, line_taxes):
+        """Subtract tax amount from price when corresponding "price included"
+        taxes do not apply — ≙ ``_fix_tax_included_price``
+        (``odoo19c: :5091-5100``).
+
+        ``prod_taxes`` y ``line_taxes`` son los ``QuerySet`` de impuestos del
+        producto y de la línea; el ``_origin`` de la fuente no tiene receptor
+        aquí, porque un ``QuerySet`` siempre nombra filas guardadas.
+        """
+        incl_tax = prod_taxes.exclude(
+            pk__in=line_taxes.values('pk')).filter(price_include=True)
+        if incl_tax.exists():
+            return incl_tax.compute_all(price)['total_excluded']
+        return price
+
+    @classmethod
+    def _fix_tax_included_price_company(cls, price, prod_taxes, line_taxes,
+                                        company):
+        """≙ ``_fix_tax_included_price_company`` (``odoo19c: :5102-5108``):
+        antes de comparar, cada lado se acota a los impuestos de
+        ``company``, igual que ``_compute_tax_id``."""
+        if company:
+            prod_taxes = prod_taxes.filter(company=company)
+            line_taxes = line_taxes.filter(company=company)
+        return cls._fix_tax_included_price(price, prod_taxes, line_taxes)
