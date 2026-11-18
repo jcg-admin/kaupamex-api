@@ -996,6 +996,13 @@
         "basemodel-adoption-res-city-0397"
       ],
       "writtenAt": "2026-11-18T15:00:22Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-transient-0397"
+      ],
+      "writtenAt": "2026-11-18T16:28:06Z"
     }
   ]
 }
