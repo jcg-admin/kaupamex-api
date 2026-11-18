@@ -149,7 +149,7 @@ MOVE_TYPE_CHOICES = [
 ]
 
 
-class AccountInvoiceReport(models.Model):
+class AccountInvoiceReport(models.RecordLoaderMixin, models.Model):
     """``account.invoice.report`` -- estadisticas de facturas (vista SQL).
 
     Fiel a ``odoo19c: addons/account/report/account_invoice_report.py:13-``.
@@ -463,34 +463,63 @@ class AccountInvoiceReport(models.Model):
                 move.payment_state,
                 move.invoice_date,
                 move.invoice_date_due,
-                uom_template.id                                             AS product_uom_id,
-                template.categ_id                                           AS product_categ_id,
-                line.quantity * COALESCE(uom_line.factor, 1) / NULLIF(COALESCE(uom_template.factor, 1), 0.0) * (CASE WHEN move.move_type IN ('in_invoice','out_refund','in_receipt') THEN -1 ELSE 1 END)
-                                                                            AS quantity,
-                line.price_subtotal * (CASE WHEN move.move_type IN ('in_invoice','out_refund','in_receipt') THEN -1 ELSE 1 END)
-                                                                            AS price_subtotal_currency,
-                -line.balance * account_currency_table.rate                         AS price_subtotal,
-                line.price_total * (CASE WHEN move.move_type IN ('in_invoice','out_refund','in_receipt') THEN -1 ELSE 1 END)
+                uom_template.id AS product_uom_id,
+                template.categ_id AS product_categ_id,
+                line.quantity * COALESCE(uom_line.factor, 1) /
+                    NULLIF(COALESCE(uom_template.factor, 1), 0.0) * (CASE WHEN
+                    move.move_type IN ('in_invoice','out_refund','in_receipt')
+                    THEN -1 ELSE 1 END)
+                    AS quantity,
+                line.price_subtotal * (CASE WHEN move.move_type IN
+                    ('in_invoice','out_refund','in_receipt') THEN -1 ELSE 1
+                    END)
+                    AS price_subtotal_currency,
+                -line.balance * account_currency_table.rate AS price_subtotal,
+                line.price_total * (CASE WHEN move.move_type IN
+                    ('in_invoice','out_refund','in_receipt') THEN -1 ELSE 1
+                    END)
                 / move.invoice_currency_rate
-                                                                            AS price_total,
-                line.price_total * (CASE WHEN move.move_type IN ('in_invoice','out_refund','in_receipt') THEN -1 ELSE 1 END)
-                                                                            AS price_total_currency,
+                    AS price_total,
+                line.price_total * (CASE WHEN move.move_type IN
+                    ('in_invoice','out_refund','in_receipt') THEN -1 ELSE 1
+                    END)
+                    AS price_total_currency,
                 -COALESCE(
                    -- Average line price
-                   (line.balance / NULLIF(line.quantity, 0.0)) * (CASE WHEN move.move_type IN ('in_invoice','out_refund','in_receipt') THEN -1 ELSE 1 END)
+                   (line.balance / NULLIF(line.quantity, 0.0)) * (CASE WHEN
+                       move.move_type IN
+                       ('in_invoice','out_refund','in_receipt') THEN -1 ELSE 1
+                       END)
                    -- convert to template uom
-                   / NULLIF(COALESCE(uom_line.factor, 1), 0.0) * COALESCE(uom_template.factor, 1),
-                   0.0) * account_currency_table.rate                               AS price_average,
+                   / NULLIF(COALESCE(uom_line.factor, 1), 0.0) *
+                       COALESCE(uom_template.factor, 1),
+                   0.0) * account_currency_table.rate AS price_average,
                 CASE
-                    WHEN move.move_type NOT IN ('out_invoice', 'out_receipt', 'out_refund') THEN 0.0
-                    WHEN move.move_type = 'out_refund' THEN account_currency_table.rate * (-line.balance + (line.quantity * COALESCE(uom_line.factor, 1) / NULLIF(COALESCE(uom_template.factor, 1), 0.0)) * COALESCE(product.standard_price -> line.company_id::text, to_jsonb(0.0))::float)
-                    ELSE account_currency_table.rate * (-line.balance - (line.quantity * COALESCE(uom_line.factor, 1) / NULLIF(COALESCE(uom_template.factor, 1), 0.0)) * COALESCE(product.standard_price -> line.company_id::text, to_jsonb(0.0))::float)
+                    WHEN move.move_type NOT IN ('out_invoice', 'out_receipt',
+                        'out_refund') THEN 0.0
+                    WHEN move.move_type = 'out_refund' THEN
+                        account_currency_table.rate * (-line.balance +
+                        (line.quantity * COALESCE(uom_line.factor, 1) /
+                        NULLIF(COALESCE(uom_template.factor, 1), 0.0)) *
+                        COALESCE(product.standard_price ->
+                        line.company_id::text, to_jsonb(0.0))::float)
+                    ELSE account_currency_table.rate * (-line.balance -
+                        (line.quantity * COALESCE(uom_line.factor, 1) /
+                        NULLIF(COALESCE(uom_template.factor, 1), 0.0)) *
+                        COALESCE(product.standard_price ->
+                        line.company_id::text, to_jsonb(0.0))::float)
                 END
-                                                                            AS price_margin,
-                account_currency_table.rate * line.quantity * COALESCE(uom_line.factor, 1) / NULLIF(COALESCE(uom_template.factor, 1), 0.0) * (CASE WHEN move.move_type IN ('out_invoice','in_refund','out_receipt') THEN -1 ELSE 1 END)
-                    * COALESCE(product.standard_price -> line.company_id::text, to_jsonb(0.0))::float                    AS inventory_value,
-                COALESCE(partner.country_id, commercial_partner.country_id) AS country_id,
-                line.currency_id                                            AS currency_id
+                    AS price_margin,
+                account_currency_table.rate * line.quantity *
+                    COALESCE(uom_line.factor, 1) /
+                    NULLIF(COALESCE(uom_template.factor, 1), 0.0) * (CASE WHEN
+                    move.move_type IN ('out_invoice','in_refund','out_receipt')
+                    THEN -1 ELSE 1 END)
+                    * COALESCE(product.standard_price -> line.company_id::text,
+                        to_jsonb(0.0))::float AS inventory_value,
+                COALESCE(partner.country_id, commercial_partner.country_id) AS
+                    country_id,
+                line.currency_id AS currency_id
             ''',
         )
 
@@ -516,14 +545,20 @@ class AccountInvoiceReport(models.Model):
             '''
             FROM account_move_line line
                 LEFT JOIN res_partner partner ON partner.id = line.partner_id
-                LEFT JOIN product_product product ON product.id = line.product_id
-                LEFT JOIN account_account account ON account.id = line.account_id
-                LEFT JOIN product_template template ON template.id = product.product_tmpl_id
+                LEFT JOIN product_product product ON product.id =
+                    line.product_id
+                LEFT JOIN account_account account ON account.id =
+                    line.account_id
+                LEFT JOIN product_template template ON template.id =
+                    product.product_tmpl_id
                 LEFT JOIN uom_uom uom_line ON uom_line.id = line.product_uom_id
-                LEFT JOIN uom_uom uom_template ON uom_template.id = template.uom_id
+                LEFT JOIN uom_uom uom_template ON uom_template.id =
+                    template.uom_id
                 INNER JOIN account_move move ON move.id = line.move_id
-                LEFT JOIN res_partner commercial_partner ON commercial_partner.id = move.commercial_partner_id
-                JOIN %(currency_table)s ON account_currency_table.company_id = line.company_id
+                LEFT JOIN res_partner commercial_partner ON
+                    commercial_partner.id = move.commercial_partner_id
+                JOIN %(currency_table)s ON '''
+            '''account_currency_table.company_id = line.company_id
             ''',
             currency_table=ResCurrency._get_simple_currency_table(companies),
         )
@@ -533,7 +568,8 @@ class AccountInvoiceReport(models.Model):
         """≙ ``_where`` (``odoo19c: :142-148``). Verbatim de la fuente."""
         return SQL(
             '''
-            WHERE move.move_type IN ('out_invoice', 'out_refund', 'in_invoice', 'in_refund', 'out_receipt', 'in_receipt')
+            WHERE move.move_type IN ('out_invoice', 'out_refund', 'in_invoice',
+                'in_refund', 'out_receipt', 'in_receipt')
                 AND line.account_id IS NOT NULL
                 AND line.display_type = 'product'
             ''',

@@ -7,8 +7,15 @@ sobre el modelo de cualquier ``<record>``. Diseño en
 
 *Métrica:* clases de ``apps.get_models()`` que responden a
 ``_load_records``, y un registro cargado en un modelo de Django directo.
-*Ciega a:* si cada modelo carga bien sus propios datos.
+*Ciega a:* si cada modelo carga bien sus propios datos, y a un modelo de
+un módulo que nada importa: por eso el censo importa antes los ``report``
+de cada addon, que se cargan bajo demanda (``account.invoice.report``
+quedó fuera del primer censo por eso). Los modelos que declaran las pruebas
+(``tests/``) no son producto y no cuentan.
 """
+import importlib
+import pathlib
+
 import pytest
 from django.apps import apps
 
@@ -17,12 +24,23 @@ from orm.environments import env as current_env
 from orm.environments import sudo
 
 FRAMEWORK = {'admin', 'auth', 'contenttypes', 'sessions', 'token_blacklist'}
+ADDONS = pathlib.Path(__file__).resolve().parents[3] / 'addons'
+
+
+def _import_report_modules():
+    """Los modelos de ``addons/<x>/report`` se registran al importarse."""
+    for path in sorted(ADDONS.glob('*/report/*.py')):
+        if path.stem != '__init__':
+            importlib.import_module(
+                f'addons.{path.parent.parent.name}.report.{path.stem}')
 
 
 def _concrete_models():
+    _import_report_modules()
     return [model for model in apps.get_models()
             if not model._meta.abstract and not model._meta.proxy
-            and model._meta.app_label not in FRAMEWORK]
+            and model._meta.app_label not in FRAMEWORK
+            and not model.__module__.startswith('tests.')]
 
 
 def test_every_concrete_model_answers_load_records():
