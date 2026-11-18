@@ -97,3 +97,15 @@ Referencia: odoo-tools `abe4040ec1`, Odoo 19 Community.
   `odoo19c: addons/base_address_extended/models/res_partner.py:59` y
   `country_enforce_cities` ≙ el campo relacionado de la fuente: deciden por
   verdad. Prueba: `tests/unit/base_address_extended/test_partner_extension.py`.
+
+## La anulación del manifiesto, ejecutada (2026-11-18)
+
+Sobre un worktree desechable con `'security/ir.model.access.csv'` retirado
+del `data` del manifiesto, y una base propia creada con `--create-db`
+(`DB_QA_NAME=orm_x2hokp_annul_city`, borrada al terminar; 53 min en
+segundo plano): caen 3 de 4,
+`test_the_acl_is_the_reference_csv_with_its_external_ids`,
+`test_an_internal_user_reads_a_city_but_cannot_create_one` y
+`test_a_contact_manager_creates_a_city`. Sobrevive
+`test_res_city_is_a_base_model`, que no depende de las filas. Las tres que
+caen dependen de que el manifiesto cargue el CSV; ni una más.
