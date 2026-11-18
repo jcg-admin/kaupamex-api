@@ -486,7 +486,7 @@ class StockRule(TimeStampedModel):
         'base.ResCompany',
         null=True,
         blank=True,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='stock_rules',
         db_index=True,
         help_text=(
@@ -587,7 +587,7 @@ class StockRule(TimeStampedModel):
         'stock.StockWarehouse',
         null=True,
         blank=True,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='rule_ids',
         db_index=True,
         help_text=(

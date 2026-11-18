@@ -83,7 +83,7 @@ class IrDemoFailure(TimeStampedModel):
     )
     wizard = fields.Many2one(
         IrDemoFailureWizard,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='failure_ids',

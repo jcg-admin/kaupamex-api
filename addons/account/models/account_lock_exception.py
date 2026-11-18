@@ -74,7 +74,7 @@ class AccountLockException(models.Model):
     # is an exception for everyone").
     user = fields.Many2one(
         'base.ResUsers',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='lock_exceptions',

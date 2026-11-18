@@ -56,6 +56,51 @@ CORRECTED = {
     # designs/restrict-ondelete-payment-method-line.md (tramo B)
     'account.AccountPaymentMethodLine.payment_method',
     'account.AccountPaymentMethodLine.journal',
+    # designs/set-null-ondelete-block-d.md (bloque D, 44 filas)
+    'account.AccountBankStatement.company',
+    'account.AccountBankStatement.journal',
+    'account.AccountFiscalPositionAccount.company',
+    'account.AccountJournalGroup.company',
+    'account.AccountLockException.user',
+    'account.AccountMove.company',
+    'account.AccountMoveLine.company_id',
+    'account.AccountPaymentTerm.company',
+    'account.AccountReconcileModelLine.company',
+    'account.AccountReportColumn.report',
+    'account.AccountTaxRepartitionLine.company',
+    'base.IrActionsServer.crud_model_id',
+    'base.IrActionsServer.link_field_id',
+    'base.IrActionsServer.sequence_id',
+    'base.IrActionsServer.update_related_model_id',
+    'base.IrDemoFailure.wizard',
+    'base.IrSequence.company',
+    'base.ResCurrencyRate.company',
+    'base.ResDeviceLog.user',
+    'base.ServerActionHistoryWizard.action',
+    'mail.MailAlias.alias_parent_model',
+    'mrp.MrpBom.product',
+    'product.ProductCombo.company',
+    'product.ProductComboItem.company',
+    'product.ProductPricelist.company',
+    'product.ProductSupplierinfo.company',
+    'product.ProductSupplierinfo.product',
+    'product.ProductSupplierinfo.purchase_requisition_line',
+    'product.ProductTemplate.company',
+    'product.ProductUom.company',
+    'sales_team.CrmTeam.company_id',
+    'stock.StockLocation.company',
+    'stock.StockMove.picking',
+    'stock.StockMove.scrap',
+    'stock.StockMoveLine.lot',
+    'stock.StockMoveLine.move',
+    'stock.StockMoveLine.picking',
+    'stock.StockPackage.company',
+    'stock.StockPackageType.company',
+    'stock.StockQuant.company',
+    'stock.StockRoute.company',
+    'stock.StockRule.company',
+    'stock.StockRule.warehouse',
+    'stock.StockStorageCategory.company',
 }
 
 #: Política de Django que corresponde al ``ondelete`` de la fuente.
@@ -103,24 +148,12 @@ def test_the_django_policy_matches_the_source_ondelete(row, kind):
 # --- ORM: dos representantes, uno por familia ------------------------------
 
 @pytest.mark.django_db
-@pytest.mark.xfail(strict=True, reason=(
-    'set null -> CASCADE: la fuente vacía user_id '
-    '(odoo19c: odoo/addons/base/models/res_device.py:28); aquí se borra'))
 def test_deleting_a_user_keeps_its_device_logs(user):
     log = ResDeviceLog.objects.create(session_identifier='probe-session',
                                       user=user)
     type(user).objects.filter(pk=user.pk).delete()
     log.refresh_from_db()
     assert log.user_id is None
-
-
-@pytest.mark.django_db
-def test_today_deleting_a_user_deletes_its_device_logs(user):
-    """Lo observado hoy, para que el ``xfail`` no oculte otra causa."""
-    log = ResDeviceLog.objects.create(session_identifier='probe-session',
-                                      user=user)
-    type(user).objects.filter(pk=user.pk).delete()
-    assert not ResDeviceLog.objects.filter(pk=log.pk).exists()
 
 
 @pytest.fixture

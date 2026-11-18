@@ -240,7 +240,7 @@ class IrSequence(TimeStampedModel):
         default=False, help_text='Odoo use_date_range — subsecuencias por '
                                  'rango de fecha.')
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, related_name='sequences',
+        'base.ResCompany', on_delete=models.SET_NULL, related_name='sequences',
         null=True, blank=True, help_text='Odoo company_id.')
 
     class Meta:

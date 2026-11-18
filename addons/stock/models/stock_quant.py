@@ -376,8 +376,8 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         related_name='quants',
         help_text='Producto (Odoo product_id).',
     )
-    company           = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, null=True, blank=True,
+    company = fields.Many2one(
+        'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='stock_quants',
         help_text='Empresa (Odoo company_id, related a location_id.company_id '
                   'con store=True; se recalcula en save()).',

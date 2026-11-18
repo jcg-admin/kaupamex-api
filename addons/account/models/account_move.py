@@ -164,7 +164,7 @@ class AccountMove(SequenceMixin, models.Model):
     )
     company = fields.Many2one(
         'base.ResCompany',
-        on_delete=models.CASCADE, null=True, blank=True,
+        on_delete=models.SET_NULL, null=True, blank=True,
         related_name='moves',
         help_text='Empresa (Odoo company_id).',
     )

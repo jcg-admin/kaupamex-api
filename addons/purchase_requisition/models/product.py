@@ -98,7 +98,7 @@ def apply_purchase_requisition_product_extensions():
                 'purchase_requisition.PurchaseRequisitionLine',
                 null=True,
                 blank=True,
-                on_delete=models.CASCADE,
+                on_delete=models.SET_NULL,
                 db_index=True,
                 related_name='supplier_info_ids',
                 verbose_name='Línea de acuerdo',

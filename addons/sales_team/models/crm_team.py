@@ -50,7 +50,7 @@ class CrmTeam(models.BaseModel, TimeStampedModel):
         'base.ResCompany',
         null=True,
         blank=True,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='sales_teams',
         help_text='ResCompany propietaria (Odoo crm.team.company_id).',
         db_column='company_id',

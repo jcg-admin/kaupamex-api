@@ -923,7 +923,7 @@ class ResCurrencyRate(
     )
     company = fields.Many2one(
         'base.ResCompany',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='currency_rates',
         null=True,
         blank=True,

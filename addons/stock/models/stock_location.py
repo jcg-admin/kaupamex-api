@@ -178,7 +178,8 @@ USAGE_CHOICES = [
     (USAGE_TRANSIT, 'Tránsito'),
 ]
 
-#: ≙ el conjunto que ``should_bypass_reservation`` prueba (``odoo19c: :408-410``).
+#: ≙ el conjunto que ``should_bypass_reservation`` prueba
+#: (``odoo19c: :408-410``).
 BYPASS_RESERVATION_USAGES = (
     USAGE_SUPPLIER, USAGE_CUSTOMER, USAGE_INVENTORY, USAGE_PRODUCTION,
 )
@@ -186,7 +187,8 @@ BYPASS_RESERVATION_USAGES = (
 #: ≙ las dos que cuentan como «tiene existencias» (``:132-139``, ``:376-406``).
 STOCKED_USAGES = (USAGE_INTERNAL, USAGE_TRANSIT)
 
-#: ≙ el identificador externo que la referencia protege (``:200-204``, ``:467-472``).
+#: ≙ el identificador externo que la referencia protege (``:200-204``,
+#: ``:467-472``).
 INTER_COMPANY_XMLID = 'stock.stock_location_inter_company'
 
 
@@ -233,10 +235,11 @@ class StockLocation(models.DefaultGetMixin, TimeStampedModel):
         max_length=512, blank=True, default='', db_index=True,
         help_text='Ruta materializada «1/4/9/» del árbol (Odoo parent_path).',
     )
-    company                   = fields.Many2one(
-        'base.ResCompany', null=True, blank=True, on_delete=models.CASCADE,
+    company = fields.Many2one(
+        'base.ResCompany', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='stock_locations', db_index=True,
-        help_text='Empresa; vacío si la ubicación es compartida (Odoo company_id).',
+        help_text=('Empresa; vacío si la ubicación es compartida '
+                   '(Odoo company_id).'),
     )
     replenish_location        = fields.Boolean(
         default=False,
@@ -1028,8 +1031,8 @@ class StockRoute(TimeStampedModel):
         related_name='supplier_route_ids',
         help_text='Almacén que abastece (Odoo supplier_wh_id).',
     )
-    company                   = fields.Many2one(
-        'base.ResCompany', null=True, blank=True, on_delete=models.CASCADE,
+    company = fields.Many2one(
+        'base.ResCompany', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='stock_routes', db_index=True,
         help_text='Empresa; vacío si la ruta es compartida (Odoo company_id).',
     )

@@ -331,13 +331,13 @@ class StockMoveLine(TimeStampedModel):
     #: ``Meta.indexes``, que apunta al mismo objeto.
     _free_reservation_index = FREE_RESERVATION_INDEX
 
-    picking          = fields.Many2one(
-        'stock.StockPicking', on_delete=models.CASCADE, null=True, blank=True,
+    picking = fields.Many2one(
+        'stock.StockPicking', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='move_line_ids', db_index=True,
         help_text='Transferencia donde se hizo el empaque (Odoo picking_id).',
     )
-    move             = fields.Many2one(
-        'stock.StockMove', on_delete=models.CASCADE, null=True, blank=True,
+    move = fields.Many2one(
+        'stock.StockMove', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='move_line_ids', db_index=True,
         help_text='Movimiento de inventario al que pertenece (Odoo move_id).',
     )
@@ -378,8 +378,8 @@ class StockMoveLine(TimeStampedModel):
         related_name='source_move_line_ids',
         help_text='Paquete de origen (Odoo package_id).',
     )
-    lot              = fields.Many2one(
-        'stock.StockLot', on_delete=models.CASCADE, null=True, blank=True,
+    lot = fields.Many2one(
+        'stock.StockLot', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='move_line_ids', db_index=True,
         help_text='Lote / número de serie (Odoo lot_id).',
     )

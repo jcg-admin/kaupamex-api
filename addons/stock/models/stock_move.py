@@ -551,8 +551,8 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
 
     # --- documentos y encadenamiento -----------------------------------------
 
-    picking         = fields.Many2one(
-        'stock.StockPicking', null=True, blank=True, on_delete=models.CASCADE,
+    picking = fields.Many2one(
+        'stock.StockPicking', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='move_ids', db_index=True,
         help_text='Transferencia (Odoo picking_id).',
     )
@@ -581,12 +581,12 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         help_text='Movimiento que originó esta devolución (Odoo '
                   'origin_returned_move_id).',
     )
-    scrap           = fields.Many2one(
-        'stock.StockScrap', null=True, blank=True, on_delete=models.CASCADE,
+    scrap = fields.Many2one(
+        'stock.StockScrap', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='move_ids',
         help_text='Desecho que originó el movimiento (Odoo scrap_id). Es el '
                   'inverso que ``stock.scrap.move_ids`` declara '
-                  '(odoo19c: stock/models/stock_scrap.py:37).',
+                  '(odoo19c: addons/stock/models/stock_scrap.py:37).',
     )
     origin          = fields.Char(
         max_length=255, blank=True, default='',

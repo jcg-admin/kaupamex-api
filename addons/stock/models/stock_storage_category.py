@@ -133,8 +133,8 @@ class StockStorageCategory(TimeStampedModel):
         help_text='Criterio de mezcla al ingresar un producto nuevo '
                   '(Odoo allow_new_product).',
     )
-    company           = fields.Many2one(
-        'base.ResCompany', null=True, blank=True, on_delete=models.CASCADE,
+    company = fields.Many2one(
+        'base.ResCompany', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='storage_categories',
         help_text='Empresa (Odoo company_id).',
     )

@@ -730,7 +730,7 @@ class ServerActionHistoryWizard(TransientModel):
 
     action = fields.Many2one(
         'base.IrActionsServer',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='history_wizards',
@@ -1126,7 +1126,7 @@ class IrActionsServer(IrActionsBase):
     #: sobre el que ``object_create``/``object_copy``/``object_write`` operan.
     crud_model_id = fields.Many2one(
         IrModel,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='crud_server_actions',
@@ -1138,7 +1138,7 @@ class IrActionsServer(IrActionsBase):
     #: registro recién creado al registro activo.
     link_field_id = fields.Many2one(
         IrModelFields,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='link_server_actions',
@@ -1172,7 +1172,7 @@ class IrActionsServer(IrActionsBase):
     #: ≙ ``update_related_model_id`` (``:665``).
     update_related_model_id = fields.Many2one(
         IrModel,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='update_related_server_actions',
@@ -1215,7 +1215,7 @@ class IrActionsServer(IrActionsBase):
     #: ≙ ``sequence_id`` (``:688``) — la numeración del modo ``sequence``.
     sequence_id = fields.Many2one(
         IrSequence,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='server_actions',

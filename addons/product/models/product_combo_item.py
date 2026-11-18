@@ -111,7 +111,7 @@ class ProductComboItem(TimeStampedModel):
     )
     company = fields.Many2one(
         ResCompany,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         db_index=True,

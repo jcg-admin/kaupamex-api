@@ -97,7 +97,7 @@ class AccountTaxRepartitionLine(models.Model):
         help_text='Impuesto al que pertenece esta línea (Odoo tax_id).',
     )
     company = fields.Many2one(
-        'base.ResCompany', on_delete=models.CASCADE, null=True, blank=True,
+        'base.ResCompany', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='tax_repartition_lines',
         help_text=(
             'Empresa (Odoo company_id, related=tax_id.company_id, '

@@ -230,8 +230,8 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
         help_text='Ubicación actual, derivada de su contenido '
                   '(Odoo location_id, computado y almacenado).',
     )
-    company           = fields.Many2one(
-        'base.ResCompany', null=True, blank=True, on_delete=models.CASCADE,
+    company = fields.Many2one(
+        'base.ResCompany', null=True, blank=True, on_delete=models.SET_NULL,
         related_name='stock_packages', db_index=True,
         help_text='Empresa, derivada de su contenido '
                   '(Odoo company_id, computado y almacenado).',

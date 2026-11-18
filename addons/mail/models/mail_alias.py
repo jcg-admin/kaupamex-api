@@ -198,7 +198,7 @@ class MailAlias(TimeStampedModel):
     # -- Propietario --------------------------------------------------------
     alias_parent_model = fields.Many2one(
         'base.IrModel',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='child_aliases',

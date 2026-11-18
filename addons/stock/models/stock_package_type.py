@@ -175,7 +175,7 @@ class StockPackageType(models.DefaultGetMixin, TimeStampedModel):
         'base.ResCompany',
         null=True,
         blank=True,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='package_types',
         db_index=True,
         help_text='Empresa (Odoo company_id).',

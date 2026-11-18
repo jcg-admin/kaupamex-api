@@ -167,7 +167,7 @@ class AccountPaymentTerm(models.Model):
     )
     company = fields.Many2one(
         'base.ResCompany',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name='payment_terms',
         null=True,
         blank=True,
