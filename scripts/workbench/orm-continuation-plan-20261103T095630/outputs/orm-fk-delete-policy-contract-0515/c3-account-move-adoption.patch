@@ -1,0 +1,303 @@
+diff --git a/addons/account/models/account_move.py b/addons/account/models/account_move.py
+index 85ce1228..f9ac0a51 100644
+--- a/addons/account/models/account_move.py
++++ b/addons/account/models/account_move.py
+@@ -24,7 +24,7 @@ from orm.environments import get_current_user
+ from tools.translate import _
+ 
+ 
+-class AccountMove(SequenceMixin, models.Model):
++class AccountMove(models.BaseModel, SequenceMixin):
+     """
+     ``account.move`` — asiento contable (o factura si ``move_type`` != entry).
+ 
+@@ -329,19 +329,17 @@ class AccountMove(SequenceMixin, models.Model):
+     # -- Odoo _check_balanced + _post -------------------------------------
+     def is_balanced(self):
+         """Suma de debe == suma de haber (Odoo ``_check_balanced``)."""
+-        agg = self.line_ids.aggregate(
+-            d=models.Sum('debit'), c=models.Sum('credit')
+-        )
+-        debit = agg['d'] or Decimal('0')
+-        credit = agg['c'] or Decimal('0')
++        lines = self.line_ids
++        debit = sum(lines.mapped('debit'), Decimal('0'))
++        credit = sum(lines.mapped('credit'), Decimal('0'))
+         return debit == credit
+ 
+     def compute_amount_total(self):
+         """
+         Total = suma del debe de las líneas (Odoo amount_total simplificado).
+         """
+-        agg = self.line_ids.aggregate(d=models.Sum('debit'))
+-        self.amount_total = agg['d'] or Decimal('0.00')
++        self.amount_total = sum(self.line_ids.mapped('debit'),
++                                Decimal('0.00'))
+         return self.amount_total
+ 
+     # -- payment_state / amount_residual (UC-PAY-14, H-API-408) ------------
+@@ -366,16 +364,13 @@ class AccountMove(SequenceMixin, models.Model):
+         misma álgebra que ``AccountPartialReconcile._update_matching_number``
+         ya usa para decidir si un apunte quedó saldado.
+         """
+-        line_ids = list(
+-            self.line_ids.filter(
+-                account__account_type__in=self._RESIDUAL_ACCOUNT_TYPES
+-            ).values_list('pk', flat=True)
+-        )
++        residual_lines = self.line_ids.filtered(
++            lambda line: line.account and line.account.account_type
++            in self._RESIDUAL_ACCOUNT_TYPES)
++        line_ids = residual_lines.ids
+         if not line_ids:
+             return Decimal('0.00'), Decimal('0.00')
+-        total = self.line_ids.filter(pk__in=line_ids).aggregate(
+-            s=models.Sum('balance')
+-        )['s'] or Decimal('0.00')
++        total = sum(residual_lines.mapped('balance'), Decimal('0.00'))
+         debit_matched = AccountPartialReconcile.objects.filter(
+             debit_move__in=line_ids
+         ).aggregate(s=models.Sum('amount'))['s'] or Decimal('0.00')
+@@ -536,7 +531,7 @@ class AccountMove(SequenceMixin, models.Model):
+         la
+         secuencia del diario (Odoo asigna el número al postear).
+         """
+-        if not self.line_ids.exists():
++        if not self.line_ids:
+             raise UserError(_('No se puede publicar un asiento sin líneas.'))
+         self._check_balanced()
+         self.compute_amount_total()
+@@ -842,6 +837,24 @@ class AccountMove(SequenceMixin, models.Model):
+         """
+         return 0
+ 
++    def unlink(self):
++        """≙ ``unlink``
++        (``odoo19c: addons/account/models/account_move.py:4055``).
++
++        Portado: deshacer la conciliación de las líneas, borrarlas y borrar
++        el asiento, en ese orden.
++        """
++        # pendiente: _update_sequence_made_gap (:4056) -- made_sequence_gap
++        # no está portado.
++        # pendiente: with_context(skip_invoice_sync, dynamic_unlink) (:4057)
++        # -- aquí no hay sincronización dinámica de líneas que saltar.
++        # pendiente: _get_unlink_logger_message (:4058) y su registro.
++        # pendiente: los dos @api.ondelete (:4024 y :4044), que deciden quién
++        # puede borrar un asiento numerado o ya publicado.
++        self.line_ids.remove_move_reconcile()
++        self.line_ids.unlink()
++        return super().unlink()
++
+     def save(self, *args, **kwargs):
+         """Corre los dos compute almacenados que si tienen sus insumos.
+ 
+diff --git a/addons/account/services.py b/addons/account/services.py
+index 6f93c35c..6fd231b0 100644
+--- a/addons/account/services.py
++++ b/addons/account/services.py
+@@ -129,7 +129,7 @@ def create_refund_from_invoice(invoice) -> AccountMove:
+         company=invoice.company,
+         ref=invoice.name,
+     )
+-    for line in invoice.line_ids.all():
++    for line in invoice.line_ids:
+         AccountMoveLine.objects.create(
+             move=refund, account=line.account, name=line.name,
+             debit=line.credit, credit=line.debit,  # reversión de la factura
+diff --git a/addons/account/wizard/account_automatic_entry_wizard.py b/addons/account/wizard/account_automatic_entry_wizard.py
+index ca981ac5..ab6d4138 100644
+--- a/addons/account/wizard/account_automatic_entry_wizard.py
++++ b/addons/account/wizard/account_automatic_entry_wizard.py
+@@ -568,12 +568,15 @@ class AccountAutomaticEntryWizard(TransientModel):
+         created_moves = cls._create_moves_from_vals(move_vals, company)
+         if accrual_account is not None and accrual_account.reconcile:
+             destination_move = created_moves[0]
++            def on_accrual(line):
++                return line.account_id == accrual_account.pk
++
+             destination_lines = list(
+-                destination_move.line_ids.filter(account=accrual_account)
++                destination_move.line_ids.filtered(on_accrual)
+             )
+             for accrual_move in created_moves[1:]:
+                 accrual_lines = list(
+-                    accrual_move.line_ids.filter(account=accrual_account)
++                    accrual_move.line_ids.filtered(on_accrual)
+                 )
+                 for dest, accr in zip(destination_lines, accrual_lines):
+                     debit_line = dest if dest.debit else accr
+@@ -610,7 +613,8 @@ class AccountAutomaticEntryWizard(TransientModel):
+         for account, account_lines in grouped_lines.items():
+             if not account.reconcile:
+                 continue
+-            counterparts = list(new_move.line_ids.filter(account=account))
++            counterparts = list(new_move.line_ids.filtered(
++                lambda line, account=account: line.account_id == account.pk))
+             for original, counterpart in zip(account_lines, counterparts):
+                 debit_line = original if original.debit else counterpart
+                 credit_line = counterpart if original.debit else original
+diff --git a/addons/account/wizard/account_move_reversal.py b/addons/account/wizard/account_move_reversal.py
+index 611c23e6..9eaa0002 100644
+--- a/addons/account/wizard/account_move_reversal.py
++++ b/addons/account/wizard/account_move_reversal.py
+@@ -276,7 +276,7 @@ class AccountMoveReversal(TransientModel):
+             state='draft',
+             **default_values,
+         )
+-        for line in move.line_ids.all():
++        for line in move.line_ids:
+             values = {
+                 field: getattr(line, field) for field in _LINE_COPY_FIELDS
+             }
+@@ -294,14 +294,12 @@ class AccountMoveReversal(TransientModel):
+         líneas receivable/payable del original contra las del reverso —
+         mismo álgebra que ``account_payment_register.py``."""
+         residual_types = AccountMove._RESIDUAL_ACCOUNT_TYPES
+-        original_lines = list(
+-            move.line_ids.filter(account__account_type__in=residual_types)
+-        )
+-        reverse_lines = list(
+-            reverse_move.line_ids.filter(
+-                account__account_type__in=residual_types
+-            )
+-        )
++        def is_residual(line):
++            return bool(line.account
++                        and line.account.account_type in residual_types)
++
++        original_lines = list(move.line_ids.filtered(is_residual))
++        reverse_lines = list(reverse_move.line_ids.filtered(is_residual))
+         partials = []
+         for original, reverse in zip(original_lines, reverse_lines):
+             debit_line = original if original.debit else reverse
+@@ -336,7 +334,7 @@ class AccountMoveReversal(TransientModel):
+             state='draft',
+             **modify_values,
+         )
+-        for line in move.line_ids.all():
++        for line in move.line_ids:
+             if line.display_type not in _MODIFY_KEPT_DISPLAY_TYPES:
+                 continue
+             values = {
+diff --git a/addons/account/wizard/account_payment_register.py b/addons/account/wizard/account_payment_register.py
+index 65b5f75f..789bef8f 100644
+--- a/addons/account/wizard/account_payment_register.py
++++ b/addons/account/wizard/account_payment_register.py
+@@ -99,10 +99,10 @@ class AccountPaymentRegisterWizard:
+         if move.state != 'posted':
+             raise UserError(_('El movimiento no está publicado.'))
+ 
+-        receivable_line = move.line_ids.filter(
+-            account__account_type__in=AccountMove._RESIDUAL_ACCOUNT_TYPES,
+-        ).first()
+-        if receivable_line is None:
++        receivable_line = move.line_ids.filtered(
++            lambda line: line.account and line.account.account_type
++            in AccountMove._RESIDUAL_ACCOUNT_TYPES)[:1]
++        if not receivable_line:
+             raise UserError(
+                 _('El movimiento no tiene línea por cobrar/pagar (PRE-01).')
+             )
+diff --git a/addons/account/wizard/account_validate_account_move.py b/addons/account/wizard/account_validate_account_move.py
+index ed31a80c..fb83913c 100644
+--- a/addons/account/wizard/account_validate_account_move.py
++++ b/addons/account/wizard/account_validate_account_move.py
+@@ -111,7 +111,7 @@ class ValidateAccountMove(TransientModel):
+         else:
+             raise UserError(_("Missing 'active_model' in context."))
+ 
+-        selected = [move for move in queryset if move.line_ids.exists()]
++        selected = [move for move in queryset if move.line_ids]
+         if not selected:
+             raise UserError(
+                 _('There are no journal items in the draft state to post.')
+diff --git a/addons/account_debit_note/wizard/account_debit_note.py b/addons/account_debit_note/wizard/account_debit_note.py
+index fa7821e8..c959821e 100644
+--- a/addons/account_debit_note/wizard/account_debit_note.py
++++ b/addons/account_debit_note/wizard/account_debit_note.py
+@@ -191,13 +191,13 @@ class AccountDebitNoteWizard(TransientModel):
+         """Copia las líneas de ``source_move`` a ``target_move``.
+ 
+         ≙ la parte "no limpiar ``line_ids``" del ``copy()`` de la
+-        referencia. ``source_move.line_ids.model`` evita importar
++        referencia. ``type(source_move.line_ids)`` evita importar
+         ``AccountMoveLine`` a nivel de módulo (este archivo se importa
+         normal desde ``__init__.py`` — ver el docstring de
+         ``models/account_move_sequence.py`` para la razón de este criterio).
+         """
+-        line_model = source_move.line_ids.model
+-        for line in source_move.line_ids.all():
++        line_model = type(source_move.line_ids)
++        for line in source_move.line_ids:
+             values = {
+                 field: getattr(line, field) for field in cls.LINE_COPY_FIELDS
+             }
+diff --git a/addons/account_fleet/models/account_move.py b/addons/account_fleet/models/account_move.py
+index d3b3c477..73f714af 100644
+--- a/addons/account_fleet/models/account_move.py
++++ b/addons/account_fleet/models/account_move.py
+@@ -184,7 +184,7 @@ def _create_fleet_service_bills_on_post(sender, instance, update_fields, **kwarg
+         # el tipo semilla, el posteo sigue su curso normal (ya ocurrió: esta
+         # señal corre EN post_save, después del guardado) y no se crea nada.
+         return
+-    for line in instance.line_ids.all():
++    for line in instance.line_ids:
+         if line.vehicle is None:
+             continue
+         if line.display_type != 'product':
+diff --git a/tests/unit/account/test_account_move_line_parent_state.py b/tests/unit/account/test_account_move_line_parent_state.py
+index 3b6fa25b..ef0b6466 100644
+--- a/tests/unit/account/test_account_move_line_parent_state.py
++++ b/tests/unit/account/test_account_move_line_parent_state.py
+@@ -68,6 +68,9 @@ def test_migration_0039_fills_the_existing_lines(move):
+     operation = importlib.import_module(
+         'addons.account.migrations.0039_parent_state').Migration.operations[1]
+     assert isinstance(operation, ComputeStoredFields)
++    # Las dos escrituras de arriba van por ``QuerySet.update``: la caché del
++    # ORM no las vio. Una migración corre sin caché previa.
++    get_transaction().invalidate_field_data()
+     with connection.schema_editor() as editor:
+         operation.code(apps, editor)
+     with connection.cursor() as cursor:
+diff --git a/tests/unit/account/test_reconcile_delete_contract.py b/tests/unit/account/test_reconcile_delete_contract.py
+index 074a74a1..a9747ce3 100644
+--- a/tests/unit/account/test_reconcile_delete_contract.py
++++ b/tests/unit/account/test_reconcile_delete_contract.py
+@@ -196,3 +196,36 @@ class TestMatchedNames:
+         assert credit.matched_debit_ids.ids == [partial.pk]
+         assert not credit.matched_credit_ids
+         assert debit.matched_credit_ids.credit_move == credit
++
++
++class TestMoveUnlink:
++    """≙ ``unlink`` de ``account.move``
++    (``odoo19c: addons/account/models/account_move.py:4055``)."""
++
++    def test_move_unlink_removes_lines_and_partials(self, company, journal):
++        debit = _line(company, journal, debit=Decimal('65.00'))
++        credit = _line(company, journal, credit=Decimal('65.00'))
++        partial = AccountPartialReconcile.create_partial(
++            debit, credit, Decimal('65.00')
++        )
++        move = debit.move
++
++        move.unlink()
++
++        assert not AccountMove.objects.filter(pk=move.pk).exists()
++        assert not AccountMoveLine.objects.filter(pk=debit.pk).exists()
++        assert not _partials(partial.pk).exists()
++        credit.refresh_from_db()
++        assert credit.matching_number == ''
++
++    def test_move_unlink_without_reconciliation(self, company, journal):
++        line = _line(company, journal, debit=Decimal('5.00'))
++        move = line.move
++
++        move.unlink()
++
++        assert not AccountMove.objects.filter(pk=move.pk).exists()
++        assert not AccountMoveLine.objects.filter(pk=line.pk).exists()
++
++    def test_empty_recordset_is_a_no_op(self):
++        assert env()['account.move'].browse().unlink() is True

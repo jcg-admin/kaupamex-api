@@ -107,3 +107,65 @@ no se aplica.
 `-n 4`, sin `test_multidb_isolation`) y sus líneas `E` agrupadas.
 *Ciega a:* un lector de `move.line_ids` fuera de esos directorios; la F2
 completa lo cubre al cerrar el bloque.
+
+## Resultado: límite alcanzado, C3 detenido (2026-11-18T03:20Z)
+
+Con la base cambiada, los 17 sitios convertidos, `unlink` portado y los
+ajustes de prueba, la misma regresión derivada da **46 fallos sobre 5696
+que pasan** (`boot_id 55781402…`, tras el segundo reclamo). La clase del
+gestor casi desaparece y aparece la que el límite nombraba:
+
+| Clase | Líneas `E` | Qué es |
+|---|---|---|
+| `PermissionDenied … «Journal Item» (account.AccountMoveLine)` | 35 | `move.line_ids` ya es un recordset y leer sus campos comprueba el acceso de lectura del usuario del entorno |
+| `PermissionDenied … «Journal Entry» (account.AccountMove)` | 3 | lectura de `line.move` sin usuario |
+| `assert 403 == 201` / `assert 403 == 409` | 4 | **ruta HTTP** `POST /api/v2/admin/finance/invoices/<id>/register-payment/` |
+| `'AccountMoveLine' object has no attribute 'all'` / `'count'` | 4 | pruebas que usan `move.line_ids` como gestor; conversión pendiente, mecánica |
+
+La tercera fila decide. El usuario de
+`tests/integration/account/test_register_payment_endpoint.py` tiene la
+capacidad del producto que gobierna esa ruta y no pertenece a ningún grupo
+contable de la fuente. Antes la ruta leía las líneas por el gestor de
+Django, sin regla de acceso; con `account.move` como `BaseModel` la
+lectura pasa por `check_access` (`src/orm/models.py`, vía `mapped` desde
+`AccountMove.is_balanced`) y la ruta responde 403. Lo mismo alcanza a
+`tests/integration/company/test_subscription_ledger.py` (5 casos), que
+publica una factura de suscripción.
+
+Eso no es una conversión de sitio: es decidir cómo se relacionan las
+**capacidades** del producto (`HasCapability`, DEC-11) con los **grupos**
+de la fuente que gobiernan `ir.model.access` cuando un modelo contable
+pasa por el ORM. Hay al menos tres salidas y ninguna la elige este
+contrato:
+
+1. el servicio de la ruta corre con `sudo()` tras la comprobación de
+   capacidad (la capacidad es la autorización; el ORM no vuelve a
+   preguntar);
+2. cada capacidad contable otorga el grupo de la fuente equivalente;
+3. `account.move` no adopta `BaseModel` hasta que exista esa
+   correspondencia para todo el dominio contable.
+
+**Decisión pendiente de otra autoridad** (el ejecutor: toca DEC-11 y el
+contrato de las rutas `/api/v2/admin/finance/`). Hasta tenerla:
+
+- C3 no se publica. El trabajo se conserva como parche aplicable sobre
+  `0ecbe3f0`: `outputs/orm-fk-delete-policy-contract-0515/
+  c3-account-move-adoption.patch` (10 archivos, 91 inserciones, 40
+  borrados; `git apply --check` pasa). La lista de los 46 fallos está en
+  `c3-regression-failures.txt`, junto a él.
+- C4 no se aplica: sin `AccountMove.unlink`, `PROTECT` convertiría en
+  error el borrado de un asiento conciliado, que la fuente permite.
+- Las dos filas de `account.AccountPartialReconcile` siguen `xfail` y la
+  unidad `orm-fk-delete-policy-contract-0515` no se asienta.
+
+Condición de cierre: una decisión registrada sobre capacidades y grupos
+para el dominio contable; con ella se aplica el parche, se convierten las
+cuatro pruebas de la última fila, se dan usuario o `sudo` a las pruebas
+unitarias sin contexto y se continúa con C4.
+
+Lo que sí queda publicado y verificado del bloque: C1, C2a, la lectura
+multi-registro del ORM y C2. `line.unlink()` ya deshace la conciliación.
+
+*Métrica:* líneas `E` y resumen de pytest de la regresión derivada.
+*Ciega a:* otras rutas HTTP contables sin prueba de integración, que
+tendrían el mismo 403 sin que esta medición lo vea.
