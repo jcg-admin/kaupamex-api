@@ -79,3 +79,40 @@ contenedor se reclamó: `boot_id` pasó de `a0af12c0…` a `432be89e…`
 
 Nada de lo publicado se perdió. Lo no publicado sobrevivió esta vez porque
 el disco se conservó; no es una garantía.
+
+## Bloque C en curso (2026-11-18T02:50Z)
+
+Unidad `orm-fk-delete-policy-contract-0515`, las dos filas de
+`account.AccountPartialReconcile` que siguen `xfail`. Diseño:
+`designs/restrict-ondelete-partial-reconcile.md`.
+
+| Paso | Revisión | Qué | Verificación derivada |
+|---|---|---|---|
+| C1 | `2611ef87` | `unlink` de la conciliación parcial y total con el orden de la fuente; `delete_and_update_matching` retirado | 866 pasan, 2 xfailed |
+| C2a | `07d92374` | `move_name` y `date` del apunte, relacionados almacenados; migración `0046` | 5681 pasan, 40 omitidas, 8 xfailed |
+| ORM | `1b45bb0c` | lectura de un x2many sobre varios registros (`designs/x2many-multi-record-read.md`) | 8378 pasan, 66 omitidas, 8 xfailed (mismo árbol que C2) |
+| C2 | `e60f5b88` | `AccountMoveLine` adopta `BaseModel`; `remove_move_reconcile` y `unlink`; nombres inversos cruzados corregidos, migración `0047` | la misma ejecución |
+| C3 | — | `AccountMove` adopta `BaseModel`; `unlink` | medición de la adopción en curso |
+| C4 | — | `PROTECT` en `debit_move` y `credit_move`; migración `0048` | pendiente de C3 |
+
+Tres cosas que el plan no preveía y que salieron de medir, no de leer:
+
+1. La adopción de `BaseModel` en el apunte dejó 14 fallos, 13 por
+   `Invalid field 'date'`: `_order` citaba dos campos sin portar que nadie
+   leía mientras el modelo ordenaba por `Meta.ordering`. De ahí C2a.
+2. El inverso de un Many2one sólo se leía sobre un registro. La fuente
+   devuelve la unión (`_Relational.__get__`); el `Many2one` ya tenía esa
+   rama y las tres rutas x2many no. De ahí la pieza del ORM.
+3. `matched_debit_ids` y `matched_credit_ids` estaban cruzados respecto de
+   la fuente. Ningún lector vivo cambiaba de resultado (los dos toman la
+   unión), así que ninguna prueba lo delataba; lo delató leer la
+   declaración de la fuente para escribir `remove_move_reconcile`.
+
+Sin F2 todavía sobre estas revisiones: el bloque toca `src/orm`, que es
+mecanismo transversal, así que la F2 completa es obligatoria antes de
+asentar y se lanza al cerrar C4. Las cifras de arriba son regresiones
+derivadas, no aceptación.
+
+*Métrica:* resumen de pytest de cada regresión derivada, con `-n 4` y
+`test_multidb_isolation` excluido.
+*Ciega a:* los directorios fuera del derivado y la F3.
