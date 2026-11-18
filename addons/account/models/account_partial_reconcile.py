@@ -53,9 +53,10 @@ import api
 import fields
 import models
 from addons.account.models.account_move_line import AccountMoveLine
+from addons.base.models import TimeStampedModel
 
 
-class AccountPartialReconcile(models.Model):
+class AccountPartialReconcile(models.BaseModel, TimeStampedModel):
     """
     ``account.partial.reconcile`` — arista de conciliación entre dos apuntes.
     """
@@ -153,23 +154,37 @@ class AccountPartialReconcile(models.Model):
         )
         return partial
 
-    def delete_and_update_matching(self, *args, **kwargs):
-        """
-        Odoo ``unlink()`` simplificado (ver divergencia #4: sin reabrir pagos).
+    def unlink(self):
+        """≙ ``unlink`` (``odoo19c: addons/account/models/
+        account_partial_reconcile.py:105-147``).
 
-        Recalcula ``matching_number`` de los dos apuntes que este partial unía,
-        y si su ``full_reconcile`` queda sin partials, lo elimina (mismo
-        efecto colateral que la referencia: "Remove the matching numbers
-        before reversing").
+        Portado: guardar la conciliación total y los apuntes, borrar los
+        parciales, borrar la total (``full_to_unlink.unlink()``: quitar un
+        parcial rompe la conciliación total aunque le queden otros) y
+        recalcular ``matching_number``. Siguen declaradas en la cabecera de
+        este archivo las divergencias 2, 3 y 4: sin asientos de caja base,
+        sin ``exchange_move_id`` y sin reponer pagos.
         """
-        full = self.full_reconcile
-        touched_ids = [self.debit_move_id, self.credit_move_id]
-        result = super().delete(*args, **kwargs)
-        if full is not None and not full.partial_reconcile_ids.exists():
-            full.delete()
-        touched = AccountMoveLine.objects.filter(pk__in=touched_ids)
-        AccountPartialReconcile._update_matching_number(touched)
-        return result
+        # Avoid cyclic unlink calls when removing the partials that could
+        # remove some full reconcile and then, loop again and again.
+        if not self:
+            return True
+        rows = type(self).objects.filter(pk__in=self.ids)
+        full_ids = set(rows.exclude(full_reconcile=None).values_list(
+            'full_reconcile_id', flat=True))
+        touched_ids = set()
+        for debit_id, credit_id in rows.values_list('debit_move_id',
+                                                    'credit_move_id'):
+            touched_ids.update((debit_id, credit_id))
+        # Unlink partials before doing anything else to avoid 'Record has
+        # already been deleted' due to the recursion.
+        res = super().unlink()
+        # Remove the matching numbers before reversing the moves to avoid
+        # trying to remove the full twice.
+        self.env['account.full.reconcile'].browse(sorted(full_ids)).unlink()
+        self._update_matching_number(
+            AccountMoveLine.objects.filter(pk__in=touched_ids))
+        return res
 
     @staticmethod
     def _update_matching_number(amls):

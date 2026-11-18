@@ -21,12 +21,13 @@ bulk SQL (no es comportamiento, es implementación; ver divergencia #5 de
 
 import models
 from addons.account.models.account_move_line import AccountMoveLine
+from addons.base.models import TimeStampedModel
 from addons.account.models.account_partial_reconcile import (
     AccountPartialReconcile,
 )
 
 
-class AccountFullReconcile(models.Model):
+class AccountFullReconcile(models.BaseModel, TimeStampedModel):
     """``account.full.reconcile`` — marca un grupo de apuntes como saldado."""
 
     #: Atributos de clase de ``account.full.reconcile``, verbatim
@@ -66,13 +67,16 @@ class AccountFullReconcile(models.Model):
         )
         return full
 
-    def delete_and_update_matching(self, *args, **kwargs):
-        """Odoo ``unlink()``: al quitar el número total, recalcula el de las
-        líneas que quedaban agrupadas bajo él (vuelven a ``'P<n>'`` parcial o
-        a vacío, según sobrevivan partials o no)."""
-        line_ids = list(self.reconciled_line_ids.values_list('pk', flat=True))
-        result = super().delete(*args, **kwargs)
+    def unlink(self):
+        """≙ ``unlink`` (``odoo19c: addons/account/models/
+        account_full_reconcile.py:47-60``): la clave de los apuntes queda
+        vacía al borrar la conciliación total, pero ``matching_number`` es un
+        texto que nadie recalcula; aquí se recalcula para cada apunte que
+        estaba enlazado (vacío, o ``'P<n>'`` si sobreviven parciales)."""
+        line_ids = list(AccountMoveLine.objects.filter(
+            full_reconcile__in=self.ids).values_list('pk', flat=True))
+        res = super().unlink()
         surviving = AccountMoveLine.objects.filter(pk__in=line_ids)
         if surviving.exists():
             AccountPartialReconcile._update_matching_number(surviving)
-        return result
+        return res

@@ -35,8 +35,15 @@ from addons.account.models import (
     AccountReconcileModelLine,
 )
 from addons.base.models import ResCompany
+from orm.environments import sudo
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def _as_superuser():
+    with sudo():
+        yield
 
 
 @pytest.fixture
@@ -115,7 +122,7 @@ class TestAccountPartialReconcile:
             debit, credit, Decimal('30.00')
         )
 
-        partial.delete_and_update_matching()
+        partial.unlink()
 
         debit.refresh_from_db()
         credit.refresh_from_db()
@@ -158,7 +165,7 @@ class TestAccountFullReconcile:
             AccountPartialReconcile.objects.filter(pk=partial.pk)
         )
 
-        full.delete_and_update_matching()
+        full.unlink()
 
         debit.refresh_from_db()
         credit.refresh_from_db()
