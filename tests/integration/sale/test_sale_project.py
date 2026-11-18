@@ -28,7 +28,7 @@ def test_project_task_defaults_and_closed(db):
     assert task.is_closed() is False
     task.state = ProjectTask.STATE_DONE
     assert task.is_closed() is True
-    assert task in project.tasks.all()
+    assert task in project.tasks
 
 
 def test_generate_task_from_service_line(db):
@@ -45,7 +45,7 @@ def test_generate_task_from_service_line(db):
     assert line.project_link.task == link.task
     assert link.task.name == 'Armado a domicilio'
     assert link.project == project
-    assert link.task in project.tasks.all()
+    assert link.task in project.tasks
 
 
 def test_generate_task_idempotent(db):

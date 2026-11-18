@@ -14,8 +14,29 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class ProjectTask(TimeStampedModel):
+class ProjectTask(models.BaseModel, TimeStampedModel):
     """``project.task`` — tarea de un proyecto."""
+
+    #: Atributos de clase de ``project.task``, verbatim
+    #: (``odoo19c: addons/project/models/project_task.py:91-107``).
+    #: ``_inherit`` es aquí metadato, como en ``project.project``.
+    _name = 'project.task'
+    _description = "Task"
+    _date_name = "date_assign"
+    _inherit = [
+        'portal.mixin',
+        'mail.thread.cc',
+        'mail.activity.mixin',
+        'rating.mixin',
+        'mail.tracking.duration.mixin',
+        'html.field.history.mixin',
+    ]
+    _mail_post_access = 'read'
+    _mail_thread_customer = True
+    _order = "priority desc, sequence, date_deadline asc, id desc"
+    _primary_email = 'email_from'
+    _systray_view = 'list'
+    _track_duration_field = 'stage_id'
 
     STATE_IN_PROGRESS = 'in_progress'
     STATE_DONE = 'done'
@@ -30,7 +51,7 @@ class ProjectTask(TimeStampedModel):
 
     project = fields.Many2one(
         'project.Project',
-        on_delete=models.CASCADE, null=True, blank=True,
+        on_delete=models.SET_NULL, null=True, blank=True,
         related_name='tasks',
         help_text='Proyecto (Odoo project_id).',
     )

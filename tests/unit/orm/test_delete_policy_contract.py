@@ -127,6 +127,8 @@ CORRECTED = {
     'website.Website.company',
     # designs/set-null-hr-version-employee.md
     'hr.HrVersion.employee',
+    # designs/project-unlink-deletes-tasks.md
+    'project.ProjectTask.project',
 }
 
 #: Política de Django que corresponde al ``ondelete`` de la fuente.
