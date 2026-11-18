@@ -123,7 +123,8 @@ def _capture_old_values(sender, instance, **kwargs):
 def _know_watched_models():
     """Llena el conjunto de modelos con reglas de escritura del registro de
     la base activa si aún no se sabe (``BaseAutomation._register_hook``)."""
-    if getattr(env().registry, 'base_automation_write_models', None) is None:
+    cache = env().registry._caches['default']
+    if BaseAutomation.WRITE_MODELS_CACHE_KEY not in cache:
         BaseAutomation._register_hook()
 
 
@@ -261,8 +262,8 @@ def _compute_field_value(self, previous, field):
     # El conjunto lo fija ``BaseAutomation._register_hook`` al cargar el
     # registro: un modelo sin reglas de escritura no consulta la base, como
     # el modelo que la fuente no parchea.
-    watched = getattr(self.env.registry, 'base_automation_write_models',
-                      None) or ()
+    watched = self.env.registry._caches['default'].get(
+        BaseAutomation.WRITE_MODELS_CACHE_KEY) or ()
     if not stored_fnames or _model_name(model) not in watched:
         return previous(field)
     using = self.env.db_alias

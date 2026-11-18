@@ -340,6 +340,9 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
     # ≙ CRITICAL_FIELDS / RANGE_FIELDS de la referencia — qué campos, al
     # cambiar, invalidan el cron / el registro de dispatch.
     CRITICAL_FIELDS = ['model_id', 'active', 'trigger', 'on_change_field_ids']
+    #: Clave, en la familia ``default`` de cachés del registro, del conjunto
+    #: de modelos con reglas de escritura (:meth:`_register_hook`).
+    WRITE_MODELS_CACHE_KEY = ('base_automation.write_models',)
     #: ≙ los ``@api.depends`` de ``_compute_filter_pre_domain`` (``:378``) y de
     #: ``_compute_filter_domain`` (``:387``): fuera de esos cambios, el filtro
     #: escrito por el usuario se conserva.
@@ -855,26 +858,33 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         receptor de señal que ya consulta las reglas, o
         :meth:`_update_registry`. Mientras no se sepa, ningún recálculo
         dispara: el mismo estado de la fuente antes de su
-        ``_register_hook``.
+        ``_register_hook``. Vive en la familia ``default`` de cachés del
+        registro, así que vaciarla lo devuelve a «no se sabe».
         """
         environment = env()
-        environment.registry.base_automation_write_models = frozenset(
-            cls.objects.using(environment.db_alias)
-            .filter(active=True, trigger__in=WRITE_TRIGGERS)
-            .values_list('model_name', flat=True))
+        environment.registry._caches['default'][cls.WRITE_MODELS_CACHE_KEY] = (
+            frozenset(
+                cls.objects.using(environment.db_alias)
+                .filter(active=True, trigger__in=WRITE_TRIGGERS)
+                .values_list('model_name', flat=True)))
 
     def _update_registry(self):
         """≙ ``_update_registry`` (``:673-679``): rehace lo que decidió
         :meth:`_register_hook` y avisa a los demás procesos.
 
-        Los receptores de señal consultan las reglas en cada evento y no
-        necesitan reinstalarse; el envoltorio del recálculo sí depende del
-        conjunto de modelos que el gancho guarda en el registro.
+        Divergencia de mecanismo: la fuente marca ``registry_invalidated``, y
+        cada proceso reconstruye el registro entero para volver a parchear.
+        Aquí sólo cambia un conjunto de nombres, así que basta la caché:
+        ``clear_cache()`` vacía la familia ``default`` (también el conjunto) y
+        se anuncia por la señalización de cachés; cada proceso lo vuelve a
+        llenar en su siguiente escritura. Marcar ``registry_invalidated``
+        reconstruía el registro en la primera petición siguiente, también en
+        una de sólo lectura (F2 de ``6ca06d18``).
         """
         registry = env().registry
         if registry.ready:
+            registry.clear_cache()
             type(self)._register_hook()
-            registry.registry_invalidated = True
 
     def _check_action_server_model(self):
         """≙ ``_check_action_server_model`` (constrains model_id,
