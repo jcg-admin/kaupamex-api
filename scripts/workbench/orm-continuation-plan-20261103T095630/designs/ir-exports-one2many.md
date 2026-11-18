@@ -54,3 +54,33 @@ mismo con `ir.actions.server.child_ids`.
 3. las líneas originales siguen colgando de la original.
 
 Anulación: con `copy=False` en `export_fields` cae exactamente el caso 2.
+
+## Ejecución (2026-11-18)
+
+- `IrExports` y `IrExportsLine` (`src/addons/base/models/ir_exports.py`)
+  llevan `_name`, `_description` y `_order` de la fuente;
+  `IrExports.export_fields` es `fields.One2many('ir.exports.line',
+  'export_id', string='Export ID', copy=True)` ≙
+  `odoo19c: odoo/addons/base/models/ir_exports.py:14`;
+  `IrExportsLine.export_id` ≙ `odoo19c: odoo/addons/base/models/ir_exports.py:23`.
+- **Lo que la decisión no previó.** Declarar `_name` activa la inyección de
+  columnas de auditoría que ya existe (`_log_access`, como en la fuente):
+  `ir.exports.line` gana `create_date`, `create_uid`, `write_date` y
+  `write_uid`. Es fiel —la fuente las da a todo modelo con `_log_access`—
+  y entra en la misma migración, con el default de
+  `0110_log_access_auto_injection` para las filas existentes.
+- Migración `0119_ir_exports_lines_copied`: el renombre y el `AlterField`
+  van en `SeparateDatabaseAndState` (sólo estado). El autodetector proponía
+  borrar y recrear la columna, y un `RenameField` suelto la renombraba dos
+  veces; `sqlmigrate` confirma que sólo se añaden las cuatro columnas.
+- Pruebas: `tests/unit/base/test_ir_exports.py`
+  (`test_the_class_attributes_are_the_source_ones`,
+  `test_copying_an_export_copies_its_lines`,
+  `test_the_original_keeps_its_lines`); consumidor
+  `tests/unit/orm/test_copy_universality.py` a `export_id`.
+- Anulación: `copy=False` en `export_fields` hace caer exactamente
+  `test_copying_an_export_copies_its_lines` (1 de 7).
+- Consumidores derivados
+  (`grep -rlE "IrExports|ir\.exports|ir_exports|export_fields|namelist|controllers\.export|web/export" tests/`,
+  más los censos de cargador y alta): 60 passed. Ningún dato XML o CSV
+  carga `ir.exports`.
