@@ -118,15 +118,20 @@ import time
 import unicodedata
 from contextvars import ContextVar
 
-from django.db import DEFAULT_DB_ALIAS, OperationalError, transaction
+from django.apps import apps
+from django.db import (DEFAULT_DB_ALIAS, IntegrityError, OperationalError,
+                       transaction)
+from django.http import JsonResponse
 from psycopg import errors as pg_errors
 
 import models
 
 from orm.environments import (activate_companies, set_current_uid,
                               transaction_scope)
+from orm.models import BaseModel, _database_error
 from orm.registry import registry_for_alias
 from orm.routers import domain_alias
+from tools.translate import _
 from tools.logging_context import (clear_correlation_id, close_postrollback,
                                    new_correlation_id, open_postrollback)
 
@@ -495,6 +500,33 @@ def _concurrency_failure(exc):
     return False
 
 
+def _integrity_error_model(exc):
+    """El modelo cuya tabla violó la restricción ≙ ``model.py:208-212``.
+
+    La fuente recorre el registro buscando ``_table == exc.diag.table_name``
+    y cae en ``env['base']``. Aquí ``base`` es abstracto y sin
+    ``_sql_error_to_message``: su papel lo cumple ``BaseModel``.
+    """
+    diag = getattr(_database_error(exc), 'diag', None)
+    table = getattr(diag, 'table_name', None)
+    for model in apps.get_models():
+        if (model._meta.db_table == table
+                and hasattr(model, '_sql_error_to_message')):
+            return model
+    return BaseModel
+
+
+def _integrity_error_response(exc):
+    """``ValidationError`` del ``IntegrityError`` ≙ ``model.py:207-214``,
+    respondido con el ``http_status`` 422 de ``UserError``
+    (``odoo19c: odoo/exceptions.py:15``, ``odoo/http.py:2534-2538``)."""
+    model = _integrity_error_model(exc)
+    message = _("The operation cannot be completed: %s",
+                model._sql_error_to_message(exc))
+    return JsonResponse({'detail': message,
+                         'codigo_error': 'VALIDATION_ERROR'}, status=422)
+
+
 class UnitOfWorkMiddleware:
     """Una unidad de trabajo por petición ≙ ``service.model.retrying``.
 
@@ -553,6 +585,8 @@ class UnitOfWorkMiddleware:
             except Exception as exc:
                 close_postrollback(token)
                 self._rolled_back(registry, alias, postrollback)
+                if isinstance(exc, IntegrityError):
+                    return _integrity_error_response(exc)
                 if not (isinstance(exc, OperationalError)
                         and self._may_retry(request, exc, attempt)):
                     raise
@@ -563,6 +597,9 @@ class UnitOfWorkMiddleware:
                 registry.signal_changes()
                 return response
             self._rolled_back(registry, alias, postrollback)
+            exc = request._unit_of_work_exception
+            if isinstance(exc, IntegrityError):
+                return _integrity_error_response(exc)
             if not self._may_retry(
                     request, request._unit_of_work_exception, attempt):
                 return response

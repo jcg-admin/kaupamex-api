@@ -8,6 +8,7 @@ vuelca, y la petición termina en ``commit`` + ``signal_changes()`` o en
 ``scripts/workbench/orm-continuation-plan-20261103T095630/designs/
 request-unit-of-work.md``.
 """
+import json
 import logging
 
 import pytest
@@ -25,7 +26,7 @@ from addons.authz_audit.audit import audit_authz_event
 from addons.authz_audit.models import AuthzEvent
 from addons.base.models.ir_http import UnitOfWorkMiddleware
 from orm import registry as orm_registry
-from orm.environments import Environment
+from orm.environments import Environment, Transaction
 from orm.utils import SUPERUSER_ID
 from tools.logging_handlers import DatabaseLogHandler
 
@@ -46,7 +47,15 @@ def _failing_chain_view(request):
     raise ChainFailure('deshacer')
 
 
-urlpatterns = [path('probe/fails', _failing_chain_view)]
+def _integrity_view(request):
+    with Environment('default', SUPERUSER_ID, {}) as env:
+        env['test_orm.category'].create({'name': 'verde', 'color': -1})
+        env.flush_all()
+    return HttpResponse('ok')
+
+
+urlpatterns = [path('probe/fails', _failing_chain_view),
+               path('probe/integrity', _integrity_view)]
 
 
 @pytest.fixture
@@ -201,3 +210,73 @@ def test_the_error_log_survives_the_rollback():
     with pytest.raises(ChainFailure):
         _serve(view)
     assert IrLogging.objects.filter(message='uow-probe-error').count() == 1
+
+
+Category = apps.get_model('test_orm', 'TestOrmCategory')
+
+#: El mensaje que la fuente antepone (``odoo19c: odoo/service/model.py:213``).
+CANNOT_COMPLETE = 'The operation cannot be completed: '
+
+
+def _create_bad_color(env):
+    """Viola ``CHECK(color >= 0)`` de ``test_orm.category``."""
+    return env['test_orm.category'].create({'name': 'roja', 'color': -1})
+
+
+def test_an_integrity_error_of_the_view_answers_422(calls):
+    """≙ ``model.py:207-214`` + ``http.py:2534-2538``: se revierte, no se
+    reintenta, y el ``ValidationError`` sale con el ``http_status`` 422."""
+    def view(request):
+        with Environment('default', SUPERUSER_ID, {}) as env:
+            _create_bad_color(env)
+            env.flush_all()
+        return HttpResponse('ok')
+
+    response = _serve(view)
+    assert response.status_code == 422
+    body = json.loads(response.content)
+    assert body['detail'] == (CANNOT_COMPLETE
+                              + 'The color code must be positive!')
+    assert body['codigo_error'] == 'VALIDATION_ERROR'
+    assert calls == ['check_signaling', 'reset_changes']
+
+
+def test_an_integrity_error_of_the_final_flush_answers_422(calls, monkeypatch):
+    """El volcado posterior a la vista (``model.py:188-190``) está dentro
+    del mismo ``try``: su ``IntegrityError`` se traduce igual.
+
+    El volcado se sustituye por uno que inserta una fila que viola la
+    restricción: un ``write`` de este ORM ejecuta en el acto, así que una
+    escritura en la vista fallaría dentro de ella y no en el volcado.
+    """
+    flushed = []
+
+    def violating_flush(self):
+        flushed.append(True)
+        Category.objects.create(name='roja', color=-1)
+
+    monkeypatch.setattr(Transaction, 'flush', violating_flush)
+
+    def view(request):
+        return HttpResponse('ok')
+
+    response = _serve(view)
+    assert flushed == [True]
+    assert response.status_code == 422
+    assert json.loads(response.content)['detail'] == (
+        CANNOT_COMPLETE + 'The color code must be positive!')
+    assert calls == ['check_signaling', 'reset_changes']
+
+
+@override_settings(
+    ROOT_URLCONF=__name__,
+    MIDDLEWARE=['addons.base.models.ir_http.UnitOfWorkMiddleware'])
+def test_through_the_real_handler_an_integrity_error_answers_422(calls):
+    """En la cadena de Django el ``IntegrityError`` llega anotado por
+    ``process_exception`` y la respuesta del manejador ya es un 500: la
+    unidad la sustituye por el 422 de la fuente."""
+    client = Client(raise_request_exception=False)
+    response = client.get('/probe/integrity')
+    assert response.status_code == 422
+    assert json.loads(response.content)['detail'].startswith(CANNOT_COMPLETE)
+    assert calls == ['check_signaling', 'reset_changes']
