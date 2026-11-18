@@ -10,11 +10,13 @@ Portación fiel de ``account_payment.py`` (Odoo 18/19). Campos núcleo:
 from decimal import Decimal
 
 from django.conf import settings
+import api
 import fields
 import models
+from addons.base.models import IrSequence, TimeStampedModel
 
 
-class AccountPayment(models.Model):
+class AccountPayment(models.BaseModel, TimeStampedModel):
     """``account.payment`` — registro de un pago entrante o saliente."""
 
     #: Atributos de clase de ``account.payment``, verbatim
@@ -40,6 +42,14 @@ class AccountPayment(models.Model):
         ('rejected', 'Rechazado'),
     ]
 
+    #: ≙ ``name`` (``odoo19c: addons/account/models/account_payment.py:15``),
+    #: el número del pago; lo cita ``_order``.
+    name = fields.Char(string="Number", compute='_compute_name', store=True,
+                       max_length=255, null=True, blank=True)
+    #: ≙ ``date`` (``odoo19c: addons/account/models/account_payment.py:16``);
+    #: la cita ``_order``.
+    date = fields.Date(default=fields.Date.context_today, required=True,
+                       tracking=True)
     amount = fields.Monetary(
         max_digits=16,
         decimal_places=2,
@@ -108,6 +118,23 @@ class AccountPayment(models.Model):
         ordering = ['-id']
         verbose_name = 'Pago'
         verbose_name_plural = 'Pagos'
+
+    @api.depends('state')
+    def _compute_name(self):
+        """≙ ``_compute_name``
+        (``odoo19c: addons/account/models/account_payment.py:414``): el
+        número se toma de la secuencia ``account.payment`` cuando el pago ya
+        está en proceso o pagado, y una sola vez.
+        """
+        # pendiente: la rama ``payment.move_id.name`` (:417-419) y la
+        # dependencia ``move_id.name`` (:414) -- el pago no tiene aquí
+        # ``move_id``.
+        for payment in self:
+            if (payment.id and not payment.name
+                    and payment.state in ('in_process', 'paid')):
+                payment.name = IrSequence.next_by_code(
+                    'account.payment', company=payment.company,
+                    sequence_date=payment.date)
 
     def __str__(self) -> str:
         return (

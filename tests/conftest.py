@@ -53,7 +53,8 @@ from addons.website_sale.models.website import CRON_SEND_ABANDONED_CART_EMAIL
 from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
 from tests.fixtures import reference_tree
 from django.apps import apps as django_apps
-from addons.account.data import seed_manual_payment_methods
+from addons.account.data import (seed_manual_payment_methods,
+                                 seed_payment_sequence)
 from addons.base.data.res_users_data import public_user_seed
 from addons.base.data.res_users_data import seed as root_user_seed
 from addons.base.data.report_paperformat_data import seed as paperformats_seed
@@ -408,6 +409,12 @@ def _manual_payment_methods_seed():
     seed_manual_payment_methods(django_apps, DEFAULT_DB_ALIAS)
 
 
+def _payment_sequence_seed():
+    """Re-aplica ``account/0048``: la secuencia ``account.payment`` de la
+    que sale el número de un pago (``_compute_name``)."""
+    seed_payment_sequence(django_apps, DEFAULT_DB_ALIAS)
+
+
 def _crons_seed():
     """Re-aplica las siete siembras de cron. Idempotente por clave natural."""
     for spec in _CRON_SPECS:
@@ -427,6 +434,7 @@ _SEEDERS = (
     totp_params_seed,           # authz_totp/0001 + 0002
     mail_subtypes_seed,         # mail/0002
     _manual_payment_methods_seed,  # account/0042 (métodos manuales)
+    _payment_sequence_seed,     # account/0048 (secuencia de pagos)
     geo_providers_seed,         # base_geolocalize/0002
     install_request_template_seed,  # base_install_request/0002
     departure_reasons_seed,     # hr/0003 (3 motivos de baja maestros)
