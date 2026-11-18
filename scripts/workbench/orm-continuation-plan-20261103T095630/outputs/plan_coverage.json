@@ -5,8 +5,8 @@
  "open_tasks": 71,
  "frontier": [
   {
-   "id": "orm-fk-delete-policy-contract-0515",
-   "task": "TASK-API-0515"
+   "id": "log-access-user-columns-0485",
+   "task": "TASK-API-0485"
   }
  ],
  "blocked": [
@@ -21,9 +21,9 @@
    "reason": "state failed"
   },
   {
-   "id": "log-access-user-columns-0485",
-   "task": "TASK-API-0485",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
+   "id": "orm-fk-delete-policy-contract-0515",
+   "task": "TASK-API-0515",
+   "reason": "state failed"
   },
   {
    "id": "analytic-account-class-attributes-0485",
@@ -233,11 +233,6 @@
   {
    "id": "orm-float-monetary-convert-to-cache-0485",
    "task": "TASK-API-0485",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
-  },
-  {
-   "id": "account-journal-mixins-0515",
-   "task": "TASK-API-0515",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   }
  ],
@@ -567,7 +562,8 @@
   "account-payment-method-line-field-0515",
   "account-payment-method-line-related-0515",
   "account-payment-method-defaults-0515",
-  "account-journal-payment-method-lines-0515"
+  "account-journal-payment-method-lines-0515",
+  "account-journal-mixins-0515"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
