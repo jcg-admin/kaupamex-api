@@ -93,6 +93,56 @@ class AccountPayment(models.BaseModel, TimeStampedModel):
         related_name='account_payments',
         help_text='Cliente o proveedor (Odoo partner_id).',
     )
+    #: ≙ ``payment_method_line_id``
+    #: (``odoo19c: addons/account/models/account_payment.py:74``):
+    #: calculado, almacenado y editable.
+    payment_method_line_id = fields.Many2one(
+        'account.AccountPaymentMethodLine',
+        string='Payment Method',
+        readonly=False, store=True, copy=False,
+        compute='_compute_payment_method_line_id',
+        domain="[('id', 'in', available_payment_method_line_ids)]",
+        null=True, blank=True,
+        related_name='payments',
+        db_column='payment_method_line_id',
+        help_text=(
+            'Manual: Pay or Get paid by any method outside of Odoo (Odoo '
+            'payment_method_line_id).'
+        ),
+    )
+    #: ≙ ``available_payment_method_line_ids`` (``:85``): calculado sin
+    #: ``store`` → sin columna ni tabla intermedia.
+    available_payment_method_line_ids = fields.Many2many(
+        'account.AccountPaymentMethodLine',
+        compute='_compute_payment_method_line_fields',
+        related_name='+',
+    )
+    #: ≙ ``payment_method_id`` (``:87``): relacionado almacenado.
+    payment_method_id = fields.Many2one(
+        'account.AccountPaymentMethod',
+        related='payment_method_line_id.payment_method',
+        string="Method",
+        tracking=True,
+        store=True,
+        null=True, blank=True,
+        related_name='+',
+        db_column='payment_method_id',
+    )
+    #: ≙ ``outstanding_account_id`` (``:123``): calculado almacenado.
+    outstanding_account_id = fields.Many2one(
+        'account.AccountAccount',
+        string="Outstanding Account",
+        store=True,
+        index='btree_not_null',
+        compute='_compute_outstanding_account_id',
+        check_company=True,
+        null=True, blank=True,
+        related_name='+',
+        db_column='outstanding_account_id',
+    )
+    #: ≙ ``payment_method_code`` (``:176``): relacionado sin columna.
+    payment_method_code = fields.Char(
+        related='payment_method_line_id.code')
     currency = fields.Many2one(
         'base.ResCurrency',
         on_delete=models.SET_NULL,
@@ -140,6 +190,71 @@ class AccountPayment(models.BaseModel, TimeStampedModel):
                 payment.name = IrSequence.next_by_code(
                     'account.payment', company=payment.company,
                     sequence_date=payment.date)
+
+    @api.depends('available_payment_method_line_ids')
+    def _compute_payment_method_line_id(self):
+        """≙ ``_compute_payment_method_line_id``
+        (``odoo19c: addons/account/models/account_payment.py:565``).
+
+        This field is not computed in '_compute_payment_method_line_fields'
+        because it's a stored editable one.
+        """
+        for pay in self:
+            available_payment_method_lines = (
+                pay.available_payment_method_line_ids)
+            # ``res.partner`` no es aquí un recordset: sin partner no hay
+            # preferida que leer, donde la fuente lee el vacío.
+            partner = pay.partner
+            inbound_payment_method = (
+                partner.property_inbound_payment_method_line_id
+                if partner else None)
+            outbound_payment_method = (
+                partner.property_outbound_payment_method_line_id
+                if partner else None)
+            available_ids = available_payment_method_lines.ids
+            if (pay.payment_type == 'inbound' and inbound_payment_method
+                    and inbound_payment_method.id in available_ids):
+                pay.payment_method_line_id = inbound_payment_method
+            elif (pay.payment_type == 'outbound' and outbound_payment_method
+                    and outbound_payment_method.id in available_ids):
+                pay.payment_method_line_id = outbound_payment_method
+            elif pay.payment_method_line_id.id in available_ids:
+                pay.payment_method_line_id = pay.payment_method_line_id
+            elif available_payment_method_lines:
+                pay.payment_method_line_id = (
+                    available_payment_method_lines[0]._origin)
+            else:
+                pay.payment_method_line_id = None
+
+    @api.depends('payment_type', 'journal', 'currency')
+    def _compute_payment_method_line_fields(self):
+        """≙ ``_compute_payment_method_line_fields``
+        (``odoo19c: addons/account/models/account_payment.py:585``)."""
+        for pay in self:
+            pay.available_payment_method_line_ids = (
+                pay.journal._get_available_payment_method_lines(
+                    pay.payment_type))
+            to_exclude = pay._get_payment_method_codes_to_exclude()
+            if to_exclude:
+                pay.available_payment_method_line_ids = (
+                    pay.available_payment_method_line_ids.filtered(
+                        lambda x: x.code not in to_exclude))
+
+    def _get_payment_method_codes_to_exclude(self):
+        """≙ ``_get_payment_method_codes_to_exclude``
+        (``odoo19c: addons/account/models/account_payment.py:610``)."""
+        # can be overriden to exclude payment methods based on the payment
+        # characteristics
+        self.ensure_one()
+        return []
+
+    @api.depends('payment_method_line_id')
+    def _compute_outstanding_account_id(self):
+        """≙ ``_compute_outstanding_account_id``
+        (``odoo19c: addons/account/models/account_payment.py:620``)."""
+        for pay in self:
+            pay.outstanding_account_id = (
+                pay.payment_method_line_id.payment_account)
 
     def __str__(self) -> str:
         return (
