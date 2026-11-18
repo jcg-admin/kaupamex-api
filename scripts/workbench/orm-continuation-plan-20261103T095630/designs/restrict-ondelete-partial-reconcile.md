@@ -42,9 +42,16 @@ Adoptar `BaseModel` en `account.move` y `account.move.line` es el cambio
 más ancho de la sesión. Se hace en pasos que se verifican por separado:
 
 1. **C1 — `AccountPartialReconcile` y `AccountFullReconcile` adoptan
-   `BaseModel`**; `unlink` de cada uno con el cuerpo de su
-   `delete_and_update_matching`, que pasa a llamar a `unlink`. Las tres
-   divergencias declaradas siguen declaradas en el archivo.
+   `BaseModel`**; `unlink` de cada uno con el orden de la fuente
+   (`odoo19c: addons/account/models/account_partial_reconcile.py:105` y
+   `odoo19c: addons/account/models/account_full_reconcile.py:47`).
+   `delete_and_update_matching` se retira en los dos modelos: no existe en
+   la fuente y sus dos únicos llamadores eran
+   `tests/unit/account/test_account_reconcile.py`, que pasan a `unlink`.
+   Corrección medida contra la fuente: `AccountPartialReconcile.unlink`
+   borra la conciliación total siempre (`full_to_unlink.unlink()`), no
+   sólo cuando queda sin parciales, como hacía el método retirado. Las
+   tres divergencias declaradas siguen declaradas en el archivo.
 2. **C2 — `AccountMoveLine` adopta `BaseModel`**: `remove_move_reconcile` y
    `unlink` (los dos primeros pasos de la fuente y `super().unlink()`; los
    bloqueos fiscales y el registro quedan `pendiente:` con su cita).
@@ -68,6 +75,9 @@ permite.
 | `line.unlink()` con un parcial | el parcial desaparece y el `matching_number` del otro apunte se recalcula |
 | `move.unlink()` con líneas conciliadas | asiento, líneas y parciales desaparecen |
 | `partial.unlink()` del único parcial de una conciliación total | el full desaparece |
+| `partial.unlink()` de uno de dos parciales de una conciliación total | el full desaparece; los apuntes del parcial que queda toman `P<n>` |
+| `full.unlink()` | el parcial sigue y los apuntes vuelven a `P<n>` |
+| `unlink()` de un conjunto vacío de parciales | `True`, sin consultas de borrado |
 
 Más las dos filas del contrato. Anulaciones: sin `remove_move_reconcile` en
 `AccountMoveLine.unlink` cae el segundo; sin él en `AccountMove.unlink` cae
