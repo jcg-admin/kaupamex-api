@@ -135,3 +135,4 @@ f2-fd4afa56	full-batch	fd4afa56	-	0	13864	0	0	8	-	all green	verde	39 of 315 refe
 f2-4bc8942f	full-batch	4bc8942f	-	0	13870	0	0	8	-	all green	verde	39 of 315 reference-marked tests skipped by the tree's own markers	f2-4bc8942f.log:147556fef41616c774d3723cd373a4f236370a67094527d3d481242d59977511
 f2-8b730e74	full-batch	8b730e74	-	0	13875	0	0	8	-	all green	verde	39 of 315 reference-marked tests skipped by the tree's own markers	f2-8b730e74.log:fbc10e75c1e3596fbd28fb43471e163cb1b1f17364d94a19c40535d30afabb55
 f2-bc8c6a0d	full-batch	bc8c6a0d	-	0	13894	0	0	8	-	all green	verde	39 of 315 reference-marked tests skipped by the tree's own markers	f2-bc8c6a0d.log:e619ee56cfc71aead14d2c9f58c8426d33963f6ab7434ec356d06f70ba991931
+f2-5dfd5f86	full-batch	5dfd5f86	-	0	13899	0	0	8	-	13899 passed, 66 skipped, 8 xfailed	verde	66 skips and 8 xfails are pre-existing tree markers; no failure	f2-5dfd5f86.log:cb7a2b2b8a6a3c87d7a98f7df11ce55878aef5027a063f7d6b098277ae195493

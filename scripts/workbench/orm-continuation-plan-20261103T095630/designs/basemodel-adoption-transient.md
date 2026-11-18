@@ -45,9 +45,12 @@ duplicaría la herencia que la fuente declara una vez.
 - Cada app con un transitorio concreto lleva su CSV fiel de la fuente y lo
   declara en `data`: `base_import_module` y `base_install_request` (no tienen
   `security/`); las filas de `account` ya existen.
-- `base` aquí no carga un CSV de acceso (`src/addons/base/security/` no
-  tiene ninguno). Sus dos asistentes quedan sujetos a lo que `check_access`
-  haga sin filas: se mide en el RED antes de decidir.
+- `base` no carga un CSV, pero declara las mismas dos filas en Python
+  (`src/addons/base/security/ir_model_access.py:466-479`:
+  `access.server.action.history.wizard` y
+  `access.base.enable.profiling.wizard`, `group_system`, `(1, 1, 1, 0)`),
+  idénticas a la fuente. Corrección del borrador de este diseño, que decía
+  que `base` no tenía filas: medido después de escribirlo.
 
 ## RED
 
@@ -65,5 +68,5 @@ duplicaría la herencia que la fuente declara una vez.
 
 - `account`, `base`: siguen en `PENDING` por sus otros modelos.
 - `SparseFieldsTest` no tiene `_name`: el trinquete no lo mide.
-- Si `base` sin CSV deniega a todo no-superusuario, la carga de las filas de
-  `base` es una unidad propia del programa (`base`, 143 filas), no ésta.
+- La carga de las demás filas de `base` (143 en la fuente) es una unidad
+  propia del programa, no ésta.
