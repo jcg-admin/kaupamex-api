@@ -5,7 +5,7 @@
  "open_tasks": 71,
  "frontier": [
   {
-   "id": "log-access-user-columns-0485",
+   "id": "creation-dependency-classes-0485",
    "task": "TASK-API-0485"
   }
  ],
@@ -24,21 +24,6 @@
    "id": "orm-fk-delete-policy-contract-0515",
    "task": "TASK-API-0515",
    "reason": "state failed"
-  },
-  {
-   "id": "analytic-account-class-attributes-0485",
-   "task": "TASK-API-0485",
-   "reason": "waits for log-access-user-columns-0485"
-  },
-  {
-   "id": "orm-transaction-per-alias-0485",
-   "task": "TASK-API-0485",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
-  },
-  {
-   "id": "creation-dependency-classes-0485",
-   "task": "TASK-API-0485",
-   "reason": "waits for orm-transaction-per-alias-0485"
   },
   {
    "id": "sale-line-eager-amounts-0192",
@@ -507,6 +492,9 @@
   "base-company-init-paperformat-0515",
   "base-users-init-0515",
   "orm-init-alias-propagation-0515",
+  "log-access-user-columns-0485",
+  "analytic-account-class-attributes-0485",
+  "orm-transaction-per-alias-0485",
   "registry-cursor-unit-of-work-0485",
   "registry-caches-per-database-0485",
   "request-unit-of-work-0485",
