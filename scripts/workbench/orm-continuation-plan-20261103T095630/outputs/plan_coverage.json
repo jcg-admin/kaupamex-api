@@ -5,7 +5,7 @@
  "open_tasks": 71,
  "frontier": [
   {
-   "id": "request-unit-of-work-integrity-0485",
+   "id": "ir-exports-one2many-0485",
    "task": "TASK-API-0485"
   }
  ],
@@ -24,11 +24,6 @@
    "id": "orm-fk-delete-policy-contract-0515",
    "task": "TASK-API-0515",
    "reason": "state failed"
-  },
-  {
-   "id": "ir-exports-one2many-0485",
-   "task": "TASK-API-0485",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
    "id": "unlink-universality-0485",
@@ -470,6 +465,7 @@
   "registry-cursor-unit-of-work-0485",
   "registry-caches-per-database-0485",
   "request-unit-of-work-0485",
+  "request-unit-of-work-integrity-0485",
   "registry-new-signaling-0485",
   "bulk-delete-invalidation-0485",
   "public-user-seed-0485",
