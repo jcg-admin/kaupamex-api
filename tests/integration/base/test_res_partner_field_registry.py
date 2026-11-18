@@ -52,7 +52,7 @@ from addons.base.models.res_partner import ResPartner
 from addons.base_address_extended.models.res_city import ResCity
 from addons.base_address_extended.models.res_partner import AddressStructured
 from addons.base.models.res_country import ResCountry
-from orm.environments import context_scope
+from orm.environments import context_scope, sudo
 
 pytestmark = pytest.mark.integration
 
@@ -128,15 +128,20 @@ class TestTheOneToManyGuardSurvives:
             _company()._convert_fields_to_values(['no_existe_este_campo'])
 
     def test_the_field_without_a_column_goes_through(self, db):
+        # ``res.city`` es ``BaseModel``: sin ciudad, el valor es un recordset
+        # vacío. La fuente lo pasa por ``_convert_to_write`` y daría
+        # ``False``; ese paso espera a que ``res.partner`` sea ``BaseModel``
+        # (``designs/basemodel-adoption-res-city.md``).
         who = _company()
-        assert who._convert_fields_to_values(['city_id']) == {'city_id': None}
+        values = who._convert_fields_to_values(['city_id'])
+        assert list(values) == ['city_id'] and not values['city_id']
 
 
 class TestWritingTheFieldWithoutAColumn:
     """``city_id`` se lee y se escribe siempre — allá es una columna."""
 
     def test_it_reads_none_without_a_related_row(self, db):
-        assert _company().city_id is None
+        assert not _company().city_id
 
     def test_it_creates_the_related_row(self, db):
         who = _company()
@@ -146,11 +151,13 @@ class TestWritingTheFieldWithoutAColumn:
         # El inverso se despacha al guardar (``_mark_pending_inverse``).
         who.save()
 
-        assert who.city_id.name == 'Guadalajara'
-        assert (
-            AddressStructured.objects.get(partner=who).city_id.name
-            == 'Guadalajara'
-        )
+        # Leer ``res.city`` exige su ACL; la prueba mide la escritura.
+        with sudo():
+            assert who.city_id.name == 'Guadalajara'
+            assert (
+                AddressStructured.objects.get(partner=who).city_id.name
+                == 'Guadalajara'
+            )
 
     def test_it_overwrites_an_existing_related_row(self, db):
         who = _company()
@@ -160,7 +167,8 @@ class TestWritingTheFieldWithoutAColumn:
         who.save()
 
         row = AddressStructured.objects.get(partner=who)
-        assert row.city_id.name == 'Zapopan'
+        with sudo():
+            assert row.city_id.name == 'Zapopan'
         assert (
             row.street_name == 'Vallarta'
         ), 'la escritura de la ciudad pisó el resto de la fila RELATED'

@@ -53,7 +53,6 @@ PENDING = {
     'authz_totp',
     'auto_backup',
     'base',
-    'base_address_extended',
     'base_automation',
     'base_import_module',
     'base_install_request',

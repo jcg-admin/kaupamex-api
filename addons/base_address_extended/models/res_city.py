@@ -5,11 +5,13 @@ la
 clase se renombró ``City`` → ``ResCity``, sólo cosmético).
 """
 
+import api
 import fields
 import models
+from addons.base.models import TimeStampedModel
 
 
-class ResCity(models.RecordLoaderMixin, models.Model):
+class ResCity(models.BaseModel, TimeStampedModel):
     """``res.city`` — ciudad de un país.
 
     ``name`` (requerido), ``zipcode``, ``country`` FK (requerido), ``state`` FK
@@ -66,23 +68,20 @@ class ResCity(models.RecordLoaderMixin, models.Model):
         verbose_name = 'Ciudad'
         verbose_name_plural = 'Ciudades'
 
+    @api.depends('zipcode')
     def _compute_display_name(self):
-        """≙ ``_compute_display_name`` (``odoo19c: res_city.py:17-21``).
+        """≙ ``_compute_display_name``
+        (``odoo19c: addons/base_address_extended/models/res_city.py:17-21``).
 
         Conserva el nombre de la fuente, guion bajo incluido: allá es el
-        ``compute`` del campo ``display_name``, es decir superficie interna que
-        el ORM invoca. Quitarle el guion promovería a API pública un contrato
-        que la fuente nunca ofreció.
-
-        La fuente itera ``for city in self`` porque su ``self`` es un recordset
-        y asigna a ``city.display_name``; aquí ``self`` es una instancia y el
-        valor se **devuelve**, que es lo que ``__str__`` consume.
+        ``compute`` del campo ``display_name``, superficie interna que el ORM
+        invoca. Como en la fuente, asigna ``display_name`` por registro.
         """
-        self.display_name = label = (
-            self.name if not self.zipcode else f'{self.name} ({self.zipcode})'
-        )
-        return label
+        for city in self:
+            name = (city.name if not city.zipcode
+                    else f'{city.name} ({city.zipcode})')
+            city.display_name = name
 
     def __str__(self) -> str:
-        """El nombre visible — lo sirve :meth:`_compute_display_name`."""
-        return self._compute_display_name()
+        """El nombre visible: el ``display_name`` que calcula la fuente."""
+        return self.display_name

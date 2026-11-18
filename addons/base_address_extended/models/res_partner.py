@@ -139,7 +139,7 @@ class AddressStructured(models.RecordLoaderMixin, models.Model):
         Related de ``country_id.enforce_cities`` (Odoo): la política del país
         de la ciudad enlazada. ``False`` si no hay ciudad o país sin política.
         """
-        if self.city_id is None:
+        if not self.city_id:
             return False
         policy = getattr(self.city_id.country_id, 'address_policy', None)
         return bool(policy and policy.enforce_cities)
@@ -255,7 +255,7 @@ def _onchange_city_id(self):
     clave todavía no tiene nada guardado que limpiar.
     """
     city = self.city_id
-    if city is not None:
+    if city:
         self.city = city.name
         self.zip = city.zipcode
         self.state = city.state_id
@@ -279,7 +279,7 @@ def _onchange_country_id(self, previous):
     """
     previous()
     city = self.city_id
-    if city is None:
+    if not city:
         return
     if self.country is not None and city.country_id_id != self.country.pk:
         self.city_id = None

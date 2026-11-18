@@ -93,8 +93,10 @@ class TestCityIdSurface:
     """``city_id`` — columna de ``res.partner`` allá, propiedad aquí."""
 
     def test_reading_city_id_without_a_structured_row_gives_none(self):
+        # ``res.city`` es ``BaseModel``: el Many2one vacío es un recordset
+        # vacío, como en la fuente.
         partner = ResPartner.objects.create(name='Papelería El Lápiz')
-        assert partner.city_id is None
+        assert not partner.city_id
 
     def test_writing_city_id_creates_the_structured_row(self, guadalajara):
         partner = ResPartner.objects.create(name='Óptica La Luz')
@@ -152,7 +154,7 @@ class TestOnchangeCountryId:
 
         partner._onchange_country_id()
 
-        assert partner.city_id is None
+        assert not partner.city_id
 
     def test_a_city_of_the_same_country_is_kept(self, mexico, guadalajara):
         partner = ResPartner.objects.create(name='Librería Sor Juana')
@@ -261,15 +263,17 @@ class TestStreetOnPartner:
 class TestResCityDisplayName:
     """``_compute_display_name`` — ≙ ``res_city.py:17-21``."""
 
+    # El cómputo asigna ``display_name``, como en la fuente; no lo devuelve.
+
     def test_zipcode_is_appended_in_parentheses(self, guadalajara):
-        assert guadalajara._compute_display_name() == 'Guadalajara (44100)'
+        assert guadalajara.display_name == 'Guadalajara (44100)'
 
     def test_without_zipcode_only_the_name(self, mexico):
         city = ResCity.objects.create(name='Tepoztlán', country_id=mexico)
-        assert city._compute_display_name() == 'Tepoztlán'
+        assert city.display_name == 'Tepoztlán'
 
-    def test_str_delegates_to_the_compute(self, guadalajara):
-        assert str(guadalajara) == guadalajara._compute_display_name()
+    def test_str_reads_the_computed_display_name(self, guadalajara):
+        assert str(guadalajara) == 'Guadalajara (44100)'
 
 
 class TestCityIdIsTheSourceMany2one:
