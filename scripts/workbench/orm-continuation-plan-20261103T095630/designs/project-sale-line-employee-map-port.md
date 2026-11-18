@@ -192,7 +192,10 @@ Pruebas en `tests/unit/sale_timesheet/test_employee_map_display_cost.py`:
 | empleado sin calendario, en días | factor 1 |
 
 Anulaciones: sin la rama de días caen los casos 2 y 3; con el factor fijo
-en 1, el 2.
+en 1 caen también los dos (medido: el inverso divide por el mismo factor,
+así que el caso 3 depende de él tanto como el 2). Antes de H2 hizo falta
+el volcado de `Environment.execute_query` (`designs/execute-query-flush.md`):
+sin él `_read_group` leía `hours_per_day` sin calcular.
 
 *Métrica:* columnas y valores leídos tras `flush_all`.
 *Ciega a:* `groups=` (no se ejercita el acceso por campo) y los pasos 2-5

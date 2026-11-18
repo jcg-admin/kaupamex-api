@@ -69,14 +69,12 @@ además de su forma Django (``Meta.db_table`` / ``Meta.verbose_name``).
      - **portado** como ``property`` — ``related='employee_id.currency_id'``,
        y ``HrEmployee.currency`` ya es property en este árbol
        (``api: addons/hr/models/hr_employee.py``).
-   * - ``display_cost`` (:202)
-     - **BLOQUEADO** — su ``compute``/``inverse`` convierten el costo horario
-       a costo diario cuando ``env.company.timesheet_encode_uom_id`` es
-       ``uom.product_uom_day``: hace falta la compañía **ambiental** (sin
-       ``env`` aquí) y la fila semilla de UOM. La aritmética que sí es
-       independiente del entorno queda expuesta en
-       :func:`working_hours_per_calendar` / :func:`display_cost_for`, que el
-       llamador invoca con la unidad ya resuelta.
+   * - ``display_cost`` (:37)
+     - **portado** — ``Monetary`` sin columna, con ``_compute_display_cost``
+       e ``_inverse_display_cost``: con la empresa activa capturando en
+       ``uom.product_uom_day``, el costo se expresa por día con las horas
+       diarias del calendario del empleado. ``currency_field`` nombra la
+       propiedad ``cost_currency``; ``groups=`` se declara como en la fuente.
 
 .. list-table:: Métodos
    :header-rows: 1
@@ -93,16 +91,14 @@ además de su forma Django (``Meta.db_table`` / ``Meta.verbose_name``).
      - **portado** — ídem.
    * - ``_compute_existing_employee_ids`` (:211-218)
      - **portado** — ``property existing_employees``.
-   * - ``_get_working_hours_per_calendar`` (:249-264)
-     - **portado** — :func:`working_hours_per_calendar`, sin el ``_read_group``
-       del ORM de la fuente (agregación equivalente en Python sobre el
-       queryset). ``ResourceCalendar.hours_per_day`` ya es property aquí.
-   * - ``_compute_display_cost`` (
-       :266-276) / ``_inverse_display_cost`` (:278-286)
-     - **parcial declarado** — :func:`display_cost_for` /
-       :func:`cost_from_display_cost` llevan la aritmética; quién decide
-       ``is_uom_day`` es el llamador, porque la fuente lo lee de la compañía
-       ambiental.
+   * - ``_get_working_hours_per_calendar`` (:84-99)
+     - **portado** — método del modelo; agrupa ``hours_per_day`` (columna
+       almacenada de ``resource.calendar``) con ``_read_group``.
+   * - ``display_cost`` (:37), ``_compute_display_cost`` (:101-111) e
+       ``_inverse_display_cost`` (:113-121)
+     - **portados** — campo sin columna con su cómputo y su inverso; la
+       unidad de captura se lee de ``env.company``. El factor de horas
+       pasa por ``Decimal`` porque ``cost`` lo es.
    * - ``_domain_sale_line_id`` (:177-185)
      - **BLOQUEADO** — ``sale.order.line._sellable_lines_domain`` no existe en
        este árbol (0 hits); ``_domain_sale_line_service`` sí, portado por
@@ -140,7 +136,7 @@ from addons.sale.models import SaleOrderLine
 from orm.environments import env
 
 
-class ProjectSaleLineEmployeeMap(TimeStampedModel):
+class ProjectSaleLineEmployeeMap(models.BaseModel, TimeStampedModel):
     """``project.sale.line.employee.map`` — la tarifa de un empleado en un
     proyecto: contra qué línea de pedido se factura su tiempo y a qué costo.
     """
@@ -183,6 +179,13 @@ class ProjectSaleLineEmployeeMap(TimeStampedModel):
                   'empleado en los apuntes de este proyecto.',
         compute='_compute_cost', store=True, readonly=False,
     )
+    #: ≙ ``display_cost`` (:37): sin columna, calculado y con inverso.
+    #: ``currency_field`` nombra ``cost_currency``, la propiedad que aquí
+    #: hace de ``cost_currency_id`` (``related='employee_id.currency_id'``).
+    display_cost = fields.Monetary(
+        currency_field='cost_currency', compute='_compute_display_cost',
+        inverse='_inverse_display_cost', string='Hourly Cost',
+        groups='project.group_project_manager,hr.group_hr_user')
     is_cost_changed = fields.Boolean(
         default=False, verbose_name='Costo modificado a mano',
         help_text='Odoo is_cost_changed (compute, store).',
@@ -242,6 +245,63 @@ class ProjectSaleLineEmployeeMap(TimeStampedModel):
         self.is_cost_changed = bool(
             employee is not None and self.cost != employee.hourly_cost)
 
+    # -- costo en la unidad de captura (≙ :84-121) -------------------------
+
+    def _get_working_hours_per_calendar(self, is_uom_day=False):
+        """≙ ``_get_working_hours_per_calendar`` (:84-99) — ``{id de
+        calendario: horas por día}`` de los calendarios de los empleados;
+        vacío cuando la empresa no captura en días."""
+        resource_calendar_per_hours = {}
+
+        if not is_uom_day:
+            return resource_calendar_per_hours
+
+        read_group_data = self.env['resource.calendar']._read_group(
+            [('id', 'in', self.employee.resource_calendar.ids)],
+            ['hours_per_day'],
+            ['id:array_agg'],
+        )
+        for hours_per_day, ids in read_group_data:
+            for calendar_id in ids:
+                resource_calendar_per_hours[calendar_id] = hours_per_day
+
+        return resource_calendar_per_hours
+
+    # La fuente depende de ``employee_id.resource_calendar_id``; aquí el
+    # Many2one del empleado se llama ``resource_calendar``. ``cost`` es un
+    # ``Decimal`` y las horas un número: el factor pasa por ``Decimal``.
+    @api.depends_context('company')
+    @api.depends('cost', 'employee.resource_calendar')
+    def _compute_display_cost(self):
+        """≙ ``_compute_display_cost`` (:101-111)."""
+        is_uom_day = (self.env.ref('uom.product_uom_day')
+                      == self.env.company.timesheet_encode_uom_id)
+        resource_calendar_per_hours = self._get_working_hours_per_calendar(
+            is_uom_day)
+
+        for map_line in self:
+            if is_uom_day:
+                map_line.display_cost = map_line.cost * Decimal(str(
+                    resource_calendar_per_hours.get(
+                        map_line.employee.resource_calendar.id, 1)))
+            else:
+                map_line.display_cost = map_line.cost
+
+    def _inverse_display_cost(self):
+        """≙ ``_inverse_display_cost`` (:113-121)."""
+        is_uom_day = (self.env.ref('uom.product_uom_day')
+                      == self.env.company.timesheet_encode_uom_id)
+        resource_calendar_per_hours = self._get_working_hours_per_calendar(
+            is_uom_day)
+
+        for map_line in self:
+            if is_uom_day:
+                map_line.cost = map_line.display_cost / Decimal(str(
+                    resource_calendar_per_hours.get(
+                        map_line.employee.resource_calendar.id, 1)))
+            else:
+                map_line.cost = map_line.display_cost
+
     # -- related sin columna → property (≙ compute sin store) --------------
 
     @property
@@ -285,66 +345,6 @@ class ProjectSaleLineEmployeeMap(TimeStampedModel):
             update_project_timesheet(self)
 
 
-def working_hours_per_calendar(entries, is_uom_day=False):
-    """≙ ``_get_working_hours_per_calendar`` (:249-264).
-
-    Devuelve ``{id de calendario: horas por día}`` para los calendarios de los
-    empleados de ``entries``. Con ``is_uom_day`` falso devuelve un dict vacío,
-    exactamente como la fuente — no hay conversión que hacer.
-
-    Divergencia de mecanismo: la fuente agrupa con ``_read_group`` sobre
-    ``resource.calendar``; aquí ``hours_per_day`` es una **property** de
-    ``ResourceCalendar`` (``api: addons/resource/models/resource_calendar.py``),
-    no una columna, así que la agregación se hace en Python sobre el queryset.
-
-    Segunda medición, y explica el ``getattr``: ``hr.HrEmployee`` de este árbol
-    **no declara** ``resource_calendar`` — lo declara ``ResourceMixin``
-    (``api: addons/resource/models/resource_mixin.py:70``), que no está
-    aplicado al empleado (medido: 0 hits de ``resource_calendar`` en
-    ``addons/hr/models/hr_employee.py``). Mientras esa arista no exista, el
-    dict sale vacío y la conversión a costo diario cae al factor 1 — que es la
-    misma rama que toma la fuente cuando el empleado no tiene calendario.
-    """
-    if not is_uom_day:
-        return {}
-    hours_map = {}
-    for entry in entries:
-        employee = entry.employee if entry.employee_id else None
-        calendar = getattr(employee, 'resource_calendar', None) if employee else None
-        if calendar is not None and calendar.pk is not None:
-            hours_map[calendar.pk] = calendar.hours_per_day
-    return hours_map
-
-
-def display_cost_for(entry, is_uom_day=False, hours_per_calendar=None):
-    """≙ ``_compute_display_cost`` (:266-276) — el costo en la unidad de
-    captura.
-
-    Parcial declarado: ``is_uom_day`` lo decide el **llamador**. La fuente lo
-    deriva de ``env.ref('uom.product_uom_day') == env.company.timesheet_encode_uom_id``,
-    que exige compañía ambiental y la fila semilla de UOM; ninguna de las dos
-    está disponible desde el modelo en este árbol.
-    """
-    if not is_uom_day:
-        return entry.cost
-    hours_map = hours_per_calendar or working_hours_per_calendar([entry], True)
-    calendar = getattr(entry.employee, 'resource_calendar', None) if entry.employee_id else None
-    factor = hours_map.get(calendar.pk, 1) if calendar is not None else 1
-    return entry.cost * Decimal(str(factor))
-
-
-def cost_from_display_cost(entry, display_cost, is_uom_day=False,
-                           hours_per_calendar=None):
-    """≙ ``_inverse_display_cost`` (:278-286) — el camino inverso del
-    anterior, con la misma condición sobre ``is_uom_day``."""
-    if not is_uom_day:
-        return display_cost
-    hours_map = hours_per_calendar or working_hours_per_calendar([entry], True)
-    calendar = getattr(entry.employee, 'resource_calendar', None) if entry.employee_id else None
-    factor = hours_map.get(calendar.pk, 1) if calendar is not None else 1
-    return display_cost / Decimal(str(factor or 1))
-
-
 def update_project_timesheet(entry):
     """≙ ``_update_project_timesheet`` (:304-305).
 
@@ -364,8 +364,5 @@ def update_project_timesheet(entry):
 
 __all__ = [
     'ProjectSaleLineEmployeeMap',
-    'working_hours_per_calendar',
-    'display_cost_for',
-    'cost_from_display_cost',
     'update_project_timesheet',
 ]
