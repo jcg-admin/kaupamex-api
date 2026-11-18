@@ -1,0 +1,9 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.18, pytest-7.4.4, pluggy-1.6.0 -- /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/wt-f3-7adc0553/.venv/bin/python3
+django: version: 6.0.5, settings: config.settings.testing (from env)
+rootdir: /tmp/claude-0/-home-user/0390150a-c498-513f-9c46-273b863ccf3b/scratchpad/wt-f3-7adc0553
+configfile: pytest.ini
+plugins: Faker-40.20.0, xdist-3.6.1, django-4.7.0
+collecting ... collected 15 items
+
+tests/integration/company/test_multidb_isolation.py::TestN1DegenerationRealWrite::test_domain_write_without_any_company_alias_lands_in_default 
