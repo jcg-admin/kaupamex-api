@@ -498,8 +498,12 @@ class IrSequence(TimeStampedModel):
         el vacío tipado de este stack (:ref:`h-api-590`).
         """
         qs = cls.objects.filter(code=sequence_code, active=True)
-        qs = (qs.filter(company__in=[company, None]) if company
-              else qs.filter(company__isnull=True))
+        # ≙ ``('company_id', 'in', [company_id, False])`` (``:287``): la
+        # de la empresa o la global. ``company__in=[company, None]`` no
+        # casa con la columna nula, porque ``IN (…, NULL)`` nunca es cierto.
+        qs = (qs.filter(django_models.Q(company=company)
+                        | django_models.Q(company__isnull=True))
+              if company else qs.filter(company__isnull=True))
         secuencia = qs.order_by(
             django_models.F('company').desc(nulls_last=True), 'id').first()
         if secuencia is None:
