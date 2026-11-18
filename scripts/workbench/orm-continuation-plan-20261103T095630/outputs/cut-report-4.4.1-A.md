@@ -116,3 +116,21 @@ derivadas, no aceptación.
 *Métrica:* resumen de pytest de cada regresión derivada, con `-n 4` y
 `test_multidb_isolation` excluido.
 *Ciega a:* los directorios fuera del derivado y la F3.
+
+## Segundo reclamo del contenedor (2026-11-18T03:07Z)
+
+Durante la regresión derivada de C3 (`account.move` con `BaseModel` y los
+17 sitios convertidos, sin commitear) el contenedor se reclamó: `boot_id`
+pasó de `432be89e…` a `55781402…` (`uptime -s`: 03:07:45) y la espera
+terminó con salida 137.
+
+| Qué | Estado tras el reclamo |
+|---|---|
+| árbol de trabajo (10 archivos modificados de C3) | intacto |
+| `HEAD` | `5fe60113`, un commit por delante del remoto; publicado al volver |
+| scratchpad | intacto |
+| PostgreSQL | parado; arrancado con `ensure-postgres.sh`; `PREFLIGHT OK` |
+| regresión en curso | muerta al 98 % con 46 marcas `F` en la barra, sin resumen; relanzada entera |
+
+Las 46 `F` no se usan como resultado: sin el resumen no se sabe de qué
+clase son, que es justo lo que esa ejecución tenía que medir.
