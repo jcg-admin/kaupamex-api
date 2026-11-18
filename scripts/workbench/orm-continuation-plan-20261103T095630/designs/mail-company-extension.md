@@ -59,3 +59,26 @@ invocada desde un `MailConfig.ready()` nuevo (la excepción #4 de
 6. los dos colores tienen el valor por defecto de la fuente.
 
 Pruebas en `tests/unit/mail/test_mail_company_extension.py`.
+
+## Ejecución (2026-11-18)
+
+- `addons/mail/models/res_company.py`: `apply_mail_company_extensions`,
+  `_default_alias_domain_id` (`odoo19c: addons/mail/models/res_company.py:10-11`),
+  `_compute_bounce` (`odoo19c: addons/mail/models/res_company.py:35-43`),
+  `_compute_catchall` (`odoo19c: addons/mail/models/res_company.py:45-53`),
+  `_compute_email_formatted` (`odoo19c: addons/mail/models/res_company.py:55-62`)
+  y `_default_from_email`, el `related` de `default_from_email`
+  (`odoo19c: addons/mail/models/res_company.py:20-22`). Los invoca un
+  `MailConfig.ready()` nuevo.
+- La migración `0121_rescompany_mail_fields` añade `alias_domain_id`, los
+  dos colores y el índice parcial `WHERE alias_domain_id IS NOT NULL`
+  (`odoo19c: addons/mail/models/res_company.py:13-15`).
+  `makemigrations --check` no detecta cambios.
+- Pruebas en `tests/unit/mail/test_mail_company_extension.py`: 5.
+
+Anulaciones, cada una medida por separado:
+
+| Se retira | Caen |
+|---|---|
+| el `default` de `alias_domain_id` | `test_a_new_company_takes_the_first_domain` y `test_with_a_domain_the_addresses_come_from_it` (ésta asigna el dominio por el `default`) |
+| el orden partner → catchall de `email_formatted` | sólo `test_the_formatted_email_prefers_the_partner` |
