@@ -125,3 +125,12 @@ fallan antes) y `res.country` cargando un registro con su `xml_id`.
   contrato: todo modelo propio gestionado resuelve los cuatro métodos desde
   `RecordLoaderMixin` por MRO (salvo el `init` que declara
   `hr.employee.public`), y `init_models` sigue reconciliando `res.country`.
+- F2 de `207c7ec3` se detuvo en el propio censo: 23 modelos de más. Medido
+  importando todos los módulos de producto: **uno** es producto
+  (`account.AccountInvoiceReport`, en `addons/account/report/`, que no se
+  importa al cargar las apps y por eso faltó en el primer censo) y 22 son
+  sondas que declaran las pruebas. Se le da el mixin al primero; el censo
+  importa antes los `report` de cada addon y excluye los modelos de
+  `tests/`. Anulaciones: sin el mixin en el informe, el censo lo nombra a
+  él solo; sin la exclusión, `test_modified_engine.py` seguido del censo
+  falla con sus sondas (`base.EngineOwner`, …).
