@@ -238,10 +238,10 @@
   {
    "id": "account-payment-method-line-field-0515",
    "task": "TASK-API-0515",
-   "reason": "waits for account-journal-payment-method-lines-0515"
+   "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
-   "id": "account-journal-payment-method-lines-0515",
+   "id": "account-journal-mixins-0515",
    "task": "TASK-API-0515",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   }
@@ -570,7 +570,8 @@
   "purchase-line-track-qty-received-0122",
   "orm-new-record-stored-compute-0485",
   "account-payment-method-line-related-0515",
-  "account-payment-method-defaults-0515"
+  "account-payment-method-defaults-0515",
+  "account-journal-payment-method-lines-0515"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
