@@ -84,3 +84,41 @@ paraguas cumplido.
 
 Anulación: sacar `uom` de `PENDING` sin adoptarlo hace caer exactamente
 `test_every_named_model_is_a_basemodel[uom]` y el trinquete (2 de 15).
+
+## Corrección: «propio» se medía contra un solo árbol (2026-11-18T18:40:36)
+
+Señalado por el ejecutor: `auto_backup` y `helpdesk` figuraban como
+**propios** (`own-name`, sin contraparte), y la conclusión que saqué —que
+quizá no debían llevar `_name`— era falsa. Medido en el índice de
+`odoo-tools` (`git ls-files | grep __manifest__`):
+
+| app | contraparte | licencia |
+|---|---|---|
+| `auto_backup` | `18.x/app-odoo-18.0/app_auto_backup` (y `scripts/server-tools-18.0/auto_backup`, OCA) | LGPL-3 |
+| `helpdesk` | `odoo19e: helpdesk` (y `odoo18e: helpdesk`) | OEEL-1 |
+
+El propio código lo declaraba (`addons/auto_backup/models/db_backup.py`
+cita `app_auto_backup`; `addons/helpdesk/models/` cita
+`odoo19e: helpdesk/models/`).
+
+**Causa:** el censo (`probes/basemodel_adoption_census.py`) y las dos
+pasadas de clasificación buscaron la contraparte sólo en `odoo19c`. Es el
+sub-patrón A de `metrica-decide-la-conclusion.md` con el eje de la
+población: la referencia son los cuatro árboles de
+`scripts/reference_roots.py` y los repositorios de terceros vendorizados
+que la cabecera de cada puerto cita.
+
+**Regla que se aplica:** un modelo cuya contraparte existe en cualquier
+árbol de la referencia se porta tal cual la fuente, completo
+(`porte-completo-no-parcial.md`): `_name` de la fuente, sus atributos de
+clase, `BaseModel` y su ACL. La licencia cambia el mecanismo (copia para
+LGPL-3; reimplementación nativa fiel para OEEL-1), nunca la fidelidad.
+
+**Sucesor, bajo TASK-API-0397:**
+
+1. Re-medir la columna `bucket` del censo contra los cuatro alias y contra
+   la cabecera de procedencia de cada puerto, y re-clasificar las 61 filas
+   «propias».
+2. Una unidad por app re-clasificada; las primeras, `auto_backup`
+   (`db.backup`, `db.backup.details`) y `helpdesk` (el `_name` de la
+   fuente, no `support.ticket`).
