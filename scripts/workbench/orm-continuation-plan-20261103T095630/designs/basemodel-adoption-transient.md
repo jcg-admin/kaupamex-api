@@ -1,0 +1,69 @@
+# Adopción de `BaseModel`: los transitorios concretos
+
+Creado: 2026-11-18T15:31:59 (UTC). TASK-API-0397, hija de
+`basemodel-adoption-0397` (`basemodel-adoption-program.md`). Referencia:
+odoo-tools `abe4040ec1`, Odoo 19 Community.
+
+## El contrato de la fuente
+
+`class TransientModel(Model)` (`odoo19c: odoo/orm/models_transient.py:10`),
+y `Model` deriva de `BaseModel` (`odoo19c: odoo/orm/models.py:7049`). Un
+transitorio es un `BaseModel`: tiene recordset, `check_access` y sus filas de
+`ir.model.access.csv`.
+
+## Este árbol
+
+`TransientModel(TransactionClockSaveMixin, RecordLoaderMixin, Model)`
+(`src/orm/models_transient.py`): `Model` es el de Django, **no** `BaseModel`.
+Censo (`scratchpad/transient_census.py`, `apps.get_models()` concretos que
+derivan de `TransientModel`), medido 2026-11-18: **8** clases, ninguna
+`BaseModel`:
+
+| app | `_name` | ACL de la fuente |
+|---|---|---|
+| account | `account.financial.year.op` | `addons/account/security/ir.model.access.csv:122` (aquí `:101`) |
+| account | `account.setup.bank.manual.config` | `:123` (aquí `:102`) |
+| base | `base.enable.profiling.wizard` | `odoo/addons/base/security/ir.model.access.csv:144` |
+| base | `server.action.history.wizard` | `:126` |
+| base_import_module | `base.import.module` | `addons/base_import_module/security/ir.model.access.csv:2` |
+| base_install_request | `base.module.install.request` | `addons/base_install_request/security/ir.model.access.csv:2` |
+| base_install_request | `base.module.install.review` | `:3` |
+| base_sparse_field | (sin `_name`) `SparseFieldsTest` | — |
+
+*Métrica:* subclases concretas, no proxy, de `TransientModel` en el registro.
+*Ciega a:* los transitorios abstractos (los de `hr`, `hr_recruitment`,
+`hr_work_entry`): no tienen tabla ni entran al censo, pero heredan el cambio.
+
+## Decisión
+
+La adopción es **de la base**, no clase a clase: `TransientModel` pasa a
+derivar de `BaseModel`, como en la fuente. Cambiarlo en cada asistente
+duplicaría la herencia que la fuente declara una vez.
+
+- `class TransientModel(TransactionClockSaveMixin, BaseModel)`:
+  `RecordLoaderMixin` ya lo trae `BaseModel`.
+- Cada app con un transitorio concreto lleva su CSV fiel de la fuente y lo
+  declara en `data`: `base_import_module` y `base_install_request` (no tienen
+  `security/`); las filas de `account` ya existen.
+- `base` aquí no carga un CSV de acceso (`src/addons/base/security/` no
+  tiene ninguno). Sus dos asistentes quedan sujetos a lo que `check_access`
+  haga sin filas: se mide en el RED antes de decidir.
+
+## RED
+
+1. `issubclass(TransientModel, BaseModel)`.
+2. `test_basemodel_reach.py`: `base_import_module` y `base_install_request`
+   salen de `PENDING` y el trinquete lo exige.
+3. Por cada asistente con consumidores en `tests/`, la suite derivada
+   (`grep -rlE "base.import.module|base.module.install|server.action.history|enable.profiling|financial.year.op|setup.bank.manual"`)
+   sigue verde: si un consumidor usaba la API de Django donde el recordset
+   difiere, se porta la lectura de la fuente, no se envuelve.
+4. Un usuario sin el grupo de la fila CSV no crea `base.import.module`
+   (`base.group_system`, fila `:2`); con él, sí.
+
+## Lo que esta unidad no cierra
+
+- `account`, `base`: siguen en `PENDING` por sus otros modelos.
+- `SparseFieldsTest` no tiene `_name`: el trinquete no lo mide.
+- Si `base` sin CSV deniega a todo no-superusuario, la carga de las filas de
+  `base` es una unidad propia del programa (`base`, 143 filas), no ésta.
