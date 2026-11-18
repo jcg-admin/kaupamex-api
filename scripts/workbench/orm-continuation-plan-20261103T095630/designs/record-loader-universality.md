@@ -107,3 +107,21 @@ fallan antes) y `res.country` cargando un registro con su `xml_id`.
   modelo de la fuente. Lo que la prueba protege —`check_indexes` recorre un
   modelo de Django sin `BaseModel` por `model_field_registry`— sigue
   valiendo; la premisa pasa a `not issubclass(model, BaseModel)`.
+- F2 de `99de4abe` se detuvo en
+  `tests/unit/orm/test_adopt_schema_hooks.py::test_a_model_outside_the_loader_resolves_the_schema_hooks`:
+  su premisa —`res.country` no hereda `RecordLoaderMixin`— ya no tiene
+  miembros. Esa prueba documenta `adopt_schema_hooks`
+  (`src/orm/model_classes.py:608-648`, `designs/adopt-schema-hooks.md`), que
+  colgaba `_auto_init`, `_check_removed_columns`, `_add_sql_constraints` e
+  `init` en los modelos sin el mixin: la compensación de la universalidad
+  que esta unidad da por la MRO, como la fuente (`odoo19c:
+  odoo/orm/models.py:3152-3268`). Con el mixin en todo modelo propio la
+  función devuelve 0 siempre.
+
+  **Decisión: se retira** (`adopt_schema_hooks`, `ensure_schema_hooks`, su
+  receptor de `class_prepared` y la llamada de `src/addons/base/apps.py`).
+  Dejarla mantendría una segunda vía al mismo contrato; el censo de esta
+  unidad ya impide un modelo sin el mixin. Las pruebas conservan el
+  contrato: todo modelo propio gestionado resuelve los cuatro métodos desde
+  `RecordLoaderMixin` por MRO (salvo el `init` que declara
+  `hr.employee.public`), y `init_models` sigue reconciliando `res.country`.
