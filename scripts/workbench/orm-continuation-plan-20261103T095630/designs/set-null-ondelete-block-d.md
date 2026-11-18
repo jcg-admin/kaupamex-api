@@ -111,6 +111,23 @@ Ningún campo cambia de nulabilidad.
 | `stock.StockRule`.`warehouse` | `odoo19c: addons/stock/models/stock_rule.py:103` |
 | `stock.StockStorageCategory`.`company` | `odoo19c: addons/stock/models/stock_storage_category.py:22` |
 
+### Dos precisiones al aplicar (2026-11-18)
+
+- `product.ProductSupplierinfo.purchase_requisition_line` no se declara en
+  el modelo sino en `apply_purchase_requisition_product_extensions`
+  (`addons/purchase_requisition/models/product.py`), que lo añade con
+  `extend_model`; la fuente lo declara en
+  `odoo19c: addons/purchase_requisition/models/product.py:11`. Su prueba es
+  la fila del contrato, `tests/unit/orm/test_delete_policy_contract.py`.
+- El texto de ayuda de `stock.StockMove.scrap` citaba
+  `stock/models/stock_scrap.py:37` sin la raíz `addons/`; se corrige a
+  `odoo19c: addons/stock/models/stock_scrap.py:37` en el modelo y en la
+  migración.
+- El caso de comportamiento de `ResDeviceLog.user` ya existía en la prueba
+  de contrato como `xfail`; pasa a correr ahí y no se duplica. El archivo
+  nuevo lleva cuatro casos: informe, secuencia, tarifa de proveedor y lista
+  de materiales.
+
 ## Pruebas
 
 - `tests/unit/orm/test_delete_policy_contract.py`: las filas pasan a
