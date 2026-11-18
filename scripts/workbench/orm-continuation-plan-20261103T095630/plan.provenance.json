@@ -989,6 +989,13 @@
         "basemodel-adoption-uom-0397"
       ],
       "writtenAt": "2026-11-18T13:58:08Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-res-city-0397"
+      ],
+      "writtenAt": "2026-11-18T15:00:22Z"
     }
   ]
 }
