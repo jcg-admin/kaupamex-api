@@ -122,3 +122,35 @@ LGPL-3; reimplementación nativa fiel para OEEL-1), nunca la fidelidad.
 2. Una unidad por app re-clasificada; las primeras, `auto_backup`
    (`db.backup`, `db.backup.details`) y `helpdesk` (el `_name` de la
    fuente, no `support.ticket`).
+
+### Primera medición del sucesor (2026-11-18)
+
+`probes/basemodel_counterpart_census.py` →
+`outputs/basemodel-counterpart-census.tsv`, 193 filas no
+`reference-name` del censo:
+
+| bucket | `_name` en algún alias | cita de procedencia en el puerto | filas |
+|---|---|---|---|
+| `own-name` | no | sí | 4 |
+| `own-name` | no | no | 1 |
+| `no-name` | no | sí | 92 |
+| `no-name` | no | no | 96 |
+
+*Métrica:* `_name` literal en los `.py` de los cuatro alias, y citas
+(`odoo1[89][ce]:`, `app-odoo-*`, `server-tools-*`) en el módulo del puerto.
+*Ciega a:* si la cita nombra la contraparte o la menciona de pasada; eso se
+decide leyendo cada fila.
+
+Las cinco `own-name`:
+
+- `auto_backup` `db.backup`, `db.backup.details`: citan
+  `app_auto_backup` (18). Contraparte, no propio.
+- `helpdesk` `support.ticket`: cita `odoo19e:`/`odoo18e:`. Contraparte;
+  el `_name` de la fuente es otro, así que el porte es completo, no un
+  cambio de base.
+- `website` `settings.static.page`: cita `odoo19c:`; se lee la fila.
+- `stock` `return.request`: sin cita; se busca su contraparte por
+  conducta antes de declararlo propio.
+
+Ninguna fila «propia» se adopta ni se descarta hasta leer su cita. Las 92
+`no-name` con cita se re-leen contra las dos clasificaciones previas.
