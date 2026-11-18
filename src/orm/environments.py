@@ -1624,12 +1624,17 @@ class Environment(abc.Mapping):
     # --- consultas ---
 
     def execute_query(self, query):
-        """≙ ``Environment.execute_query`` (``:527``)."""
+        """≙ ``Environment.execute_query`` (``:527-535``) — *"The method
+        automatically flushes all the fields in the metadata of the
+        query"*: un calculado almacenado pendiente se vuelca antes de que la
+        consulta lea su columna."""
+        self.flush_query(query)
         return execute_query(query, using=self.db_alias)
 
     def execute_query_dict(self, query):
         """≙ ``Environment.execute_query_dict`` (``:537``) — filas como
-        dicts."""
+        dicts, con el mismo volcado previo que :meth:`execute_query`."""
+        self.flush_query(query)
         with self.cr.cursor() as cursor:
             decode_jsonb(cursor)
             cursor.execute(query.code, query.params)
@@ -2124,7 +2129,8 @@ def env():
 
 
 def execute_query(query, using=None):
-    """≙ ``Environment.execute_query`` (``odoo19c: odoo/orm/environments.py:527``).
+    """≙ ``Environment.execute_query``
+    (``odoo19c: odoo/orm/environments.py:527``).
 
     Ejecuta el ``SQL`` recibido y devuelve sus filas como lista de tuplas, o
     la lista vacía cuando la sentencia no devuelve tabla. Es la única pieza
@@ -2134,10 +2140,10 @@ def execute_query(query, using=None):
     **La divergencia, y es la que este archivo ya declara arriba:** allá es un
     método del ``Environment``, que ata cursor, usuario y contexto en un solo
     objeto; aquí el cursor es ``connections[alias]`` y el parámetro que lo
-    nombra es ``using``, el de Django. El ``flush_query`` de la fuente no tiene
-    contraparte porque el ORM de Django no difiere escrituras a un caché
-    propio: lo que se escribió ya está en la transacción cuando esta función
-    corre.
+    nombra es ``using``, el de Django. Esta función no vuelca: no tiene
+    entorno. El ``flush_query`` de la fuente lo hace
+    :meth:`Environment.execute_query` antes de llamarla, porque la cola de
+    cómputos sí difiere escrituras (``designs/execute-query-flush.md``).
 
     **Y el cuerpo ya no vive aquí.** Ejecutar el SQL bajó a
     ``tools.sql.execute_sql`` porque ``tools/query.py`` lo necesita y este
