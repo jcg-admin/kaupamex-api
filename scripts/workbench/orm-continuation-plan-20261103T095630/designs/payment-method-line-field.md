@@ -161,6 +161,25 @@ Unidad: `account-payment-method-line-field-0515` (TASK-API-0515), paso 4 de
    Migración de `account` (el número lo fija el paso al llegar; `0044`
    quedó tomado por el bloque D) con `ComputeStoredFields` para
    `payment_method_line_id`, `payment_method_id`, `outstanding_account_id`.
+   Migración `0050_payment_method_line_fields` de `account`.
+
+   **Requisito del ORM, medido al implementarlo: un Many2one hacia un
+   modelo de Django leído sobre el conjunto vacío.**
+   `_compute_outstanding_account_id` hace
+   `pay.payment_method_line_id.payment_account_id`, y con un diario sin
+   líneas `payment_method_line_id` es el conjunto vacío. Aquí esa lectura
+   lanzaba `KeyError: 'payment_account'` y después `DoesNotExist`:
+   `_forward_get` (`src/orm/models.py`) devolvía el vacío sólo cuando el
+   comodelo es `BaseModel` y dejaba el resto a Django, que busca una fila.
+   La fuente devuelve el valor nulo del campo
+   (`odoo19c: odoo/orm/fields.py:1659` — «null record -> return the null
+   value for this field»). Para un comodelo de Django el valor nulo de este
+   árbol es `None`. Prueba en
+   `tests/unit/orm/test_many2one_read_on_empty_recordset.py`: sobre el
+   conjunto vacío, un Many2one a un `BaseModel` es el vacío del comodelo y
+   uno a un modelo de Django es `None`, sin consultas. Anulación: sin la
+   rama cae el caso del modelo de Django.
+
 4. **`_check_payment_method_line_id`**.
 5. **`AccountPaymentMethodLine.unlink`** y, con él, `AccountJournal.unlink`
    deja de borrar líneas usadas.
