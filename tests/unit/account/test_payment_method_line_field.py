@@ -19,7 +19,8 @@ from django.db import connection
 
 from addons.account.data import seed_manual_payment_methods
 from addons.account.models import (
-    AccountAccount, AccountJournal, AccountPayment)
+    AccountAccount, AccountJournal, AccountPayment,
+    AccountPaymentMethodLine)
 from addons.base.models import ResCompany, ResPartner
 from exceptions import ValidationError
 from orm.environments import env, sudo
@@ -164,3 +165,49 @@ def test_codes_to_exclude_is_empty_and_for_one_record(manual, company):
     assert payment._get_payment_method_codes_to_exclude() == []
     with pytest.raises(ValueError):
         (payment + _payment(journal))._get_payment_method_codes_to_exclude()
+
+
+def _line_row(line_id):
+    env().flush_all()
+    return AccountPaymentMethodLine.objects.filter(pk=line_id).values_list(
+        'journal_id', flat=True).first()
+
+
+def test_unlink_of_a_used_line_only_breaks_its_journal(manual, company):
+    """≙ ``AccountPaymentMethodLine.unlink``
+    (``odoo19c: addons/account/models/account_payment_method.py:150``)."""
+    journal = _journal(company, 'PMB')
+    [line] = journal.inbound_payment_method_line_ids
+    payment = _payment(journal)
+    assert _stored(payment, 'payment_method_line_id') == (line.id,)
+
+    line.unlink()
+
+    assert AccountPaymentMethodLine.objects.filter(pk=line.id).exists()
+    assert _line_row(line.id) is None
+    assert _stored(payment, 'payment_method_line_id') == (line.id,)
+
+
+def test_unlink_of_an_unused_line_deletes_it(manual, company):
+    journal = _journal(company, 'PMC')
+    [line] = journal.outbound_payment_method_line_ids
+    line_id = line.id
+
+    line.unlink()
+
+    env().flush_all()
+    assert not AccountPaymentMethodLine.objects.filter(pk=line_id).exists()
+
+
+def test_unlink_splits_used_and_unused_lines(manual, company):
+    journal = _journal(company, 'PMD')
+    [used] = journal.inbound_payment_method_line_ids
+    [unused] = journal.outbound_payment_method_line_ids
+    _payment(journal)
+    used_id, unused_id = used.id, unused.id
+
+    (used + unused).unlink()
+
+    env().flush_all()
+    assert AccountPaymentMethodLine.objects.filter(pk=used_id).exists()
+    assert not AccountPaymentMethodLine.objects.filter(pk=unused_id).exists()

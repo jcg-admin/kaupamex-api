@@ -258,3 +258,23 @@ class AccountPaymentMethodLine(models.BaseModel, TimeStampedModel):
     def save(self, *args, **kwargs):
         self._compute_name()
         return super().save(*args, **kwargs)
+
+    def unlink(self):
+        """≙ ``unlink`` (``odoo19c: addons/account/models/
+        account_payment_method.py:150``).
+
+        Payment method lines which are used in a payment should not be
+        deleted from the database, only the link betweend them and the
+        journals must be broken.
+        """
+        unused_payment_method_lines = self
+        for line in self:
+            payment_count = self.env['account.payment'].sudo().search_count(
+                [('payment_method_line_id', '=', line.id)])
+            if payment_count > 0:
+                unused_payment_method_lines -= line
+
+        (self - unused_payment_method_lines).write({'journal': None})
+
+        return super(AccountPaymentMethodLine,
+                     unused_payment_method_lines).unlink()
