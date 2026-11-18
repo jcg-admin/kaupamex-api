@@ -66,16 +66,21 @@ class AccountPartialReconcile(models.BaseModel, TimeStampedModel):
     _name = 'account.partial.reconcile'
     _description = "Partial Reconcile"
 
+    #: Los nombres inversos son los de la fuente, y van cruzados:
+    #: ``matched_credit_ids`` es el One2many con inverso ``debit_move_id``
+    #: —los haberes casados con este debe— y ``matched_debit_ids`` el de
+    #: inverso ``credit_move_id``
+    #: (``odoo19c: addons/account/models/account_move_line.py:262-273``).
     debit_move = fields.Many2one(
         'account.AccountMoveLine',
         null=False, on_delete=models.CASCADE,
-        related_name='matched_debit_ids',
+        related_name='matched_credit_ids',
         help_text='Apunte del lado debe (Odoo debit_move_id, requerido).',
     )
     credit_move = fields.Many2one(
         'account.AccountMoveLine',
         null=False, on_delete=models.CASCADE,
-        related_name='matched_credit_ids',
+        related_name='matched_debit_ids',
         help_text='Apunte del lado haber (Odoo credit_move_id, requerido).',
     )
     full_reconcile = fields.Many2one(

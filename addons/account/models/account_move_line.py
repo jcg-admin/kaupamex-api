@@ -14,7 +14,8 @@ conciliación cuelga de los apuntes: ``account.partial.reconcile`` y
 donde escribir el resultado del algoritmo de agrupamiento
 (``AccountPartialReconcile._update_matching_number``). ``matched_debit_ids``/
 ``matched_credit_ids`` de la referencia son el reverso de las FK
-``debit_move_id``/``credit_move_id`` de ``account.partial.reconcile``
+``credit_move_id``/``debit_move_id`` de ``account.partial.reconcile``, en
+ese orden (``odoo19c: addons/account/models/account_move_line.py:262-273``)
 (``related_name`` en ese archivo, sin columna propia aquí — mismo patrón que
 ``Many2one``/reverse FK del resto del puerto). ``amount_residual`` /
 ``reconciled`` (booleano derivado) quedan DEFERIDOS: dependen de
@@ -32,7 +33,7 @@ from addons.analytic.models.analytic_mixin import AnalyticMixin
 from addons.product.models.product_supplierinfo import ProductSupplierinfo
 
 
-class AccountMoveLine(AnalyticMixin, models.Model):
+class AccountMoveLine(models.BaseModel, AnalyticMixin):
     """``account.move.line`` — línea (apunte) de un asiento contable."""
 
     _name = 'account.move.line'
@@ -427,6 +428,31 @@ class AccountMoveLine(AnalyticMixin, models.Model):
             '``_conditional_add_to_compute`` -- no hay recalculo selectivo de '
             'campo almacenado en este ORM. Sucesor: tarea #191.'
         )
+
+    def remove_move_reconcile(self):
+        """Undo a reconciliation -- ≙ ``remove_move_reconcile``
+        (``odoo19c: addons/account/models/account_move_line.py:3138``)."""
+        (self.matched_debit_ids + self.matched_credit_ids).unlink()
+
+    def unlink(self):
+        """≙ ``unlink``
+        (``odoo19c: addons/account/models/account_move_line.py:1984``).
+
+        Portado: el conjunto vacío, deshacer la conciliación y el borrado.
+        """
+        if not self:
+            return True
+
+        self.remove_move_reconcile()
+
+        # pendiente: _check_fiscal_lock_dates y _check_tax_lock_date
+        # (:1990-1996) -- account.move no tiene aquí fechas de bloqueo.
+        # pendiente: registro del borrado en el chatter del asiento
+        # (:1998-2011) -- account.move.line no declara campos con tracking.
+        # pendiente: _check_balanced y _sync_dynamic_lines como contexto
+        # (:2013-2016) -- aquí _check_balanced es una comprobación del
+        # asentado, no un gestor de contexto, y no hay líneas dinámicas.
+        return super().unlink()
 
     def save(self, *args, **kwargs):
         """Materializa los related y corre los compute que tienen sus insumos.

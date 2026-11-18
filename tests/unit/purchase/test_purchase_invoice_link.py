@@ -55,7 +55,7 @@ def test_the_bill_line_reaches_the_purchase_line(company):
     order, line = _order(company)
     move = _bill(company, line)
     [bill_line] = AccountMoveLine.objects.filter(move=move)
-    assert [bill.pk for bill in line.invoice_lines.all()] == [bill_line.pk]
+    assert line.invoice_lines.ids == [bill_line.pk]
     assert bill_line.purchase_order_id.id == order.id
     assert bill_line.is_downpayment is False
 
@@ -103,4 +103,4 @@ def test_deleting_the_purchase_line_empties_the_link(company):
     move = _bill(company, line)
     MODELS_BY_NAME['purchase.order.line'].objects.filter(pk=line.id).delete()
     [bill_line] = AccountMoveLine.objects.filter(move=move)
-    assert bill_line.purchase_line_id is None
+    assert not bill_line.purchase_line_id

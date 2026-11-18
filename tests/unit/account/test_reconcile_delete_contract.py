@@ -126,3 +126,73 @@ class TestFullUnlink:
         assert partial.full_reconcile_id is None
         assert debit.full_reconcile_id is None
         assert debit.matching_number == f'P{partial.pk}'
+
+
+class TestMoveLineUnlink:
+    def test_line_unlink_removes_its_partial(self, company, journal):
+        debit = _line(company, journal, debit=Decimal('25.00'))
+        credit = _line(company, journal, credit=Decimal('25.00'))
+        partial = AccountPartialReconcile.create_partial(
+            debit, credit, Decimal('25.00')
+        )
+        credit.refresh_from_db()
+        assert credit.matching_number == f'P{partial.pk}'
+
+        debit.unlink()
+
+        assert not _partials(partial.pk).exists()
+        assert not AccountMoveLine.objects.filter(pk=debit.pk).exists()
+        credit.refresh_from_db()
+        assert credit.matching_number == ''
+
+    def test_line_unlink_breaks_a_full_reconcile(self, company, journal):
+        debit = _line(company, journal, debit=Decimal('35.00'))
+        credit = _line(company, journal, credit=Decimal('35.00'))
+        partial = AccountPartialReconcile.create_partial(
+            debit, credit, Decimal('35.00')
+        )
+        full = AccountFullReconcile.create_from_partials(
+            _partials(partial.pk)
+        )
+
+        credit.unlink()
+
+        assert not AccountFullReconcile.objects.filter(pk=full.pk).exists()
+        debit.refresh_from_db()
+        assert debit.full_reconcile_id is None
+        assert debit.matching_number == ''
+
+    def test_remove_move_reconcile_keeps_the_lines(self, company, journal):
+        debit = _line(company, journal, debit=Decimal('45.00'))
+        credit = _line(company, journal, credit=Decimal('45.00'))
+        partial = AccountPartialReconcile.create_partial(
+            debit, credit, Decimal('45.00')
+        )
+
+        (debit + credit).remove_move_reconcile()
+
+        assert not _partials(partial.pk).exists()
+        assert AccountMoveLine.objects.filter(
+            pk__in=[debit.pk, credit.pk]).count() == 2
+
+    def test_empty_recordset_is_a_no_op(self):
+        assert env()['account.move.line'].browse().unlink() is True
+
+
+class TestMatchedNames:
+    """≙ ``matched_debit_ids`` (inverso ``credit_move_id``) y
+    ``matched_credit_ids`` (inverso ``debit_move_id``):
+    ``odoo19c: addons/account/models/account_move_line.py:262-273``."""
+
+    def test_the_debit_line_reads_its_matched_credits(self, company, journal):
+        debit = _line(company, journal, debit=Decimal('55.00'))
+        credit = _line(company, journal, credit=Decimal('55.00'))
+        partial = AccountPartialReconcile.create_partial(
+            debit, credit, Decimal('55.00')
+        )
+
+        assert debit.matched_credit_ids.ids == [partial.pk]
+        assert not debit.matched_debit_ids
+        assert credit.matched_debit_ids.ids == [partial.pk]
+        assert not credit.matched_credit_ids
+        assert debit.matched_credit_ids.credit_move == credit
