@@ -103,3 +103,16 @@ La copia es fiel, así que la prueba se corrigió para afirmar las seis.
 
 `makemigrations --check --dry-run`: «No changes detected»; el cambio de
 base no altera columnas.
+
+**Consumidor que cambió de conducta, medido por el subconjunto derivado.**
+La primera ejecución (36 archivos de `tests/` derivados por nombre de
+modelo y `TransientModel`) dio 1 fallo de 732:
+`test_setup_wizards.py::test_set_linked_journal_id_links_the_bank_account_to_the_journal`.
+Con el asistente en `BaseModel`, `linked_journal_id` (comodelo
+`account.journal`, ya `BaseModel`) se lee como recordset vacío, no como
+`None`, y `if selected_journal is None` tomaba la rama de «diario elegido».
+Se porta la condición de la fuente, `if not selected_journal:`
+(`odoo19c: addons/account/wizard/setup_wizards.py:177`), y la de
+`_onchange_new_journal_related_data` por la misma razón. Las demás
+comprobaciones `is None` del archivo leen `res.partner.bank` (todavía fuera
+de `BaseModel`) o el resultado de `.first()`, que sigue siendo `None`.
