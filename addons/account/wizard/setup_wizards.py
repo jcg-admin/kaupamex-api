@@ -86,11 +86,7 @@ from orm.models_transient import TransientModel
 from tools.translate import _
 
 
-class AccountFinancialYearOp(
-    models.DefaultGetMixin,
-    models.CheckCompanyMixin,
-    TransientModel,
-):
+class AccountFinancialYearOp(models.CheckCompanyMixin, TransientModel):
     """≙ ``account.financial.year.op`` — fecha de apertura y cierre fiscal
     de la empresa (``odoo19c: setup_wizards.py:10-91``)."""
 
@@ -399,7 +395,7 @@ class AccountSetupBankManualConfig(TransientModel):
     @classmethod
     def _onchange_new_journal_related_data(cls, journal):
         """≙ ``_onchange_new_journal_related_data`` (``:143-146``)."""
-        return journal.name if journal is not None else None
+        return journal.name if journal else None
 
     def _compute_linked_journal_id(self, journal_type='bank'):
         """≙ ``_compute_linked_journal_id`` (``:148-152``).
@@ -452,7 +448,7 @@ class AccountSetupBankManualConfig(TransientModel):
         nombre nuevo. Las dos ramas son las de la fuente.
         """
         selected_journal = self.linked_journal_id
-        if selected_journal is None:
+        if not selected_journal:
             code = AccountJournal._get_next_journal_default_code(
                 journal_type, self.company_id
             )

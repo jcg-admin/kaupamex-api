@@ -19,5 +19,12 @@
         'mail',
     ],
     'license': 'LGPL-3',
+    # Seguridad de la fuente
+    # (``odoo19c: addons/base_install_request/__manifest__.py:13-14``),
+    # por ``load_data`` en el ciclo de instalación: copia fiel del CSV.
+    # Las vistas no se cargan: este árbol no sirve el cliente web.
+    'data': [
+        'security/ir.model.access.csv',
+    ],
     'installable': True,
 }

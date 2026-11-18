@@ -54,8 +54,6 @@ PENDING = {
     'auto_backup',
     'base',
     'base_automation',
-    'base_import_module',
-    'base_install_request',
     'certificate',
     'crm',
     'fleet',

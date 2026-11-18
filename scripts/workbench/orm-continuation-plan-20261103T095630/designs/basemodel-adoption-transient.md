@@ -116,3 +116,16 @@ Se porta la condición de la fuente, `if not selected_journal:`
 `_onchange_new_journal_related_data` por la misma razón. Las demás
 comprobaciones `is None` del archivo leen `res.partner.bank` (todavía fuera
 de `BaseModel`) o el resultado de `.first()`, que sigue siendo `None`.
+
+Subconjunto derivado tras el arreglo: 732 passed, 2 xfailed.
+
+**Anulación.** Con `TransientModel` devuelto a
+`(TransactionClockSaveMixin, RecordLoaderMixin, Model)` caen 5 de 22:
+`test_a_transient_model_is_a_base_model`,
+`test_the_import_wizard_is_for_system_users_only` y las tres del trinquete
+(las dos apps y el conjunto `PENDING`). Sobreviven las dos de filas de ACL:
+miden la carga del CSV, no la base, y es correcto que no dependan de ella.
+La anulación del `data` de los manifiestos no se ejecutó: con `--reuse-db`
+las filas ya cargadas persisten, y discriminarla exige recrear una base
+(~53 min); queda cubierta por la base de F3 o por la anulación análoga de
+res.city, que mide el mismo cargador.
