@@ -100,3 +100,10 @@ fallan antes) y `res.country` cargando un registro con su `xml_id`.
   `base.ResCountry` y el caso de carga falla (2 de 2).
 - `makemigrations --check`: sin cambios. Suites de los archivos envueltos a
   mano: 388 passed.
+- F2 de `dbe18bb9` se detuvo en
+  `tests/integration/test_orm/test_index_method.py::test_a_django_model_without_basemodel_is_walked_by_its_fields`:
+  su premisa `not hasattr(model, '_fields')` dejó de valer porque
+  `RecordLoaderMixin` trae `FieldSqlMixin` y con él `_fields`, como todo
+  modelo de la fuente. Lo que la prueba protege —`check_indexes` recorre un
+  modelo de Django sin `BaseModel` por `model_field_registry`— sigue
+  valiendo; la premisa pasa a `not issubclass(model, BaseModel)`.

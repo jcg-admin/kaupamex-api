@@ -16,6 +16,7 @@ mismo addon de prueba de la fuente.
 import pytest
 from django.db import connection
 
+from orm.models import BaseModel
 from orm.registry import Registry
 from tests.conftest import preserved_registries
 from tools import sql
@@ -89,7 +90,9 @@ def test_a_declared_one2many_is_not_a_column_to_index(registry, cr):
 def test_a_django_model_without_basemodel_is_walked_by_its_fields(
         registry, cr):
     """``ir.model.inherit`` es un modelo de Django sin ``BaseModel``: sus
-    campos se leen con ``model_field_registry``, no con ``_fields``."""
+    campos se leen con ``model_field_registry``. Ya tiene ``_fields`` (lo
+    trae ``RecordLoaderMixin`` desde ``record-loader-universality-0485``),
+    así que la premisa es la clase, no la ausencia del atributo."""
     model = registry['ir.model.inherit']
-    assert not hasattr(model, '_fields')
+    assert not issubclass(model, BaseModel)
     registry.check_indexes(cr, ['ir.model.inherit'])
