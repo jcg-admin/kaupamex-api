@@ -106,3 +106,25 @@ y `helpdesk.ticket`, que todavía no existen, y no se puede cargar por
 partes sin dejar de ser una copia fiel. Mientras tanto, la etiqueta sólo se
 usa con `sudo`. Sucesor: la unidad 2 de este diseño, que carga el CSV y el
 XML completos, bajo TASK-API-0397.
+
+### Ejecución de la unidad 1 (2026-11-18)
+
+- `addons/helpdesk/models/helpdesk_tag.py` y la migración
+  `0006_helpdesk_tag`. `makemigrations --check` no detecta cambios.
+- Pruebas en `tests/unit/helpdesk/test_helpdesk_tag.py`: 5.
+- Consumidores derivados (`tests/unit/helpdesk`, `tests/integration/helpdesk`,
+  `tests/unit/orm` por el registro de nombres, y
+  `tests/integration/test_v2_orders_returns_support.py`): 3513 passed con
+  `-n 4`.
+
+Anulaciones, cada una medida por separado:
+
+| Se retira | Caen |
+|---|---|
+| `name_create` | sólo `test_name_create_reuses_a_tag_ignoring_case_and_spaces` |
+| el `default` de `color` | sólo `test_a_new_tag_gets_a_color_between_1_and_11` |
+
+La restricción `helpdesk_tag_name_uniq` vive en la migración. Una anulación
+en el modelo no la retira de la base reutilizada, así que su prueba mide la
+base y no el modelo. La coherencia entre los dos la mide
+`makemigrations --check`.
