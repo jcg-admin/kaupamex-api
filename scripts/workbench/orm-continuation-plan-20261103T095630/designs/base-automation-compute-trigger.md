@@ -183,3 +183,13 @@ falsa (`src/tools/safe_eval.py:568`).
 Regresión derivada (`tests/unit/base_automation`, `tests/unit/orm`,
 `tests/integration/test_orm`, `tests/integration/base`,
 `tests/unit/resource`, `tests/unit/sale_timesheet`): 4781 passed.
+
+### Citas con ruta
+
+- `_update_registry`: odoo19c: addons/base_automation/models/base_automation.py:673-679
+- `_get_eval_context`: odoo19c: addons/base_automation/models/base_automation.py:693-709
+- `_compute_filter_pre_domain` (dependencias que `_protect_written_filters`
+  y `_filter_dependency_row` respetan): odoo19c: addons/base_automation/models/base_automation.py:378-385
+- `_compute_filter_domain`: odoo19c: addons/base_automation/models/base_automation.py:387-388
+- `make_write`: odoo19c: addons/base_automation/models/base_automation.py:880-907
+- `make_compute_field_value`: odoo19c: addons/base_automation/models/base_automation.py:909-946
