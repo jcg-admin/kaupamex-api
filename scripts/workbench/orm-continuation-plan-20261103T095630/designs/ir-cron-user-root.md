@@ -78,3 +78,31 @@ con `SUPERUSER_ID`, que es `base.user_root` (`IrModelData` `res_id` 1).
 `makemigrations --check --dry-run`: «No changes detected».
 RED: 4 fallos de 4 (`tests/unit/base/test_ir_cron_user_root.py`); GREEN:
 4 passed.
+
+**Consumidores que codificaban el contrato anterior.** El subconjunto
+derivado (36 archivos de `tests/` que nombran el cron o su callback) dio 5
+fallos de 443, todos de pruebas que afirmaban el usuario nulo: el defecto
+`None` en `test_create_minimo_aplica_defaults`, `test_user_nullable_por_defecto`,
+`test_user_set_null_al_borrar_usuario`, el scope `None` en
+`test_cron_sin_usuario_deja_el_scope_en_none` y, en `auto_backup`, el
+`update(user=None)` de `test_no_authenticated_user_either`. Se portaron al
+contrato de la fuente: defecto `SUPERUSER_ID`, borrado del usuario
+rehusado (`RestrictedError`), callback como el raíz, y la guarda de
+`_take_dump` probada por el lado del llamador sin usuario, que sigue
+cerrada. Tras el cambio: 61 passed en los cuatro archivos.
+
+**Anulación.** Sin el respaldo `or SUPERUSER_ID` en `_default_user_id`
+caen 20 y dan error 3 de 38: todo cron creado sin usuario choca con
+`NOT NULL`. El respaldo carga el peso de cada creación, no sólo el de las
+pruebas nuevas.
+
+**La función por defecto se movió a `orm.environments`.** La primera
+versión la declaraba a nivel de módulo en `ir_cron.py`, con un import
+nuevo. La admisión de estilo la rechazó (`New or changed suppression
+requires review`): la huella de un diagnóstico incluye la posición de su
+sentencia en el contenedor (`syntax_context`,
+`scripts/check_python_style_increment.py:144`), y la sentencia nueva
+desplazaba la clase que contiene el `# noqa: BLE001` heredado. Ahora es
+`orm.environments.current_uid_or_superuser`, al final del módulo y junto a
+`get_current_uid`, que es su hogar natural; `ir_cron.py` y la prueba del
+runner sólo amplían imports que ya existían. Los `noqa` no se tocan.
