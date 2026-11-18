@@ -169,7 +169,7 @@ class TestComputePemCertificatePem:
 
         assert row.content_format == 'pem'
         assert row.subject_common_name == 'pem-leaf'
-        assert row.private_key is not None
+        assert row.private_key
         assert row.private_key.public is False
         assert row.private_key.company_id == acme.pk
 
@@ -192,7 +192,7 @@ class TestComputePemCertificatePkcs12:
 
         assert row.content_format == 'pkcs12'
         assert row.subject_common_name == 'p12-leaf'
-        assert row.private_key is not None
+        assert row.private_key
 
 
 class TestLoadingError:
@@ -522,7 +522,7 @@ class TestBusinessMethods:
             company=acme,
             content=cert.public_bytes(serialization.Encoding.DER),
         )
-        assert row.private_key is None
+        assert not row.private_key
         with pytest.raises(UserError):
             row._sign(b'documento')
 

@@ -68,7 +68,7 @@ def _int_to_bytes(value, byteorder='big'):
     return value.to_bytes((value.bit_length() + 7) // 8, byteorder=byteorder)
 
 
-class CertificateKey(TimeStampedModel):
+class CertificateKey(models.BaseModel, TimeStampedModel):
     """``certificate.key`` — una llave pública o privada (PEM/DER).
 
     ``pem_key``/``public``/``loading_error`` son ``compute='...', store=True``
@@ -79,6 +79,11 @@ class CertificateKey(TimeStampedModel):
     ``hr.department._compute_parent_path``
     en este árbol).
     """
+
+    #: Los dos atributos de clase de la fuente, verbatim
+    #: (``odoo19c: addons/certificate/models/key.py:36-37``).
+    _name = 'certificate.key'
+    _description = 'Cryptographic Keys'
 
     name = fields.Char(
         max_length=255,

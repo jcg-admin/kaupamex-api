@@ -54,7 +54,6 @@ PENDING = {
     'auto_backup',
     'base',
     'base_automation',
-    'certificate',
     'crm',
     'fleet',
     'helpdesk',

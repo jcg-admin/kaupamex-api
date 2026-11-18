@@ -110,7 +110,7 @@ class CertificateContentFormat(models.TextChoices):
     PKCS12 = 'pkcs12', 'PKCS12'
 
 
-class CertificateCertificate(TimeStampedModel):
+class CertificateCertificate(models.BaseModel, TimeStampedModel):
     """``certificate.certificate`` — un certificado X.509 con su cadena.
 
     ``pem_certificate``/``content_format``/``subject_common_name``/
