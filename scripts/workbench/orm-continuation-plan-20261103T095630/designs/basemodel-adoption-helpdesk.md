@@ -110,7 +110,12 @@ XML completos, bajo TASK-API-0397.
 ### Ejecución de la unidad 1 (2026-11-18)
 
 - `addons/helpdesk/models/helpdesk_tag.py` y la migración
-  `0006_helpdesk_tag`. `makemigrations --check` no detecta cambios.
+  `0006_helpdesk_tag`, que crea la tabla `helpdesk_tag` con la restricción
+  `helpdesk_tag_name_uniq` (≙ `_name_uniq`,
+  `odoo19e: helpdesk/models/helpdesk_tag.py:20-23`). La prueba de la
+  migración es `test_two_tags_cannot_share_a_name` en
+  `tests/unit/helpdesk/test_helpdesk_tag.py`. `makemigrations --check` no
+  detecta cambios.
 - Pruebas en `tests/unit/helpdesk/test_helpdesk_tag.py`: 5.
 - Consumidores derivados (`tests/unit/helpdesk`, `tests/integration/helpdesk`,
   `tests/unit/orm` por el registro de nombres, y
