@@ -36,11 +36,23 @@ conjunto de apuntes de un asiento.
 
 ## Cambio
 
-Una función, `_x2many_union(records, read_one)`, en `src/orm/models.py`:
-lee cada registro con la lectura singular que ya existe y devuelve el
-recordset del comodelo con los ids en orden y sin repetir. Las dos rutas la
-llaman cuando el dueño es un `BaseModel` con más de un id y el comodelo es
-`BaseModel`.
+Dos funciones en `src/orm/fields_relational.py`, que es donde la fuente
+tiene `_Relational.__get__` y de donde `src/orm/models.py` ya importa (el
+sentido inverso sería un ciclo):
+
+- `_x2many_union(records, read_one)` lee cada registro con la lectura
+  singular que ya existe y devuelve el recordset del comodelo con los ids
+  en orden y sin repetir. Si algún valor no es un recordset (comodelo de
+  Django), llama a `records.ensure_one()`: la lectura sigue siendo la de un
+  registro.
+- `_reads_x2many_union(instance, comodel)` es la condición de la rama: el
+  dueño tiene más de un id y el comodelo tiene recordset
+  (`odoo19c: odoo/orm/fields_relational.py:44`, `len(records._ids) <= 1`).
+
+`_x2many_descriptor_get` las llama con el comodelo ya resuelto;
+`One2many.__get__` llama a `_x2many_union` con más de un id, antes de sus
+ramas de cómputo y de `related`, porque el comodelo de esas dos ramas sólo
+se conoce al leer.
 
 - La lectura singular ya resuelve por registro el cómputo pendiente, el
   registro de `new()`, el dominio del campo y el filtro de activos, así que
