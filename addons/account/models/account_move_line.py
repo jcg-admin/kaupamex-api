@@ -58,6 +58,17 @@ class AccountMoveLine(AnalyticMixin, models.Model):
         related_name='line_ids',
         help_text='Asiento al que pertenece (Odoo move_id, requerido).',
     )
+    #: ≙ ``move_name``
+    #: (``odoo19c: addons/account/models/account_move_line.py:63``), el
+    #: número del asiento almacenado en la línea; lo cita ``_order``.
+    move_name = fields.Char(string='Number', related='move_id.name',
+                            store=True, index='btree', max_length=255,
+                            null=True, blank=True)
+    #: ≙ ``date``
+    #: (``odoo19c: addons/account/models/account_move_line.py:69``), la
+    #: fecha contable del asiento almacenada en la línea; la cita ``_order``.
+    date = fields.Date(related='move_id.date', store=True, copy=False,
+                       aggregator='min', null=True, blank=True)
     #: ≙ ``parent_state``
     #: (``odoo19c: account/models/account_move_line.py:68``),
     #: el estado del asiento almacenado en la línea. Lo citan la regla
