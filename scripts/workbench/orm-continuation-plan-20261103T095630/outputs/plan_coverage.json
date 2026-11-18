@@ -526,7 +526,8 @@
   "ir-cron-user-root-0485",
   "ir-cron-env-su-0485",
   "basemodel-adoption-auto-backup-0397",
-  "mail-groups-data-0397"
+  "mail-groups-data-0397",
+  "helpdesk-tag-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
