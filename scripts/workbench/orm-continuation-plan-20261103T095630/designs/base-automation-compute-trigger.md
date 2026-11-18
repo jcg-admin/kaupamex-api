@@ -193,3 +193,25 @@ Regresión derivada (`tests/unit/base_automation`, `tests/unit/orm`,
 - `_compute_filter_domain`: odoo19c: addons/base_automation/models/base_automation.py:387-388
 - `make_write`: odoo19c: addons/base_automation/models/base_automation.py:880-907
 - `make_compute_field_value`: odoo19c: addons/base_automation/models/base_automation.py:909-946
+
+## Revisión 4: el conjunto vive en la caché, no en un atributo del registro
+
+F2 de `6ca06d18` cayó en `tests/unit/delivery/test_public_shipping_catalog.py`
+con `Exception: Opening a read/write test cursor from a readonly one`. La
+cadena: `_update_registry` marcaba `registry_invalidated` (`:679` de la
+fuente); en este árbol esa marca es por hilo, `signal_changes` adelanta la
+secuencia en memoria mientras la prueba revierte su fila, y la petición GET
+siguiente del mismo proceso reconstruía el registro (`check_signaling` →
+`Registry.new` → `setup_signaling`) desde un cursor de sólo lectura.
+
+Reproducido en serie: `tests/unit/base_automation/` seguido de
+`tests/unit/delivery/test_public_shipping_catalog.py` da 5 fallos con la
+marca y 0 sin ella.
+
+Cambio: el conjunto se guarda en la familia `default` de cachés del
+registro (`BaseAutomation.WRITE_MODELS_CACHE_KEY`), y `_update_registry`
+hace `clear_cache()` y lo rehace, en vez de marcar `registry_invalidated`.
+La fuente reconstruye el registro porque necesita re-parchear clases; aquí
+sólo cambia un conjunto de nombres, y la señalización de cachés basta para
+avisar a los demás procesos. `_know_watched_models` y el envoltorio leen
+la misma clave; si falta, el conjunto «no se sabe».
