@@ -113,6 +113,8 @@ from orm.fields_relational import (
     _m2m_relation as m2m_relation,
     _queryset_subselect as queryset_subselect,
     django_comodel_rows,
+    _reads_x2many_union,
+    _x2many_union,
 )
 from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES, determine,
                         FieldDescriptor, StoredMany2oneIdDescriptor,
@@ -6414,6 +6416,9 @@ def _x2many_descriptor_get(self, instance, cls=None):
             field.recompute(instance)
     else:
         comodel = self.rel.related_model
+    if _reads_x2many_union(instance, comodel):
+        return _x2many_union(
+            instance, lambda record: _x2many_descriptor_get(self, record, cls))
     if (isinstance(instance, BaseModel)
             and isinstance(self, _related_descriptors.ManyToManyDescriptor)
             and not self.reverse and isinstance(comodel, type)

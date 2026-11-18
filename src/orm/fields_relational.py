@@ -644,6 +644,9 @@ class One2many:
     def __get__(self, instance, owner=None):
         if instance is None:
             return self
+        if len(getattr(instance, '_ids', None) or ()) > 1:
+            return _x2many_union(
+                instance, lambda record: self.__get__(record, owner))
         if self.compute:
             return self._get_computed(instance)
         if self.related:
@@ -2322,6 +2325,35 @@ def _many2one_convert_to_write(self, value, record):
 
 models.ForeignKey.convert_to_read = _many2one_convert_to_read
 models.ForeignKey.convert_to_write = _many2one_convert_to_write
+
+
+def _x2many_union(records, read_one):
+    """El x2many de varios registros: la unión de sus valores.
+
+    ≙ ``_Relational.__get__``, rama *multi-record* (``odoo19c: odoo/orm/
+    fields_relational.py:42-79``), más ``_RelationalMulti.
+    convert_to_record_multi`` (``odoo19c: odoo/orm/fields_relational.py:
+    655``): los ids de cada registro, en su orden y sin repetir.
+
+    ``read_one`` es la lectura de un registro, que ya resuelve el cómputo
+    pendiente, el registro de ``new()``, el dominio del campo y el filtro de
+    activos. **Divergencia de mecanismo:** sin caché por campo ni ``fetch``,
+    se lee registro por registro; la fuente lee la caché y trae en lote lo
+    que falta.
+    """
+    values = [read_one(record) for record in records]
+    if not all(hasattr(value, '_ids') for value in values):
+        # Comodelo de Django: su valor es un gestor, sin recordset que unir.
+        # La lectura sigue siendo la de un registro.
+        records.ensure_one()
+    ids = tuple(unique(id_ for value in values for id_ in value._ids))
+    return values[0]._from_ids(records.env, ids, ids)
+
+
+def _reads_x2many_union(instance, comodel):
+    """Si la lectura es la de varios registros entre ``BaseModel``."""
+    return (len(getattr(instance, '_ids', None) or ()) > 1
+            and isinstance(comodel, type) and hasattr(comodel, '_from_ids'))
 
 
 def _reads_as_recordset(instance, comodel):
