@@ -81,3 +81,28 @@ Qué hacer con los campos propios de `support.ticket` sin contraparte en
 `helpdesk.ticket` (`Category`, el endpoint `v2`). Se decide en la unidad 5,
 midiendo el contrato de `tests/integration/helpdesk/test_support_endpoints.py`.
 El sucesor queda bajo TASK-API-0397.
+
+## Unidad 1: `helpdesk.tag` (ítem `helpdesk-tag-0397`)
+
+Símbolo: `HelpdeskTag` (`helpdesk.tag`), en
+`addons/helpdesk/models/helpdesk_tag.py`. Contrato de la fuente
+(`odoo19e: helpdesk/models/helpdesk_tag.py:9-30`):
+
+- cabecera `_name = 'helpdesk.tag'`, `_description = 'Helpdesk Tags'`,
+  `_order = 'name'`;
+- `name`, obligatorio y traducible; `color`, entero cuyo valor por defecto
+  sale de `_get_default_color` (`randint(1, 11)`);
+- la restricción `_name_uniq` (`unique (name)`);
+- `name_create`: si ya existe una etiqueta con `name =ilike` al nombre sin
+  espacios en los extremos, la devuelve y no crea otra.
+
+Los dos símbolos se portan. `_get_default_color` es función de módulo porque
+el `default` de Django es un invocable sin argumentos (precedente `utm.tag`).
+
+**Lo que esta unidad no cierra.** El ACL de la etiqueta (filas
+`access_helpdesk_tag*` del CSV) referencia `group_helpdesk_user`, que define
+`helpdesk_security.xml`. Ese archivo también trae reglas sobre `helpdesk.team`
+y `helpdesk.ticket`, que todavía no existen, y no se puede cargar por
+partes sin dejar de ser una copia fiel. Mientras tanto, la etiqueta sólo se
+usa con `sudo`. Sucesor: la unidad 2 de este diseño, que carga el CSV y el
+XML completos, bajo TASK-API-0397.
