@@ -84,3 +84,19 @@ mixin junto a `models.Model` (`DefaultGetMixin`, `MailThread`,
 
 Prueba: `tests/unit/orm/test_record_loader_universality.py` — el censo (84
 fallan antes) y `res.country` cargando un registro con su `xml_id`.
+
+## Registro de ejecución
+
+- Primer intento de commit rechazado por `check_reference_flow`: una variable
+  local nueva (`product_keys`) cambiaba el AST de
+  `AccountTaxFormula._eval_tax_amount_formula`; se envolvió la condición en
+  paréntesis (AST idéntico, comprobado con `ast.dump`).
+- **Desliz de proceso, corregido:** tras ese rechazo se lanzó F2 con el
+  árbol sin commitear y el log nombrado `f2-c89d2fda`, una revisión que no
+  contenía los cambios. Se detuvo a los segundos y se borró el log; no hay
+  evidencia atribuida a `c89d2fda`. La F2 válida es la de `dbe18bb9`, lanzada
+  con el árbol limpio tras el commit.
+- Anulación: sin el mixin en `ResCountry`, el censo nombra exactamente
+  `base.ResCountry` y el caso de carga falla (2 de 2).
+- `makemigrations --check`: sin cambios. Suites de los archivos envueltos a
+  mano: 388 passed.
