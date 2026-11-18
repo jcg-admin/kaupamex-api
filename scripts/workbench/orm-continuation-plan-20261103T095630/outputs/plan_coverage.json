@@ -5,7 +5,7 @@
  "open_tasks": 71,
  "frontier": [
   {
-   "id": "uom-master-data-0241",
+   "id": "employee-map-display-cost-0241",
    "task": "TASK-GEN-0241"
   }
  ],
@@ -24,11 +24,6 @@
    "id": "orm-fk-delete-policy-contract-0515",
    "task": "TASK-API-0515",
    "reason": "state failed"
-  },
-  {
-   "id": "employee-map-display-cost-0241",
-   "task": "TASK-GEN-0241",
-   "reason": "waits for uom-master-data-0241"
   },
   {
    "id": "orm-extension-depends-merge-0485",
@@ -487,6 +482,7 @@
   "orm-transaction-per-alias-0485",
   "creation-dependency-classes-0485",
   "sale-line-eager-amounts-0192",
+  "uom-master-data-0241",
   "registry-cursor-unit-of-work-0485",
   "registry-caches-per-database-0485",
   "request-unit-of-work-0485",
