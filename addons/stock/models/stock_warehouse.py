@@ -283,8 +283,8 @@ ROUTE_NAMES = {
 
 #: ≙ ``StockWarehouse.Routing`` (``odoo19c: :29``) — «namedtuple used in helper
 #: methods generating values for routes». La referencia lo declara en el cuerpo
-#: de la clase; aquí se declara a nivel de módulo **y** se cuelga de la clase con
-#: su nombre, para que ambas formas de citarlo resuelvan.
+#: de la clase; aquí se declara a nivel de módulo **y** se cuelga de la clase
+#: con su nombre, para que ambas formas de citarlo resuelvan.
 Routing = namedtuple('Routing', ['from_loc', 'dest_loc', 'picking_type', 'action'])
 
 #: Los ocho tipos de operación que un almacén genera, en el orden en que la
@@ -317,10 +317,11 @@ class StockWarehouse(TimeStampedModel):
     active               = fields.Boolean(
         default=True, help_text='Almacén activo (Odoo active).',
     )
-    company              = fields.Many2one(
-        'base.ResCompany', null=False, on_delete=models.CASCADE, related_name='warehouses',
-        help_text='Empresa (Odoo company_id, readonly+required: se toma de las '
-                  'preferencias del usuario y no se cambia después).',
+    company = fields.Many2one(
+        'base.ResCompany', null=False, on_delete=models.PROTECT,
+        related_name='warehouses',
+        help_text='Empresa (Odoo company_id, readonly+required: se toma de '
+                  'las preferencias del usuario y no se cambia después).',
     )
     partner              = fields.Many2one(
         'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,

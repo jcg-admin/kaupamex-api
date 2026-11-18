@@ -73,8 +73,8 @@ class StockPackageHistory(TimeStampedModel):
     _description = "Stock Package History"
     _check_company_auto = True
 
-    company           = fields.Many2one(
-        'base.ResCompany', null=False, on_delete=models.CASCADE,
+    company = fields.Many2one(
+        'base.ResCompany', null=False, on_delete=models.PROTECT,
         related_name='package_histories',
         help_text='Empresa (Odoo company_id, requerido).',
     )

@@ -198,7 +198,7 @@ class AccountAnalyticLine(AnalyticPlanFieldsMixin, models.Model):
     )
     company = fields.Many2one(
         'base.ResCompany',
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         related_name='analytic_lines',
         verbose_name='Empresa',
         help_text='Odoo company_id (requerido, readonly).',

@@ -341,8 +341,8 @@ class StockMoveLine(TimeStampedModel):
         related_name='move_line_ids', db_index=True,
         help_text='Movimiento de inventario al que pertenece (Odoo move_id).',
     )
-    company          = fields.Many2one(
-        'base.ResCompany', null=False, on_delete=models.CASCADE, db_index=True,
+    company = fields.Many2one(
+        'base.ResCompany', null=False, on_delete=models.PROTECT, db_index=True,
         related_name='stock_move_lines',
         help_text='Empresa (Odoo company_id, readonly+required; se recalcula '
                   'en save() desde el movimiento o el albarán).',

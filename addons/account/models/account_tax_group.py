@@ -39,7 +39,7 @@ class AccountTaxGroup(models.Model):
     )
     company = fields.Many2one(
         'base.ResCompany',
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         related_name='tax_groups',
         help_text='Empresa (Odoo company_id, requerido).',
     )

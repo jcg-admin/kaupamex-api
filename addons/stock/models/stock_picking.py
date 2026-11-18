@@ -392,8 +392,8 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
         max_length=64, blank=True, default='',
         help_text='Código de barras del tipo (Odoo barcode).',
     )
-    company                  = fields.Many2one(
-        'base.ResCompany', null=True, blank=True, on_delete=models.CASCADE,
+    company = fields.Many2one(
+        'base.ResCompany', null=True, blank=True, on_delete=models.PROTECT,
         related_name='picking_types', db_index=True,
         help_text='Empresa dueña del tipo (Odoo company_id, requerido).',
     )

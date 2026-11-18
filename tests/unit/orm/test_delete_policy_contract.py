@@ -101,6 +101,30 @@ CORRECTED = {
     'stock.StockRule.company',
     'stock.StockRule.warehouse',
     'stock.StockStorageCategory.company',
+    # designs/restrict-ondelete-block-f.md (bloque F, 23 filas)
+    'account.AccountBankStatementLine.company',
+    'account.AccountFiscalPosition.company',
+    'account.AccountGroup.company',
+    'account.AccountJournal.company',
+    'account.AccountLockException.company',
+    'account.AccountPayment.company',
+    'account.AccountReconcileModel.company',
+    'account.AccountReportExternalValue.company',
+    'account.AccountTax.company',
+    'account.AccountTaxGroup.company',
+    'account_edi_proxy_client.AccountEdiProxyUser.company_id',
+    'analytic.AccountAnalyticLine.company',
+    'purchase.PurchaseOrder.company_id',
+    'purchase_requisition.PurchaseRequisition.company',
+    'sale.SaleOrder.company',
+    'stock.StockMoveLine.company',
+    'stock.StockPackageHistory.company',
+    'stock.StockPickingType.company',
+    'stock.StockPutawayRule.company',
+    'stock.StockRule.picking_type',
+    'stock.StockWarehouse.company',
+    'stock.StockWarehouseOrderpoint.company',
+    'website.Website.company',
 }
 
 #: Política de Django que corresponde al ``ondelete`` de la fuente.
@@ -172,25 +196,11 @@ def _rule_using(picking_type):
 
 
 @pytest.mark.django_db
-@pytest.mark.xfail(strict=True, reason=(
-    'restrict -> CASCADE: la fuente rehúsa borrar un tipo de operación con '
-    'reglas (odoo19c: addons/stock/models/stock_rule.py:87, required sin '
-    'ondelete; stock.picking.type no sobreescribe unlink); aquí se borran'))
 def test_deleting_a_picking_type_with_rules_is_refused(picking_type):
     rule = _rule_using(picking_type)
     with pytest.raises(models.ProtectedError):
         StockPickingType.objects.filter(pk=picking_type.pk).delete()
     assert StockRule.objects.filter(pk=rule.pk).exists()
-
-
-@pytest.mark.django_db
-def test_today_deleting_a_picking_type_deletes_its_rules(picking_type):
-    """Lo observado hoy, para que el ``xfail`` no oculte otra causa. El
-    representante anterior, el odómetro de ``fleet``, ya está corregido
-    (``designs/fleet-restrict-ondelete.md``)."""
-    rule = _rule_using(picking_type)
-    StockPickingType.objects.filter(pk=picking_type.pk).delete()
-    assert not StockRule.objects.filter(pk=rule.pk).exists()
 
 
 # --- PostgreSQL: el DELETE crudo no cascada ---------------------------------

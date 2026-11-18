@@ -362,7 +362,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
     )
     company = fields.Many2one(
         'base.ResCompany',
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         db_index=True,
         related_name='orderpoint_ids',
         help_text='Empresa (Odoo company_id, requerido).',

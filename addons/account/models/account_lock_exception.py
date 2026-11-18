@@ -66,7 +66,7 @@ class AccountLockException(models.Model):
     )
     company = fields.Many2one(
         'base.ResCompany',
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         related_name='lock_exceptions',
         help_text='Empresa (Odoo company_id, requerido).',
     )

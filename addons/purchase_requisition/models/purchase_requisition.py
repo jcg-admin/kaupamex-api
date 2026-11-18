@@ -250,7 +250,7 @@ class PurchaseRequisition(TimeStampedModel):
     )
     company = fields.Many2one(
         'base.ResCompany',
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         related_name='purchase_requisition_ids',
         verbose_name='Empresa',
         help_text='Odoo company_id (required).',

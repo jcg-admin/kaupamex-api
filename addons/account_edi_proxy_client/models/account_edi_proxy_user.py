@@ -137,7 +137,7 @@ class AccountEdiProxyUser(models.Model):
     )
     company_id = fields.Many2one(
         'base.ResCompany',
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         db_index=True,
         related_name='account_edi_proxy_client_ids',
         help_text=(

@@ -546,7 +546,7 @@ class StockRule(TimeStampedModel):
         'stock.StockPickingType',
         null=True,
         blank=True,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='rule_ids',
         db_index=True,
         help_text=(

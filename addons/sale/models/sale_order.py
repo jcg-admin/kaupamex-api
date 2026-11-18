@@ -327,7 +327,7 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     # company.CompanySetting.
     company = fields.Many2one(
         'base.ResCompany', null=True, blank=True,
-        on_delete=models.CASCADE, related_name='sale_orders',
+        on_delete=models.PROTECT, related_name='sale_orders',
         help_text='Empresa dueña de la orden (Odoo company_id). NULL '
                   'pre-backfill.',
     )
@@ -762,9 +762,13 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     #
     #   tax_totals          (``:316``)  resumen de impuestos para la vista
     #
-    # BLOQUEADO por ``account.move`` — ``_build_credit_warning_message`` no
-    # existe en ``addons/account/models/account_move.py``. Su interruptor
-    # ``company.account_use_credit_limit`` sí quedó portado en este mismo pase.
+    # BLOQUEADO por ``res.partner.credit_to_invoice`` — el aviso lo arma
+    # ``account.move._build_credit_warning_message`` (``odoo19c:
+    # addons/account/models/account_move.py:1997``), que empieza leyendo ese
+    # campo del contacto; aquí no está declarado, y el método tampoco. El
+    # modelo ``account.move`` sí existe (medido el 2026-11-18), así que la
+    # causa anterior de esta marca había caducado. El interruptor
+    # ``company.account_use_credit_limit`` está portado.
     # Sucesor: #116.
     #
     #   partner_credit_warning (``:306``)  aviso de límite de crédito

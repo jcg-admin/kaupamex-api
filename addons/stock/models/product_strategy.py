@@ -204,8 +204,8 @@ class StockPutawayRule(models.DefaultGetMixin, TimeStampedModel):
         help_text='Prioridad; mayor para la categoría más específica '
                   '(Odoo sequence).',
     )
-    company            = fields.Many2one(
-        'base.ResCompany', null=False, on_delete=models.CASCADE,
+    company = fields.Many2one(
+        'base.ResCompany', null=False, on_delete=models.PROTECT,
         related_name='putaway_rules', db_index=True,
         help_text='Empresa (Odoo company_id, requerido).',
     )

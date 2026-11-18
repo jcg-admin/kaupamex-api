@@ -684,7 +684,7 @@ class Website(TimeStampedModel):
     )
     company = fields.Many2one(
         'base.ResCompany',
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         related_name='websites',
         default=default_company,
         help_text='Empresa dueña del sitio (Odoo company_id, required).',

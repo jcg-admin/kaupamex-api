@@ -847,7 +847,7 @@ class AccountReportExternalValue(models.Model):
     )
     company = fields.Many2one(
         'base.ResCompany',
-        null=False, on_delete=models.CASCADE,
+        null=False, on_delete=models.PROTECT,
         related_name='account_report_external_values',
         help_text='Empresa dueña del valor (Odoo company_id, requerido).',
     )
