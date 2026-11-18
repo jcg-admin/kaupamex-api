@@ -136,3 +136,32 @@ La restricción `helpdesk_tag_name_uniq` vive en la migración. Una anulación
 en el modelo no la retira de la base reutilizada, así que su prueba mide la
 base y no el modelo. La coherencia entre los dos la mide
 `makemigrations --check`.
+
+## Prerrequisitos de la unidad 2, medidos (2026-11-18)
+
+Comodelos y mixins que `helpdesk.team` y `helpdesk.ticket` heredan o
+referencian, cruzados con el registro de este árbol (`MODELS_BY_NAME` y
+`grep "_name = '<modelo>'"`):
+
+| Modelo | En la fuente | Aquí | Lo necesita |
+|---|---|---|---|
+| `mail.thread` | Community | existe | team, ticket (por `mail.thread.cc` y `rating.mixin`) |
+| `mail.activity.mixin` | Community | existe | ticket |
+| `utm.mixin` | Community | existe | ticket |
+| `mail.alias.domain` | `odoo19c: addons/mail/models/mail_alias_domain.py` | **falta** | `mail.alias.alias_domain_id`, cuyo valor por defecto es `env.company.alias_domain_id` (la extensión de `res.company`) |
+| `mail.alias` y `mail.alias.mixin.optional` | `odoo19c: addons/mail/models/` | **faltan** | `mail.alias.mixin` (`_inherits = {'mail.alias': 'alias_id'}`) |
+| `mail.alias.mixin` | `odoo19c: addons/mail/models/mail_alias_mixin.py` (54 líneas) | **falta** | team |
+| `rating.rating` | `odoo19c: addons/rating/models/` | **falta** | `rating.mixin`, `rating.parent.mixin` |
+| `rating.parent.mixin` | `odoo19c: addons/rating/models/rating_parent_mixin.py` (71) | **falta** | team |
+| `rating.mixin` | `odoo19c: addons/rating/models/rating_mixin.py` (236) | **falta** | ticket |
+| `portal.mixin` | `odoo19c: addons/portal/models/portal_mixin.py` (135) | **falta** | ticket |
+| `mail.thread.cc` | `odoo19c: addons/mail/models/mail_thread_cc.py` (50) | **falta** | ticket |
+| `mail.tracking.duration.mixin` | `odoo19c: addons/mail/models/mail_tracking_duration_mixin.py` (250) | **falta** | ticket |
+| `mail.template` | `odoo19c: addons/mail/models/mail_template.py` (828) | **falta** | `helpdesk.stage.template_id` |
+
+Cada uno entra como unidad propia antes de la unidad 2, en este orden:
+`mail.alias.domain` con su extensión de `res.company`, `mail.alias` y su mixin opcional, luego `mail.alias.mixin`, `rating.rating`,
+`rating.mixin` y `rating.parent.mixin`, `portal.mixin`, `mail.thread.cc`,
+`mail.tracking.duration.mixin` y `mail.template`. Es la cadena que hace a
+`helpdesk.team` y `helpdesk.ticket` portables enteros, sin campos ni
+herencias omitidos.
