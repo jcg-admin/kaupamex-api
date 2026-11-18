@@ -184,6 +184,21 @@ Unidad: `account-payment-method-line-field-0515` (TASK-API-0515), paso 4 de
 5. **`AccountPaymentMethodLine.unlink`** y, con él, `AccountJournal.unlink`
    deja de borrar líneas usadas.
 
+   Medido al implementarlo (2026-11-18): la mitad del diario no tiene
+   caso propio. Una línea usada por un pago es del diario de ese pago o no
+   tiene diario (`_check_payment_method_line_id`), y `journal` del pago es
+   `PROTECT`: un diario con líneas usadas tiene pagos y su borrado se
+   rehúsa antes de llegar a tener efecto. Lo que sí se prueba es
+   `unlink` sobre un conjunto mezclado: la usada se queda sin diario y la
+   no usada desaparece.
+
+   Corrección de la tabla de abajo, medida al llegar al paso 4: «diario sin
+   líneas» da el `ValidationError` de la primera rama al **crear** el pago
+   por el ORM. Los ocho sitios que crean pagos con el gestor de Django no
+   pasan por las restricciones y no cambian (regresión de los
+   consumidores del pago con la restricción puesta: 4277 pasan y sólo cae
+   el caso propio que esperaba el campo vacío).
+
 ## Pruebas
 
 `tests/unit/account/test_payment_method_line_field.py`:
