@@ -108,3 +108,29 @@ operación es idempotente: vacía las marcas de cambio.
 
 Consumidores derivados (`grep -rlE "UnitOfWorkMiddleware|ir_http" tests/`):
 544 passed.
+
+## Las dos piezas del prompt, medidas al cerrar (2026-11-18T12:21:26)
+
+- **Hora de transacción del CRM bajo la unidad: cubierta.**
+  `tests/unit/crm/test_lead_dates_and_recurring.py::test_the_open_and_stage_dates_are_the_transaction_time`
+  crea el `crm.lead` dentro de `transaction_scope`, la misma frontera que
+  abre `UnitOfWorkMiddleware`, y afirma
+  `date_last_stage_update == create_date`.
+  `crm-transaction-time-shared-read.md` ya había concluido que la unidad
+  por petición es la corrección.
+- **Comandos de gestión en su unidad: abierta.** En la fuente cada orden de
+  `odoo-bin` que toca datos corre en `with registry.cursor() as cr`
+  (`odoo19c: odoo/cli/shell.py:138`). Aquí,
+  `grep -LE "transaction.atomic|registry.cursor|\.cursor\(\)"` sobre los
+  19 `management/commands/*.py` del producto da **14** sin unidad propia.
+  Su sucesor queda bajo TASK-API-0485 como **DESCONOCIDO** con condición
+  de cierre: hay que medir qué órdenes escriben a través del ORM (las que
+  sólo leen o delegan en `migrate` no la necesitan) antes de decidir si
+  basta con un envoltorio común en `BaseCommand` o si cada orden abre la
+  suya. No se abre ítem del plan porque no se acuña un identificador sin
+  la autoridad del TaskStore.
+
+*Métrica:* archivos de orden de gestión sin `transaction.atomic`,
+`registry.cursor` ni `.cursor()`.
+*Ciega a:* una orden que delega la escritura en una función que sí abre
+la transacción, y a una que no escribe nada.
