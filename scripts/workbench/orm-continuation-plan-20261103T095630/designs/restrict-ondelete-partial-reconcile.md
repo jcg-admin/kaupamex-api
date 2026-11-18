@@ -52,13 +52,41 @@ más ancho de la sesión. Se hace en pasos que se verifican por separado:
    borra la conciliación total siempre (`full_to_unlink.unlink()`), no
    sólo cuando queda sin parciales, como hacía el método retirado. Las
    tres divergencias declaradas siguen declaradas en el archivo.
-2. **C2 — `AccountMoveLine` adopta `BaseModel`**: `remove_move_reconcile` y
+2. **C2a — `move_name` y `date` de `account.move.line`** (requisito de C2,
+   medido). Con sólo cambiar la base de `AccountMoveLine` a `BaseModel`, la
+   regresión derivada (14 directorios, 5661 pasan) deja 14 fallos, todos
+   en `purchase`: 13 son `ValueError: Invalid field 'date' on model
+   account.move.line`. La causa es `_order = "date desc, move_name desc,
+   id"`, que la clase ya declaraba como en la fuente y que nadie leía
+   mientras el modelo ordenaba por `Meta.ordering`; `BaseModel.search` sí
+   lo lee, y los dos campos no estaban portados. Se portan como la fuente
+   los declara, con el mecanismo que `parent_state` ya usa
+   (`addons/account/migrations/0039_parent_state.py`):
+
+   | Campo | Fuente | Aquí |
+   |---|---|---|
+   | `move_name` | `odoo19c: addons/account/models/account_move_line.py:63` — `fields.Char(string='Number', related='move_id.name', store=True, index='btree')` | igual; columna `move_name` |
+   | `date` | `odoo19c: addons/account/models/account_move_line.py:69` — `fields.Date(related='move_id.date', store=True, copy=False, aggregator='min')` | igual; columna `date` |
+
+   Migración `0046_move_line_move_name_date` de `account`: las dos columnas
+   y `ComputeStoredFields` para las filas existentes. Pruebas en
+   `tests/unit/account/test_account_move_line_move_name_date.py`: los dos
+   campos son relacionados almacenados, una línea nueva los toma de su
+   asiento, siguen un cambio del asiento, y la operación de la migración
+   llena filas anteriores. `invoice_date` y `ref` (`:74`, `:79`) no entran:
+   `_order` no los cita y `account.move` no tiene aquí `invoice_date`.
+   El fallo 14 es `bill_line.purchase_line_id is None` en
+   `tests/unit/purchase/test_purchase_invoice_link.py`: un Many2one vacío
+   de un `BaseModel` se lee como conjunto vacío, igual que en la fuente;
+   la aserción pasa a `not bill_line.purchase_line_id` dentro de C2.
+3. **C2 — `AccountMoveLine` adopta `BaseModel`**: `remove_move_reconcile` y
    `unlink` (los dos primeros pasos de la fuente y `super().unlink()`; los
    bloqueos fiscales y el registro quedan `pendiente:` con su cita).
-3. **C3 — `AccountMove` adopta `BaseModel`**: `unlink` con
+4. **C3 — `AccountMove` adopta `BaseModel`**: `unlink` con
    `remove_move_reconcile` y el borrado de líneas.
-4. **C4 — la política**: `debit_move` y `credit_move` a `PROTECT`;
-   migración `0046_restrict_partial_reconcile_moves` de `account`.
+5. **C4 — la política**: `debit_move` y `credit_move` a `PROTECT`;
+   migración `0047_restrict_partial_reconcile_moves` de `account` (el
+   número 0046 lo toma C2a).
 
 Si C2 o C3 rompen más de lo que su diseño puede absorber, se detiene ahí,
 se registra la medición y C4 no se aplica: la política sin los `unlink`
