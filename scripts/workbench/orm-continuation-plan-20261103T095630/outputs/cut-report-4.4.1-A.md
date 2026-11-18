@@ -134,3 +134,48 @@ terminó con salida 137.
 
 Las 46 `F` no se usan como resultado: sin el resumen no se sabe de qué
 clase son, que es justo lo que esa ejecución tenía que medir.
+
+## Bloque C detenido en C3; unidad del método de pago (2026-11-18T05:20Z)
+
+**Bloque C.** C3 alcanzó el límite que su diseño fijaba
+(`designs/account-move-basemodel-adoption.md`): con `account.move` como
+`BaseModel` la ruta `POST /api/v2/admin/finance/invoices/<id>/
+register-payment/` responde 403 en vez de 201, porque leer las líneas
+pasa por las reglas de acceso de la fuente y el usuario de la ruta tiene
+la capacidad del producto y ningún grupo contable. Es una decisión sobre
+capacidades y grupos que este contrato no toma. El trabajo quedó como
+parche aplicable (`outputs/orm-fk-delete-policy-contract-0515/
+c3-account-move-adoption.patch`); C4 no se aplicó; las dos filas de
+`account.AccountPartialReconcile` siguen `xfail` y la unidad
+`orm-fk-delete-policy-contract-0515` **no se asienta**. F2 sobre lo
+publicado del bloque (`3d08d182`): 13802 pasan, 66 omitidas, 8 xfailed.
+
+**Unidad `account-payment-method-line-field-0515`**, diseño
+`designs/payment-method-line-field.md`:
+
+| Paso | Revisión | Qué | Verificación derivada |
+|---|---|---|---|
+| base | `01b854fe` | `next_by_code` con empresa ve la secuencia global | 6996 pasan (mismo árbol que 1a) |
+| 1 + 1a | `cc4d3244` | `account.payment` adopta `BaseModel`; `date`, `name`, `_compute_name` y la secuencia `account.payment`; migración `0048` | la misma; F2: 13812 pasan, 66 omitidas, 8 xfailed |
+| 2 | `d3b4f70a` | `partner` a `res.partner` con `restrict`; migración `0049` | 6999 pasan |
+| ORM | `935dc19b` | Many2one a un modelo de Django sobre el conjunto vacío: valor nulo | 7433 pasan (mismo árbol que 3) |
+| 3 | `e54fef27` | campos y cómputos de la línea de método de pago; migración `0050` | la misma |
+| 4 | `8abeb743` | `_check_payment_method_line_id` | 4277 pasan con un caso propio a actualizar; 19 tras actualizarlo |
+| 5 | `286ca024` | `AccountPaymentMethodLine.unlink` | 7438 pasan; F2 en curso |
+
+Tres defectos heredados que la unidad destapó y corrigió, ninguno
+previsto en su diseño inicial:
+
+1. `_order` del pago citaba `date` y `name`, sin portar (igual que C2a).
+2. `IrSequence.next_by_code` con empresa nunca encontraba una secuencia
+   global: `company__in=[empresa, None]` no casa con `NULL`.
+3. Un Many2one hacia un modelo de Django leído sobre el conjunto vacío
+   lanzaba en vez de devolver el valor nulo.
+
+Sucesor registrado en el diseño y no ejecutado: la nota «Divergencia 1» de
+`account_check_printing` (modelar el cheque sin `payment_method_line_id`)
+queda **OUTDATED** con este campo; reconciliarla es su propia unidad.
+
+*Métrica:* resumen de pytest de cada ejecución.
+*Ciega a:* la F3 (`test_multidb_isolation`), no ejecutada en ninguna de
+estas revisiones.
