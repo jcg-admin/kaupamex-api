@@ -51,3 +51,19 @@ y el CSV adaptados por (1) y (2), en `data` y en el orden de la fuente.
 3. Las tres filas del CSV con sus identificadores externos.
 4. Un usuario interno no lee `db.backup.details`; uno de
    `group_system` sí (por la implicación).
+
+## Bloqueo medido (2026-11-18)
+
+El GREEN cargó el XML y el CSV, pero `schedule_backup` falla con
+`PermissionDenied`: sus crons corren con `user` nulo
+(`IrCron.objects.filter(user__isnull=True).count()` → 7 de 7), y un
+`BaseModel` deniega sin usuario. En la fuente el cron corre como
+`base.user_root`. Prerrequisito: `ir-cron-user-root.md`. El trabajo de esta
+unidad queda en un parche del scratchpad y se reaplica cuando aquélla
+asiente.
+
+**Lo que también midió el GREEN:** `base.group_system` es `noupdate` en
+`base`, así que en modo de actualización el cargador no le añade
+`group_manager` (`AND NOT ir_model_data.noupdate`, `src/addons/base/models/ir_model.py:3379`,
+igual que la fuente). En una instalación nueva sí. La prueba carga el XML
+en `mode='init'` para medir la instalación.
