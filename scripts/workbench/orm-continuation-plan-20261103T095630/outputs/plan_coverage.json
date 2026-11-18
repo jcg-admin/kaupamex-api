@@ -516,7 +516,8 @@
   "account-payment-method-defaults-0515",
   "account-journal-payment-method-lines-0515",
   "account-journal-mixins-0515",
-  "management-command-unit-of-work-0485"
+  "management-command-unit-of-work-0485",
+  "basemodel-adoption-uom-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
