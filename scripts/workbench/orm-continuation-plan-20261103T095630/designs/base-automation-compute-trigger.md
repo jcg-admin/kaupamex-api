@@ -19,41 +19,57 @@ Fecha: 2026-11-18T07:42:11. Unidad: `base-automation-compute-trigger-0485`
   `_process` con `old_values` en el contexto.
 - Los dos se instalan por modelo en `_register_hook` (`:1057`).
 
-## Aquí, medido en el código
+## Aquí, medido (revisión 2026-11-18, mitad roja de la prueba)
 
-1. **El recálculo almacenado SÍ pasa por las señales.** `_flush` entrega a
-   `_write_multi`, cuyo enunciado es `save(update_fields=...)` por fila
-   (`src/orm/models.py:9427-9445`, `designs/write-multi-flush.md`). Su
-   docstring ya lo declara: *"`save()` y sus señales alojan los cómputos y
-   las automatizaciones que la fuente aloja en … el parche de
-   `_compute_field_value`"*. El `post_save` de `signals.py` dispara las
-   reglas `on_write` / `on_create_or_write` sobre la fila recalculada.
-2. **La prosa de bloqueo es falsa.** El docstring de `base_automation.py`
-   (`:51-56`) dice que no hay motor de recálculo; existe, y el punto único
-   donde se ve un recálculo almacenado es `_write_multi`.
-3. **Defecto nuevo, de toda escritura y no sólo del recálculo:** la
-   precondición se evalúa **después** de escribir. `_filter_pre` dice
-   *"evaluada ANTES de escribir"* (`base_automation.py:1090-1096`), pero su
-   único llamador es `_dispatch_create_write`, un receptor de `post_save`
-   (`signals.py:104-142`), que la consulta contra la base ya escrita. Una
-   regla con `filter_pre_domain=[('state','=','draft')]` y un `write` que
-   pasa de `draft` a `done` dispara en la fuente (la precondición ve
-   `draft`) y aquí no (la ve sobre `done`). Ninguna prueba cubre
-   `filter_pre_domain` (0 hits en `tests/`).
-4. `changed_fields` no viaja en el contexto de la precondición.
+La primera versión de esta sección afirmaba que el recálculo llega por
+`save(update_fields)`; leía el docstring de `_write_multi`, que está
+desactualizado. Medido con la prueba de abajo, antes de implementar:
+
+1. **El recálculo almacenado NO dispara las reglas.** `_write_multi` →
+   `_write_rows` → `_persist_columns`, un `UPDATE` directo que salta
+   `save()` y los receptores de `pre_save`/`post_save` a propósito (su
+   docstring nombra a `base_automation`; `designs/flush-writes-columns.md`).
+   Caso 3 en rojo: `runs == []` tras alargar un tramo del calendario.
+2. **`write()` de un `BaseModel` sí dispara**: pasa por `save()` (sonda:
+   `partner.write({'name': 'B'})` → la acción corre una vez). Sólo el
+   volcado de calculados queda fuera, que es exactamente lo que el parche
+   de `_compute_field_value` cubre en la fuente.
+3. **La precondición se borra en cada `save()` de la regla.**
+   `BaseAutomation.save` corre `_recompute_dependent_fields`, y
+   `_compute_filter_pre_domain` escribe `''` para todo disparador que no
+   sea `on_tag_set`. En la fuente el cómputo depende de
+   `('trigger', 'trg_field_ref')` (`:378`) y un valor dado al crear queda
+   protegido; `_compute_filter_domain` depende de
+   `('trigger', 'trg_selection_field_id', 'trg_field_ref')` (`:387`).
+   Por eso el caso 1 pasaba sin filtrar nada y el caso 2 disparaba.
+4. **La precondición de una escritura se evalúa después de escribir**
+   (`_dispatch_create_write` es un receptor de `post_save`). Enmascarado
+   hoy por 3.
+5. La prosa «`_compute_field_value` bloqueado» del docstring es falsa: el
+   motor existe y el punto de extensión es `BaseModel._compute_field_value`
+   (`src/orm/models.py:9404`), que ningún modelo sobreescribe.
 
 ## El cambio
 
-- `_capture_old_values` (`pre_save`) evalúa además la precondición de cada
-  regla aplicable y guarda en la instancia `{automation.pk: pre_pks}`;
-  `_dispatch_create_write` usa ese resultado en vez de llamar a
-  `_filter_pre` después de escribir. Sin fila previa (creación) no hay
-  precondición, como en la fuente (`make_create` no la evalúa).
-- Si `update_fields` sólo contiene campos calculados, la precondición se
-  evalúa con `changed_fields` en el contexto (≙ `:927-928`).
-- Se retira la divergencia «`_compute_field_value` bloqueado» del
-  docstring y se declara la forma: el recálculo llega por
-  `save(update_fields)` desde `_write_multi`.
+- **Recálculo.** `signals.py` instala, una vez desde `ready()`,
+  `wrap_method(BaseModel, '_compute_field_value', …)` con el cuerpo de
+  `make_compute_field_value`: si el método calcula campos almacenados y hay
+  reglas `WRITE_TRIGGERS` del modelo, lee la precondición y los valores
+  viejos de la base antes de la previa, llama a la previa, **vuelca esos
+  campos** y evalúa la postcondición y `_process` con `old_values`. El
+  volcado es la divergencia de mecanismo: la fuente filtra en memoria
+  (`filtered_domain`) y aquí `_records_matching_domain` consulta la base.
+  Misma guarda de reentrancia (`_processing_set`) y mismas exclusiones que
+  los receptores (`_skip`, tabla de reglas existente).
+- **Precondición.** `_capture_old_values` (`pre_save`) evalúa la
+  precondición de cada regla aplicable y la guarda en la instancia;
+  `_dispatch_create_write` la usa en vez de llamar a `_filter_pre` después.
+- **Filtros protegidos.** `_recompute_dependent_fields` recalcula
+  `filter_pre_domain` sólo al crear sin valor, o cuando cambian `trigger` o
+  `trg_field_ref` y el llamador no escribió el filtro; `filter_domain`,
+  igual con sus tres dependencias.
+- Se retira la divergencia «bloqueado» del docstring y se corrige el de
+  `_write_multi`, que nombra `save(update_fields)`.
 
 ## Pruebas — `tests/unit/base_automation/test_compute_and_pre_trigger.py`
 
@@ -65,8 +81,9 @@ Fecha: 2026-11-18T07:42:11. Unidad: `base-automation-compute-trigger-0485`
 | ídem, con un `filter_domain` que el valor recalculado no cumple | no corre |
 
 Anulaciones: precondición de vuelta en `post_save` → caen los casos 1 y
-2; sin el `post_save` del recálculo (filtrar `update_fields`
-calculados) → cae el 3.
+2; sin el envoltorio de `_compute_field_value` → cae el 3; sin el volcado
+previo a la postcondición → cae el 4 (la base aún tiene el valor viejo y
+la postcondición lo aceptaría o rechazaría por él).
 
 *Métrica:* ejecuciones de una acción de servidor registradas por la
 prueba.
