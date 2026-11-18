@@ -120,3 +120,66 @@ Aquí:
 *Ciega a:* una transacción revertida que creó una regla deja el conjunto
 con su modelo hasta el siguiente `_update_registry` o recarga; el efecto es
 una consulta de más (`_get_actions` vacío), no una regla disparada de más.
+
+## Revisión 3: el conjunto se llena sin gancho de carga, y lo que se implementó
+
+La revisión 2 extendía `_call_hooks` para que un modelo de Django recibiera
+`_register_hook`. Medido: la regresión derivada dio 41 fallos y 40 errores
+en `tests/unit/orm/test_registry_*`. `Registry.new` construye registros de
+alias ficticios (`'alfa'`) y llama a `_call_hooks` sin base detrás; el
+gancho consultaba la base allí. En la fuente todo registro tiene base; aquí
+no. Se revirtió `src/orm/registry.py` y el conjunto se llena así:
+
+- `BaseAutomation._register_hook` (classmethod, ≙ `:1040-1060`) guarda en
+  el registro de la base activa los modelos con reglas `WRITE_TRIGGERS`
+  activas (`base_automation_write_models`). Nace sin saberse (`None`).
+- `_know_watched_models` (`models/signals.py`) lo llena desde
+  `_dispatch_create_write`, el receptor que ya consulta las reglas en cada
+  escritura, si aún no se sabe.
+- `BaseAutomation._update_registry` (≙ `:673-679`) lo rehace y marca
+  `registry_invalidated`, como la fuente.
+- `_compute_field_value` de `models/signals.py` (≙
+  `make_compute_field_value`, `:909-946`) llama a la previa sin tocar la
+  base si el modelo no está en el conjunto o el conjunto no se sabe.
+
+Mientras no se sepa, ningún recálculo dispara: el estado de la fuente antes
+de su `_register_hook`.
+
+### La precondición y los filtros
+
+- `_capture_old_values` (`pre_save`) guarda `{regla: _filter_pre(...)}`
+  antes de escribir; `_dispatch_create_write` usa ese resultado
+  (≙ `make_write`, `:884-889`).
+- `BaseAutomation.save` lee con `_filter_dependency_row` los filtros y sus
+  dependencias como están en la base, y `_protect_written_filters` deshace
+  el recálculo de `filter_pre_domain` (deps `trigger`, `trg_field_ref`,
+  `:378`) y `filter_domain` (deps `trigger`, `trg_selection_field_id`,
+  `trg_field_ref`, `:387`) cuando la fuente no lo haría: al crear con valor,
+  o al escribir sin cambiar sus dependencias, o escribiendo el filtro.
+
+### Tercer defecto: el contexto de evaluación
+
+Con los filtros ya conservados, evaluar cualquiera fallaba:
+`_get_eval_context` pasaba los módulos `datetime` y `time` crudos y
+`safe_eval` los rehúsa (*"can not be used in evaluation contexts"*). Quedaba
+oculto porque los filtros siempre valían `''`. La fuente pasa los
+envoltorios de `tools.safe_eval` (`:693-709`): `datetime`, `dateutil`,
+`time`, más `uid`, `user` y `model`. `BaseAutomation._get_eval_context` los
+pasa igual; la divergencia que decía que `dateutil` no era dependencia era
+falsa (`src/tools/safe_eval.py:568`).
+
+### Pruebas y anulaciones medidas
+
+`tests/unit/base_automation/test_compute_and_pre_trigger.py`, cinco casos:
+
+| Anulación | Caen |
+|---|---|
+| precondición evaluada en `post_save` | casos 1 y 2 |
+| sin `wrap_method` de `_compute_field_value` | casos 3 y 5 |
+| sin volcar antes de la postcondición | caso 5 |
+| sin `_protect_written_filters` | casos 2 y 4 |
+| `_update_registry` sin rehacer el conjunto | casos 3 y 5 |
+
+Regresión derivada (`tests/unit/base_automation`, `tests/unit/orm`,
+`tests/integration/test_orm`, `tests/integration/base`,
+`tests/unit/resource`, `tests/unit/sale_timesheet`): 4781 passed.
