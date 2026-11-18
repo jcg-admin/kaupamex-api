@@ -14,6 +14,7 @@ quedó fuera del primer censo por eso). Los modelos que declaran las pruebas
 (``tests/``) no son producto y no cuentan.
 """
 import importlib
+import inspect
 import pathlib
 
 import pytest
@@ -25,6 +26,7 @@ from orm.environments import sudo
 
 FRAMEWORK = {'admin', 'auth', 'contenttypes', 'sessions', 'token_blacklist'}
 ADDONS = pathlib.Path(__file__).resolve().parents[3] / 'addons'
+TESTS = pathlib.Path(__file__).resolve().parents[2]
 
 
 def _import_report_modules():
@@ -40,7 +42,14 @@ def _concrete_models():
     return [model for model in apps.get_models()
             if not model._meta.abstract and not model._meta.proxy
             and model._meta.app_label not in FRAMEWORK
-            and not model.__module__.startswith('tests.')]
+            and not _declared_by_a_test(model)]
+
+
+def _declared_by_a_test(model):
+    """Por la ruta del archivo: el nombre del módulo de una prueba depende
+    del modo de importación de pytest (``test_json2_dispatcher`` declara
+    ``base.RpcModel`` sin el prefijo ``tests.``)."""
+    return TESTS in pathlib.Path(inspect.getfile(model)).resolve().parents
 
 
 def test_every_concrete_model_answers_load_records():
