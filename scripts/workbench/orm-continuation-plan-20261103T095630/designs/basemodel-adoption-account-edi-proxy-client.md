@@ -39,3 +39,25 @@ de conducta.
 2. Trinquete: `account_edi_proxy_client` sale de `PENDING`.
 3. Las dos filas con sus identificadores externos.
 4. Un usuario interno sin `group_account_invoice` no lee usuarios EDI.
+
+## Ejecución (2026-11-18)
+
+Medido antes de decidir la base: con `AccountEdiProxyUser(models.BaseModel)`
+`makemigrations account_edi_proxy_client --dry-run` da «No changes
+detected». `BaseModel` no añade columnas, así que no hace falta
+`TimeStampedModel`; la base queda `models.BaseModel`, como la fuente
+(`models.Model`).
+
+Símbolos:
+
+- `AccountEdiProxyUser` ≙
+  `odoo19c: addons/account_edi_proxy_client/models/account_edi_proxy_user.py:25`.
+- `security/ir.model.access.csv` y
+  `security/account_edi_proxy_client_security.xml` (la regla
+  multiempresa `company_id parent_of company_ids`), copia fiel, en `data`
+  (`odoo19c: addons/account_edi_proxy_client/__manifest__.py:15-17`). El
+  borrador de este diseño sólo contaba el CSV; la fuente carga también la
+  regla, y el cargador de este árbol la acepta.
+
+RED: 6 fallos (los cuatro primeros de la prueba nueva y dos del
+trinquete). Prueba nueva: 5 casos, con la regla.
