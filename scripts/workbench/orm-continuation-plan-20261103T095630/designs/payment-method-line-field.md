@@ -115,7 +115,7 @@ Unidad: `account-payment-method-line-field-0515` (TASK-API-0515), paso 4 de
    cómputo; sin la siembra, el del nombre; sin el relleno, el de la
    migración.
 
-2. **`partner`**: `res.partner`, `PROTECT`
+2. **`partner`**: `res.partner`, `ondelete='restrict'`
    (`odoo19c: addons/account/models/account_payment.py:116` —
    `Many2one('res.partner', string="Customer/Vendor", ondelete='restrict',
    domain="['|', ('parent_id','=', False), ('is_company','=', True)]",
@@ -131,7 +131,14 @@ Unidad: `account-payment-method-line-field-0515` (TASK-API-0515), paso 4 de
    2. `users_to_partners` sustituye cada id de usuario por el `partner_id`
       de ese usuario (todo usuario tiene uno: `res_users.partner_id` es
       obligatorio);
-   3. la clave pasa a `base.ResPartner` con `PROTECT`.
+   3. la clave pasa a `base.ResPartner` con `ondelete='restrict'`,
+      declarado como en la fuente. Este ORM lo traduce a `models.RESTRICT`
+      (`ON_DELETE_POLICY`, `src/orm/fields_relational.py`), que emite el
+      `ON DELETE RESTRICT` de la base; el contrato de políticas admite
+      `RESTRICT` y `PROTECT` para `restrict`. Corrección de este diseño:
+      decía `PROTECT`, que es lo que se obtiene escribiendo el `on_delete`
+      de Django a mano y deja el atributo `ondelete` del campo en su valor
+      por defecto (`'set null'`), medido en la primera versión de la prueba.
 
    Medido antes de escribirla: ningún sitio de `addons/`, `src/` ni
    `tests/` escribe `partner=` en un pago, y nadie lee
@@ -142,7 +149,7 @@ Unidad: `account-payment-method-line-field-0515` (TASK-API-0515), paso 4 de
    | Caso | Espera |
    |---|---|
    | el campo | apunta a `res.partner`, con `ondelete` `restrict` |
-   | borrar un `res.partner` con pagos | rehúsa (`ProtectedError`); el pago sigue |
+   | borrar un `res.partner` con pagos | rehúsa (`RestrictedError`); el pago sigue |
    | `users_to_partners` | una fila con el id de un usuario queda con el id de su partner |
 
    Anulaciones: con `SET_NULL` cae el segundo; con la sustitución anulada,
