@@ -165,3 +165,32 @@ Cada uno entra como unidad propia antes de la unidad 2, en este orden:
 `mail.tracking.duration.mixin` y `mail.template`. Es la cadena que hace a
 `helpdesk.team` y `helpdesk.ticket` portables enteros, sin campos ni
 herencias omitidos.
+
+### Corrección de la tabla anterior (medida el mismo día)
+
+La tabla usaba `grep "_name = '<modelo>'"`, con comillas simples. Repetida
+con `_name\s*=\s*['"]…['"]` y por nombre de clase, cambia en cuatro filas:
+
+| Modelo | Lo que decía | Medido |
+|---|---|---|
+| `mail.alias.domain` | falta | existe: `addons/mail/models/mail_alias_domain.py`, `MailAliasDomain(TimeStampedModel)`, sin `BaseModel` |
+| `mail.alias` | falta | existe: `addons/mail/models/mail_alias.py`, `MailAlias(TimeStampedModel)`, sin `BaseModel` |
+| `mail.template` | falta | existe: `addons/mail/models/mail_template.py`, `MailTemplate(TimeStampedModel)`, **sin `_name`** |
+| `portal.mixin` | falta | existe: `addons/portal/models/portal_mixin.py`, abstracto de Django, **sin `_name`** |
+
+Y una fila que la tabla no veía: `addons/rating` no porta `rating.rating`.
+Declara un modelo propio, `review` (`addons/rating/models/review.py`), que
+es el mismo defecto que el ejecutor señaló en `support.ticket`: un modelo
+inventado en vez del de la fuente.
+
+Así que la cadena no es «crear once modelos»: son adopciones a `BaseModel`
+con su `_name` y su porte completo (`mail.alias.domain`, `mail.alias`,
+`mail.template`, `portal.mixin`), el porte de `rating.rating` en lugar de
+`review`, y cinco mixins que sí faltan (`mail.alias.mixin.optional`,
+`mail.alias.mixin`, `rating.mixin`, `rating.parent.mixin`, `mail.thread.cc`,
+`mail.tracking.duration.mixin`).
+
+*Métrica:* archivos con `_name` igual al modelo, en `addons/` y `src/`,
+fuera de las migraciones, más una búsqueda por nombre de clase.
+*Ciega a:* un modelo que porte la fuente con otro nombre de clase y sin
+`_name`, como `review`, que sólo apareció al listar el addon.
