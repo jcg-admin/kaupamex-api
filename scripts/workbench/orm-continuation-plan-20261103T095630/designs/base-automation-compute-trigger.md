@@ -37,10 +37,9 @@ Fecha: 2026-11-18T07:42:11. Unidad: `base-automation-compute-trigger-0485`
    único llamador es `_dispatch_create_write`, un receptor de `post_save`
    (`signals.py:104-142`), que la consulta contra la base ya escrita. Una
    regla con `filter_pre_domain=[('state','=','draft')]` y un `write` que
-   pasa el registro a `done` no dispara en la fuente si estaba en `draft`…
-   al revés: dispara en la fuente (pre: estaba en draft) y aquí no (pre
-   evaluada sobre `done`). Ninguna prueba cubre `filter_pre_domain` (0 hits
-   en `tests/`).
+   pasa de `draft` a `done` dispara en la fuente (la precondición ve
+   `draft`) y aquí no (la ve sobre `done`). Ninguna prueba cubre
+   `filter_pre_domain` (0 hits en `tests/`).
 4. `changed_fields` no viaja en el contexto de la precondición.
 
 ## El cambio
