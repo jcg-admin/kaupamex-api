@@ -17,9 +17,9 @@ requiere componer intervalos sobre un rango de fechas arbitrario:
 - ``_check_attendance_ids``/``_check_overlap`` → ``check_attendances()``
   (validación de traslape por día de la semana, matemática pura sobre
   ``dayofweek``/``hour_from``/``hour_to`` — sin fechas).
-- ``_get_days_per_week``/``_get_hours_per_week``/``_get_hours_per_day``/
-  ``_get_global_attendances`` → propiedades ``hours_per_week``/
-  ``hours_per_day`` (agregación sobre los tramos, no sobre un calendario).
+- ``hours_per_day``/``hours_per_week`` → calculados almacenados y
+  editables, con ``_get_hours_per_day``/``_get_hours_per_week``/
+  ``_days_per_week``/``_global_attendances`` (agregación sobre los tramos).
 - ``get_week_type`` → delega en ``ResourceCalendarAttendance.get_week_type``.
 - ``_compute_tz_offset`` → propiedad ``tz_offset`` (usa ``zoneinfo``, ver
   divergencia 2).
@@ -62,11 +62,10 @@ Divergencias declaradas
 2. **``tz`` usa ``zoneinfo`` en vez de ``pytz``** (ver
    ``_timezone_choices.py``); ``tz_offset`` usa
    ``datetime.now(ZoneInfo(self.tz))`` en vez de ``pytz.timezone``.
-3. **``hours_per_day``/``hours_per_week`` son propiedades**, no columnas
-   ``compute=..., store=True, readonly=False`` — se recalculan en cada
-   lectura desde los tramos (``self.attendances``); son baratas (una lista
-   de tramos por calendario, nunca miles de filas) y evitan el riesgo de
-   quedar desincronizadas tras editar un tramo sin re-guardar el calendario.
+3. **(Retirada el 2026-11-18.)** ``hours_per_day``/``hours_per_week``
+   eran propiedades; hoy son calculados almacenados y editables como en la
+   fuente, porque ``display_cost`` de ``sale_timesheet`` los agrupa con
+   ``_read_group``.
 4. **``full_time_required_hours`` SÍ es una columna real** (a diferencia de
    los dos anteriores) porque la referencia la declara editable
    independientemente del cálculo (``readonly=False``) — se sincroniza con
@@ -87,9 +86,11 @@ from zoneinfo import ZoneInfo
 
 from django.conf import settings
 
+import api
 import fields
 import models
 from exceptions import ValidationError
+from tools.float_utils import float_round
 
 from addons.base.models import ResCompany, TimeStampedModel
 
@@ -148,6 +149,21 @@ class ResourceCalendar(models.BaseModel, TimeStampedModel):
             'cubrir la duración del día, en vez de horas fijas de inicio/fin.'
         ),
     )
+    #: ≙ ``hours_per_day`` (``odoo19c: addons/resource/models/
+    #: resource_calendar.py:102``): calculado, almacenado y editable.
+    #: ``default=0.0``: la columna de la fuente admite nulo y su lectura lo
+    #: devuelve como ``0.0``; aquí es ``NOT NULL`` con ese mismo valor, que
+    #: es lo que conserva un calendario flexible (el cómputo lo salta).
+    hours_per_day = fields.Float(
+        "Average Hour per Day", store=True, default=0.0,
+        compute="_compute_hours_per_day", digits=(2, 2), readonly=False,
+        help="Average hours per day a resource is supposed to work with "
+             "this calendar.")
+    #: ≙ ``hours_per_week`` (``:104-106``).
+    hours_per_week = fields.Float(
+        string="Hours per Week",
+        compute="_compute_hours_per_week", store=True, readonly=False,
+        copy=False, default=0.0)
     full_time_required_hours = fields.Float(
         default=0,
         help_text=(
@@ -235,30 +251,55 @@ class ResourceCalendar(models.BaseModel, TimeStampedModel):
             return (len(week0) + len(week1)) / 2
         return len({a.dayofweek for a in attendances})
 
-    @property
-    def hours_per_week(self):
-        """≙ ``hours_per_week`` / ``_compute_hours_per_week`` (``:104``,
-        ``:218-221``), que delega en ``_get_hours_per_week`` — expuesta como
-        propiedad (divergencia 3)."""
-        if self.flexible_hours:
-            return 0.0
-        total = 0.0
-        for attendance in self._global_attendances():
-            total += (
-                attendance.duration_hours
-                if self.duration_based
-                else attendance.hour_to - attendance.hour_from
-            )
-        return total / 2 if self.two_weeks_calendar else total
+    # ``flexible_hours`` es aquí una propiedad sobre ``schedule_type``
+    # (divergencia 1) y el inverso de los tramos se llama ``attendances``:
+    # las dependencias de la fuente (``attendance_ids``, sus ``hour_from`` y
+    # ``hour_to``, ``two_weeks_calendar``, ``flexible_hours``) se escriben
+    # sobre los campos que existen.
+    @api.depends('attendances', 'attendances.hour_from',
+                 'attendances.hour_to', 'two_weeks_calendar',
+                 'schedule_type')
+    def _compute_hours_per_day(self):
+        """≙ ``_compute_hours_per_day`` (``:211-215``).
 
-    @property
-    def hours_per_day(self):
-        """≙ ``hours_per_day`` / ``_compute_hours_per_day`` (``:102``,
-        ``:211-215``), que delega en ``_get_hours_per_day``."""
-        if self.flexible_hours:
-            return 0.0
-        days = self._days_per_week()
-        return self.hours_per_week / days if days else 0.0
+        Compute the average hours per day.
+        Cannot directly depend on hours_per_week because of rounding issues.
+        """
+        for calendar in self.filtered(lambda c: not c.flexible_hours):
+            calendar.hours_per_day = float_round(
+                calendar._get_hours_per_day(), precision_digits=2)
+
+    @api.depends('attendances', 'attendances.hour_from',
+                 'attendances.hour_to', 'two_weeks_calendar',
+                 'schedule_type')
+    def _compute_hours_per_week(self):
+        """≙ ``_compute_hours_per_week`` (``:217-221``)."""
+        for calendar in self.filtered(lambda c: not c.flexible_hours):
+            calendar.hours_per_week = float_round(
+                calendar._get_hours_per_week(), precision_digits=2)
+
+    def _get_hours_per_week(self):
+        """≙ ``_get_hours_per_week`` (``:692-701``).
+
+        Calculate the average hours worked per week.
+        """
+        self.ensure_one()
+        hour_count = 0.0
+        for attendance in self._global_attendances():
+            if self.duration_based:
+                hour_count += attendance.duration_hours
+            else:
+                hour_count += attendance.hour_to - attendance.hour_from
+        return hour_count / 2 if self.two_weeks_calendar else hour_count
+
+    def _get_hours_per_day(self):
+        """≙ ``_get_hours_per_day`` (``:703-707``).
+
+        Calculate the average hours worked per workday.
+        """
+        hour_per_week = self._get_hours_per_week()
+        number_of_days = self._days_per_week()
+        return hour_per_week / number_of_days if number_of_days else 0
 
     @property
     def is_fulltime(self):
