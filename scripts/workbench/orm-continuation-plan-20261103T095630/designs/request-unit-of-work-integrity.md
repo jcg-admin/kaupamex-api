@@ -66,3 +66,45 @@ de transacción del CRM bajo la unidad». Ninguno es obligación de este ítem
 (`obligations` sólo lista `retrying`) y los dos tienen su propio diseño
 (`registry-cursor-unit-of-work.md`, `crm-transaction-time-shared-read.md`).
 Se miden al cerrar: si no tienen ítem aceptado, se registran como sucesor.
+
+## Ejecución (2026-11-18)
+
+Símbolos en `src/addons/base/models/ir_http.py`:
+
+- `_integrity_error_model` ≙ el recorrido del registro de
+  `odoo19c: odoo/service/model.py:208` (cae en `BaseModel`);
+- `_integrity_error_response` ≙ `odoo19c: odoo/service/model.py:213` más
+  el 422 de `odoo19c: odoo/http.py:2536`;
+- `UnitOfWorkMiddleware.__call__` traduce en sus dos salidas de reversión:
+  el `except` (la excepción subió por la cadena, o salió del volcado o del
+  COMMIT) y la respuesta fallida anotada por `process_exception` (el
+  manejador real de Django ya la convirtió en 500).
+
+Pruebas en `tests/integration/test_orm/test_request_unit_of_work.py`:
+`test_an_integrity_error_of_the_view_answers_422`,
+`test_an_integrity_error_of_the_final_flush_answers_422` y
+`test_through_the_real_handler_an_integrity_error_answers_422`.
+
+Anulaciones, cada una medida por separado:
+
+| Se retira | Caen |
+|---|---|
+| la traducción en el `except` | las dos primeras, ni una más (2 de 12) |
+| la traducción tras `process_exception` | sólo la tercera (1 de 12) |
+
+**Lo que la medición corrigió.** La primera versión de la segunda prueba
+escribía `color=-1` con `write` dentro de la vista, suponiendo que el
+volcado lo aplazaba. Una sonda lo desmintió: la vista nunca devolvió, porque
+un `write` de este ORM ejecuta en el acto. La prueba medía otra vez la
+salida de la vista. Ahora sustituye `Transaction.flush` por uno que inserta
+una fila que viola la restricción, así que el error nace en el volcado del
+middleware.
+
+**Divergencia de conteo, sin efecto.** En la fuente, el `ValidationError`
+lanzado dentro del `except` interno pasa por el `except Exception` externo
+de `retrying`, así que `reset_changes()` se llama dos veces
+(`odoo19c: odoo/service/model.py:197` y `:235`). Aquí se llama una vez. La
+operación es idempotente: vacía las marcas de cambio.
+
+Consumidores derivados (`grep -rlE "UnitOfWorkMiddleware|ir_http" tests/`):
+544 passed.
