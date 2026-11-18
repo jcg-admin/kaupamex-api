@@ -25,7 +25,8 @@ El control que puede fallar
 
 Anulando las tres guardas —``_check_disjoint_groups`` con ``return`` al
 entrar, ``_check_at_least_one_administrator`` igual, y el receptor
-``_forbid_deleting_master_data`` tambien— la suite pasa de **17 passed** a
+``_forbid_deleting_master_data`` tambien (hoy el ``@api.ondelete``
+``ResUsers._unlink_except_master_data``)— la suite pasa de **17 passed** a
 **9 failed, 8 passed**. Caen los nueve que afirman que la restriccion
 **ocurre**: dos de clases disjuntas, uno del administrador, cuatro de datos
 maestros por instancia (parametrizados por login) y dos de datos maestros por
