@@ -46,12 +46,64 @@ Unidad: `account-payment-method-line-field-0515` (TASK-API-0515), paso 4 de
 
 1. **Adopción**: `class AccountPayment(models.BaseModel, TimeStampedModel)`.
    Los ocho sitios de creación pasan a ejecutarse con entorno (`sudo`).
+   Medido en `646f085d` (2026-11-18): con sólo el cambio de base,
+   `makemigrations --check` no detecta cambios y la regresión derivada de
+   cinco directorios da 4259 que pasan y ningún fallo. Los ocho sitios de
+   creación usan el gestor de Django y no necesitaron `sudo`.
+
+   **1a — `date`, `name` y la secuencia (requisito de la adopción,
+   medido).** El verde de arriba no cubría la búsqueda: una sonda
+   `env()['account.payment'].search([('id', '=', 0)])` da `ValueError:
+   Invalid field 'date' on model 'account.payment'`. Es el mismo defecto que
+   C2a encontró en el apunte: la clase declara `_order = "date desc, name
+   desc"` como la fuente (`odoo19c: addons/account/models/
+   account_payment.py:11`) y ninguno de los dos campos está portado. Se
+   portan con la adopción, en el mismo commit:
+
+   | Símbolo | Fuente | Aquí |
+   |---|---|---|
+   | `date` | `odoo19c: addons/account/models/account_payment.py:16` — `fields.Date(default=fields.Date.context_today, required=True, tracking=True)` | igual. Filas existentes: la fecha de su `create_date`, que es el día en que el valor por defecto se habría evaluado |
+   | `name` | `odoo19c: addons/account/models/account_payment.py:15` — `fields.Char(string="Number", compute='_compute_name', store=True)` | igual |
+   | `_compute_name` | `odoo19c: addons/account/models/account_payment.py:414` | con `id` y estado `in_process` o `paid` y sin nombre, el siguiente número de la secuencia `account.payment` de la empresa, con `sequence_date=payment.date`. `pendiente:` la rama de `move_id.name`: el pago no tiene `move_id` aquí |
+   | `seq_account_payment` | `odoo19c: addons/account/data/ir_sequence.xml:4` — `ir.sequence` «Payment», código `account.payment`, prefijo `PAY`, relleno 5, sin empresa, `noupdate` | `seed_payment_sequence` en `addons/account/data/sequences.py`, con su identificador externo, idempotente por `(module, name)` como `seed_manual_payment_methods` |
+
+   La secuencia es `standard` (el valor por defecto del campo), así que su
+   numeración sale de una secuencia nativa de PostgreSQL que
+   `IrSequence.save` crea al dar de alta la fila. La siembra corre sobre
+   modelos históricos y no pasa por `save`: `seed_payment_sequence` crea la
+   nativa con `_create_sequence` si `pg_class` no la tiene.
+   **Divergencia de mecanismo, declarada:** la fuente carga el XML una vez
+   por el ORM; aquí la siembra se repite tras cada prueba transaccional y
+   tiene que ser idempotente también sobre la secuencia nativa.
+
+   Migración `0048_payment_date_name` de `account`: las dos columnas, el
+   relleno de `date`, la siembra de la secuencia y `ComputeStoredFields`
+   para `name`. Semilla de pruebas `_payment_sequence_seed` en
+   `tests/conftest.py`.
+
+   Pruebas en `tests/unit/account/test_payment_date_name.py`:
+
+   | Caso | Espera |
+   |---|---|
+   | buscar pagos | no falla; el orden es `date desc, name desc` |
+   | pago nuevo sin fecha | `date` es hoy |
+   | pago en borrador | `name` vacío |
+   | pago que pasa a `in_process` | `name` es `PAY` y cinco dígitos |
+   | segundo cómputo del mismo pago | `name` no cambia: no consume otro número |
+   | la siembra, dos veces | una sola fila `account.payment` y su identificador externo `account.seq_account_payment` |
+   | la operación de relleno de la migración | una fila con `date` nula recibe la fecha de su `create_date` |
+
+   Anulaciones: sin la guarda `not payment.name` cae el caso del segundo
+   cómputo; sin la siembra, el del nombre; sin el relleno, el de la
+   migración.
+
 2. **`partner`**: `res.partner`, `PROTECT`. Migración con paso de datos: el
    usuario se sustituye por su `partner`.
 3. **Campos y cómputos** de la tabla, con los nombres de la fuente
    (`payment_method_line_id` como columna `payment_method_line_id`,
    `SET_NULL`, el default de un Many2one no requerido).
-   Migración `0044` de `account` con `ComputeStoredFields` para
+   Migración de `account` (el número lo fija el paso al llegar; `0044`
+   quedó tomado por el bloque D) con `ComputeStoredFields` para
    `payment_method_line_id`, `payment_method_id`, `outstanding_account_id`.
 4. **`_check_payment_method_line_id`**.
 5. **`AccountPaymentMethodLine.unlink`** y, con él, `AccountJournal.unlink`
