@@ -67,3 +67,45 @@ asiente.
 `group_manager` (`AND NOT ir_model_data.noupdate`, `src/addons/base/models/ir_model.py:3379`,
 igual que la fuente). En una instalación nueva sí. La prueba carga el XML
 en `mode='init'` para medir la instalación.
+
+## Bloqueo cerrado y ejecución (2026-11-18)
+
+Los dos prerrequisitos asentaron: `ir-cron-user-root-0485` (el cron corre como
+`base.user_root`) e `ir-cron-env-su-0485` (lo hace con la elevación de su
+usuario, ≙ `odoo19c: odoo/orm/environments.py:66`). Se volvió a aplicar el
+parche.
+
+La prueba ya no fija el entorno a mano: `_run_as_cron` llama a
+`cron._callback()`, el mismo camino que sigue el ejecutor de crons. Así mide
+el contrato completo (usuario y elevación) y no una copia del contrato.
+
+Resultados:
+
+- `tests/integration/auto_backup/` y `test_basemodel_reach.py`: 74 passed.
+- `auto_backup` ya no figura en `PENDING`.
+- Consumidores derivados
+  (`grep -rlE "DbBackup|auto_backup|db\.backup" --include=*.py tests/`, sin el
+  `conftest.py` de la raíz): 6194 passed, 65 skipped, 2 xfailed con `-n 4`.
+
+**Lo que la medición corrigió.** La primera prueba del ACL leía las filas que
+la base reutilizada ya tenía. Al retirar el CSV del manifiesto no caía
+ninguna aserción: no medía el manifiesto. Ahora el fixture `installed_data`
+retira esas filas y vuelve a cargar los datos con `load_data` en
+`mode='init'`, el paso real de la instalación.
+
+Anulaciones, cada una medida por separado (`tests/integration/auto_backup/`):
+
+| Se retira | Caen |
+|---|---|
+| la fila `ir.model.access.csv` de `data` | `test_the_acl_is_the_reference_csv_with_its_external_ids` y `test_only_a_backup_manager_reads_the_backups` (2 de 52) |
+| la implicación de `base.group_system` | `test_the_system_group_implies_the_backup_manager` y la de lectura (2 de 52) |
+| `models.BaseModel` de `DbBackupDetails` | la de tipo y todas las de `schedule_backup`, que crean el detalle por el recordset |
+
+**Admisión de estilo.** Al cambiar las bases de `DbBackup` cambia el contexto
+sintáctico de cada línea de la clase, así que su deuda heredada se contó como
+nueva: 21 E501 y un E305, que se pagaron. Las seis supresiones
+`# noqa: BLE001 — <motivo>` se volvieron comentarios `# <motivo>`. `BLE001`
+es de flake8-blind-except, y ningún linter de este repo lo aplica (ni
+`pyproject.toml` ni el entorno). Para pycodestyle, en cambio, un `noqa` sin
+código silenciaba la línea entera. Sin el pragma, las seis miden 79
+caracteres o menos.
