@@ -232,3 +232,31 @@ con `setattr`, `chain_method` o `wrap_method`, y ninguno las une: los dos
 contrato del núcleo; queda como unidad propia (`plan.jsonl`,
 `orm-extension-depends-merge-0485`). Por eso la prueba de conteo de esa línea
 se retiró de esta unidad: no medía el mecanismo de alta.
+
+
+## Medición al asentar `sale-line-eager-amounts-0192` (2026-11-18)
+
+`tests/unit/sale/test_line_amount_computes_once.py` (promovido del
+borrador). Dos correcciones del borrador y una medición nueva:
+
+1. El borrador esperaba `price_subtotal == 180` y la línea da 155,17: este
+   árbol todavía extrae el IVA de un precio con IVA incluido aunque la
+   línea no tenga impuestos (divergencia declarada en `SaleOrderLine`,
+   tarea #141). La prueba lee `price_total`, que es 180 aquí y en la fuente
+   para una línea sin impuestos.
+2. Alta: con la rama de `save()` restringida a modificación, una sola
+   invocación de `_compute_amount`. Si `save()` vuelve a calcular en alta,
+   son dos y el caso cae.
+3. Modificación con `update_fields`: **una** invocación con la rama
+   (desde `save()`) y **una** sin ella (el recálculo pendiente del ORM, al
+   leer el campo durante el guardado; `src/orm/fields.py`, `recompute`).
+   La columna leída con SQL directo vale 200 en los dos casos. La rama de
+   modificación no duplica, pero es redundante: la afirmación de arriba
+   —«`update_fields` necesita la columna en este mismo `save`»— es cierta
+   como contrato y falsa como razón de la rama.
+
+Sucesor, no ejecutado aquí: retirar la rama de modificación de
+`SaleOrderLine.save` y comprobar los consumidores que escriben con
+`update_fields` (`addons/sale/services.py:249` y `:400`), con su
+regresión derivada. Unidad del plan: `sale-line-save-modification-branch`
+cuando se registre; hasta entonces este párrafo es su registro.
