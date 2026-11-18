@@ -70,3 +70,36 @@ duplicaría la herencia que la fuente declara una vez.
 - `SparseFieldsTest` no tiene `_name`: el trinquete no lo mide.
 - La carga de las demás filas de `base` (143 en la fuente) es una unidad
   propia del programa, no ésta.
+
+## Ejecución (2026-11-18)
+
+Símbolos:
+
+- `TransientModel` ≙ `odoo19c: odoo/orm/models_transient.py:10`: ahora
+  `class TransientModel(TransactionClockSaveMixin, BaseModel)`
+  (`src/orm/models_transient.py`).
+- `AccountFinancialYearOp` (`addons/account/wizard/setup_wizards.py`)
+  declaraba `DefaultGetMixin` delante de `TransientModel`; con
+  `BaseModel` en la base eso no tiene MRO consistente, y el mixin ya llega
+  por `BaseModel`. Se retira de sus bases; la conducta no cambia.
+- `addons/base_import_module/security/ir.model.access.csv` y
+  `addons/base_install_request/security/ir.model.access.csv`: copia fiel,
+  declarados en `data` como en la fuente
+  (`odoo19c: addons/base_import_module/__manifest__.py:16-17`,
+  `odoo19c: addons/base_install_request/__manifest__.py:13-14`).
+
+Pruebas: `tests/unit/orm/test_transient_basemodel.py` (4) y el trinquete
+`tests/unit/orm/test_basemodel_reach.py` sin `base_import_module` ni
+`base_install_request` en `PENDING`.
+
+RED medido antes de tocar código: 7 fallos, los cuatro de la prueba nueva y
+tres del trinquete (las dos apps fuera de `BaseModel` y el conjunto
+`PENDING`).
+
+**Lo que la medición corrigió.** La prueba esperaba dos filas de
+`base_install_request`; el CSV de la fuente trae **seis** (las dos de los
+asistentes y cuatro de lectura sobre `ir.module.*` para `base.group_user`).
+La copia es fiel, así que la prueba se corrigió para afirmar las seis.
+
+`makemigrations --check --dry-run`: «No changes detected»; el cambio de
+base no altera columnas.
