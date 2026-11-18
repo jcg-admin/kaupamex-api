@@ -138,8 +138,17 @@ sobre los campos que existen —`attendances`, `attendances.hour_from`,
 `attendances.hour_to`, `two_weeks_calendar`, `schedule_type`— y la
 traducción se declara en el método.
 
-Migración `resource/0022_calendar_hours_stored` (el número se fija al
-generarla): dos columnas y `ComputeStoredFields` para las filas existentes.
+Métodos portados: `ResourceCalendar._compute_hours_per_day` y
+`ResourceCalendar._compute_hours_per_week` (`:210-221`),
+`ResourceCalendar._get_hours_per_week` (`:692-701`) y
+`ResourceCalendar._get_hours_per_day` (`:703-707`).
+
+Migración `0006_calendar_hours_stored` de `resource` (número fijado al
+generarla; el diseño la anticipaba como 0022): dos columnas y
+`ComputeStoredFields` para las filas existentes (`odoo19c:
+odoo/orm/models.py:3220-3238`). La columna de la fuente admite nulo y su
+lectura lo devuelve como `0.0`; aquí es `NOT NULL` con `default=0.0`, el
+mismo valor, que es el que conserva un calendario flexible.
 
 Pruebas en `tests/unit/resource/test_calendar_hours_stored.py`:
 
@@ -149,7 +158,7 @@ Pruebas en `tests/unit/resource/test_calendar_hours_stored.py`:
 | calendario de 40 h en 5 días | columnas `40.0` y `8.0` |
 | cambiar `hour_to` de un tramo | las columnas se recalculan |
 | calendario flexible con un valor escrito a mano | se conserva al cambiar un tramo |
-| la operación de la migración | una fila con columnas nulas recibe sus horas |
+| la operación de la migración | una fila con las columnas en cero recibe sus horas |
 
 ### H2 — `display_cost` y su inverso
 
