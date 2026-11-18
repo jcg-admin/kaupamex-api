@@ -73,8 +73,9 @@ más ancho de la sesión. Se hace en pasos que se verifican por separado:
    `tests/unit/account/test_account_move_line_move_name_date.py`: los dos
    campos son relacionados almacenados, una línea nueva los toma de su
    asiento, siguen un cambio del asiento, y la operación de la migración
-   llena filas anteriores. `invoice_date` y `ref` (`:74`, `:79`) no entran:
-   `_order` no los cita y `account.move` no tiene aquí `invoice_date`.
+   llena filas anteriores. `invoice_date` y `ref` (`:74`, `:79`) no entran
+   en este paso: `_order` no los cita y ningún fallo medido los pide;
+   quedan como obligación de porte del modelo, no de este contrato.
    El fallo 14 es `bill_line.purchase_line_id is None` en
    `tests/unit/purchase/test_purchase_invoice_link.py`: un Many2one vacío
    de un `BaseModel` se lee como conjunto vacío, igual que en la fuente;
