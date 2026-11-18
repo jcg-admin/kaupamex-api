@@ -13,6 +13,8 @@ import api
 import fields
 import models
 from addons.base.models import IrSequence, TimeStampedModel
+from exceptions import ValidationError
+from tools.translate import _
 
 
 class AccountPayment(models.BaseModel, TimeStampedModel):
@@ -255,6 +257,25 @@ class AccountPayment(models.BaseModel, TimeStampedModel):
         for pay in self:
             pay.outstanding_account_id = (
                 pay.payment_method_line_id.payment_account)
+
+    @api.constrains('payment_method_line_id')
+    def _check_payment_method_line_id(self):
+        """≙ ``_check_payment_method_line_id``
+        (``odoo19c: addons/account/models/account_payment.py:863``).
+
+        Ensure the 'payment_method_line_id' field is not null.
+        Can't be done using the regular 'required=True' because the field is
+        a computed editable stored one.
+        """
+        for pay in self:
+            if not pay.payment_method_line_id:
+                raise ValidationError(_(
+                    "Please define a payment method line on your payment."))
+            elif (pay.payment_method_line_id.journal
+                    and pay.payment_method_line_id.journal != pay.journal):
+                raise ValidationError(_(
+                    "The selected payment method is not available for this "
+                    "payment, please select the payment method again."))
 
     def __str__(self) -> str:
         return (

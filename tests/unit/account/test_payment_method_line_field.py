@@ -21,6 +21,7 @@ from addons.account.data import seed_manual_payment_methods
 from addons.account.models import (
     AccountAccount, AccountJournal, AccountPayment)
 from addons.base.models import ResCompany, ResPartner
+from exceptions import ValidationError
 from orm.environments import env, sudo
 
 pytestmark = pytest.mark.django_db
@@ -115,10 +116,35 @@ def test_a_preferred_line_of_another_journal_is_ignored(manual, company):
     assert _stored(payment, 'payment_method_line_id') == (first.id,)
 
 
-def test_a_journal_without_lines_leaves_the_field_empty(manual, company):
+def test_a_journal_without_lines_is_refused(manual, company):
+    """≙ ``_check_payment_method_line_id`` (``:863``), primera rama: el
+    cómputo deja el campo vacío y la restricción lo rehúsa."""
     journal = _journal(company, 'PM6', 'general')
+    with pytest.raises(ValidationError, match='Please define a payment'):
+        _payment(journal)
+
+
+def test_a_line_of_another_journal_is_refused(manual, company):
+    """Segunda rama: la línea escrita a mano tiene diario y no es el del
+    pago."""
+    journal = _journal(company, 'PM9')
+    other = _journal(company, 'PM0')
+    [foreign] = other.inbound_payment_method_line_ids
     payment = _payment(journal)
-    assert _stored(payment, 'payment_method_line_id') == (None,)
+    with pytest.raises(ValidationError, match='is not available'):
+        payment.write({'payment_method_line_id': foreign.id})
+        env().flush_all()
+
+
+def test_a_line_without_journal_is_accepted(manual, company):
+    """La segunda rama sólo mira las líneas que tienen diario."""
+    inbound, _outbound = manual
+    journal = _journal(company, 'PMA')
+    loose = env()['account.payment.method.line'].create({
+        'name': 'Suelta', 'payment_method': inbound.pk})
+    payment = _payment(journal)
+    payment.write({'payment_method_line_id': loose.id})
+    assert _stored(payment, 'payment_method_line_id') == (loose.id,)
 
 
 def test_the_outstanding_account_follows_the_line(manual, company):
