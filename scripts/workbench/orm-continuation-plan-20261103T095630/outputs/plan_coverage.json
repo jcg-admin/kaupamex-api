@@ -520,7 +520,8 @@
   "basemodel-adoption-uom-0397",
   "basemodel-adoption-res-city-0397",
   "basemodel-adoption-transient-0397",
-  "basemodel-adoption-certificate-0397"
+  "basemodel-adoption-certificate-0397",
+  "basemodel-adoption-html-editor-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
