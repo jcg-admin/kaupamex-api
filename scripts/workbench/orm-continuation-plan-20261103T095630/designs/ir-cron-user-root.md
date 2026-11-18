@@ -55,3 +55,26 @@ Se mide antes de cerrar el punto 3: quién crea `IrCron` sin usuario en
 2. Tras la migración, ningún cron tiene `user` nulo.
 3. `_callback` de un cron que busca en un `BaseModel` sin filas de
    acceso para `group_user` termina sin `PermissionDenied`.
+
+## Ejecución (2026-11-18)
+
+Símbolos:
+
+- `_default_user_id` (`src/addons/base/models/ir_cron.py`) ≙
+  `default=lambda self: self.env.user`
+  (`odoo19c: odoo/addons/base/models/ir_cron.py:110`): el usuario actuante,
+  o `SUPERUSER_ID` sin ninguno (el entorno de instalación,
+  `odoo19c: odoo/modules/loading.py:404`).
+- `IrCron.user`: `null=False`, `on_delete=RESTRICT`, `default=_default_user_id`.
+  `RESTRICT` porque un Many2one obligatorio no puede quedar en `SET NULL`.
+- `src/addons/base/migrations/0120_ir_cron_user_root.py`: rellena con
+  `base.user_root` los crons nulos y altera la columna.
+
+Respecto al diseño: el punto 1 (`sembrar_cron` asigna el raíz) no hace
+falta como cambio propio. Los modelos históricos conservan el `default`, y
+en una migración no hay usuario actuante, así que el cron sembrado queda
+con `SUPERUSER_ID`, que es `base.user_root` (`IrModelData` `res_id` 1).
+
+`makemigrations --check --dry-run`: «No changes detected».
+RED: 4 fallos de 4 (`tests/unit/base/test_ir_cron_user_root.py`); GREEN:
+4 passed.
