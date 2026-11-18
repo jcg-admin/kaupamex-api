@@ -31,7 +31,7 @@ columna `NOT NULL`, que también rehúsa el borrado. No se observó el DDL
 ## Cambio
 
 `on_delete=models.PROTECT` en cada campo y un `AlterField` por aplicación,
-con el nombre `restrict_ondelete_block_f`. Ninguna nulabilidad cambia: seis
+con el nombre `restrict_ondelete_block_f`. Ninguna nulabilidad cambia: cinco
 campos son `null=True` aquí y obligatorios en la fuente
 (`AccountBankStatementLine.company`, `PurchaseOrder.company_id`,
 `SaleOrder.company`, `StockPickingType.company`, `StockRule.picking_type`);
