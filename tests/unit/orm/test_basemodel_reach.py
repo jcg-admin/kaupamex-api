@@ -57,7 +57,6 @@ PENDING = {
     'crm',
     'fleet',
     'helpdesk',
-    'html_editor',
     'mail',
     'mass_mailing',
     'onboarding',

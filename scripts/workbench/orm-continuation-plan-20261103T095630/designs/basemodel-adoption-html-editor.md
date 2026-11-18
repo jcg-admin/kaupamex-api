@@ -35,3 +35,24 @@ corregido. `authz_catalog.py` se conserva: es otra obligación.
 3. Las dos filas con sus identificadores externos.
 4. Un usuario interno no lee `html_editor.converter.test`; uno de
    `group_system`, sí.
+
+## Ejecución (2026-11-18)
+
+Símbolos:
+
+- `Html_EditorConverterTest` ≙ `odoo19c: addons/html_editor/models/test_models.py:6`
+  y `Html_EditorConverterTestSub` ≙ `:32`: base
+  `(models.BaseModel, TimeStampedModel)`.
+- `addons/html_editor/security/ir.model.access.csv`, copia fiel, en `data`
+  (`odoo19c: addons/html_editor/__manifest__.py:17-18`); el comentario del
+  manifiesto que lo daba por sustituido queda corregido.
+
+`makemigrations html_editor --dry-run`: «No changes detected».
+RED: 6 fallos (los cuatro de la prueba nueva, dos del trinquete).
+Consumidores: fuera de `tests/unit/html_editor/` ningún archivo de `tests/`
+nombra estos modelos; `tests/unit/html_editor` entero y el trinquete: 160
+passed.
+
+**Anulación.** Con los dos modelos devueltos a `TimeStampedModel` caen 5 de
+24: las dos de herencia, la de acceso y las dos del trinquete. Sobrevive la
+de filas del CSV.

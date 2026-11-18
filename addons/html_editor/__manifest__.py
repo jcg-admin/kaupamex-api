@@ -47,11 +47,16 @@ This addon provides an extensible, maintainable editor.
     # de manifiestos y no hay estado de instalación por empresa que consultar,
     # así que la clave se conserva por fidelidad al dato de la fuente.
     'auto_install': True,
-    # La referencia declara aquí `data: ['security/ir.model.access.csv']`. Su
-    # equivalente en este árbol es `security/authz_catalog.py`, que
-    # `seed_authz` recolecta por `addons.authz.declaration.discover()` — mismo
-    # criterio que `addons/web/security/authz_catalog.py`. No se declara en
-    # `data` porque el recolector recorre `INSTALLED_APPS`, no el manifiesto.
+    # Seguridad de la fuente
+    # (``odoo19c: addons/html_editor/__manifest__.py:17-18``), por
+    # ``load_data`` en el ciclo de instalación: copia fiel del CSV, las filas
+    # de ``ir.model.access`` de los dos modelos de conversión.
+    # `security/authz_catalog.py` es otra autoridad —los códigos de
+    # capacidad de los endpoints, que `seed_authz` recolecta por
+    # `addons.authz.declaration.discover()`— y no sustituye a este CSV.
+    'data': [
+        'security/ir.model.access.csv',
+    ],
     #
     # El bloque `assets` de la referencia —21 bundles de JS y SCSS, que son la
     # mayor parte de su manifiesto— NO tiene contraparte aquí: el editor es un

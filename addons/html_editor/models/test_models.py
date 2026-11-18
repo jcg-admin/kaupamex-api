@@ -41,11 +41,12 @@ Divergencias declaradas
 """
 
 import fields
+import models
 from addons.base.models import TimeStampedModel
 from django.db import models as django_models
 
 
-class Html_EditorConverterTest(TimeStampedModel):
+class Html_EditorConverterTest(models.BaseModel, TimeStampedModel):
     """≙ ``Html_EditorConverterTest`` (``odoo19c: :6``)."""
 
     _name = 'html_editor.converter.test'
@@ -104,7 +105,7 @@ class Html_EditorConverterTest(TimeStampedModel):
         verbose_name = 'Html Editor Converter Test'
 
 
-class Html_EditorConverterTestSub(TimeStampedModel):
+class Html_EditorConverterTestSub(models.BaseModel, TimeStampedModel):
     """≙ ``Html_EditorConverterTestSub`` (``odoo19c: :33``)."""
 
     _name = 'html_editor.converter.test.sub'
