@@ -48,12 +48,11 @@ omitido en silencio)
   patrón de ``digest``. Modificar ``mail_thread.py`` está fuera de los tres
   directorios permitidos en este pase. El vocabulario (``MAIL_TRIGGERS``,
   el valor en ``trigger``) se porta completo; el dispatch, no.
-- **``_compute_field_value`` (recomputo de campos que dispara
-  automatizaciones).** Bloqueado — esta capa no tiene un motor de recompute
-  genérico por-campo (``@api.depends`` con grafo de dependencias); los
-  campos calculados aquí son ``@property`` o columnas recalculadas ad hoc
-  por cada addon, sin un punto único donde interceptar "cualquier campo se
-  acaba de recalcular".
+- **``_compute_field_value`` (recómputo de campos que dispara
+  automatizaciones).** Portado: ``models/signals.py`` envuelve
+  ``BaseModel._compute_field_value`` con el cuerpo de
+  ``make_compute_field_value``. El volcado de un calculado escribe columnas
+  sin señales, así que ése es el único punto donde se ve un recálculo.
 - **``trg_date_calendar_id`` con ajuste de calendario laboral
   (``calendar.plan_days``).** Bloqueado por pieza concreta ausente:
   ``ResourceCalendar.plan_days`` no existe en ``addons/resource/`` (medido:
@@ -88,10 +87,8 @@ accesor (``@property``), fiel a la referencia, aunque su mecanismo interno
 sea la tabla-liga y no un O2M directo.
 """
 import api
-import datetime
 import logging
 import re
-import time
 import calendar
 from datetime import timedelta
 from uuid import uuid4
@@ -108,7 +105,8 @@ from addons.mail.models import MailActivityMixin, MailThread
 from addons.resource.models.resource_calendar import ResourceCalendar
 from exceptions import UserError, ValidationError
 from orm import domains
-from orm.environments import get_current_user
+from orm.environments import env, get_current_uid, get_current_user
+from tools import safe_eval as safe_eval_tools
 from tools.safe_eval import safe_eval
 
 _logger = logging.getLogger(__name__)
@@ -163,6 +161,7 @@ TIME_TRIGGERS = [
     'on_time_updated',
 ]
 
+
 def advance_date(value, unit, count):
     """≙ ``DATE_RANGE[unit] * count`` de la referencia (``relativedelta``).
 
@@ -188,6 +187,7 @@ def advance_date(value, unit, count):
         day = min(value.day, calendar.monthrange(year, month)[1])
         return value.replace(year=year, month=month, day=day)
     raise ValueError(f'trg_date_range_type desconocido: {unit!r}')
+
 
 #: ≙ DATE_RANGE_FACTOR de la referencia — minutos por unidad, para el
 #: cálculo del intervalo del cron (``_get_cron_interval``).
@@ -230,7 +230,7 @@ def get_webhook_request_payload(request=None):
         return None
     try:
         return request.data
-    except Exception:  # noqa: BLE001 — cuerpo no-JSON o vacío
+    except Exception:  # cuerpo no-JSON o vacío: se cae a los parámetros
         return dict(request.query_params)
 
 
@@ -264,8 +264,10 @@ def _domain_fields_differences(model_row, domain1, domain2):
     empty = IrModelFields.objects.none()
     if model_row is None:
         return empty, empty
-    d1_ids = set(_get_domain_fields(model_row, domain1).values_list('pk', flat=True))
-    d2_ids = set(_get_domain_fields(model_row, domain2).values_list('pk', flat=True))
+    d1_ids = set(_get_domain_fields(model_row, domain1)
+                 .values_list('pk', flat=True))
+    d2_ids = set(_get_domain_fields(model_row, domain2)
+                 .values_list('pk', flat=True))
     in_d1_only = IrModelFields.objects.filter(pk__in=(d1_ids - d2_ids))
     in_d2_only = IrModelFields.objects.filter(pk__in=(d2_ids - d1_ids))
     return in_d1_only, in_d2_only
@@ -338,6 +340,14 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
     # ≙ CRITICAL_FIELDS / RANGE_FIELDS de la referencia — qué campos, al
     # cambiar, invalidan el cron / el registro de dispatch.
     CRITICAL_FIELDS = ['model_id', 'active', 'trigger', 'on_change_field_ids']
+    #: ≙ los ``@api.depends`` de ``_compute_filter_pre_domain`` (``:378``) y de
+    #: ``_compute_filter_domain`` (``:387``): fuera de esos cambios, el filtro
+    #: escrito por el usuario se conserva.
+    FILTER_DEPENDS = {
+        'filter_pre_domain': ('trigger', 'trg_field_ref'),
+        'filter_domain': ('trigger', 'trg_selection_field_id',
+                          'trg_field_ref'),
+    }
     RANGE_FIELDS = ['trg_date_range', 'trg_date_range_type']
 
     name = fields.Char(
@@ -831,17 +841,40 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
             automation=self).exclude(action__model_name=self.model_id.model)
         stale.delete()
 
-    def _update_registry(self):
-        """≙ ``_update_registry`` de la referencia — no-op declarado.
+    @classmethod
+    def _register_hook(cls):
+        """≙ ``_register_hook`` (``base_automation.py:1040-1060``): fija, en
+        el registro de la base activa, qué modelos tienen reglas de escritura.
 
-        La referencia re-parchea los modelos objetivo
-        (``_unregister_hook``+``_register_hook``) cada vez que una regla
-        cambia, porque su mecanismo de dispatch vive en un patch instalado
-        una vez por proceso. El reemplazo de este árbol
-        (``models/signals.py``, receptores globales) consulta la base en
-        cada evento — SIEMPRE ve el estado actual de ``base.automation``
-        sin necesitar reinstalación. No hay nada que actualizar."""
-        return
+        La fuente parchea ``_compute_field_value`` en esos modelos al cargar
+        el registro; aquí el envoltorio es único (``models/signals.py``) y lee
+        este conjunto, de modo que un modelo sin reglas recalcula sin
+        consultar la base. Divergencia de momento: el registro de este árbol
+        no siempre tiene base detrás (``Registry.new`` de las pruebas), así
+        que el conjunto nace sin saberse (``None``) y lo llena el primer
+        receptor de señal que ya consulta las reglas, o
+        :meth:`_update_registry`. Mientras no se sepa, ningún recálculo
+        dispara: el mismo estado de la fuente antes de su
+        ``_register_hook``.
+        """
+        environment = env()
+        environment.registry.base_automation_write_models = frozenset(
+            cls.objects.using(environment.db_alias)
+            .filter(active=True, trigger__in=WRITE_TRIGGERS)
+            .values_list('model_name', flat=True))
+
+    def _update_registry(self):
+        """≙ ``_update_registry`` (``:673-679``): rehace lo que decidió
+        :meth:`_register_hook` y avisa a los demás procesos.
+
+        Los receptores de señal consultan las reglas en cada evento y no
+        necesitan reinstalarse; el envoltorio del recálculo sí depende del
+        conjunto de modelos que el gancho guarda en el registro.
+        """
+        registry = env().registry
+        if registry.ready:
+            type(self)._register_hook()
+            registry.registry_invalidated = True
 
     def _check_action_server_model(self):
         """≙ ``_check_action_server_model`` (constrains model_id,
@@ -912,7 +945,11 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         creating = self.pk is None
         if not self.model_id and self.model_name:
             self._inverse_model_name()
+        old = None if creating else self._filter_dependency_row()
+        written = {fname: getattr(self, fname)
+                   for fname in self.FILTER_DEPENDS}
         self._recompute_dependent_fields()
+        self._protect_written_filters(old, written)
         super().save(*args, **kwargs)
         self._sync_m2m_dependent_fields()
         self._compute_action_server_ids()
@@ -922,6 +959,34 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
             # ≙ invalidación de caché — sin efecto (ver docstring)
             self._has_trigger_onchange()
         self._critical_snapshot = self._current_critical_snapshot()
+
+    def _filter_dependency_row(self):
+        """Los filtros y sus dependencias como están en la base."""
+        names = {name for depends in self.FILTER_DEPENDS.values()
+                 for name in depends} | set(self.FILTER_DEPENDS)
+        return type(self).objects.filter(pk=self.pk).values(*names).first()
+
+    def _protect_written_filters(self, old, written):
+        """Un filtro escrito no lo pisa su cómputo, como en la fuente.
+
+        Allí ``filter_pre_domain`` y ``filter_domain`` son ``compute=…,
+        store=True, readonly=False``: el cómputo corre sólo cuando cambia una
+        dependencia, y el valor dado en el mismo ``create``/``write`` queda
+        protegido. Aquí ``_recompute_dependent_fields`` los recalcula en cada
+        ``save()``; esto deshace el recálculo cuando la fuente no lo haría.
+        """
+        for fname, depends in self.FILTER_DEPENDS.items():
+            value = written[fname]
+            if old is None:
+                keep = bool(value)
+            else:
+                meta = type(self)._meta
+                changed = any(
+                    old[name] != getattr(self, meta.get_field(name).attname)
+                    for name in depends)
+                keep = not changed or value != old[fname]
+            if keep:
+                setattr(self, fname, value)
 
     def delete(self, *args, **kwargs):
         """≙ ``unlink()`` de la referencia."""
@@ -1062,12 +1127,13 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         """≙ ``_get_eval_context``."""
         model = django_apps.get_model(
             self.model_name) if self.model_name else None
-        # DIVERGENCIA declarada: la referencia expone además ``dateutil`` al
-        # código de la regla; aquí no es dependencia del proyecto (ver
-        # ``advance_date``), así que el contexto no lo publica.
+        # Los módulos van envueltos (``tools.safe_eval``), como en la fuente:
+        # ``safe_eval`` rehúsa un módulo crudo en el contexto.
         context = {
-            'datetime': datetime,
-            'time': time,
+            'datetime': safe_eval_tools.datetime,
+            'dateutil': safe_eval_tools.dateutil,
+            'time': safe_eval_tools.time,
+            'uid': get_current_uid(),
             'user': get_current_user(),
             'model': model,
         }

@@ -9432,12 +9432,13 @@ class BaseModel(DefaultGetMixin, OrderMixin, Model):
         fila con ``_log_access``, escribe, y reescribe el subárbol al final.
         Su único llamador en la fuente es :func:`_flush`.
 
-        Divergencia de enunciado declarada (``designs/write-multi-flush.md``):
-        la escritura es ``save(update_fields=...)`` por fila, no un
-        ``UPDATE … FROM (VALUES …)`` por lotes. En este árbol ``save()`` y sus
-        señales alojan los cómputos y las automatizaciones que la fuente aloja
-        en el grafo de ``@api.depends`` y en el parche de
-        ``_compute_field_value``; un ``UPDATE`` crudo los saltaría. Las ramas
+        Divergencia de enunciado declarada (``designs/write-multi-flush.md``,
+        ``designs/flush-writes-columns.md``): la escritura es un ``UPDATE`` de
+        columnas por fila (``_persist_columns``), no un ``UPDATE … FROM
+        (VALUES …)`` por lotes, y no pasa por ``save()`` ni sus señales. Las
+        automatizaciones que la fuente engancha en ``_compute_field_value``
+        las engancha ``base_automation`` en el mismo punto
+        (``designs/base-automation-compute-trigger.md``). Las ramas
         ``translate`` y ``company_dependent`` de la expresión SQL no tienen
         contraparte en ese enunciado: ``translate=True`` aún no traduce y
         ``company_dependent`` escribe por su descriptor.

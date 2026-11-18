@@ -9,6 +9,12 @@ referencia. Cubren ``CREATE_TRIGGERS``/``WRITE_TRIGGERS`` (vía
 ``post_delete``: la fila debe existir todavía para evaluar su dominio,
 igual que la referencia ejecuta las acciones ANTES de borrar).
 
+El recálculo de un calculado almacenado no pasa por ``save()``: el volcado
+escribe columnas sin señales (``_persist_columns``). Su contraparte es el
+parche de ``_compute_field_value`` de la fuente (``make_compute_field_value``,
+``base_automation.py:909-946``), que este módulo instala una vez sobre
+``BaseModel`` con ``wrap_method``.
+
 Triggers NO conectados aquí (bloqueados, ver docstring de
 ``base_automation.py``): ``on_change`` (sin motor de onchange),
 ``on_message_received``/``on_message_sent`` (``MailThread.message_post``
@@ -35,7 +41,10 @@ from django.db import DEFAULT_DB_ALIAS, connections
 from django.db.models.signals import post_save, pre_delete, pre_save
 from django.dispatch import receiver
 
-from orm.environments import Environment
+from orm import registry
+from orm.environments import Environment, env
+from orm.method_chain import wrap_method
+from orm.models import BaseModel
 
 from addons.base_automation.models.base_automation import (
     CREATE_TRIGGERS,
@@ -92,6 +101,7 @@ def _capture_old_values(sender, instance, **kwargs):
     """Captura el estado ANTES de escribir — ``old_values`` de
     ``_check_trigger_fields``. Sin esto, el ``post_save`` no puede saber
     qué campos cambiaron (Django no trae los valores previos)."""
+    instance._base_automation_pre = None
     if _skip(sender) or instance.pk is None:
         instance._base_automation_old_values = None
         return
@@ -99,6 +109,22 @@ def _capture_old_values(sender, instance, **kwargs):
         instance._base_automation_old_values = (
             sender.objects.filter(pk=instance.pk).values().first()
         )
+        # ≙ ``make_write`` (``base_automation.py:884-889``): las reglas y su
+        # precondición se leen ANTES de escribir; después, la base ya tiene
+        # los valores nuevos.
+        if _rules_table_exists(kwargs.get('using')):
+            instance._base_automation_pre = {
+                automation.pk: automation._filter_pre(sender, [instance.pk])
+                for automation in BaseAutomation._get_actions(
+                    _model_name(sender), WRITE_TRIGGERS)
+            }
+
+
+def _know_watched_models():
+    """Llena el conjunto de modelos con reglas de escritura del registro de
+    la base activa si aún no se sabe (``BaseAutomation._register_hook``)."""
+    if getattr(env().registry, 'base_automation_write_models', None) is None:
+        BaseAutomation._register_hook()
 
 
 @receiver(post_save, dispatch_uid='base_automation.dispatch_create_write')
@@ -106,6 +132,7 @@ def _dispatch_create_write(sender, instance, created, **kwargs):
     if _skip(sender) or not _rules_table_exists(kwargs.get('using')):
         return
     with _record_environment(kwargs.get('using')):
+        _know_watched_models()
         model_name = _model_name(sender)
         triggers = CREATE_TRIGGERS if created else WRITE_TRIGGERS
         automations = BaseAutomation._get_actions(model_name, triggers)
@@ -127,7 +154,11 @@ def _dispatch_create_write(sender, instance, created, **kwargs):
                         sender, [instance.pk]
                     )
                 else:
-                    pre_pks = automation._filter_pre(sender, [instance.pk])
+                    # Una regla que no existía antes de escribir no se
+                    # procesa: la fuente fija las reglas antes de la
+                    # escritura.
+                    pre = getattr(instance, '_base_automation_pre', None)
+                    pre_pks = (pre or {}).get(automation.pk)
                     if not pre_pks:
                         continue
                     pks, domain_post = automation._filter_post_export_domain(
@@ -207,3 +238,70 @@ def _record_environment(using):
     y ninguna empresa, rechaza la consulta (ci-multidb ``5dc2e8c1``).
     """
     return Environment(using) if using else nullcontext()
+
+
+def _compute_field_value(self, previous, field):
+    """≙ ``make_compute_field_value`` (``base_automation.py:909-946``).
+
+    Docstring de la fuente: *"Instanciate a compute_field_value method that
+    processes automation rules"*, con la nota *"This is to catch updates made
+    by field recomputations"*. La precondición y los valores viejos se leen
+    antes del cómputo; después, la postcondición y ``_process``.
+
+    Divergencia de mecanismo: la fuente filtra en memoria
+    (``filtered_domain``) y aquí ``_records_matching_domain`` consulta la
+    base, así que los campos calculados se vuelcan antes de la
+    postcondición. La precondición se evalúa sin el contexto
+    ``changed_fields`` (``:927-928``): ``_filter_pre`` de este árbol no lee
+    contexto.
+    """
+    model = type(self)
+    stored_fnames = [f.name for f in registry.field_computed[field]
+                     if f.store]
+    # El conjunto lo fija ``BaseAutomation._register_hook`` al cargar el
+    # registro: un modelo sin reglas de escritura no consulta la base, como
+    # el modelo que la fuente no parchea.
+    watched = getattr(self.env.registry, 'base_automation_write_models',
+                      None) or ()
+    if not stored_fnames or _model_name(model) not in watched:
+        return previous(field)
+    using = self.env.db_alias
+    if _skip(model) or not _rules_table_exists(using):
+        return previous(field)
+    with _record_environment(using):
+        automations = BaseAutomation._get_actions(
+            _model_name(model), WRITE_TRIGGERS)
+        records = self.filtered(lambda record: record.id)
+        if not (automations and records):
+            previous(field)
+            return True
+        ids = list(records.ids)
+        pre = {automation: automation._filter_pre(model, ids)
+               for automation in automations}
+        old_values = {
+            row['pk']: row
+            for row in model.objects.filter(pk__in=ids).values(
+                'pk', *stored_fnames)
+        }
+        previous(field)
+        records.flush_recordset(stored_fnames)
+        processing = _processing_set()
+        for automation in automations:
+            pending = [pk for pk in pre[automation]
+                       if (automation.pk, pk) not in processing]
+            if not pending:
+                continue
+            keys = {(automation.pk, pk) for pk in pending}
+            processing.update(keys)
+            try:
+                pks, domain_post = automation._filter_post_export_domain(
+                    model, pending)
+                if pks:
+                    automation._process(model, pks, domain_post=domain_post,
+                                        old_values=old_values)
+            finally:
+                processing.difference_update(keys)
+    return True
+
+
+wrap_method(BaseModel, '_compute_field_value', _compute_field_value)
