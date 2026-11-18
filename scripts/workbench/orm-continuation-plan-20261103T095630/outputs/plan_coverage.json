@@ -5,8 +5,8 @@
  "open_tasks": 71,
  "frontier": [
   {
-   "id": "employee-map-display-cost-0241",
-   "task": "TASK-GEN-0241"
+   "id": "orm-extension-depends-merge-0485",
+   "task": "TASK-API-0485"
   }
  ],
  "blocked": [
@@ -24,11 +24,6 @@
    "id": "orm-fk-delete-policy-contract-0515",
    "task": "TASK-API-0515",
    "reason": "state failed"
-  },
-  {
-   "id": "orm-extension-depends-merge-0485",
-   "task": "TASK-API-0485",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
    "id": "base-automation-compute-trigger-0485",
@@ -483,6 +478,7 @@
   "creation-dependency-classes-0485",
   "sale-line-eager-amounts-0192",
   "uom-master-data-0241",
+  "employee-map-display-cost-0241",
   "registry-cursor-unit-of-work-0485",
   "registry-caches-per-database-0485",
   "request-unit-of-work-0485",
