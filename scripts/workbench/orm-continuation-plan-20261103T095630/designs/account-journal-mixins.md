@@ -44,7 +44,7 @@ MailActivityMixin, TimeStampedModel)`, en el orden de `_inherit`.
 
 Medido: `makemigrations --dry-run` pide una sola operación, la columna
 `access_token` de `PortalMixin`
-(`odoo19c: addons/portal/models/portal_mixin.py:12`). Migración
+(`odoo19c: addons/portal/models/portal_mixin.py:16`). Migración
 `0051_journal_portal_access_token` de `account`. `MailThread` y
 `MailActivityMixin` no añaden columnas: sus mensajes, seguidores y
 actividades viven en tablas propias con referencia polimórfica.
