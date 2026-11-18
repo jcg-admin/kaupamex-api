@@ -5,16 +5,24 @@
 ``init_models`` llama en todo modelo (``odoo19c: odoo/orm/registry.py:
 749-751``). Diseño: ``scripts/workbench/orm-continuation-plan-20261103T095630/
 designs/adopt-schema-hooks.md``.
+
+Desde ``record-loader-universality-0485`` llegan por la MRO: todo modelo
+propio hereda ``RecordLoaderMixin``, como todo modelo de la fuente hereda
+``BaseModel``, y el adoptador que los colgaba se retiró
+(``designs/record-loader-universality.md``).
 """
 import pytest
 from django.apps import apps
 from django.db import connection
 
-from orm.model_classes import SCHEMA_HOOKS, THIRD_PARTY_MODULE_PREFIXES
+from orm.model_classes import THIRD_PARTY_MODULE_PREFIXES
 from orm.models import RecordLoaderMixin
 from orm.registry import Registry
 
 pytestmark = pytest.mark.django_db
+
+SCHEMA_HOOKS = ('_auto_init', '_check_removed_columns', '_add_sql_constraints',
+                'init')
 
 
 def _own_managed_models():
@@ -23,12 +31,26 @@ def _own_managed_models():
             and not model.__module__.startswith(THIRD_PARTY_MODULE_PREFIXES)]
 
 
-def test_a_model_outside_the_loader_resolves_the_schema_hooks():
-    country = apps.get_model('base', 'ResCountry')
-    assert not issubclass(country, RecordLoaderMixin)
-    for name in SCHEMA_HOOKS:
-        assert (getattr(country, name).__func__
-                is RecordLoaderMixin.__dict__[name].__func__), name
+def test_no_model_carries_a_copy_of_the_mixin_hooks():
+    """La huella del adoptador retirado: una función del mixin colgada en el
+    diccionario de la propia clase. Un ``init`` declarado por el modelo
+    (``res.users``, ``res.company``, ``ir.config_parameter``,
+    ``hr.employee.public``, como en la fuente) no lo es."""
+    copied = [
+        (model._meta.label, name) for model in _own_managed_models()
+        for name in SCHEMA_HOOKS
+        if name in vars(model)
+        and getattr(vars(model)[name], '__func__', None)
+        is RecordLoaderMixin.__dict__[name].__func__
+    ]
+    assert copied == []
+
+
+def test_every_own_model_resolves_the_schema_hooks():
+    missing = [(model._meta.label, name) for model in _own_managed_models()
+               for name in SCHEMA_HOOKS
+               if getattr(model, name, None) is None]
+    assert missing == []
 
 
 def test_a_declared_init_is_kept():
@@ -43,7 +65,7 @@ def test_every_own_managed_model_has_auto_init():
     assert missing == []
 
 
-def test_init_models_reconciles_a_model_outside_the_loader(db):
+def test_init_models_reconciles_a_plain_django_model(db):
     with connection.cursor() as cr:
         cr.execute('ALTER TABLE res_country ADD COLUMN orphan_flag integer '
                    'NOT NULL DEFAULT 0')
