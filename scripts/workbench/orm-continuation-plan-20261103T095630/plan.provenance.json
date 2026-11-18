@@ -1010,6 +1010,13 @@
         "basemodel-adoption-certificate-0397"
       ],
       "writtenAt": "2026-11-18T17:41:51Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-html-editor-0397"
+      ],
+      "writtenAt": "2026-11-18T18:09:10Z"
     }
   ]
 }
