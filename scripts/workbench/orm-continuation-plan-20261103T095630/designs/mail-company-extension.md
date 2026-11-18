@@ -75,6 +75,7 @@ Pruebas en `tests/unit/mail/test_mail_company_extension.py`.
   (`odoo19c: addons/mail/models/res_company.py:13-15`).
   `makemigrations --check` no detecta cambios.
 - Pruebas en `tests/unit/mail/test_mail_company_extension.py`: 5.
+- Consumidores derivados (`grep -rlE "alias_domain|MailAliasDomain|email_formatted|catchall" tests/`, más `tests/unit/base` y `tests/integration/authz`): 2933 passed con `-n 4`.
 
 Anulaciones, cada una medida por separado:
 
