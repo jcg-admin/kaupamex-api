@@ -115,7 +115,10 @@ XML completos, bajo TASK-API-0397.
   `odoo19e: helpdesk/models/helpdesk_tag.py:20-23`). La prueba de la
   migración es `test_two_tags_cannot_share_a_name` en
   `tests/unit/helpdesk/test_helpdesk_tag.py`. `makemigrations --check` no
-  detecta cambios.
+  detecta cambios. Lo que la unidad toma de Community: la restricción es un
+  `Constraint` (`odoo19c: odoo/orm/table_objects.py:79-124`), y el
+  `name_create` de la etiqueta delega en el de `BaseModel` cuando no
+  encuentra una existente (`odoo19c: odoo/orm/models.py:1493-1510`).
 - Pruebas en `tests/unit/helpdesk/test_helpdesk_tag.py`: 5.
 - Consumidores derivados (`tests/unit/helpdesk`, `tests/integration/helpdesk`,
   `tests/unit/orm` por el registro de nombres, y
