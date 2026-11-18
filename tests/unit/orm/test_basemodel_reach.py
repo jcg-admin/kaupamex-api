@@ -69,7 +69,6 @@ PENDING = {
     'purchase_requisition',
     'sale',
     'stock',
-    'uom',
     'website',
 }
 

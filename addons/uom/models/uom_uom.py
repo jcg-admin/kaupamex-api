@@ -55,6 +55,7 @@ funciona, y protegerá lo que se siembre con identificador del módulo ``uom``.
 import datetime
 from decimal import Decimal
 
+import api
 import fields
 import models
 from addons.base.models import DecimalPrecision, IrModelData, TimeStampedModel
@@ -117,7 +118,7 @@ def _like(original, value):
     return value
 
 
-class Uom(TimeStampedModel):
+class Uom(models.BaseModel, TimeStampedModel):
     """``uom.uom`` — unidad de medida de producto.
 
     Cabecera — los cinco atributos de clase que la referencia declara
@@ -140,8 +141,10 @@ class Uom(TimeStampedModel):
         max_length=100,
         help_text='Nombre de la unidad (Odoo uom.uom.name).',
     )
-    sequence = models.PositiveIntegerField(
-        default=0,
+    #: ≙ ``sequence`` (``odoo19c: addons/uom/models/uom_uom.py:35``).
+    sequence = fields.Integer(
+        compute='_compute_sequence', store=True, readonly=False,
+        precompute=True, default=0,
         help_text=(
             'Orden de presentación (Odoo sequence). Se deriva del factor.'
         ),
@@ -164,15 +167,21 @@ class Uom(TimeStampedModel):
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        related_name='related_uoms',
+        related_name='+',
         db_index=True,
         help_text=(
             'Unidad de referencia de la que cuelga (Odoo relative_uom_id).'
         ),
         db_column='relative_uom_id',
     )
+    #: ≙ ``related_uom_ids`` (``odoo19c: addons/uom/models/uom_uom.py:43``).
+    related_uom_ids = fields.One2many(
+        'uom.uom', 'relative_uom_id', string='Related UoMs')
+    #: ≙ ``rounding`` (``odoo19c: addons/uom/models/uom_uom.py:39``).
+    rounding = fields.Float('Rounding Precision', compute='_compute_rounding')
+    #: ≙ ``factor`` (``odoo19c: addons/uom/models/uom_uom.py:43``).
     factor = fields.Float(
-        default=1.0,
+        compute='_compute_factor', recursive=True, store=True, default=1.0,
         help_text=(
             'Cantidad absoluta: producto de la cadena de factores '
             'relativos (Odoo factor, compute recursivo almacenado).'
@@ -207,15 +216,15 @@ class Uom(TimeStampedModel):
 
     # === PRECISIÓN =========================================================
 
-    @property
-    def rounding(self) -> float:
-        """
-        Precisión mínima de redondeo (Odoo ``_compute_rounding``, ``:60-66``).
+    def _compute_rounding(self):
+        """≙ ``_compute_rounding``
+        (``odoo19c: addons/uom/models/uom_uom.py:62-67``).
 
-        Todas las unidades comparten la precisión declarada en "Product Unit";
-        la referencia lo resuelve igual, con un ``compute`` no almacenado.
+        Todas las unidades comparten la precisión declarada en "Product
+        Unit": *"Set in a compute to ensure compatibility with previous
+        calls to `uom.rounding`"*.
         """
-        return 10 ** -self._precision_digits()
+        self.rounding = 10 ** -self._precision_digits()
 
     @staticmethod
     def _precision_digits() -> int:
@@ -243,16 +252,14 @@ class Uom(TimeStampedModel):
             raise UserError('Falta la unidad de medida de referencia.')
 
     def save(self, *args, **kwargs):
+        """Las restricciones de la fuente y la ruta materializada.
+
+        ``factor`` y ``sequence`` son cómputos almacenados: el ORM los
+        recalcula al cambiar sus dependencias, también en los hijos, y como
+        superusuario (``compute_sudo``). Este método ya no los calcula ni
+        repropaga.
+        """
         self.clean_business()
-        if not self.sequence:
-            # Odoo `_compute_sequence` (:54-58): sólo antes de existir
-            # el registro.
-            self.sequence = min(int(self.relative_factor * 100.0), 1000)
-        self.factor = (
-            self.relative_factor * self.relative_uom_id.factor
-            if self.relative_uom_id
-            else self.relative_factor
-        )
         super().save(*args, **kwargs)
 
         parent_path = (
@@ -264,11 +271,33 @@ class Uom(TimeStampedModel):
             self.parent_path = parent_path
             super().save(update_fields=['parent_path'])
 
-        # El `factor` de la referencia es un compute recursivo: al
-        # cambiar el de
-        # un padre, los hijos quedarían obsoletos si no se repropaga.
-        for child in self.related_uoms.all():
-            child.save()
+    # === CÓMPUTOS ==========================================================
+
+    @api.depends('relative_factor')
+    def _compute_sequence(self):
+        """≙ ``_compute_sequence``
+        (``odoo19c: addons/uom/models/uom_uom.py:53-60``).
+
+        Sólo antes de crear el registro, o si aún no tiene valor.
+        """
+        for uom in self:
+            if uom.id and uom.sequence:
+                # Only set a default sequence before the record creation, or
+                # on module update if there is no value.
+                continue
+            uom.sequence = min(int(uom.relative_factor * 100.0), 1000)
+
+    @api.depends('relative_factor', 'relative_uom_id',
+                 'relative_uom_id.factor')
+    def _compute_factor(self):
+        """≙ ``_compute_factor``
+        (``odoo19c: addons/uom/models/uom_uom.py:69-75``).
+        """
+        for uom in self:
+            if uom.relative_uom_id:
+                uom.factor = uom.relative_factor * uom.relative_uom_id.factor
+            else:
+                uom.factor = uom.relative_factor
 
     # === PROTECCIÓN DE DATOS MAESTROS ======================================
 

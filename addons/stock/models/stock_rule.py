@@ -234,7 +234,7 @@ from django.utils import timezone
 
 from addons.base.models import TimeStampedModel
 from exceptions import UserError, ValidationError
-from orm.environments import get_current_company, is_su
+from orm.environments import get_current_company, is_su, sudo
 from osv import expression
 from tools.float_utils import float_is_zero
 from tools.misc import split_every
@@ -1074,7 +1074,12 @@ class StockRule(TimeStampedModel):
             moves_values_by_company[key].append(move_values)
 
         for _company_id, moves_values in moves_values_by_company.items():
-            moves = [_create_move(vals) for vals in moves_values]
+            # create the move as SUPERUSER because the current user may not
+            # have the rights to do it (mto product launched by a sale for
+            # example) — ≙
+            # ``odoo19c: addons/stock/models/stock_rule.py:312-313``.
+            with sudo():
+                moves = [_create_move(vals) for vals in moves_values]
             # ``_action_confirm`` dispara a su vez el grupo de
             # aprovisionamiento.
             for move in moves:

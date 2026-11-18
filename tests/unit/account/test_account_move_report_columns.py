@@ -132,10 +132,12 @@ class TestTheComputesThatRun:
         line._compute_partner_id()
         assert line.partner_id is None
 
-    def test_the_uom_is_none_without_a_product(self):
+    def test_the_uom_is_empty_without_a_product(self):
+        # ``uom.uom`` es ``BaseModel``: un Many2one vacío es un recordset
+        # vacío, no ``None``, como en la fuente.
         line = AccountMoveLine()
         line._compute_product_uom_id()
-        assert line.product_uom_id is None
+        assert not line.product_uom_id
 
     def test_the_totals_default_to_zero_until_the_tax_axis_lands(self):
         """Consecuencia declarada del bloqueo de ``_compute_totals`` (#990)."""
