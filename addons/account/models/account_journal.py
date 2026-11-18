@@ -11,9 +11,12 @@ import api
 import fields
 import models
 from addons.base.models import TimeStampedModel
+from addons.mail.models import MailActivityMixin, MailThread
+from addons.portal.models.portal_mixin import PortalMixin
 
 
-class AccountJournal(models.BaseModel, TimeStampedModel):
+class AccountJournal(models.BaseModel, PortalMixin, MailThread,
+                     MailActivityMixin, TimeStampedModel):
     """``account.journal`` — diario donde se registran los asientos."""
 
     #: Los atributos de clase que la fuente declara
@@ -25,15 +28,15 @@ class AccountJournal(models.BaseModel, TimeStampedModel):
     _description = 'Journal'
     _order = 'sequence, type, code'
     #: ≙ ``_inherit`` (``:46-50``), verbatim. En este árbol la lista es
-    #: metadato: el comportamiento sale de la herencia de Python, y el
-    #: diario aún no hereda ninguno de los cuatro. Medido el 2026-11-17
-    #: (``designs/account-journal-inherited-prose.md``): ``mail.thread``
-    #: (``addons/mail/models/mail_thread.py``), ``mail.activity.mixin``
-    #: (``addons/mail/models/mail_activity_mixin.py``) y ``PortalMixin``
-    #: (``addons/portal/models/portal_mixin.py``) existen;
-    #: ``mail.alias.mixin.optional`` no, y depende del porte de
-    #: ``mail.alias.mixin`` (TASK-GEN-0413). La herencia efectiva es la
-    #: unidad ``account-journal-mixins-0515``.
+    #: metadato: el comportamiento sale de la herencia de Python. El diario
+    #: hereda tres de los cuatro, en el orden de la lista: ``PortalMixin``
+    #: (``addons/portal/models/portal_mixin.py``), ``MailThread``
+    #: (``addons/mail/models/mail_thread.py``) y ``MailActivityMixin``
+    #: (``addons/mail/models/mail_activity_mixin.py``).
+    #: BLOQUEADO por ``mail.alias.mixin``: ``mail.alias.mixin.optional`` no
+    #: existe aquí y depende de su porte (TASK-GEN-0413); con él quedan sin
+    #: portar ``alias_name`` y ``_alias_get_creation_values``
+    #: (``:829-842``).
     _inherit = [
         'portal.mixin',
         'mail.alias.mixin.optional',
