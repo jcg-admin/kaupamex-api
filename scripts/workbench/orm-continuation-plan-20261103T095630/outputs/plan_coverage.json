@@ -524,7 +524,8 @@
   "basemodel-adoption-html-editor-0397",
   "basemodel-adoption-account-edi-proxy-client-0397",
   "ir-cron-user-root-0485",
-  "ir-cron-env-su-0485"
+  "ir-cron-env-su-0485",
+  "basemodel-adoption-auto-backup-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
