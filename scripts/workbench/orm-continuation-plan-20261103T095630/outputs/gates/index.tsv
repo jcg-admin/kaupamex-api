@@ -145,3 +145,4 @@ f2-214d8e8d	full-batch	214d8e8d	-	0	13929	0	0	8	-	13929 passed, 66 skipped, 8 xf
 f2-f0fb303f	full-batch	f0fb303f	-	0	13935	0	0	8	-	13935 passed, 66 skipped, 8 xfailed, EXIT=0	verde	basemodel-adoption-auto-backup-0397	f2-f0fb303f.log:875260ea3c2224251023a0a27cf67d70c47e2befe49d001135926d4350e9858c
 f2-79d55cbe	full-batch	79d55cbe	-	0	13939	0	0	8	-	13939 passed, 66 skipped, 8 xfailed, EXIT=0	verde	mail-groups-data-0397	f2-79d55cbe.log:dbd43668c3f90017597292f39ea1e39d3a94ef9064501277414d013e8f398461
 f2-6f77270b	full-batch	6f77270b	-	0	13945	0	0	8	-	13945 passed, 66 skipped, 8 xfailed, EXIT=0	verde	helpdesk-tag-0397	f2-6f77270b.log:c110ddb095fec2fa4bb4bdbf7789432d74e3f7f3775bfd5295f61a8c13c2f368
+f2-b6db37de	full-batch	b6db37de	-	0	13950	0	0	8	-	13950 passed, 66 skipped, 8 xfailed, EXIT=0	verde	mail-company-extension-0397	f2-b6db37de.log:effa9c66b277ef52196b42eb02bc96681a6ee9fcab2c3ee3cde665d859274a4e
