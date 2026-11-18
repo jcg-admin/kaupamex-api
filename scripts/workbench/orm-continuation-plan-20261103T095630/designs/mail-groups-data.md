@@ -48,3 +48,28 @@ instalación:
    `group_mail_canned_response_admin`;
 3. `sales_team.group_sale_manager` implica
    `group_mail_canned_response_admin`.
+
+## Ejecución (2026-11-18)
+
+- `addons/mail/data/mail_groups.xml`: copia fiel, sin cambios, con su
+  atribución. `addons/mail/__manifest__.py` lo declara en `data`.
+- `sales_team_security.xml`: `group_sale_manager` implica de nuevo
+  `mail.group_mail_canned_response_admin`. La cabecera conserva sólo la
+  omisión de `base.user_admin`.
+- Pruebas en `tests/integration/mail/test_mail_groups_data.py`: 4.
+- Consumidores derivados (`grep -rlE "group_sale_manager|sales_team_security|group_mail_|load_data\(" tests/`, más `tests/unit/base` y `tests/unit/mail`): 2145 passed con `-n 4`.
+
+**Lo que la medición corrigió.** La primera versión no discriminaba. Al
+quitar `data` del manifiesto caía 1 de 4, y al quitar la implicación de
+ventas no caía ninguna. La causa: el arranque de la sesión de pruebas ya
+carga los datos del manifiesto en la base reutilizada, fuera de la
+transacción de cada prueba, y esos registros persisten. Ahora el fixture
+retira los cuatro registros de `mail` (al borrar un grupo se van también sus
+implicaciones) y después instala con `load_data` en `mode='init'`.
+
+Anulaciones, cada una medida por separado:
+
+| Se retira | Caen |
+|---|---|
+| `data/mail_groups.xml` del manifiesto de `mail` | las 4 |
+| la implicación en `group_sale_manager` | sólo `test_the_sales_manager_implies_the_canned_response_admin` |
