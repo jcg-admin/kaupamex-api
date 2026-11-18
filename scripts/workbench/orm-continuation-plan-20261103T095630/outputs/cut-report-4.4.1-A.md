@@ -61,3 +61,21 @@ Tres investigaciones de sólo lectura (`sonnet`): 503 417, 486 596 y 531 001
 tokens según el titular del arnés, que excluye la caché leída y por tanto no
 es su costo. Informes en el Workbench, nivel 3; dos conteos reproducidos
 por el coordinador (71 filas; 8 sitios de creación de pagos).
+
+## Reclamo del contenedor (2026-11-18T01:16Z)
+
+Durante el subconjunto derivado de la fila `project.ProjectTask.project` el
+contenedor se reclamó: `boot_id` pasó de `a0af12c0…` a `432be89e…`
+(`uptime -s`: 01:16:26) y el proceso de espera terminó con salida 137.
+
+| Qué | Estado tras el reclamo |
+|---|---|
+| árbol de trabajo (3 archivos modificados, migración `0009` y pruebas nuevas, sin commitear) | intacto |
+| `HEAD` | `ca836c02`, igual que el remoto |
+| scratchpad de la sesión | intacto |
+| PostgreSQL | parado; arrancado con `probes/gate-procedure/ensure-postgres.sh` |
+| bases de los cuatro workers | `PREFLIGHT OK` |
+| subconjunto en curso | muerto al 93 % sin fallos; relanzado entero |
+
+Nada de lo publicado se perdió. Lo no publicado sobrevivió esta vez porque
+el disco se conservó; no es una garantía.
