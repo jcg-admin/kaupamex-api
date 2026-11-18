@@ -79,7 +79,7 @@ from addons.base.models import TimeStampedModel
 _logger = logging.getLogger(__name__)
 
 
-class DbBackupDetails(TimeStampedModel):
+class DbBackupDetails(models.BaseModel, TimeStampedModel):
     """``db.backup.details`` — una ejecución de respaldo y su archivo."""
 
     # Atributos de clase de modelo — los tres que la fuente declara

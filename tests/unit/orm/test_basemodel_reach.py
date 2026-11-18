@@ -50,7 +50,6 @@ PENDING = {
     'account_edi',
     'analytic',
     'authz_totp',
-    'auto_backup',
     'base',
     'base_automation',
     'crm',

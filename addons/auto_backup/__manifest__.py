@@ -30,6 +30,14 @@
     # `webauthn` (H-API-228).
     'external_dependencies': {'python': ['paramiko']},
     'license': 'LGPL-3',
+    # Seguridad de la fuente (``app_auto_backup/__manifest__.py:57-59``):
+    # primero el XML de grupos, después el CSV que los nombra, por
+    # ``load_data`` en el ciclo de instalación. Las vistas, el cron de
+    # ``data/backup_data.xml`` y los menús no se cargan aquí.
+    'data': [
+        'security/user_groups.xml',
+        'security/ir.model.access.csv',
+    ],
     'application': False,
     'installable': True,
     'auto_install': False,

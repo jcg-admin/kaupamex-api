@@ -96,6 +96,7 @@ from django.conf import settings
 from django.db import DEFAULT_DB_ALIAS, connections
 
 import fields
+import models
 import release
 from exceptions import AccessDenied, ValidationError
 from tools.translate import _
@@ -154,10 +155,11 @@ def notify_backup_failed(backup_name, error_detail):
             from_email=getattr(settings, 'DEFAULT_FROM_EMAIL', None),
             recipient_list=[recipient],
         )
-    except Exception:  # noqa: BLE001 — notificar no debe tapar lo notificado
+    except Exception:  # notificar no debe tapar lo notificado
         _logger.exception(
             'No se pudo despachar la alerta del respaldo fallido %r.',
             backup_name)
+
 
 #: Los dos formatos que la fuente declara en ``backup_type``.
 BACKUP_TYPES = [('zip', 'Zip'), ('dump', 'Dump')]
@@ -172,7 +174,7 @@ def _get_db_name():
     return connections[DEFAULT_DB_ALIAS].settings_dict['NAME']
 
 
-class DbBackup(TimeStampedModel):
+class DbBackup(models.BaseModel, TimeStampedModel):
     """``db.backup`` — una configuración de respaldo programado."""
 
     # Atributos de clase de modelo — los dos que la fuente declara
@@ -195,7 +197,8 @@ class DbBackup(TimeStampedModel):
     )
     folder = fields.Char(
         'Backup Directory', default='/var/backups/kaupamex',
-        help_text='Ruta absoluta donde se escriben los respaldos (Odoo folder).',
+        help_text=(
+            'Ruta absoluta donde se escriben los respaldos (Odoo folder).'),
     )
     backup_type = fields.Selection(
         string='Backup Type', max_length=8, choices=BACKUP_TYPES,
@@ -300,11 +303,13 @@ class DbBackup(TimeStampedModel):
                            self.sftp_password, timeout=10)
             sftp = client.open_sftp()
             sftp.close()
-            message_title = _('Connection Test Succeeded!\n'
-                              'Everything seems properly set up for FTP back-ups!')
-        except Exception as exc:  # noqa: BLE001 — la fuente reporta cualquier fallo
-            _logger.critical('There was a problem connecting to the remote ftp: %s',
-                             str(exc))
+            message_title = _(
+                'Connection Test Succeeded!\n'
+                'Everything seems properly set up for FTP back-ups!')
+        except Exception as exc:  # la fuente reporta cualquier fallo
+            _logger.critical(
+                'There was a problem connecting to the remote ftp: %s',
+                str(exc))
             error += str(exc)
             has_failed = True
             message_title = _('Connection Test Failed!')
@@ -316,7 +321,8 @@ class DbBackup(TimeStampedModel):
                 client.close()
 
         if has_failed:
-            raise ValidationError(message_title + '\n\n' + message_content + str(error))
+            raise ValidationError(
+                message_title + '\n\n' + message_content + str(error))
         raise ValidationError(message_title + '\n\n' + message_content)
 
     @classmethod
@@ -345,23 +351,29 @@ class DbBackup(TimeStampedModel):
             file_path = os.path.join(rec.folder, bkp_file)
             try:
                 with open(file_path, 'wb') as stream:
-                    rec._take_dump(rec.name, stream, 'db.backup', rec.backup_type)
-                rec.backup_details_ids.create(
-                    name=bkp_file,
-                    file_path=file_path,
-                    url='/dbbackup/download/%s' % file_path,
+                    rec._take_dump(
+                        rec.name, stream, 'db.backup', rec.backup_type)
+                # ≙ ``rec.backup_details_ids.create({...})`` (``:142-147``):
+                # el recordset recibe un diccionario y la fuente nombra el
+                # inverso, ``db_backup_id``, en vez de dejarlo al gestor.
+                rec.backup_details_ids.create({
+                    'name': bkp_file,
+                    'file_path': file_path,
+                    'url': '/dbbackup/download/%s' % file_path,
+                    'db_backup_id': rec.id,
                     # Los dos campos propios que la fuente no tiene: quién
                     # disparó esta corrida, y que terminó bien.
-                    type=run_type,
-                    status=DbBackupDetails.STATUS_OK,
-                    size_bytes=os.path.getsize(file_path),
-                )
-            except Exception as error:  # noqa: BLE001 — un fallo no corta el recorrido
+                    'type': run_type,
+                    'status': DbBackupDetails.STATUS_OK,
+                    'size_bytes': os.path.getsize(file_path),
+                })
+            except Exception as error:  # un fallo no corta el recorrido
                 _logger.warning(
                     "Couldn't backup database %s. Bad database administrator "
                     'password for server running at http://%s:%s',
                     rec.name, rec.host, rec.port)
-                _logger.warning('Exact error from the exception: %s', str(error))
+                _logger.warning(
+                    'Exact error from the exception: %s', str(error))
                 # DIVERGENCIA declarada: la fuente hace ``continue`` y no deja
                 # rastro del fallo fuera del log, así que su historial sólo
                 # contiene éxitos. Aquí el fallo **también** es una corrida y
@@ -414,7 +426,8 @@ class DbBackup(TimeStampedModel):
                         sftp.chdir(current_directory)
                     except IOError:
                         _logger.info(
-                            "(Part of the) path didn't exist. Creating it now at %s",
+                            "(Part of the) path didn't exist. "
+                            "Creating it now at %s",
                             current_directory)
                         sftp.mkdir(current_directory, 777)
                         sftp.chdir(current_directory)
@@ -434,9 +447,11 @@ class DbBackup(TimeStampedModel):
                         '------ skipped', fullpath)
                 except IOError:
                     try:
-                        sftp.put(fullpath, os.path.join(path_to_write_to, entry))
-                        _logger.info('Copying File %s ------ success', fullpath)
-                    except Exception as err:  # noqa: BLE001 — un archivo no corta el resto
+                        sftp.put(fullpath,
+                                 os.path.join(path_to_write_to, entry))
+                        _logger.info(
+                            'Copying File %s ------ success', fullpath)
+                    except Exception as err:  # un archivo no corta el resto
                         _logger.critical(
                             "We couldn't write the file to the remote server. "
                             'Error: %s', str(err))
@@ -457,7 +472,7 @@ class DbBackup(TimeStampedModel):
                         sftp.unlink(entry)
             sftp.close()
             client.close()
-        except Exception as exc:  # noqa: BLE001 — ≙ el except ancho de ``:228``
+        except Exception as exc:  # ≙ el except ancho de ``:228``
             _logger.debug("Exception! We couldn't back up to the FTP server..")
             if self.send_mail_sftp_fail:
                 self._notify_sftp_failure(exc)
@@ -479,19 +494,24 @@ class DbBackup(TimeStampedModel):
             catchall = SystemParameter.get_param('mail.catchall.domain', '')
             sender = 'auto_backup@%s' % catchall if catchall else None
             dispatch_email(
-                subject='Backup from %s(%s) failed' % (self.host, self.sftp_host),
+                subject='Backup from %s(%s) failed' % (
+                    self.host, self.sftp_host),
                 message=(
                     'Dear,\n\nThe backup for the server ' + (self.host or '') +
-                    ' (IP: ' + (self.sftp_host or '') + ') failed. Please check '
+                    ' (IP: ' + (self.sftp_host or '') +
+                    ') failed. Please check '
                     'the following details:\n\nIP address SFTP server: ' +
-                    (self.sftp_host or '') + '\nUsername: ' + (self.sftp_user or '') +
+                    (self.sftp_host or '') + '\nUsername: ' +
+                    (self.sftp_user or '') +
                     '\n\nError details: ' + str(exc) + '\n\nWith kind regards'
                 ),
                 from_email=sender,
-                recipient_list=[self.email_to_notify] if self.email_to_notify else [],
+                recipient_list=(
+                    [self.email_to_notify] if self.email_to_notify else []),
             )
-        except Exception:  # noqa: BLE001 — ≙ el ``except Exception: pass`` de ``:246``
-            _logger.exception('No se pudo despachar el aviso de fallo de SFTP.')
+        except Exception:  # ≙ el ``except Exception: pass`` de ``:246``
+            _logger.exception(
+                'No se pudo despachar el aviso de fallo de SFTP.')
 
     def _remove_old_local_backups(self):
         """Borra los respaldos locales caducados — ≙ ``:249-275``.
@@ -506,12 +526,15 @@ class DbBackup(TimeStampedModel):
             fullpath = os.path.join(self.folder, entry)
             if self.name not in fullpath:
                 continue
-            createtime = datetime.datetime.fromtimestamp(os.stat(fullpath).st_ctime)
+            createtime = datetime.datetime.fromtimestamp(
+                os.stat(fullpath).st_ctime)
             if (now - createtime).days < self.days_to_keep:
                 continue
-            if os.path.isfile(fullpath) and ('.dump' in entry or '.zip' in entry):
+            if os.path.isfile(fullpath) and (
+                    '.dump' in entry or '.zip' in entry):
                 _logger.info('Delete local out-of-date file: %s', fullpath)
-                detail = DbBackupDetails.objects.filter(file_path=fullpath).first()
+                detail = DbBackupDetails.objects.filter(
+                    file_path=fullpath).first()
                 if detail is not None:
                     detail.delete()
                 else:
@@ -547,8 +570,9 @@ class DbBackup(TimeStampedModel):
         if (type(self)._name != 'db.backup'
                 or cron_user_id is None or current_uid is None
                 or cron_user_id != current_uid):
-            _logger.error('Unauthorized database operation. Backups should only '
-                          'be available from the cron job.')
+            _logger.error(
+                'Unauthorized database operation. Backups should only '
+                'be available from the cron job.')
             raise AccessDenied()
 
         _logger.info('DUMP DB: %s format %s', db_name, backup_format)
@@ -563,7 +587,8 @@ class DbBackup(TimeStampedModel):
                 manifest_path = os.path.join(dump_dir, 'manifest.json')
                 with open(manifest_path, 'w') as handle:
                     with connections[DEFAULT_DB_ALIAS].cursor() as cursor:
-                        json.dump(self._dump_db_manifest(cursor), handle, indent=4)
+                        json.dump(self._dump_db_manifest(cursor), handle,
+                                  indent=4)
                 cmd.insert(-1, '--file=' + sql_path)
                 subprocess.run(cmd, env=env, stdout=subprocess.DEVNULL,
                                stderr=subprocess.STDOUT, check=True)
@@ -572,7 +597,8 @@ class DbBackup(TimeStampedModel):
                 # ``ir.attachment`` viven en la propia base (``datas``), así
                 # que el volcado SQL ya es completo — la misma divergencia
                 # que ``service/db.py::dump_database`` declara.
-                with zipfile.ZipFile(stream, 'w', zipfile.ZIP_DEFLATED) as archive:
+                with zipfile.ZipFile(
+                        stream, 'w', zipfile.ZIP_DEFLATED) as archive:
                     archive.write(manifest_path, 'manifest.json')
                     archive.write(sql_path, 'dump.sql')
                 return None
@@ -599,7 +625,8 @@ class DbBackup(TimeStampedModel):
         pg_version = '%d.%d' % divmod(
             cursor.connection.info.server_version / 100, 100)
         modules = dict(
-            IrModule.objects.filter(state='installed').values_list('name', 'version')
+            IrModule.objects.filter(state='installed').values_list(
+                'name', 'version')
         )
         return {
             'odoo_dump': '1',

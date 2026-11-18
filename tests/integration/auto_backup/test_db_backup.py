@@ -132,9 +132,24 @@ class TestScheduleBackup:
 
         return _write
 
+    @staticmethod
+    def _run_as_cron():
+        """``schedule_backup`` como lo corre su cron: por ``_callback``.
+
+        ≙ ``env = api.Environment(job_cr, job['user_id'], …)``
+        (``odoo19c: odoo/addons/base/models/ir_cron.py:481-483``): el usuario
+        del cron y su elevación. Con ``db.backup.details`` en ``BaseModel``,
+        crear el detalle comprueba el acceso de ese entorno.
+        """
+        cron = IrCron.objects.get(
+            ir_actions_server__model_name=CRON_BACKUP['model_name'],
+            ir_actions_server__method_name=CRON_BACKUP['method_name'],
+        )
+        cron._callback()
+
     def test_creates_the_detail_row_linked_to_its_config(self, config):
         with mock.patch.object(DbBackup, '_take_dump', self._fake_dump()):
-            DbBackup.schedule_backup()
+            self._run_as_cron()
 
         detail = DbBackupDetails.objects.get()
         assert detail.db_backup_id_id == config.pk
@@ -146,7 +161,7 @@ class TestScheduleBackup:
     def test_the_file_name_follows_the_source_form(self, config):
         """``'%s_%s.%s' % (strftime, name, backup_type)`` — ``:126``."""
         with mock.patch.object(DbBackup, '_take_dump', self._fake_dump()):
-            DbBackup.schedule_backup()
+            self._run_as_cron()
 
         detail = DbBackupDetails.objects.get()
         assert detail.name.endswith('_%s.zip' % config.name)
@@ -158,7 +173,7 @@ class TestScheduleBackup:
             name='kaupamex_core_qa', folder=str(destination)
         )
         with mock.patch.object(DbBackup, '_take_dump', self._fake_dump()):
-            DbBackup.schedule_backup()
+            self._run_as_cron()
         assert destination.is_dir()
 
     def test_one_failure_does_not_stop_the_run(self, db, tmp_path):
@@ -182,7 +197,7 @@ class TestScheduleBackup:
         with mock.patch.object(
             DbBackup, '_take_dump', _sometimes, create=False
         ):
-            DbBackup.schedule_backup()
+            self._run_as_cron()
 
         ok = DbBackupDetails.objects.get(status=DbBackupDetails.STATUS_OK)
         assert ok.name.endswith('_sana.zip')
@@ -196,7 +211,7 @@ class TestScheduleBackup:
 
     def test_without_configs_it_does_nothing(self, db):
         DbBackup.objects.all().delete()
-        DbBackup.schedule_backup()
+        self._run_as_cron()
         assert DbBackupDetails.objects.count() == 0
 
     def test_does_not_touch_the_remote_when_sftp_write_is_off(self, config):
@@ -204,7 +219,7 @@ class TestScheduleBackup:
             mock.patch.object(DbBackup, '_take_dump', self._fake_dump()),
             mock.patch.object(DbBackup, '_copy_to_sftp') as copy_mock,
         ):
-            DbBackup.schedule_backup()
+            self._run_as_cron()
         copy_mock.assert_not_called()
 
     def test_copies_to_the_remote_when_sftp_write_is_on(self, config):
@@ -214,7 +229,7 @@ class TestScheduleBackup:
             mock.patch.object(DbBackup, '_take_dump', self._fake_dump()),
             mock.patch.object(DbBackup, '_copy_to_sftp') as copy_mock,
         ):
-            DbBackup.schedule_backup()
+            self._run_as_cron()
         copy_mock.assert_called_once()
 
 
