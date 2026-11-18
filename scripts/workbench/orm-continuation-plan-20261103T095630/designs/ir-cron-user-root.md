@@ -108,3 +108,29 @@ desplazaba la clase que contiene el `# noqa: BLE001` heredado. Ahora es
 runner sólo amplían imports que ya existían. Los `noqa` no se tocan.
 
 Subconjunto derivado tras la reubicación: 427 passed, 16 skipped.
+
+## F2 en c1b695c2: la guarda del super-usuario llegaba tarde
+
+F2 cayó en `tests/unit/base/test_res_users_constraints.py::test_the_superuser_cannot_be_deleted`:
+borrar `base.user_root` daba `RestrictedError` de `IrCron.user` en vez del
+`UserError` de la fuente. La guarda era un receptor de `pre_delete`, que
+Django emite **después** de reunir el borrado; reunir comprueba
+`RESTRICT`, y ahora los siete crons apuntan al raíz.
+
+En la fuente es `@api.ondelete(at_uninstall=True)`
+(`odoo19c: odoo/addons/base/models/res_users.py:647`). Este árbol ya
+ejecuta esos ganchos al entrar en `Collector.collect`
+(`_run_ondelete_on_delete`, `src/orm/models.py`), antes de `RESTRICT`. La
+guarda pasa a ser `ResUsers._unlink_except_master_data` con ese decorador,
+como la fuente, y el receptor se retira.
+
+**Anulación.** Sin el decorador caen 6 de 17 en
+`test_res_users_constraints.py`: el super-usuario, los tres logins de
+sistema y los dos borrados en lote. Subconjunto derivado (siete archivos que
+borran usuarios, más las dos pruebas del cron): 183 passed.
+
+Símbolo: `ResUsers._unlink_except_master_data` ≙
+`odoo19c: odoo/addons/base/models/res_users.py:647`, declarado al final de
+la clase para no desplazar las sentencias que la siguen. Pruebas:
+`tests/unit/base/test_res_users_constraints.py::test_the_superuser_cannot_be_deleted`
+y `test_the_batch_delete_refuses_the_superuser`.
