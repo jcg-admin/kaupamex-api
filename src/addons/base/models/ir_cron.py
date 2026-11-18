@@ -199,7 +199,7 @@ from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.ir_module import IrModule
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import LockError, UserError
-from orm.environments import (Environment, context_scope,
+from orm.environments import (SUPERUSER_ID, Environment, context_scope,
                               current_uid_or_superuser, get_context, sudo,
                               user_scope)
 from tools.constants import GC_UNLINK_LIMIT
@@ -808,7 +808,12 @@ class IrCron(models.DefaultGetMixin, models.RecordLoaderMixin,
         ``method()`` no lleva argumentos. Ver :ref:`h-api-752`."""
         model = apps.get_model(self.model_name)
         method = getattr(model, self.method_name)
-        with user_scope(self.user_id), context_scope(
+        # ≙ ``Environment.__new__``: ``if uid == SUPERUSER_ID: su = True``,
+        # y ``False`` para cualquier otro usuario, que no hereda la
+        # elevación de quien dispara
+        # (``odoo19c: odoo/orm/environments.py:66``).
+        with user_scope(self.user_id), sudo(
+                self.user_id == SUPERUSER_ID), context_scope(
                 cron_id=self.pk, lastcall=self.lastcall):
             method()
 
