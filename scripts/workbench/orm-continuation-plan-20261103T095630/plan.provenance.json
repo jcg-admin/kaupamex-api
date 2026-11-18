@@ -982,6 +982,13 @@
         "management-command-unit-of-work-0485"
       ],
       "writtenAt": "2026-11-18T12:54:15Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-uom-0397"
+      ],
+      "writtenAt": "2026-11-18T13:58:08Z"
     }
   ]
 }

@@ -54,3 +54,43 @@ Porte fiel de los cuatro campos:
 - Cambiar el `relative_factor` de un padre recalcula el `factor` de los
   nietos, sin superusuario en el entorno.
 - `sequence` se deriva al crear y no se pisa al cambiar el factor.
+
+## Ejecución (2026-11-18)
+
+- `Uom(models.BaseModel, TimeStampedModel)`; `related_uom_ids`, `factor`
+  (`_compute_factor` ≙ `odoo19c: addons/uom/models/uom_uom.py:70`),
+  `sequence` (`_compute_sequence` ≙ `odoo19c: addons/uom/models/uom_uom.py:54`)
+  y `rounding` (`_compute_rounding` ≙ `odoo19c: addons/uom/models/uom_uom.py:62`)
+  con la forma de la fuente; `save()` conserva `clean_business` y
+  `parent_path`. Migración `addons/uom/migrations/0009_uom_on_basemodel.py`:
+  en la base sólo cae el `CHECK` de entero positivo de `sequence`.
+- **Lo que la adopción destapó en un consumidor.** `stock.rule._run_pull`
+  crea los movimientos como superusuario en la fuente
+  (`odoo19c: addons/stock/models/stock_rule.py:312-313`, *"the current user
+  may not have the rights to do it"*); el porte no lo hacía y, con la ACL de
+  `uom` activa, el usuario sin grupo no podía leer `factor`. Se porta con
+  `orm.environments.sudo`.
+- **Premisa de una prueba.** `account.move.line.product_uom_id` sin producto
+  es ahora un recordset vacío, no `None`, como en la fuente;
+  `test_the_uom_is_none_without_a_product` pasa a
+  `test_the_uom_is_empty_without_a_product`.
+- Pruebas: `tests/unit/uom/test_uom_basemodel.py`
+  (`test_uom_is_a_basemodel`, `test_the_children_are_a_declared_one2many`,
+  `test_a_parent_factor_reaches_the_grandchildren`,
+  `test_the_sequence_is_derived_once`); `uom` sale de `PENDING` en
+  `tests/unit/orm/test_basemodel_reach.py`.
+- Anulación: sin el cómputo de `factor` caen 19 de 29 pruebas de `uom` (toda
+  la conversión, que lee `factor`): no queda otra vía que lo calcule.
+- Consumidores derivados (pruebas que nombran `uom`, `Uom`, `stock_rule`,
+  `StockRule` o `_run_pull`): 1291 passed.
+
+### Símbolos por archivo (para `check_reference_flow`)
+
+- `StockRule._run_pull` ≙ `odoo19c: addons/stock/models/stock_rule.py:313`:
+  crea los movimientos dentro de `sudo()`. Prueba:
+  `tests/integration/sale/test_stock.py` (`test_run_pull_make_to_stock`,
+  que con la ACL de `uom` activa fallaba con `PermissionDenied`).
+- `0009_uom_on_basemodel` ≙ `odoo19c: addons/uom/models/uom_uom.py:35`
+  (`sequence` como `Integer`): retira el `CHECK` de entero positivo y pasa
+  `factor`, `sequence` y `relative_uom_id` a su forma nueva. Prueba:
+  `tests/unit/uom/test_uom_basemodel.py`.
