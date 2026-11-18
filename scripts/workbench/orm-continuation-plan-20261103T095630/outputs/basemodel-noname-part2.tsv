@@ -1,0 +1,95 @@
+app_label	class	classification	reference_name	reference_citation	acl_rows	evidence
+mail	MailMail	counterpart	mail.mail	odoo19c: addons/mail/models/mail_mail.py:29	1	docstring cites mail.mail; db_table mail_mail
+mail	MailMessage	counterpart	mail.message	odoo19c: addons/mail/models/mail_message.py:71	3	docstring cites mail.message; db_table mail_message
+mail	MailMessageSubtype	counterpart	mail.message.subtype	odoo19c: addons/mail/models/mail_message_subtype.py:11	4	docstring cites mail.message.subtype
+mail	MailNotification	counterpart	mail.notification	odoo19c: addons/mail/models/mail_notification.py:13	3	docstring cites mail.notification
+mail	MailTemplate	counterpart	mail.template	odoo19c: addons/mail/models/mail_template.py:19	3	docstring cites mail.template; reference has extra mail.template _name in pos_self_order (_inherit style, ignored)
+mail	MailTrackingValue	counterpart	mail.tracking.value	odoo19c: addons/mail/models/mail_tracking_value.py:10	1	docstring cites mail.tracking.value
+mail	ManualNotification	own	-	-	-	docstring: manual staff send UC-NOT-07; db_table notifications_manual; project notification app, no mail model matches
+mail	Notification	own	-	-	-	docstring: per-user inbox read-model emitting to bus; db_table notifications_notification; project-specific, not mail.notification (that is MailNotification)
+mail	NotificationPreference	own	-	-	-	docstring: user x type opt-in/out per channel; db_table notifications_preference; no reference model
+mass_mailing	MailingContact	counterpart	mailing.contact	odoo19c: addons/mass_mailing/models/mailing_contact.py:14	1	docstring cites mailing.contact
+mass_mailing	MailingList	counterpart	mailing.list	odoo19c: addons/mass_mailing/models/mailing_list.py:12	2	docstring cites mailing.list
+mass_mailing	MailingSubscription	counterpart	mailing.subscription	odoo19c: addons/mass_mailing/models/mailing_subscription.py:11	1	docstring cites mailing.subscription (adds double opt-in from project newsletter)
+mass_mailing	MailingTrace	counterpart	mailing.trace	odoo19c: addons/mass_mailing/models/mailing_trace.py:54	1	docstring cites mailing.trace
+mrp	MrpBom	counterpart	mrp.bom	odoo19c: addons/mrp/models/mrp_bom.py:14	10	docstring cites mrp.bom
+mrp	MrpBomLine	counterpart	mrp.bom.line	odoo19c: addons/mrp/models/mrp_bom.py:684	10	docstring cites mrp.bom.line
+mrp	MrpProduction	counterpart	mrp.production	odoo19c: addons/mrp/models/mrp_production.py:40	5	docstring cites mrp.production
+mrp	MrpProductionMove	extension	stock.move	odoo19c: addons/mrp/models/stock_move.py:10	-	docstring: bridge materialising move_raw_ids/move_finished_ids, i.e. FKs raw_material_production_id/production_id that mrp injects into stock.move
+mrp	MrpRoutingWorkcenter	counterpart	mrp.routing.workcenter	odoo19c: addons/mrp/models/mrp_routing.py:10	2	docstring cites mrp.routing.workcenter (reference file mrp_routing.py)
+mrp	MrpWorkcenter	counterpart	mrp.workcenter	odoo19c: addons/mrp/models/mrp_workcenter.py:22	2	docstring cites mrp.workcenter
+mrp	MrpWorkorder	counterpart	mrp.workorder	odoo19c: addons/mrp/models/mrp_workorder.py:16	3	docstring cites mrp.workorder
+mrp_subcontracting	BomSubcontractor	extension	mrp.bom	odoo19c: addons/mrp_subcontracting/models/mrp_bom.py:9	-	docstring: bridge for mrp.bom.subcontractor_ids M2M (reference mrp_bom.py subcontractor_ids = Many2many res.partner)
+mrp_subcontracting	SubcontractProduction	extension	mrp.production	odoo19c: addons/mrp_subcontracting/models/mrp_production.py:12	-	docstring: mrp.production.subcontractor_id added by reference _inherit
+mrp_subcontracting	SubcontractingLocation	extension	stock.location	odoo19c: addons/mrp_subcontracting/models/stock_location.py:8	-	docstring: stock.location flagged subcontracting; reference _inherit stock.location in mrp_subcontracting
+mrp_subcontracting	Subcontractor	extension	res.partner	odoo19c: addons/mrp_subcontracting/models/res_partner.py:8	-	docstring: res.partner property_stock_subcontractor added by reference _inherit
+onboarding	OnboardingOnboarding	counterpart	onboarding.onboarding	odoo19c: addons/onboarding/models/onboarding_onboarding.py:9	3	docstring cites onboarding.onboarding
+onboarding	OnboardingProgress	counterpart	onboarding.progress	odoo19c: addons/onboarding/models/onboarding_progress.py:15	3	docstring cites onboarding.progress
+onboarding	OnboardingProgressStep	counterpart	onboarding.progress.step	odoo19c: addons/onboarding/models/onboarding_progress_step.py:9	3	docstring cites onboarding.progress.step
+payment	Chargeback	own	-	-	-	docstring: issuer chargeback from MercadoPago topic=chargebacks; no chargeback model in reference payment addon
+payment	Payment	counterpart	payment.transaction	odoo19c: addons/payment/models/payment_transaction.py:25	2	docstring: ~ payment.transaction of Odoo; payment attempt for an order (project-adapted, MercadoPago-specific fields)
+payment	PaymentGateway	counterpart	payment.provider	odoo19c: addons/payment/models/payment_provider.py:22	1	docstring: Contraparte de payment.provider (per-provider config with encrypted credentials)
+payment	PaymentGatewayEvent	own	-	-	-	docstring: audit log of gateway events (UC-PAY-03/04); no reference model
+payment	Refund	own	-	-	-	docstring: refund record for a payment (UC-PAY-07); reference models refunds as payment.transaction operation=refund, no own model
+payment	SavedCard	counterpart	payment.token	odoo19c: addons/payment/models/payment_token.py:8	4	docstring: ~ payment.token of Odoo (MercadoPago customer cards with email verification, project-adapted)
+payment	WebhookEvent	own	-	-	-	docstring: idempotency dedup of incoming webhooks (DEC-BC-04); no reference model
+product	ProductAttribute	counterpart	product.attribute	odoo19c: addons/product/models/product_attribute.py:8	6	docstring cites product.attribute
+product	ProductAttributeValue	counterpart	product.attribute.value	odoo19c: addons/product/models/product_attribute_value.py:12	6	docstring cites product.attribute.value
+product	ProductCategory	counterpart	product.category	odoo19c: addons/product/models/product_category.py:9	5	docstring cites product.category
+product	ProductCombo	counterpart	product.combo	odoo19c: addons/product/models/product_combo.py:8	3	docstring cites product.combo
+product	ProductComboItem	counterpart	product.combo.item	odoo19c: addons/product/models/product_combo_item.py:8	3	docstring cites product.combo.item
+product	ProductDocument	counterpart	product.document	odoo19c: addons/product/models/product_document.py:9	4	docstring cites product.document
+product	ProductPricelist	counterpart	product.pricelist	odoo19c: addons/product/models/product_pricelist.py:10	11	docstring cites product.pricelist
+product	ProductPricelistItem	counterpart	product.pricelist.item	odoo19c: addons/product/models/product_pricelist_item.py:9	8	docstring cites product.pricelist.item
+product	ProductSupplierinfo	counterpart	product.supplierinfo	odoo19c: addons/product/models/product_supplierinfo.py:8	5	docstring cites product.supplierinfo
+product	ProductTag	counterpart	product.tag	odoo19c: addons/product/models/product_tag.py:8	5	docstring cites product.tag
+product	ProductTemplateAttributeLine	counterpart	product.template.attribute.line	odoo19c: addons/product/models/product_template_attribute_line.py:12	5	docstring cites product.template.attribute.line
+product	ProductUom	counterpart	product.uom	odoo19c: addons/product/models/product_uom.py:9	2	docstring cites product.uom; adds own variant code field
+product_matrix	ProductMatrixConfig	own	-	-	-	class is a Django AppConfig (apps.py), not a model; reference product_matrix declares no models
+project	ProjectTaskType	counterpart	project.task.type	odoo19c: addons/project/models/project_task_type.py:12	5	docstring cites project.task.type
+rating	Review	own	-	-	-	docstring: product review of a purchased item (UC-REV-01..03), db_table reviews_review; reference rating.rating is a generic mail-thread rating, different shape
+rating	ReviewHelpfulVote	own	-	-	-	docstring: helpful vote per (user, review) UC-REV-02; no reference model
+rating	ReviewImage	own	-	-	-	docstring: photo attached to a review UC-REV-02; no reference model
+rating	ReviewModerationLog	own	-	-	-	docstring: append-only audit log of review moderation RNF-AUDIT-001; no reference model
+sale_crm	SaleOrderOpportunity	extension	sale.order	odoo19c: addons/sale_crm/models/sale_order.py:8	-	docstring: links sale.order to crm.lead (Odoo opportunity_id added by sale_crm _inherit sale.order)
+sale_loyalty	SaleOrderCoupon	extension	sale.order	odoo19c: addons/sale_loyalty/models/sale_order.py:21	-	docstring: sale_loyalty contribution to sale.order materialised as related model binding applied voucher (loyalty module itself not ported)
+sale_management	SaleOrderTemplate	counterpart	sale.order.template	odoo19c: addons/sale_management/models/sale_order_template.py:9	3	docstring cites sale.order.template
+sale_management	SaleOrderTemplateLine	counterpart	sale.order.template.line	odoo19c: addons/sale_management/models/sale_order_template_line.py:8	2	docstring cites sale.order.template.line
+sale_margin	SaleOrderLineMargin	extension	sale.order.line	odoo19c: addons/sale_margin/models/sale_order_line.py:8	-	docstring: sale_margin extension of sale.order.line (cost and margin)
+sale_mrp	SaleOrderLineProduction	extension	sale.order.line	odoo19c: addons/sale_mrp/models/sale_order_line.py:9	-	docstring: bridge linking sale.order.line to its mrp.production, kit explosion of qty_delivered (sale_mrp _inherit sale.order.line)
+sale_product_matrix	SaleOrderMatrix	extension	sale.order	odoo19c: addons/sale_product_matrix/models/sale_order.py:10	-	docstring: per-order matrix config (Odoo sale.order.report_grids + _apply_grid from sale_product_matrix _inherit sale.order)
+sale_project	SaleOrderLineProject	extension	sale.order.line	odoo19c: addons/sale_project/models/sale_order_line.py:8	-	docstring: links sale.order.line to project/task (Odoo project_id/task_id from sale_project _inherit sale.order.line)
+sale_purchase	SaleLinePurchaseLink	extension	purchase.order.line	odoo19c: addons/sale_purchase/models/purchase_order.py:90	-	docstring: link sale.order.line <-> purchase.order.line (sale_line_id added by sale_purchase _inherit purchase.order.line)
+sale_sms	SaleOrderSmsConfirmation	own	-	-	-	docstring: sale_sms in Odoo contributes no models (data+security only: addons/sale_sms has no models dir); class is a project bridge to SmsSms
+sale_stock	SaleOrderDelivery	extension	sale.order	odoo19c: addons/sale_stock/models/sale_order.py:15	-	docstring: sale_stock extension of sale.order (delivery status)
+sale_stock	SaleOrderLineDelivery	extension	sale.order.line	odoo19c: addons/sale_stock/models/sale_order_line.py:13	-	docstring: sale_stock extension of sale.order.line (qty_delivered)
+sale_subscription	CompanyModuleSubscription	own	-	-	-	docstring: module contracted by a company with validity (L1 gate); platform-specific
+sale_subscription	ModulePrice	own	-	-	-	docstring: price catalogue per Module x cycle (DEC-T6); platform-specific
+sale_subscription	SubscriptionBillingRun	own	-	-	-	docstring: periodic L0 billing run UC-PLT-18; platform-specific, sale_subscription is not in Odoo Community
+sale_subscription	SubscriptionInvoice	own	-	-	-	docstring: recurring invoice per subscription period (L0 account axis); platform-specific
+sms	SmsSms	counterpart	sms.sms	odoo19c: addons/sms/models/sms_sms.py:15	2	docstring cites sms.sms
+sms	SmsTemplate	counterpart	sms.template	odoo19c: addons/sms/models/sms_template.py:9	9	docstring cites sms.template
+stock	PickingTypeFavoriteUserRel	own	-	-	-	M2M join table picking_type_favorite_user_rel for stock.picking.type.favorite_user_ids (docstring cites odoo19c: addons/stock/models/stock_picking.py:144-146); reference declares the field, not a model
+stock	ReturnEvidence	own	-	-	-	docstring: photo evidence for a return request UC-RET-01; project-specific returns flow
+stock	ReturnHistoryEntry	own	-	-	-	docstring: return state-change history UC-RET-04; project-specific
+stock	ReturnItem	own	-	-	-	docstring: item in a return request UC-RET-01; project-specific
+stock	StockLocation	counterpart	stock.location	odoo19c: addons/stock/models/stock_location.py:14	9	docstring cites stock.location
+stock	StockMoveLineConsumeRel	own	-	-	-	M2M join table stock_move_line_consume_rel for consume_line_ids/produce_line_ids on stock.move.line (docstring cites reference); reference declares fields only, no model
+stock	StockRoute	counterpart	stock.route	odoo19c: addons/stock/models/stock_location.py:518	2	docstring cites stock.route; reference declares it in stock_location.py
+stock	StockWarehouseResupply	own	-	-	-	M2M join table stock_wh_resupply_table for resupply_wh_ids on stock.warehouse (docstring cites reference); no reference model
+stock_account	ProductCosting	extension	product.category	odoo19c: addons/stock_account/models/product.py:737	-	docstring: cost_method (product.category property_cost_method) + standard_price (product.product, same file _inherit product.product) materialised per product; sibling docstring (stock_valuation_layer.py) says product_costing.py has no model counterpart in the reference trees, only these inherited fields
+stock_account	StockValuationLayer	own	-	-	-	docstring: ported from odoo18c; odoo19c does not declare stock.valuation.layer (grep over addons/stock_account/models finds none); 19 governs
+stock_landed_costs	StockLandedCost	counterpart	stock.landed.cost	odoo19c: addons/stock_landed_costs/models/stock_landed_cost.py:21	1	docstring cites stock.landed.cost
+stock_landed_costs	StockLandedCostLine	counterpart	stock.landed.cost.lines	odoo19c: addons/stock_landed_costs/models/stock_landed_cost.py:274	1	docstring cites stock.landed.cost.lines (same reference file)
+stock_landed_costs	StockValuationAdjustment	counterpart	stock.valuation.adjustment.lines	odoo19c: addons/stock_landed_costs/models/stock_landed_cost.py:305	1	docstring cites stock.valuation.adjustment.lines (same reference file)
+web	ResUsersSettingsEmbeddedAction	counterpart	res.users.settings.embedded.action	odoo19c: addons/web/models/res_users_settings_embedded_action.py:6	1	docstring cites reference file; matches _name
+web	WebConfigSettings	extension	res.config.settings	odoo19c: addons/web/models/res_config_settings.py:8	-	docstring: res.config.settings of web (PWA app name), faithful to reference res_config_settings.py (_inherit, transient)
+website	Banner	own	-	-	-	docstring: manageable portada banners UC-CFG-06; project-specific
+website	SearchEntry	own	-	-	-	docstring: append-only search history entry; no reference model
+website	StaticContent	own	-	-	-	docstring: static content page by slug; no reference model
+website	StaticContentVersion	own	-	-	-	docstring: append-only history of static content edits; no reference model
+website	StaticPageVersion	own	-	-	-	docstring: version of a static page UC-CFG-04; no reference model
+website	WebsiteViewInfo	extension	ir.ui.view	odoo19c: addons/website/models/ir_ui_view.py:18	-	docstring: what website adds to ir.ui.view that has a column (one-to-one side table)
+website_sale	WebsiteSaleOrderInfo	extension	sale.order	odoo19c: addons/website_sale/models/sale_order.py:22	-	docstring: what website_sale adds to sale.order that has a column (one-to-one side table)
+website_sale	WebsiteSaleSettings	extension	website	odoo19c: addons/website_sale/models/website.py:31	-	docstring: cart-recovery fields website_sale adds to website via _inherit (cart_recovery_mail_template_id, send_abandoned_cart_email)
+website_sale_wishlist	WishlistItem	counterpart	product.wishlist	odoo19c: addons/website_sale_wishlist/models/product_wishlist.py:8	4	docstring: equals product_id of product.wishlist in reference; unique per (user, product)

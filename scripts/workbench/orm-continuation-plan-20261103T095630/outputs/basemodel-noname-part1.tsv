@@ -1,0 +1,95 @@
+app_label	class	classification	reference_name	reference_citation	acl_rows	evidence
+account	AccountTaxAlternative	extension	account.tax	odoo19c: addons/account/models/account_tax.py:72	-	M2M rel table of account.tax original_tax_ids/replacing_tax_ids (account_tax.py:102-121); docstring says no own _name; fields on account.tax, not an _inherit
+account_add_gln	PartnerGln	extension	res.partner	odoo19c: odoo/addons/base/models/res_partner.py:185	-	docstring: = res.partner.global_location_number added by account_add_gln
+account_check_printing	CheckPrintingCompanySettings	extension	res.company	odoo19c: odoo/addons/base/models/res_company.py:32	-	docstring: the 6 account_check_printing_* fields of res.company
+account_check_printing	CheckPrintingJournalSettings	extension	account.journal	odoo19c: addons/account/models/account_journal.py:43	-	docstring: check_*/bank_check_printing_layout fields of account.journal
+account_check_printing	CheckPrintingPaymentInfo	extension	account.payment	odoo19c: addons/account/models/account_payment.py:8	-	docstring: check_* fields of account.payment
+account_debit_note	AccountMoveDebitNote	extension	account.move	odoo19c: addons/account/models/account_move.py:73	-	docstring: account.move.debit_origin_id + debit_note_ids added by account_debit_note
+account_debit_note	JournalDebitSequence	extension	account.journal	odoo19c: addons/account/models/account_journal.py:43	-	docstring: account.journal.debit_sequence added by account_debit_note
+account_payment	AccountMoveTransactionLink	extension	account.move	odoo19c: addons/account/models/account_move.py:73	-	docstring: M2M row of account.move.transaction_ids (account_payment/models/account_move.py:16-19)
+account_payment	AccountPaymentMethodLineProvider	extension	account.payment.method.line	odoo19c: addons/account/models/account_payment_method.py:96	-	docstring: payment_provider_id on account.payment.method.line (account_payment_method_line.py:10-16)
+account_payment	AccountPaymentTransaction	extension	account.payment	odoo19c: addons/account/models/account_payment.py:8	-	docstring: payment_transaction_id/payment_token_id/source_payment_id on account.payment (account_payment.py:11-44)
+account_payment	PaymentGatewayJournal	extension	payment.provider	odoo19c: addons/payment/models/payment_provider.py:22	-	docstring: journal_id on payment.provider (payment_provider.py:10-19)
+account_tax_python	AccountTaxFormula	extension	account.tax	odoo19c: addons/account/models/account_tax.py:72	-	docstring: formula/formula_decoded_info fields account_tax_python adds to account.tax
+account_test	AccountingAssertTest	counterpart	accounting.assert.test	odoo19c: addons/account_test/models/accounting_assert_test.py:16	2	docstring names accounting.assert.test; reference _name matches
+account_update_tax_tags	AccountMoveLineTag	extension	account.move.line	odoo19c: addons/account/models/account_move_line.py:20	-	docstring cites account.move.line.tax_tag_ids (account_move_line.py); bridge table for that field of account.move.line
+account_update_tax_tags	AccountMoveLineTax	extension	account.move.line	odoo19c: addons/account/models/account_move_line.py:20	-	docstring cites account.move.line.tax_ids (account_move_line.py); bridge table for that field of account.move.line
+account_update_tax_tags	AccountMoveLineTaxRepartition	extension	account.move.line	odoo19c: addons/account/models/account_move_line.py:20	-	docstring cites account.move.line.tax_repartition_line_id (account_move_line.py); bridge table for that field of account.move.line
+analytic	AccountAnalyticApplicability	counterpart	account.analytic.applicability	odoo19c: addons/analytic/models/analytic_plan.py:406	2	docstring names the model; reference _name matches
+analytic	AccountAnalyticDistributionModel	counterpart	account.analytic.distribution.model	odoo19c: addons/analytic/models/analytic_distribution_model.py:10	3	docstring names the model; reference _name matches
+analytic	AccountAnalyticLine	counterpart	account.analytic.line	odoo19c: addons/analytic/models/analytic_line.py:164	9	docstring names the model (Odoo analytic)
+analytic	AccountAnalyticPlan	counterpart	account.analytic.plan	odoo19c: addons/analytic/models/analytic_plan.py:14	2	docstring names the model; reference _name matches
+authz	Capability	own	-	-	-	permission atom of platform authz (DEC-11); no reference model
+authz	DirectEntitlement	own	-	-	-	direct grant user-capability (DEC-AUTHZ-01); platform-specific
+authz	EntitlementRevocation	own	-	-	-	tombstone of direct grant (DEC-AUTHZ-01); platform-specific
+authz	Module	own	-	-	-	L0 sellable module catalog; docstring mimics __manifest__ contract but is not ir.module.module port (own catalog)
+authz	Role	own	-	-	-	capability grouping, platform authz (DEC-11); res.groups differs in design, docstring cites no port
+authz	RoleAssignment	own	-	-	-	user-role assignment with expires_at; platform-specific
+authz	RoleCapability	own	-	-	-	role-capability grade through table (AccessLevel); platform-specific
+authz_audit	AuthzEvent	own	-	-	-	append-only authorization audit log DEC-07; no reference model
+authz_ldap	CompanyLdap	counterpart	res.company.ldap	odoo19c: addons/auth_ldap/models/res_company_ldap.py:33	1	docstring: fields faithful to res_company_ldap.py:38-72
+authz_oauth	OauthAccount	extension	res.users	odoo19c: odoo/addons/base/models/res_users.py:163	-	docstring: fields of auth_oauth/models/res_users.py:22-30 (oauth_provider_id/oauth_uid on res.users)
+authz_oauth	OauthProvider	counterpart	auth.oauth.provider	odoo19c: addons/auth_oauth/models/auth_oauth.py:9	1	docstring is the reference class docstring; db_table auth_oauth_provider
+authz_passkey	PasskeyKey	counterpart	auth.passkey.key	odoo19c: addons/auth_passkey/models/auth_passkey_key.py:22	3	docstring: = AuthPasskeyKey (auth_passkey_key.py:21-157)
+authz_reauth	ReauthSession	own	-	-	-	DEC-12 re-auth window; docstring says not a privilege elevation; platform-specific
+authz_signup	SignupRequest	extension	res.partner	odoo19c: odoo/addons/base/models/res_partner.py:185	-	docstring: = res.partner.signup_type (auth_signup adds signup_* fields to res.partner)
+authz_totp	TotpRecoveryCode	own	-	-	-	docstring says adaptation of recovery-code concept; reference auth_totp* has no recovery model (grep recovery: 0 hits in addons/auth_totp*)
+authz_totp	TotpSecret	extension	res.users	odoo19c: odoo/addons/base/models/res_users.py:163	-	reference auth_totp/models/res_users.py:33 declares totp_secret on res.users; here a satellite table per user
+base	CheckoutAttempt	own	-	-	-	idempotency-key cached checkout response DEC-BC-03; product-specific
+base	CompanySetting	own	-	-	-	per-company L3 key/value config store; docstring cites own design analysis, no Odoo model
+base	ExportJob	own	-	-	-	async report export state; docstring says reference has no module for it (ir.actions.report only); no _name matches report export job
+base	IrActionsActUrl	counterpart	ir.actions.act_url	odoo19c: odoo/addons/base/models/ir_actions.py:446	1	docstring names ``ir.actions.act_url``; reference _name matches
+base	IrActionsActWindow	counterpart	ir.actions.act_window	odoo19c: odoo/addons/base/models/ir_actions.py:262	1	docstring names ``ir.actions.act_window``; reference _name matches
+base	IrActionsActWindowView	counterpart	ir.actions.act_window.view	odoo19c: odoo/addons/base/models/ir_actions.py:412	1	docstring names ``ir.actions.act_window.view``; reference _name matches
+base	IrActionsActions	counterpart	ir.actions.actions	odoo19c: odoo/addons/base/models/ir_actions.py:56	1	docstring names ``ir.actions.actions``; reference _name matches
+base	IrActionsClient	counterpart	ir.actions.client	odoo19c: odoo/addons/base/models/ir_actions.py:1427	1	docstring names ``ir.actions.client``; reference _name matches
+base	IrActionsTodo	counterpart	ir.actions.todo	odoo19c: odoo/addons/base/models/ir_actions.py:1351	1	docstring names ``ir.actions.todo``; reference _name matches
+base	IrDemoFailure	counterpart	ir.demo_failure	odoo19c: odoo/addons/base/models/ir_demo_failure.py:7	1	docstring names ir.demo_failure
+base	IrDemoFailureWizard	counterpart	ir.demo_failure.wizard	odoo19c: odoo/addons/base/models/ir_demo_failure.py:16	1	docstring names ir.demo_failure.wizard
+base	IrEmbeddedActions	counterpart	ir.embedded.actions	odoo19c: odoo/addons/base/models/ir_embedded_actions.py:9	1	docstring names ir.embedded.actions
+base	IrFilters	counterpart	ir.filters	odoo19c: odoo/addons/base/models/ir_filters.py:8	4	docstring names ir.filters
+base	IrLogging	counterpart	ir.logging	odoo19c: odoo/addons/base/models/ir_logging.py:6	1	docstring names ir.logging
+base	IrMailServer	counterpart	ir.mail_server	odoo19c: odoo/addons/base/models/ir_mail_server.py:142	2	docstring names ir.mail_server (base definition; google_gmail/outlook only extend)
+base	ReportLayout	counterpart	report.layout	odoo19c: odoo/addons/base/models/report_layout.py:8	1	docstring names report.layout
+base	ResCompanyUsersRel	extension	res.company	odoo19c: odoo/addons/base/models/res_company.py:32	-	M2M rel table res_company_users_rel of res.company.user_ids (docstring cites res_company.py:68); no own _name
+base	ResCountryGroup	counterpart	res.country.group	odoo19c: odoo/addons/base/models/res_country.py:172	4	docstring names res.country.group
+base	ResUsersDeletion	counterpart	res.users.deletion	odoo19c: odoo/addons/base/models/res_users_deletion.py:20	2	docstring: faithful to res_users_deletion.py
+base	ResUsersLog	counterpart	res.users.log	odoo19c: odoo/addons/base/models/res_users.py:135	1	docstring: faithful to res_users.py:134-152
+base	ResUsersSettings	counterpart	res.users.settings	odoo19c: odoo/addons/base/models/res_users_settings.py:8	2	docstring: faithful to res_users_settings.py:8-12
+base_address_extended	AddressStructured	extension	res.partner	odoo19c: odoo/addons/base/models/res_partner.py:185	-	docstring: street_name/street_number/street_number2/city_id that base_address_extended adds to res.partner
+base_address_extended	CatalogPostalCode	own	-	-	-	docstring claims res.city.zip counterpart but no res.city.zip _name exists in odoo19c (grep addons+odoo: 0); nearest is res.city (base_address_extended/models/res_city.py:7), a different shape; SEPOMEX-fed catalog
+base_address_extended	CountryAddressPolicy	extension	res.country	odoo19c: odoo/addons/base/models/res_country.py:33	-	docstring: related of enforce_cities, a field base_address_extended adds to res.country
+base_automation	BaseAutomationAction	extension	ir.actions.server	odoo19c: odoo/addons/base/models/ir_actions.py:586	-	docstring: replaces Many2one ir.actions.server.base_automation_id added by base_automation
+base_geolocalize	GeoProvider	counterpart	base.geo_provider	odoo19c: addons/base_geolocalize/models/base_geocoder.py:17	1	docstring cites base.geo_provider (Odoo 19:16-22)
+base_geolocalize	PartnerGeolocation	extension	res.partner	odoo19c: odoo/addons/base/models/res_partner.py:185	-	docstring: date_localization + partner_latitude/longitude on res.partner (base_geolocalize/res_partner.py:10)
+base_setup	SiteConfigSettings	counterpart	res.config.settings	odoo19c: odoo/addons/base/models/res_config.py:149	1	docstring: res.config.settings of the site (transient, managed=False); base_setup only _inherits it
+base_sparse_field	SparseFieldsTest	counterpart	sparse_fields.test	odoo19c: addons/base_sparse_field/models/models.py:93	1	docstring: = Sparse_FieldsTest, six sparse fields; reference _name sparse_fields.test
+bus	BusMessage	counterpart	bus.bus	odoo19c: addons/bus/models/bus.py:89	1	docstring names bus.bus
+certificate	CertificateKey	counterpart	certificate.key	odoo19c: addons/certificate/models/key.py:36	1	docstring names certificate.key
+crm	ContactMessage	own	-	-	-	public contact form message with SoftDeleteModel; no reference model (crm has no contact message _name)
+delivery	CarrierRateCard	own	-	-	-	pricing/eligibility catalog for the quoting engine; docstring says separate from Courier; own (reference delivery.carrier has rules inline, not ported 1:1)
+delivery	Courier	own	-	-	-	shipping provider tracking/webhooks catalogue; platform-specific
+delivery	DeliveryAddress	own	-	-	-	checkout shipping-address snapshot BR-005; platform-specific
+delivery	ShipmentEvent	own	-	-	-	append-only audit of guide status transitions; platform-specific
+delivery	ShipmentGuide	own	-	-	-	shipment guide linked to order UC-LOG-01..09; platform-specific
+delivery	ShippingMethod	counterpart	delivery.carrier	odoo19c: addons/delivery/models/delivery_carrier.py:14	6	docstring: Contraparte de delivery.carrier (Odoo delivery); moved state-only from settings_app
+delivery	ShippingZone	own	-	-	-	coverage zone by zip prefix with delivery days/cost (DEC-BC-18); only loosely related to delivery.zip.prefix (name-only model, delivery_zip_prefix.py:8) and docstring cites no port
+digest	DigestDigest	counterpart	digest.digest	odoo19c: addons/digest/models/digest.py:22	2	docstring names digest.digest
+digest	DigestTip	counterpart	digest.tip	odoo19c: addons/digest/models/digest_tip.py:8	2	docstring names digest.tip
+fleet	FleetServiceType	counterpart	fleet.service.type	odoo19c: addons/fleet/models/fleet_service_type.py:8	2	docstring names fleet.service.type
+fleet	FleetVehicleAssignationLog	counterpart	fleet.vehicle.assignation.log	odoo19c: addons/fleet/models/fleet_vehicle_assignation_log.py:8	1	docstring names fleet.vehicle.assignation.log
+fleet	FleetVehicleModelBrand	counterpart	fleet.vehicle.model.brand	odoo19c: addons/fleet/models/fleet_vehicle_model_brand.py:8	2	docstring names fleet.vehicle.model.brand
+fleet	FleetVehicleModelCategory	counterpart	fleet.vehicle.model.category	odoo19c: addons/fleet/models/fleet_vehicle_model_category.py:8	2	docstring names fleet.vehicle.model.category
+fleet	FleetVehicleOdometer	counterpart	fleet.vehicle.odometer	odoo19c: addons/fleet/models/fleet_vehicle_odometer.py:8	1	docstring names fleet.vehicle.odometer
+fleet	FleetVehicleState	counterpart	fleet.vehicle.state	odoo19c: addons/fleet/models/fleet_vehicle_state.py:8	2	docstring names fleet.vehicle.state
+fleet	FleetVehicleTag	counterpart	fleet.vehicle.tag	odoo19c: addons/fleet/models/fleet_vehicle_tag.py:8	2	docstring names fleet.vehicle.tag
+helpdesk	SupportTicketReply	own	-	-	-	helpdesk ticket thread message UC-SUPP-03; no helpdesk addon in odoo19c community; no docstring port citation
+hr_timesheet	AccountAnalyticLineCalendarEmployee	counterpart	account.analytic.line.calendar.employee	odoo19c: addons/hr_timesheet/models/account_analytic_line_calendar_employee.py:6	1	docstring names the model; reference _name matches
+loyalty	Referral	own	-	-	-	referrer-referred relation UC-PRO-05; platform-specific
+loyalty	ReferralCode	own	-	-	-	buyer referral code UC-PRO-05, backed by a Voucher; docstring cites loyalty framework generally but no model port
+loyalty	Voucher	own	-	-	-	discount coupon with business/soft-delete semantics; nearest reference loyalty.card (addons/loyalty/models/loyalty_card.py:11) but docstring cites no port and fields are product-specific
+loyalty	VoucherChangeLog	own	-	-	-	admin edit history of a Voucher UC-PRO-02; platform-specific
+loyalty	VoucherUsage	own	-	-	-	per-user voucher use record DEC-BC-10; platform-specific
+mail	MailAlias	counterpart	mail.alias	odoo19c: addons/mail/models/mail_alias.py:32	2	docstring: mapping address to model; reference _name mail.alias
+mail	MailAliasDomain	counterpart	mail.alias.domain	odoo19c: addons/mail/models/mail_alias_domain.py:16	2	docstring: alias domain of a company; reference _name mail.alias.domain
+mail	MailFollowers	counterpart	mail.followers	odoo19c: addons/mail/models/mail_followers.py:20	2	docstring names mail.followers
