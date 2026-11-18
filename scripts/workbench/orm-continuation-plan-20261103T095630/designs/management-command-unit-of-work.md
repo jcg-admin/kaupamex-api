@@ -94,3 +94,11 @@ Anulación: con `execute` sin la unidad caen exactamente 1-3.
   cuyo `owned` (`src/addons`) se solapa por ruta con estas órdenes; esta
   unidad se ejecutó antes del paraguas, que es un programa de 333 modelos en
   70 apps y no una unidad atómica.
+- **Desliz de proceso (2026-11-18T13:00:49).** El primer commit del código lo rehusó el
+  gate de idioma (`APRO`/`SECU`, deuda heredada que el gate sólo mide en
+  archivos en *staging*), y el F2 se lanzó igual, sobre el árbol sucio y con
+  el nombre de la revisión del commit del plan (`8d6b7b0d`), que no
+  contiene el cambio. Se detuvo y su log se borró; el F2 válido es el de
+  `8b730e74`. Es la segunda vez que ocurre (la primera, en
+  `record-loader-universality.md`): el lanzamiento debe ir condicionado a
+  `commit=0` y árbol limpio, no a continuación del commit.
