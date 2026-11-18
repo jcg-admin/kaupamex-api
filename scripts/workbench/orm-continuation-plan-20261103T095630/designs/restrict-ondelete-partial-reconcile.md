@@ -83,11 +83,33 @@ más ancho de la sesión. Se hace en pasos que se verifican por separado:
 3. **C2 — `AccountMoveLine` adopta `BaseModel`**: `remove_move_reconcile` y
    `unlink` (los dos primeros pasos de la fuente y `super().unlink()`; los
    bloqueos fiscales y el registro quedan `pendiente:` con su cita).
+   Dos requisitos medidos al implementarlo:
+
+   - **Lectura de un x2many sobre varios registros.**
+     `remove_move_reconcile` lee `matched_debit_ids` y `matched_credit_ids`
+     sobre el conjunto de apuntes, y el inverso sólo se leía sobre uno
+     (`ValueError: Expected singleton`). Es una pieza del ORM con diseño
+     propio: `designs/x2many-multi-record-read.md`.
+   - **Los nombres inversos estaban cruzados.** En la fuente
+     `matched_debit_ids` tiene inverso `credit_move_id` y
+     `matched_credit_ids` inverso `debit_move_id`
+     (`odoo19c: addons/account/models/account_move_line.py:262`); aquí
+     `debit_move` llevaba `related_name='matched_debit_ids'` y `credit_move`
+     `'matched_credit_ids'`. Sus dos lectores vivos toman la unión de los
+     dos, así que no cambiaba ningún resultado, pero
+     `addons/account_edi_ubl_cii/models/account_edi_ubl_pint.py:134` lee
+     `matched_credit_ids.credit_move_id` como la fuente y con el cruce
+     obtenía el propio apunte. Se intercambian; migración
+     `0047_swap_matched_reverse_names` de `account`, sin SQL. Caso
+     `TestMatchedNames` en el archivo de pruebas del contrato.
+   - `tests/unit/purchase/test_purchase_invoice_link.py`: `invoice_lines`
+     de la línea de compra pasa a leerse como recordset (`.ids`), porque
+     sus dos extremos ya son `BaseModel`.
 4. **C3 — `AccountMove` adopta `BaseModel`**: `unlink` con
    `remove_move_reconcile` y el borrado de líneas.
 5. **C4 — la política**: `debit_move` y `credit_move` a `PROTECT`;
-   migración `0047_restrict_partial_reconcile_moves` de `account` (el
-   número 0046 lo toma C2a).
+   migración `0048_restrict_partial_reconcile_moves` de `account` (0046 lo
+   toma C2a y 0047 el intercambio de nombres inversos de C2).
 
 Si C2 o C3 rompen más de lo que su diseño puede absorber, se detiene ahí,
 se registra la medición y C4 no se aplica: la política sin los `unlink`
