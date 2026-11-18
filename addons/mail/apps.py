@@ -16,6 +16,8 @@ management command ``send_pending_emails`` (≙
 en ``mail.mail`` los envíos que fallan en el thread pool.
 """
 
+import importlib
+
 from django.apps import AppConfig
 
 
@@ -24,3 +26,12 @@ class MailConfig(AppConfig):
     name = 'addons.mail'
     label = 'mail'
     verbose_name = 'Mail (envío de correo, fiel al addon mail de Odoo)'
+
+    def ready(self):
+        # Cuelga lo que ``mail`` extiende en ResCompany (el dominio de alias,
+        # sus direcciones y los colores de correo) — ≙
+        # ``mail/models/res_company.py``. ``importlib.import_module`` es la
+        # excepción #4 sancionada para ``ready()``.
+        importlib.import_module(
+            f'{self.name}.models.res_company'
+        ).apply_mail_company_extensions()
