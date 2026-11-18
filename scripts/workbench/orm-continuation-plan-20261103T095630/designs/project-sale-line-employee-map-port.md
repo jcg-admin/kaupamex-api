@@ -92,3 +92,99 @@ Orden: `uom_data.xml` → `hours_per_day` → `display_cost`/`_inverse_display_c
 *Métrica:* registro de modelos tras `django.setup()` y lectura de la fuente.
 *Ciega a:* el comportamiento de `convert_file` con `noupdate="1"` y
 `forcecreate`, que se mide al portar el XML.
+
+## Unidad `employee-map-display-cost-0241`: los dos pasos (2026-11-18)
+
+Revisión de partida: `f5a15e22`. `uom-master-data-0241` ya está asentada:
+`uom.product_uom_day` existe y `env.ref` lo resuelve.
+
+### Medido antes de escribir
+
+- `hr.HrEmployee` **sí** declara `resource_calendar` (registro de campos
+  tras `django.setup()`: `resource_calendar`, `resource_calendar_id`). El
+  docstring de `working_hours_per_calendar` dice que no, y por eso usa
+  `getattr`: es estado heredado caducado.
+- `ProjectSaleLineEmployeeMap` hereda `TimeStampedModel` y no
+  `BaseModel`: no tiene `self.env`, que `_compute_display_cost` necesita
+  para `env.ref` y `env.company`.
+- `working_hours_per_calendar`, `display_cost_for` y
+  `cost_from_display_cost` no tienen llamadores fuera de su archivo
+  (`grep -rn` en `addons src tests`).
+- Lectores de `ResourceCalendar.hours_per_day`/`hours_per_week`:
+  `addons/hr/models/hr_version.py:726`,
+  `addons/resource/models/resource_calendar_attendance.py:165`, el propio
+  archivo del mapa y `tests/unit/resource/test_resource_calendar.py`.
+
+### H1 — `hours_per_day` y `hours_per_week` como en la fuente
+
+`odoo19c: addons/resource/models/resource_calendar.py:102` y `:104`:
+`fields.Float(store=True, compute=..., readonly=False)`; `hours_per_day`
+con `digits=(2, 2)`, `hours_per_week` con `copy=False`. Los dos cómputos
+(`:211-221`) sólo asignan a los calendarios **no flexibles**
+(`self.filtered(lambda c: not c.flexible_hours)`): en uno flexible el valor
+almacenado queda como esté, y es editable. Redondean con
+`float_round(..., precision_digits=2)`.
+
+Aquí sustituyen a las dos propiedades (divergencia 3 del docstring de
+`resource_calendar.py`, que se retira). Los cómputos llaman a
+`_get_hours_per_day`/`_get_hours_per_week`, que se portan con su nombre
+(`:692-707`) a partir del cuerpo de las propiedades actuales.
+
+`@api.depends` de la fuente: `attendance_ids`, `attendance_ids.hour_from`,
+`attendance_ids.hour_to`, `two_weeks_calendar`, `flexible_hours`. Aquí el
+inverso se llama `attendances` y `flexible_hours` es una propiedad sobre
+`schedule_type` (divergencia 1, que sigue): la dependencia se escribe
+sobre los campos que existen —`attendances`, `attendances.hour_from`,
+`attendances.hour_to`, `two_weeks_calendar`, `schedule_type`— y la
+traducción se declara en el método.
+
+Migración `resource/0022_calendar_hours_stored` (el número se fija al
+generarla): dos columnas y `ComputeStoredFields` para las filas existentes.
+
+Pruebas en `tests/unit/resource/test_calendar_hours_stored.py`:
+
+| Caso | Espera |
+|---|---|
+| los dos campos | almacenados, calculados, editables |
+| calendario de 40 h en 5 días | columnas `40.0` y `8.0` |
+| cambiar `hour_to` de un tramo | las columnas se recalculan |
+| calendario flexible con un valor escrito a mano | se conserva al cambiar un tramo |
+| la operación de la migración | una fila con columnas nulas recibe sus horas |
+
+### H2 — `display_cost` y su inverso
+
+`odoo19c: addons/sale_timesheet/models/project_sale_line_employee_map.py:37`:
+`fields.Monetary(currency_field='cost_currency_id',
+compute='_compute_display_cost', inverse='_inverse_display_cost',
+string="Hourly Cost", groups=...)`, no almacenado, con
+`@api.depends('cost', 'employee_id.resource_calendar_id')` y
+`@api.depends_context('company')`. `_get_working_hours_per_calendar`
+(`:84-101`) agrupa `hours_per_day` con `_read_group` sobre los calendarios
+de los empleados, lo que exige H1.
+
+1. `ProjectSaleLineEmployeeMap` adopta `BaseModel`.
+2. `display_cost`, `_compute_display_cost`, `_inverse_display_cost` y
+   `_get_working_hours_per_calendar` con los cuerpos de la fuente.
+3. Se retiran `working_hours_per_calendar`, `display_cost_for` y
+   `cost_from_display_cost`; su prosa de bloqueo se retira con ellas.
+
+`currency_field='cost_currency_id'` apunta aquí a la propiedad
+`cost_currency`; `groups=` se declara como en la fuente. `company_id`,
+`partner_id`, `cost_currency_id` y `existing_employee_ids` siguen como
+propiedades: son el paso 2-3 del orden de arriba, no de esta unidad.
+
+Pruebas en `tests/unit/sale_timesheet/test_employee_map_display_cost.py`:
+
+| Caso | Espera |
+|---|---|
+| empresa que captura en horas | `display_cost == cost` |
+| empresa que captura en días, calendario de 8 h | `display_cost == cost × 8` |
+| escribir `display_cost` en días | `cost == display_cost / 8` |
+| empleado sin calendario, en días | factor 1 |
+
+Anulaciones: sin la rama de días caen los casos 2 y 3; con el factor fijo
+en 1, el 2.
+
+*Métrica:* columnas y valores leídos tras `flush_all`.
+*Ciega a:* `groups=` (no se ejercita el acceso por campo) y los pasos 2-5
+del orden general.
