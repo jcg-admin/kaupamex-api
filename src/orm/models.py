@@ -6592,10 +6592,13 @@ def _forward_get(self, instance, cls=None):
                 del fields_cache[self.field.cache_name]
     comodel = self.field.remote_field.model
     to_records = isinstance(comodel, type) and issubclass(comodel, BaseModel)
-    if to_records and ids is not None and not ids:
-        # leído sobre un recordset vacío, el valor nulo del campo: otra vez
-        # el recordset vacío del comodelo, sin consultar la base
-        return comodel._from_ids(env(), (), ())
+    if ids is not None and not ids:
+        # ≙ ``Field.__get__`` (``odoo19c: odoo/orm/fields.py:1659-1661``),
+        # «null record -> return the null value for this field»: leído sobre
+        # un recordset vacío, el valor nulo del campo, sin consultar la
+        # base. Es el recordset vacío del comodelo, o ``None`` cuando el
+        # comodelo es de Django y no tiene recordset.
+        return comodel._from_ids(env(), (), ()) if to_records else None
     if (ids and self.field.concrete
             and all(isinstance(id_, int) for id_ in ids)
             and self.field.attname not in instance.__dict__
