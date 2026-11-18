@@ -25,6 +25,11 @@
         'base',  # ResUsers, ResPartner, ResCompany
         'bus',  # el canal por el que se notifica el mensaje nuevo
     ],
+    # ≙ ``data`` de la fuente (``odoo19c: addons/mail/__manifest__.py:64``):
+    # sólo los grupos por ahora; el resto de la lista entra con su modelo.
+    'data': [
+        'data/mail_groups.xml',
+    ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',
     'application': True,
