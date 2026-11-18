@@ -125,6 +125,8 @@ CORRECTED = {
     'stock.StockWarehouse.company',
     'stock.StockWarehouseOrderpoint.company',
     'website.Website.company',
+    # designs/set-null-hr-version-employee.md
+    'hr.HrVersion.employee',
 }
 
 #: Política de Django que corresponde al ``ondelete`` de la fuente.

@@ -170,7 +170,7 @@ class HrVersion(models.BaseModel, MailThread, MailActivityMixin,
     # --- identidad de la versión ------------------------------------------
     employee = fields.Many2one(
         'hr.HrEmployee',
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name='versions',
