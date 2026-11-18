@@ -58,3 +58,29 @@ control de quitarlo a uno.
 *Métrica:* clases de `apps.get_models()` sin el mixin, por cubo.
 *Ciega a:* si cada modelo carga **bien** sus datos: el censo mide la
 presencia del método, no su comportamiento sobre ese modelo.
+
+## Decisión (al abrir la unidad, medido)
+
+Desglose de los 84 por base directa: 69 `models.Model`, 7
+`TransientModel` (`orm/models_transient.py:55`), 2 `BaseModel`, y 6 con un
+mixin junto a `models.Model` (`DefaultGetMixin`, `MailThread`,
+`AnalyticPlanFieldsMixin`, `SequenceMixin`) o heredando de un
+`ResConfigSettings` que a su vez carece del mixin.
+
+1. `BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model)` y
+   `TransientModel(TransactionClockSaveMixin, RecordLoaderMixin, Model)`:
+   el mixin va **antes** de `OrderMixin` y después de
+   `TransactionClockSaveMixin`, el orden de `TimeStampedModel`
+   (`addons/base/models/timestamped_mixin.py:85-93`); otro orden no
+   linealiza la MRO de un modelo que herede de los dos.
+2. Cada clase restante pone `models.RecordLoaderMixin` justo antes de
+   `models.Model` (el paquete `models` lo exporta).
+3. Medido: los 84 ya tienen `_auto_init`, `init`, `_add_sql_constraints` y
+   `_check_removed_columns` **en la propia clase**, así que añadir el mixin
+   como base no los cambia. Sí cambia `save`: el de `RecordLoaderMixin`
+   despacha los inversos anotados tras persistir (≙ `write`, `odoo19c:
+   odoo/orm/models.py:4491-4493`) y para un modelo sin inversos es
+   `super().save()`.
+
+Prueba: `tests/unit/orm/test_record_loader_universality.py` — el censo (84
+fallan antes) y `res.country` cargando un registro con su `xml_id`.
