@@ -77,7 +77,7 @@ desactualizado. Medido con la prueba de abajo, antes de implementar:
 |---|---|
 | regla `on_write` con `filter_pre_domain` que el `write` deja de cumplir | dispara (pre sobre el valor viejo) |
 | ídem, con un registro que no la cumplía antes y sí después | no dispara |
-| regla `on_write` con `trigger_field_ids` sobre un calculado almacenado; se cambia su dependencia | la acción corre una vez sobre el registro |
+| regla `on_write` sobre el calendario; se alarga un tramo | la acción corre una vez por método que recalcula (dos: horas por día y por semana), como en la fuente, donde `__action_done` vive en el contexto de cada llamada (`:781-797`) |
 | ídem, con un `filter_domain` que el valor recalculado no cumple | no corre |
 
 Anulaciones: precondición de vuelta en `post_save` → caen los casos 1 y
@@ -89,3 +89,34 @@ la postcondición lo aceptaría o rechazaría por él).
 prueba.
 *Ciega a:* el orden entre varias reglas y la reentrancia, que ya cubre
 `_processing_set`.
+
+## Revisión 2: el envoltorio no consulta la base para un modelo sin reglas
+
+Medido al ejecutar la regresión derivada: 19 fallos en
+`tests/unit/orm/test_native_*`, pruebas del recálculo **sin acceso a la
+base**. El envoltorio global llamaba a `_rules_table_exists` y a
+`_get_actions` en cada recálculo de cualquier modelo
+(`RuntimeError: Database access not allowed`).
+
+La fuente no paga eso: decide **al cargar el registro** qué modelos parchea
+(`_register_hook`, `:1040-1060`) y lo rehace cuando cambia una regla
+(`_update_registry`, `:673-679`, que además marca `registry_invalidated`
+para los demás procesos). Un modelo sin reglas no se toca.
+
+Aquí:
+
+- `_call_hooks` (`src/orm/registry.py:3167`) sólo invoca el gancho sobre
+  modelos `BaseModel`, y `BaseAutomation` no lo es. Se extiende: un modelo
+  que declara `_register_hook` como `classmethod` sin ser `BaseModel`
+  también lo recibe. Es la misma llamada de la fuente
+  (`for model in env.values(): model._register_hook()`).
+- `BaseAutomation._register_hook` (classmethod) guarda en el registro de la
+  base el conjunto de modelos con reglas `WRITE_TRIGGERS` activas.
+- `_update_registry` lo recalcula y marca `registry_invalidated`, como la
+  fuente, en lugar de ser un no-op.
+- El envoltorio lee ese conjunto del registro (`self.env.registry`) y, si
+  el modelo no está, llama a la previa sin tocar la base.
+
+*Ciega a:* una transacción revertida que creó una regla deja el conjunto
+con su modelo hasta el siguiente `_update_registry` o recarga; el efecto es
+una consulta de más (`_get_actions` vacío), no una regla disparada de más.
