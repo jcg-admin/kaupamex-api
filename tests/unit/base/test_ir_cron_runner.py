@@ -34,7 +34,7 @@ from django.db import connection, transaction
 from django.utils import timezone
 
 from addons.base.models import IrActionsServer, IrCron, SystemParameter
-from orm.environments import get_current_uid
+from orm.environments import SUPERUSER_ID, get_current_uid
 from tests.subprocess_env import subprocess_env
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
@@ -371,10 +371,10 @@ def test_el_scope_se_restaura_al_salir_del_callback(monkeypatch, django_user_mod
     )
 
 
-def test_cron_sin_usuario_deja_el_scope_en_none(monkeypatch):
-    """Con ``user`` nulo el scope se fija a ``None`` — el mismo estado que
-    tiene el proceso worker. Se pone el contextmanager igual para no tener dos
-    caminos, y esto lo comprueba."""
+def test_a_cron_without_explicit_user_runs_as_root(monkeypatch):
+    """Un cron creado sin usuario corre como el raíz, como en la fuente:
+    ``user_id`` es obligatorio y su defecto, sin usuario actuante, es
+    ``SUPERUSER_ID`` (``odoo19c: odoo/addons/base/models/ir_cron.py:110``)."""
     visto = {}
     monkeypatch.setattr(
         SystemParameter, 'noop_test',
@@ -382,7 +382,7 @@ def test_cron_sin_usuario_deja_el_scope_en_none(monkeypatch):
         raising=False,
     )
     cron = _cron_listo()
-    assert cron.user_id is None
+    assert cron.user_id == SUPERUSER_ID
 
     assert IrCron._process_jobs() == 1
-    assert visto['uid'] is None
+    assert visto['uid'] == SUPERUSER_ID

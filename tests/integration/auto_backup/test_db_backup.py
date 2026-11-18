@@ -233,13 +233,12 @@ class TestAuthorizationGuard:
     def test_no_authenticated_user_either(self, config):
         """El hueco que la transliteración abría — :ref:`h-api-766`.
 
-        Con ``get_current_uid()`` en ``None`` y el cron sin usuario, la
-        comparación de la fuente (``cron_user_id != current_uid``) es
-        ``None != None`` → falsa, y la guarda deja pasar. Fail-closed.
+        Sin usuario autenticado (``get_current_uid()`` en ``None``) la
+        guarda rehúsa aunque el cron sí tenga usuario: ``user`` es
+        obligatorio desde ``ir-cron-user-root.md``, así que el ``None !=
+        None`` de la transliteración ya no puede darse por el lado del cron,
+        y la guarda sigue cerrada por el lado del llamador. Fail-closed.
         """
-        IrCron.objects.filter(
-            ir_actions_server__model_name=CRON_BACKUP['model_name'],
-        ).update(user=None)
         with mock.patch(
             'addons.auto_backup.models.db_backup.get_current_uid',
             return_value=None,

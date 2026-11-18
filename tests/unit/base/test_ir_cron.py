@@ -28,9 +28,10 @@ from datetime import datetime, timezone as dt_timezone
 import pytest
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
-from django.db.models import ProtectedError
+from django.db.models import ProtectedError, RestrictedError
 
 from addons.base.models import IrActionsServer, IrCron
+from orm.utils import SUPERUSER_ID
 from tests.factories.user_factory import UserFactory
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
@@ -128,7 +129,7 @@ def test_create_minimo_aplica_defaults():
     assert cron.priority == 5
     assert cron.active is True
     assert cron.lastcall is None
-    assert cron.user_id is None
+    assert cron.user_id == SUPERUSER_ID
     assert cron.nextcall == nextcall
 
 
@@ -210,24 +211,27 @@ def test_compute_next_advances_weeks():
 # --- user: nullable + SET_NULL (adaptación deliberada vs Odoo required) ----
 
 
-def test_user_nullable_por_defecto():
+def test_user_defaults_to_root():
+    """``user_id`` es obligatorio y, sin usuario actuante, el raíz
+    (``odoo19c: odoo/addons/base/models/ir_cron.py:110``)."""
     cron = IrCron.objects.create(
         ir_actions_server=_accion('Sin usuario', 'orders.Order', 'run'),
         nextcall=datetime(2026, 1, 1, tzinfo=dt_timezone.utc),
     )
-    assert cron.user_id is None
+    assert cron.user_id == SUPERUSER_ID
 
 
-def test_user_set_null_al_borrar_usuario():
+def test_deleting_the_user_is_restricted():
+    """Un Many2one obligatorio no queda en nulo: borrar el usuario de un
+    cron se rehúsa."""
     user = UserFactory()
-    cron = IrCron.objects.create(
+    IrCron.objects.create(
         ir_actions_server=_accion('Con usuario', 'orders.Order', 'run'),
         nextcall=datetime(2026, 1, 1, tzinfo=dt_timezone.utc),
         user=user,
     )
-    user.delete()
-    cron.refresh_from_db()
-    assert cron.user_id is None
+    with pytest.raises(RestrictedError), transaction.atomic():
+        user.delete()
 
 
 # --- interval_number > 0 (CheckConstraint, réplica de Odoo) ----------------

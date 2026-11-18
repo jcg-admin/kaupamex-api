@@ -2161,6 +2161,7 @@ __all__ = [
     'get_current_company', 'get_current_companies', 'set_current_company',
     'activate_companies', 'company_scope', 'sudo', 'is_su',
     'get_current_uid', 'get_current_user', 'set_current_uid', 'user_scope',
+    'current_uid_or_superuser',
     'get_context', 'context_scope', 'get_current_tz',
     'Transaction', 'get_transaction', 'transaction_scope',
     'Environment', 'env',
@@ -2272,3 +2273,14 @@ def next_snapshot_stamp():
 def current_snapshot_stamp():
     """El último sello emitido: lo que una copia cargada ahora ya refleja."""
     return _snapshot_clock[0]
+
+
+def current_uid_or_superuser():
+    """El usuario que actúa o, sin ninguno, el del entorno que instala.
+
+    ≙ el ``default=lambda self: self.env.user`` de un campo de usuario
+    obligatorio (``odoo19c: odoo/addons/base/models/ir_cron.py:110``): en la
+    fuente siempre hay ``env.user``, y fuera de un request es el entorno de
+    instalación, ``SUPERUSER_ID`` (``odoo19c: odoo/modules/loading.py:404``).
+    """
+    return get_current_uid() or SUPERUSER_ID

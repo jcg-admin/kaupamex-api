@@ -199,8 +199,9 @@ from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.ir_module import IrModule
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import LockError, UserError
-from orm.environments import (Environment, context_scope, get_context,
-                              sudo, user_scope)
+from orm.environments import (Environment, context_scope,
+                              current_uid_or_superuser, get_context, sudo,
+                              user_scope)
 from tools.constants import GC_UNLINK_LIMIT
 
 _logger = logging.getLogger(__name__)
@@ -484,16 +485,15 @@ class IrCron(models.DefaultGetMixin, models.RecordLoaderMixin,
         ),
     )
     user = fields.Many2one(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='ir_crons',
+        settings.AUTH_USER_MODEL, null=False, on_delete=models.RESTRICT,
+        default=current_uid_or_superuser, related_name='ir_crons',
         help_text=(
-            'Usuario de ejecución (Odoo user_id — ahí required con '
-            'default=env.user; aquí nullable porque no hay contexto de '
-            'request implícito al registrar la tarea). El runner lo aplica '
-            'con orm.environments.user_scope, así que get_current_user() '
-            'dentro del método invocado lo devuelve. Caveat: IrRule.'
-            'eval_context aún no cae a ese usuario — ver docstring del '
-            'módulo.'
+            'Usuario de ejecución (Odoo user_id, required, default=env.user). '
+            'Sin usuario actuante es el del entorno que instala, '
+            'SUPERUSER_ID, como en la fuente. El runner lo aplica con '
+            'orm.environments.user_scope, así que get_current_user() dentro '
+            'del método invocado lo devuelve. Caveat: IrRule.eval_context '
+            'aún no cae a ese usuario — ver docstring del módulo.'
         ),
     )
 

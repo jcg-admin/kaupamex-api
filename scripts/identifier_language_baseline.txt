@@ -2632,8 +2632,6 @@ tests/unit/base/test_ir_cron.py::test_importable_desde_addons_base_models
 tests/unit/base/test_ir_cron.py::test_interval_number_cero_viola_check_constraint
 tests/unit/base/test_ir_cron.py::test_interval_type_invalido_rechazado_por_full_clean
 tests/unit/base/test_ir_cron.py::test_str_devuelve_name
-tests/unit/base/test_ir_cron.py::test_user_nullable_por_defecto
-tests/unit/base/test_ir_cron.py::test_user_set_null_al_borrar_usuario
 tests/unit/base/test_ir_cron_runner.py::_accion
 tests/unit/base/test_ir_cron_runner.py::_correr_cron_subproceso
 tests/unit/base/test_ir_cron_runner.py::_cron_listo
@@ -2659,7 +2657,6 @@ tests/unit/base/test_ir_cron_runner.py::test_acquire_one_job_no_espera_ni_adquie
 tests/unit/base/test_ir_cron_runner.py::test_callback_corre_bajo_el_usuario_del_cron
 tests/unit/base/test_ir_cron_runner.py::test_cron_command_sale_limpio_ante_sigterm
 tests/unit/base/test_ir_cron_runner.py::test_cron_command_una_pasada_sale_0
-tests/unit/base/test_ir_cron_runner.py::test_cron_sin_usuario_deja_el_scope_en_none
 tests/unit/base/test_ir_cron_runner.py::test_el_scope_se_restaura_al_salir_del_callback
 tests/unit/base/test_ir_cron_runner.py::test_job_que_falla_no_bloquea_a_los_siguientes
 tests/unit/base/test_ir_cron_runner.py::test_process_jobs_ejecuta_callback_y_reprograma

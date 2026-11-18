@@ -82,8 +82,8 @@ RED: 4 fallos de 4 (`tests/unit/base/test_ir_cron_user_root.py`); GREEN:
 **Consumidores que codificaban el contrato anterior.** El subconjunto
 derivado (36 archivos de `tests/` que nombran el cron o su callback) dio 5
 fallos de 443, todos de pruebas que afirmaban el usuario nulo: el defecto
-`None` en `test_create_minimo_aplica_defaults`, `test_user_nullable_por_defecto`,
-`test_user_set_null_al_borrar_usuario`, el scope `None` en
+`None` en `test_create_minimo_aplica_defaults`, `test_user_nullable_por_defecto` (hoy `test_user_defaults_to_root`),
+`test_user_set_null_al_borrar_usuario` (hoy `test_deleting_the_user_is_restricted`), el scope `None` en
 `test_cron_sin_usuario_deja_el_scope_en_none` y, en `auto_backup`, el
 `update(user=None)` de `test_no_authenticated_user_either`. Se portaron al
 contrato de la fuente: defecto `SUPERUSER_ID`, borrado del usuario
@@ -106,3 +106,5 @@ desplazaba la clase que contiene el `# noqa: BLE001` heredado. Ahora es
 `orm.environments.current_uid_or_superuser`, al final del módulo y junto a
 `get_current_uid`, que es su hogar natural; `ir_cron.py` y la prueba del
 runner sólo amplían imports que ya existían. Los `noqa` no se tocan.
+
+Subconjunto derivado tras la reubicación: 427 passed, 16 skipped.
