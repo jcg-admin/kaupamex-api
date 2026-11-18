@@ -29,7 +29,7 @@ from addons.base_address_extended.services import street_split
 from orm.method_chain import chain_method, wrap_method
 
 
-class AddressStructured(models.Model):
+class AddressStructured(models.RecordLoaderMixin, models.Model):
     """Descomposición estructurada de la calle de un ``res.partner`` (Odoo
     ``street_name``/``street_number``/``street_number2`` + ``city_id``).
     """

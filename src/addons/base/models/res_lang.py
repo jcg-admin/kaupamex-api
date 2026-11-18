@@ -51,7 +51,7 @@ class LangDataDict(ReadonlyDict):
             return LangData(dict.fromkeys(some_lang, False))
 
 
-class ResLang(models.Model):
+class ResLang(models.RecordLoaderMixin, models.Model):
     """``res.lang`` — idioma/locale con sus formatos de presentación."""
 
     _name = 'res.lang'

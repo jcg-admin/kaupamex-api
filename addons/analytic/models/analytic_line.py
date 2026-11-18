@@ -145,7 +145,11 @@ class AnalyticPlanFieldsMixin(models.Model):
         return {} if not key else {key: 100}
 
 
-class AccountAnalyticLine(AnalyticPlanFieldsMixin, models.Model):
+class AccountAnalyticLine(
+    AnalyticPlanFieldsMixin,
+    models.RecordLoaderMixin,
+    models.Model,
+):
     """``account.analytic.line`` — apunte analítico (Odoo ``analytic``)."""
 
     CATEGORIES = [('other', 'Otro')]

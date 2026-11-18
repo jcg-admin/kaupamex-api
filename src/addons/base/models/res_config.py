@@ -159,7 +159,7 @@ class ConfigWarning(ValidationError):
         self.menu_ref = menu_ref
 
 
-class ResConfig(models.CopyMixin, models.Model):
+class ResConfig(models.CopyMixin, models.RecordLoaderMixin, models.Model):
     """``res.config`` — un paso de configuración.
 
     Transitorio en la fuente (``TransientModel``): no persiste, es el estado

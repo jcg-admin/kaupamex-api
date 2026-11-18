@@ -46,7 +46,7 @@ from addons.base.models import ResCountry
 from addons.base.models.ir_model import IrModelData
 
 
-class AccountFiscalPosition(models.Model):
+class AccountFiscalPosition(models.RecordLoaderMixin, models.Model):
     """
     ``account.fiscal.position`` — mapeo de impuestos/cuentas por país/tercero.
     """

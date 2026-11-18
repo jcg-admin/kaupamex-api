@@ -1507,9 +1507,9 @@ class IrCron(models.DefaultGetMixin, models.RecordLoaderMixin,
         return self.save(update_fields=['active'])
 
 
-
-class IrCronTrigger(models.Model):
-    """``ir.cron.trigger`` — ≙ ``IrCronTrigger`` (``odoo19c: ir_cron.py:897-916``).
+class IrCronTrigger(models.RecordLoaderMixin, models.Model):
+    """``ir.cron.trigger`` — ≙ ``IrCronTrigger``
+    (``odoo19c: ir_cron.py:897-916``).
 
     Un disparo puntual: "corre este cron a esta hora", **independiente** de su
     ``nextcall``. Es la mitad que hacia que ``_trigger`` no existiera en este

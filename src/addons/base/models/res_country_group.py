@@ -9,7 +9,7 @@ import fields
 import models
 
 
-class ResCountryGroup(models.Model):
+class ResCountryGroup(models.RecordLoaderMixin, models.Model):
     """``res.country.group`` — conjunto nombrado de países."""
 
     name = fields.Char(

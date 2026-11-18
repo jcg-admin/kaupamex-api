@@ -120,7 +120,7 @@ def sanitize_account_number(acc_number):
     return ''.join(ch for ch in acc_number if ch.isalnum()).upper()
 
 
-class ResBank(models.DefaultGetMixin, models.Model):
+class ResBank(models.DefaultGetMixin, models.RecordLoaderMixin, models.Model):
     """``res.bank`` — banco (institución) con su BIC y dirección."""
 
     _name = 'res.bank'

@@ -14,7 +14,7 @@ import fields
 import models
 
 
-class AccountJournalGroup(models.Model):
+class AccountJournalGroup(models.RecordLoaderMixin, models.Model):
     """``account.journal.group`` — agrupador de diarios para reportes."""
 
     #: Atributos de clase de ``account.journal.group``, verbatim

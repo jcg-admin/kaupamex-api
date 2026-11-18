@@ -33,7 +33,11 @@ import models
 from addons.mail.models import MailThread
 
 
-class AccountAnalyticAccount(MailThread, models.Model):
+class AccountAnalyticAccount(
+    MailThread,
+    models.RecordLoaderMixin,
+    models.Model,
+):
     """``account.analytic.account`` — cuenta analítica (centro de costo)."""
 
     #: ≙ la cabecera de ``odoo19c: addons/analytic/models/

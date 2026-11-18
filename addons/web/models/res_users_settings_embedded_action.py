@@ -69,7 +69,7 @@ from addons.base.models.res_users_settings import ResUsersSettings
 from tools.translate import _
 
 
-class ResUsersSettingsEmbeddedAction(models.Model):
+class ResUsersSettingsEmbeddedAction(models.RecordLoaderMixin, models.Model):
     """Orden y visibilidad, por usuario, de una acción embebida.
 
     Fiel a ``odoo19c:
@@ -87,7 +87,8 @@ class ResUsersSettingsEmbeddedAction(models.Model):
         db_column='user_setting_id',
     )
     action_id = fields.Many2one(
-        IrActionsActWindow, null=False, on_delete=models.CASCADE, db_index=True,
+        IrActionsActWindow, null=False, on_delete=models.CASCADE,
+        db_index=True,
         related_name='embedded_user_settings', verbose_name='Acción',
         help_text=(
             'Acción embebida a la que aplica el ajuste (Odoo action_id, '
@@ -125,8 +126,8 @@ class ResUsersSettingsEmbeddedAction(models.Model):
     )
 
     class Meta:
-        db_table            = 'res_users_settings_embedded_action'
-        verbose_name        = 'Ajuste de acción embebida por usuario'
+        db_table = 'res_users_settings_embedded_action'
+        verbose_name = 'Ajuste de acción embebida por usuario'
         verbose_name_plural = 'Ajustes de acciones embebidas por usuario'
         # ≙ ``_res_user_settings_embedded_action_unique`` de la referencia
         # (``UNIQUE (user_setting_id, action_id, res_id)``): un usuario no
@@ -139,7 +140,8 @@ class ResUsersSettingsEmbeddedAction(models.Model):
         ]
 
     def __str__(self) -> str:
-        return f'ajuste embebido {self.action_id_id} de {self.user_setting_id_id}'
+        return (f'ajuste embebido {self.action_id_id} '
+                f'de {self.user_setting_id_id}')
 
     def clean(self):
         super().clean()

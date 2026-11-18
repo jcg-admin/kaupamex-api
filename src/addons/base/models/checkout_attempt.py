@@ -21,9 +21,10 @@ sin apellido comercial es una decisión aparte, no parte de este movimiento.
 
 from django.conf import settings
 from django.db import models
+from orm.models import RecordLoaderMixin
 
 
-class CheckoutAttempt(models.Model):
+class CheckoutAttempt(RecordLoaderMixin, models.Model):
     """
     Respuesta cacheada de un checkout, por clave de idempotencia. DEC-BC-03.
     """

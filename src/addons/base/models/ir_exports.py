@@ -22,6 +22,7 @@ registro se resuelve en el ORM.
 from django.db import models
 
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from orm.models import RecordLoaderMixin
 
 
 class IrExports(TimeStampedModel):
@@ -52,7 +53,7 @@ class IrExports(TimeStampedModel):
         return self.name or f'{self.resource} #{self.pk}'
 
 
-class IrExportsLine(models.Model):
+class IrExportsLine(RecordLoaderMixin, models.Model):
     """Un campo dentro de una exportación (``ir.exports.line``)."""
 
     name = models.CharField(

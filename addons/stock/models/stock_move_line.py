@@ -2357,7 +2357,7 @@ class StockMoveLine(TimeStampedModel):
         return bool(tipo.set_package_type)
 
 
-class StockMoveLineConsumeRel(models.Model):
+class StockMoveLineConsumeRel(models.RecordLoaderMixin, models.Model):
     """Tabla intermedia de ``consume_line_ids`` / ``produce_line_ids``.
 
     ≙ ``stock_move_line_consume_rel`` (``odoo19c: :88-89``) — la referencia

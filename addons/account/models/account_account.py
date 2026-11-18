@@ -25,7 +25,7 @@ from exceptions import UserError
 from tools.translate import _
 
 
-class AccountAccount(models.Model):
+class AccountAccount(models.RecordLoaderMixin, models.Model):
     """``account.account`` — cuenta contable del plan (Odoo base contable)."""
 
     #: Los atributos de clase de la fuente

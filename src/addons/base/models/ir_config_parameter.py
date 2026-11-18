@@ -55,6 +55,7 @@ from django.db import DEFAULT_DB_ALIAS, models
 from orm import registry
 from tools import config
 from tools.cache import ormcache
+from orm.models import RecordLoaderMixin
 
 # Parámetros sembrados al inicializar la instancia (Odoo
 # ``_default_parameters``,
@@ -84,7 +85,7 @@ _DEFAULT_PARAMETERS = {
 }
 
 
-class SystemParameter(models.Model):
+class SystemParameter(RecordLoaderMixin, models.Model):
     """Almacén per-instancia de pares clave/valor de configuración (L2 global).
 
     Equivalente a ``ir.config_parameter``. Vive en el plano de control

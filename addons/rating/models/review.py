@@ -17,6 +17,7 @@ from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from addons.base.models import SoftDeleteModel, TimeStampedModel
+from orm.models import RecordLoaderMixin
 
 
 class Review(TimeStampedModel, SoftDeleteModel):
@@ -174,7 +175,7 @@ class ReviewHelpfulVote(TimeStampedModel):
         return f'{self.user.email} -> review#{self.review_id}'
 
 
-class ReviewImage(models.Model):
+class ReviewImage(RecordLoaderMixin, models.Model):
     """
     Foto adjunta a una reseña (UC-REV-02 cap6).
 

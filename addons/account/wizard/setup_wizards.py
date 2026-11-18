@@ -88,7 +88,6 @@ from tools.translate import _
 
 class AccountFinancialYearOp(
     models.DefaultGetMixin,
-    models.RecordLoaderMixin,
     models.CheckCompanyMixin,
     TransientModel,
 ):

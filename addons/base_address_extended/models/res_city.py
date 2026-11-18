@@ -9,7 +9,7 @@ import fields
 import models
 
 
-class ResCity(models.Model):
+class ResCity(models.RecordLoaderMixin, models.Model):
     """``res.city`` — ciudad de un país.
 
     ``name`` (requerido), ``zipcode``, ``country`` FK (requerido), ``state`` FK

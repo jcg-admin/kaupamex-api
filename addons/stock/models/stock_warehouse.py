@@ -1871,15 +1871,18 @@ class StockWarehouse(TimeStampedModel):
         return grupo.user_ids.filter(pk=user.pk).exists()
 
 
-class StockWarehouseResupply(models.Model):
-    """Tabla intermedia de ``resupply_wh_ids`` (≙ ``stock_wh_resupply_table``, ``:84-86``)."""
+class StockWarehouseResupply(models.RecordLoaderMixin, models.Model):
+    """Tabla intermedia de ``resupply_wh_ids`` (≙
+    ``stock_wh_resupply_table``, ``:84-86``)."""
 
     supplied_wh = fields.Many2one(
-        'stock.StockWarehouse', null=False, on_delete=models.CASCADE, related_name='+',
+        'stock.StockWarehouse', null=False, on_delete=models.CASCADE,
+        related_name='+',
         help_text='Almacén abastecido (Odoo supplied_wh_id).',
     )
     supplier_wh = fields.Many2one(
-        'stock.StockWarehouse', null=False, on_delete=models.CASCADE, related_name='+',
+        'stock.StockWarehouse', null=False, on_delete=models.CASCADE,
+        related_name='+',
         help_text='Almacén que abastece (Odoo supplier_wh_id).',
     )
 

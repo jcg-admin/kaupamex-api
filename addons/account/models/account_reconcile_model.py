@@ -66,7 +66,7 @@ from exceptions import UserError
 from tools.translate import _
 
 
-class AccountReconcileModel(models.Model):
+class AccountReconcileModel(models.RecordLoaderMixin, models.Model):
     """``account.reconcile.model`` — regla que propone conciliaciones."""
 
     #: Atributos de clase de ``account.reconcile.model``, verbatim
@@ -252,7 +252,7 @@ class AccountReconcileModel(models.Model):
         self.save(update_fields=['trigger'])
 
 
-class AccountReconcileModelLine(models.Model):
+class AccountReconcileModelLine(models.RecordLoaderMixin, models.Model):
     """
     ``account.reconcile.model.line`` — línea que la regla genera al aplicarse.
     """

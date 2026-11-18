@@ -143,7 +143,7 @@ def _currency_round(currency, amount):
     return Decimal(amount).quantize(quantum, rounding=ROUND_HALF_UP)
 
 
-class AccountPaymentTerm(models.Model):
+class AccountPaymentTerm(models.RecordLoaderMixin, models.Model):
     """``account.payment.term`` — plazo de pago (distribución en cuotas)."""
 
     #: Atributos de clase de ``account.payment.term``, verbatim
@@ -435,7 +435,7 @@ class AccountPaymentTerm(models.Model):
         return amount_by_date
 
 
-class AccountPaymentTermLine(models.Model):
+class AccountPaymentTermLine(models.RecordLoaderMixin, models.Model):
     """``account.payment.term.line`` — cuota de un plazo de pago."""
 
     #: Atributos de clase de ``account.payment.term.line``, verbatim

@@ -24,7 +24,7 @@ from orm.environments import get_current_user
 from tools.translate import _
 
 
-class AccountMove(SequenceMixin, models.Model):
+class AccountMove(SequenceMixin, models.RecordLoaderMixin, models.Model):
     """
     ``account.move`` — asiento contable (o factura si ``move_type`` != entry).
 

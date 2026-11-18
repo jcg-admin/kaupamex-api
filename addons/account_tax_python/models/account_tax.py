@@ -162,7 +162,7 @@ def _safe_eval(formula, formula_context):
     return eval(codigo, _SAFE_GLOBALS, formula_context)  # noqa: S307 — AST ya validado
 
 
-class AccountTaxFormula(models.Model):
+class AccountTaxFormula(models.RecordLoaderMixin, models.Model):
     """Fórmula Python de un impuesto — ≙ los campos ``formula``/
     ``formula_decoded_info`` que la referencia agrega a ``account.tax``.
 
@@ -183,7 +183,8 @@ class AccountTaxFormula(models.Model):
     formula = fields.Text(
         default='price_unit * 0.10',
         help_text='Calcula el monto del impuesto (Odoo formula).\n\n'
-                  ':param base: float, monto real sobre el que se aplica el impuesto\n'
+                  ':param base: float, monto real sobre el que se aplica '
+                  'el impuesto\n'
                   ':param price_unit: float\n'
                   ':param quantity: float\n'
                   ':param product: un objeto que representa el producto\n',
@@ -276,8 +277,9 @@ class AccountTaxFormula(models.Model):
             campos ya resueltos, como los arma ``_get_tax_details``).
         :return: el monto base del impuesto (float).
         """
-        normalized_formula, accessed_fields = self._check_and_normalize_formula(
-            self.formula_decoded_info['py_formula'])
+        normalized_formula, accessed_fields = (
+            self._check_and_normalize_formula(
+                self.formula_decoded_info['py_formula']))
 
         formula_context = {
             'price_unit': evaluation_context['price_unit'],
@@ -286,7 +288,8 @@ class AccountTaxFormula(models.Model):
             'uom': evaluation_context.get('uom', {}),
             'base': raw_base,
         }
-        assert accessed_fields['product'] <= formula_context['product'].keys(), (
+        assert (accessed_fields['product']
+                <= formula_context['product'].keys()), (
             'los campos de producto usados en la fórmula deben estar '
             'presentes en el dict de producto')
         assert accessed_fields['uom'] <= formula_context['uom'].keys(), (

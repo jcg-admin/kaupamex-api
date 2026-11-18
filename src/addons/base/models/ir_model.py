@@ -1752,7 +1752,7 @@ class IrModelFields(models.OriginMixin, TimeStampedModel):
         return created, updated
 
 
-class IrModelInherit(models.Model):
+class IrModelInherit(models.RecordLoaderMixin, models.Model):
     """``ir.model.inherit`` — el árbol de herencia entre modelos.
 
     Sin marcas de tiempo: la fuente declara ``_log_access = False``, así que
@@ -1765,12 +1765,14 @@ class IrModelInherit(models.Model):
     _log_access = False
 
     model_id = fields.Many2one(
-        IrModel, null=False, on_delete=models.CASCADE, related_name='inherit_ids',
+        IrModel, null=False, on_delete=models.CASCADE,
+        related_name='inherit_ids',
         verbose_name='Modelo',
         db_column='model_id',
     )
     parent_id = fields.Many2one(
-        IrModel, null=False, on_delete=models.CASCADE, related_name='inherit_child_ids',
+        IrModel, null=False, on_delete=models.CASCADE,
+        related_name='inherit_child_ids',
         verbose_name='Modelo padre',
         db_column='parent_id',
     )
@@ -1788,7 +1790,8 @@ class IrModelInherit(models.Model):
         constraints = [
             # ``_uniq``: un modelo hereda de otro una sola vez.
             models.UniqueConstraint(
-                fields=['model_id', 'parent_id'], name='ir_model_inherit_uniq'),
+                fields=['model_id', 'parent_id'],
+                name='ir_model_inherit_uniq'),
         ]
 
     def __str__(self):

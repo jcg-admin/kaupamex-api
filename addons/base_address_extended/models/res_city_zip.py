@@ -13,9 +13,10 @@ party model) referencia una fila concreta.
 """
 
 from django.db import models
+from orm.models import RecordLoaderMixin
 
 
-class CatalogPostalCode(models.Model):
+class CatalogPostalCode(RecordLoaderMixin, models.Model):
     """Un asentamiento (colonia/localidad) dentro de un código postal, con
     ámbito por país. Genérico internacional; MX (SEPOMEX) es la fuente actual.
     """

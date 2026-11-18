@@ -121,7 +121,7 @@ def _default_color():
     return randint(1, 11)
 
 
-class AccountAnalyticPlan(models.Model):
+class AccountAnalyticPlan(models.RecordLoaderMixin, models.Model):
     """``account.analytic.plan`` — árbol de planes analíticos (sin columna
     dinámica; ver docstring del módulo)."""
 
@@ -232,7 +232,7 @@ class AccountAnalyticPlan(models.Model):
         return self.children.count()
 
 
-class AccountAnalyticApplicability(models.Model):
+class AccountAnalyticApplicability(models.RecordLoaderMixin, models.Model):
     """``account.analytic.applicability`` — regla de aplicabilidad por plan
     raíz + dominio de negocio + compañía. Portado completo: es Python puro,
     sin dependencia del sistema de columna dinámica."""

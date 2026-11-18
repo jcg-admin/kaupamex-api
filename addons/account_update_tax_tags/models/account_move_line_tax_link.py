@@ -95,7 +95,7 @@ import fields
 import models
 
 
-class AccountMoveLineTax(models.Model):
+class AccountMoveLineTax(models.RecordLoaderMixin, models.Model):
     """Impuesto aplicado a una línea base — puente de ``tax_ids``.
 
     Una fila = "esta línea de apunte lleva aplicado este impuesto", el dato
@@ -112,14 +112,16 @@ class AccountMoveLineTax(models.Model):
     tax = fields.Many2one(
         'account.AccountTax', null=False, on_delete=models.CASCADE,
         related_name='update_tax_tags_move_lines',
-        help_text='Impuesto aplicado a la línea (≙ Odoo tax_ids, lado impuesto).',
+        help_text=('Impuesto aplicado a la línea '
+                   '(≙ Odoo tax_ids, lado impuesto).'),
     )
 
     class Meta:
         db_table = 'account_update_tax_tags_aml_tax_rel'
         constraints = [
             models.UniqueConstraint(
-                fields=['line', 'tax'], name='account_update_tax_tags_aml_tax_uniq',
+                fields=['line', 'tax'],
+                name='account_update_tax_tags_aml_tax_uniq',
             ),
         ]
         verbose_name = 'Impuesto aplicado a un apunte (puente tax_ids)'
@@ -129,8 +131,9 @@ class AccountMoveLineTax(models.Model):
         return f'{self.line} ~ {self.tax}'
 
 
-class AccountMoveLineTaxRepartition(models.Model):
-    """Línea de reparto que originó un apunte — puente de ``tax_repartition_line_id``.
+class AccountMoveLineTaxRepartition(models.RecordLoaderMixin, models.Model):
+    """Línea de reparto que originó un apunte — puente de
+    ``tax_repartition_line_id``.
 
     Una fila = "este apunte ES la línea de impuesto generada por esta línea
     de reparto" (Odoo ``account.move.line.tax_repartition_line_id``,
@@ -143,11 +146,13 @@ class AccountMoveLineTaxRepartition(models.Model):
     line = models.OneToOneField(
         'account.AccountMoveLine', on_delete=models.CASCADE,
         related_name='update_tax_tags_repartition',
-        help_text='El apunte de impuesto mismo (≙ Odoo tax_repartition_line_id, '
-                  'leído desde el lado del apunte).',
+        help_text='El apunte de impuesto mismo (≙ Odoo '
+                  'tax_repartition_line_id, leído desde el lado del '
+                  'apunte).',
     )
     repartition_line = fields.Many2one(
-        'account.AccountTaxRepartitionLine', null=False, on_delete=models.CASCADE,
+        'account.AccountTaxRepartitionLine', null=False,
+        on_delete=models.CASCADE,
         related_name='update_tax_tags_originated_lines',
         help_text='Línea de reparto que generó este apunte de impuesto '
                   '(≙ Odoo tax_repartition_line_id, lado reparto).',
@@ -155,14 +160,16 @@ class AccountMoveLineTaxRepartition(models.Model):
 
     class Meta:
         db_table = 'account_update_tax_tags_aml_tax_repartition'
-        verbose_name = 'Reparto que originó un apunte (puente tax_repartition_line_id)'
-        verbose_name_plural = 'Repartos que originaron apuntes (puente tax_repartition_line_id)'
+        verbose_name = ('Reparto que originó un apunte '
+                        '(puente tax_repartition_line_id)')
+        verbose_name_plural = ('Repartos que originaron apuntes '
+                               '(puente tax_repartition_line_id)')
 
     def __str__(self) -> str:
         return f'{self.line} ← {self.repartition_line}'
 
 
-class AccountMoveLineTag(models.Model):
+class AccountMoveLineTag(models.RecordLoaderMixin, models.Model):
     """Casilla fiscal vigente de un apunte — puente de ``tax_tag_ids``.
 
     Es la tabla que ``AccountUpdateTaxTagsWizard`` reescribe (Odoo
@@ -174,23 +181,28 @@ class AccountMoveLineTag(models.Model):
     line = fields.Many2one(
         'account.AccountMoveLine', null=False, on_delete=models.CASCADE,
         related_name='update_tax_tags_tags',
-        help_text='Apunte que lleva la casilla (≙ Odoo tax_tag_ids, lado línea).',
+        help_text=('Apunte que lleva la casilla '
+                   '(≙ Odoo tax_tag_ids, lado línea).'),
     )
     tag = fields.Many2one(
         'account.AccountAccountTag', null=False, on_delete=models.CASCADE,
         related_name='update_tax_tags_move_lines',
-        help_text='Casilla fiscal vigente en el apunte (≙ Odoo tax_tag_ids, lado casilla).',
+        help_text=('Casilla fiscal vigente en el apunte '
+                   '(≙ Odoo tax_tag_ids, lado casilla).'),
     )
 
     class Meta:
         db_table = 'account_update_tax_tags_aml_tag_rel'
         constraints = [
             models.UniqueConstraint(
-                fields=['line', 'tag'], name='account_update_tax_tags_aml_tag_uniq',
+                fields=['line', 'tag'],
+                name='account_update_tax_tags_aml_tag_uniq',
             ),
         ]
-        verbose_name = 'Casilla fiscal vigente de un apunte (puente tax_tag_ids)'
-        verbose_name_plural = 'Casillas fiscales vigentes de apuntes (puente tax_tag_ids)'
+        verbose_name = ('Casilla fiscal vigente de un apunte '
+                        '(puente tax_tag_ids)')
+        verbose_name_plural = ('Casillas fiscales vigentes de apuntes '
+                               '(puente tax_tag_ids)')
 
     def __str__(self) -> str:
         return f'{self.line} → {self.tag}'

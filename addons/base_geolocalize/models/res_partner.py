@@ -49,7 +49,7 @@ ADDRESS_FIELDS_TRIGGERING_RESET = (
 GEOLOCATION_FIELDS = ('latitude', 'longitude')
 
 
-class PartnerGeolocation(models.Model):
+class PartnerGeolocation(models.RecordLoaderMixin, models.Model):
     """``date_localization`` + ``partner_latitude``/``partner_longitude``
     (Odoo 19:10 + ``base`` core 270-271) para un ``res.partner``.
     """

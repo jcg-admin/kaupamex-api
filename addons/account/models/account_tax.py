@@ -699,7 +699,7 @@ class AccountTaxQuerySet(models.AccessQuerySet):
         return taxes
 
 
-class AccountTaxAlternative(models.Model):
+class AccountTaxAlternative(models.RecordLoaderMixin, models.Model):
     """Tabla de sustitución de impuestos — ≙ ``account_tax_alternatives``
     (``odoo19c: account_tax.py:102-121``).
 
@@ -742,7 +742,7 @@ class AccountTaxAlternative(models.Model):
         return f'{self.src_tax} → {self.dest_tax}'
 
 
-class AccountTax(models.Model):
+class AccountTax(models.RecordLoaderMixin, models.Model):
     """``account.tax`` — definición de un impuesto aplicable."""
 
     #: Los siete atributos de clase de la fuente

@@ -29,7 +29,7 @@ import fields
 import models
 
 
-class AccountTaxRepartitionLine(models.Model):
+class AccountTaxRepartitionLine(models.RecordLoaderMixin, models.Model):
     """``account.tax.repartition.line`` — reparto de un impuesto por cuenta."""
 
     #: Atributos de clase de ``account.tax.repartition.line``, verbatim

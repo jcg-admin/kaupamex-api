@@ -989,7 +989,7 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
         }.get(self.code)
 
 
-class PickingTypeFavoriteUserRel(models.Model):
+class PickingTypeFavoriteUserRel(models.RecordLoaderMixin, models.Model):
     """Tabla de relación ``picking_type_favorite_user_rel`` — tipo ↔ usuario.
 
     La referencia la declara con sus nombres de columna explícitos

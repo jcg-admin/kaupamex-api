@@ -29,7 +29,7 @@ import fields
 import models
 
 
-class PartnerGln(models.Model):
+class PartnerGln(models.RecordLoaderMixin, models.Model):
     """GLN de un ``res.partner`` — ≙ ``res.partner.global_location_number``.
 
     Usado principalmente en direcciones de entrega (``partner.type ==

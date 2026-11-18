@@ -3,9 +3,10 @@ Modelo ``WebhookEvent`` — addon ``payment`` (dedup de webhooks entrantes).
 """
 
 from django.db import models
+from orm.models import RecordLoaderMixin
 
 
-class WebhookEvent(models.Model):
+class WebhookEvent(RecordLoaderMixin, models.Model):
     """
     Registro dedup para idempotencia de webhooks entrantes. DEC-BC-04.
     UNIQUE(gateway, event_id, transmission_id) previene doble procesamiento.

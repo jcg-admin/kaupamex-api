@@ -76,7 +76,7 @@ from django.db import transaction
 from addons.base.models.ir_cron import IrCron
 from orm.decorators import autovacuum
 from orm.environments import env, get_context
-from orm.models import BaseModel
+from orm.models import BaseModel, RecordLoaderMixin
 from orm.registry import signaling_table_names
 from tools.sql import SQL
 
@@ -118,7 +118,7 @@ def is_autovacuum(func):
     return callable(func) and getattr(func, '_autovacuum', False)
 
 
-class IrAutovacuum(django_models.Model):
+class IrAutovacuum(RecordLoaderMixin, django_models.Model):
     """Colector del decorador ``@api.autovacuum`` (``ir.autovacuum``).
 
     En la referencia es un ``AbstractModel`` — un modelo **sin tabla** que sólo

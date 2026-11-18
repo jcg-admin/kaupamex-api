@@ -101,7 +101,7 @@ class GeoProviderNotImplemented(Exception):
     """
 
 
-class GeoProvider(models.Model):
+class GeoProvider(models.RecordLoaderMixin, models.Model):
     """``base.geo_provider`` (Odoo 19:16-22 / 18:17-22) — catálogo de
     proveedores de geolocalización. Global de instancia (como ``ResCountry``).
     """
@@ -109,7 +109,7 @@ class GeoProvider(models.Model):
     tech_name = fields.Char(
         max_length=64, blank=True, default='',
         help_text='Nombre técnico del proveedor (Odoo tech_name, p.ej. '
-                   '"openstreetmap").',
+                  '"openstreetmap").',
     )
     name = fields.Char(
         max_length=128, blank=True, default='',

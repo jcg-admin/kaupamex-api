@@ -16,7 +16,7 @@ import fields
 import models
 
 
-class AccountFiscalPositionAccount(models.Model):
+class AccountFiscalPositionAccount(models.RecordLoaderMixin, models.Model):
     """``account.fiscal.position.account`` — cuenta origen → cuenta destino."""
 
     #: Atributos de clase de ``account.fiscal.position.account``, verbatim

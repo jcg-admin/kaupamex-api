@@ -14,9 +14,10 @@ from decimal import Decimal
 
 from django.core.validators import MinValueValidator
 from django.db import models
+from orm.models import RecordLoaderMixin
 
 
-class ShippingZone(models.Model):
+class ShippingZone(RecordLoaderMixin, models.Model):
     """
     Zona de envío cubierta. DEC-BC-18.
     zip_code_prefix es el inicio del código postal cubierto (1-5 dígitos).

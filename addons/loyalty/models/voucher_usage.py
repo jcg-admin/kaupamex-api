@@ -7,9 +7,10 @@ from django.conf import settings
 from django.db import models
 
 from addons.loyalty.models.voucher import Voucher
+from orm.models import RecordLoaderMixin
 
 
-class VoucherUsage(models.Model):
+class VoucherUsage(RecordLoaderMixin, models.Model):
     """
     Registro de uso de voucher por usuario. DEC-BC-10.
     UNIQUE(user, voucher) garantiza single-use per user.

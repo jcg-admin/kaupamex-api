@@ -37,7 +37,7 @@ from exceptions import UserError
 from tools.translate import _
 
 
-class AccountAccountTag(models.Model):
+class AccountAccountTag(models.RecordLoaderMixin, models.Model):
     """``account.account.tag`` — etiqueta de cuenta/impuesto/producto."""
 
     #: Atributos de clase de ``account.account.tag``, verbatim

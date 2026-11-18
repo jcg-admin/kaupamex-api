@@ -80,7 +80,7 @@ from addons.base.models import ResCompany
 MAXINT = 2147483647
 
 
-class AccountBankStatementLine(models.Model):
+class AccountBankStatementLine(models.RecordLoaderMixin, models.Model):
     """``account.bank.statement.line`` — línea de movimiento bancario."""
 
     #: Atributos de clase de ``account.bank.statement.line``, verbatim

@@ -35,9 +35,10 @@ from addons.onboarding.models.onboarding_progress import (
 from addons.onboarding.models.onboarding_progress_step import (
     OnboardingProgressStep,
 )
+from orm.models import RecordLoaderMixin
 
 
-class OnboardingOnboardingStep(models.Model):
+class OnboardingOnboardingStep(RecordLoaderMixin, models.Model):
     """``onboarding.onboarding.step`` — paso de un panel de onboarding.
 
     NO hereda ``TimeStampedModel``: Odoo declara ``onboarding.onboarding.step``

@@ -43,7 +43,7 @@ auditoría propia.
 import models
 
 
-class AccountPaymentTransaction(models.Model):
+class AccountPaymentTransaction(models.RecordLoaderMixin, models.Model):
     """Enlace 1-a-1 de un ``account.AccountPayment`` con su transacción de
     pago, su token guardado y —si él mismo es un reembolso— el pago origen.
 
@@ -53,22 +53,22 @@ class AccountPaymentTransaction(models.Model):
     propiedades que navegan esta tabla.
     """
 
-    payment          = models.OneToOneField(
+    payment = models.OneToOneField(
         'account.AccountPayment', on_delete=models.CASCADE,
         related_name='payment_transaction_link',
         help_text='El account.payment dueño de este enlace.',
     )
-    transaction      = models.ForeignKey(
+    transaction = models.ForeignKey(
         'payment.Payment', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='account_payment_links',
         help_text='Transacción de pago (Odoo payment_transaction_id).',
     )
-    token            = models.ForeignKey(
+    token = models.ForeignKey(
         'payment.SavedCard', on_delete=models.SET_NULL, null=True, blank=True,
         related_name='account_payment_links',
         help_text='Tarjeta guardada usada (Odoo payment_token_id).',
     )
-    source_payment   = models.ForeignKey(
+    source_payment = models.ForeignKey(
         'account.AccountPayment', on_delete=models.SET_NULL, null=True,
         blank=True, related_name='refund_links',
         help_text='Pago original del que ESTE pago es reembolso (Odoo '
@@ -82,10 +82,11 @@ class AccountPaymentTransaction(models.Model):
         verbose_name_plural = 'Enlaces pago↔transacción'
 
     def __str__(self) -> str:
-        return f'AccountPayment#{self.payment_id} ↔ Payment#{self.transaction_id}'
+        return (f'AccountPayment#{self.payment_id} ↔ '
+                f'Payment#{self.transaction_id}')
 
 
-class AccountMoveTransactionLink(models.Model):
+class AccountMoveTransactionLink(models.RecordLoaderMixin, models.Model):
     """Fila del M2M ``account.move.transaction_ids`` — ≙ ``odoo19c:
     account_payment/models/account_move.py:16-19``.
 
@@ -94,7 +95,7 @@ class AccountMoveTransactionLink(models.Model):
     de ahí M2M y no FK simple, igual que la referencia.
     """
 
-    move        = models.ForeignKey(
+    move = models.ForeignKey(
         'account.AccountMove', on_delete=models.CASCADE,
         related_name='transaction_links',
         help_text='Factura/asiento (Odoo invoice_ids, lado inverso).',
@@ -120,7 +121,7 @@ class AccountMoveTransactionLink(models.Model):
         return f'AccountMove#{self.move_id} ↔ Payment#{self.transaction_id}'
 
 
-class AccountPaymentMethodLineProvider(models.Model):
+class AccountPaymentMethodLineProvider(models.RecordLoaderMixin, models.Model):
     """Enlace 1-a-1 de una línea de método de pago con la pasarela que la
     respalda — ≙ ``odoo19c: account_payment/models/
     account_payment_method_line.py:10-16`` (``payment_provider_id``).
@@ -131,10 +132,11 @@ class AccountPaymentMethodLineProvider(models.Model):
         related_name='provider_link',
         help_text='Línea de método de pago del diario.',
     )
-    provider    = models.ForeignKey(
+    provider = models.ForeignKey(
         'payment.PaymentGateway', on_delete=models.SET_NULL, null=True,
         blank=True, related_name='method_lines',
-        help_text='Pasarela que procesa esta línea (Odoo payment_provider_id).',
+        help_text=('Pasarela que procesa esta línea '
+                   '(Odoo payment_provider_id).'),
     )
 
     class Meta:
@@ -143,10 +145,11 @@ class AccountPaymentMethodLineProvider(models.Model):
         verbose_name_plural = 'Enlaces línea de método↔pasarela'
 
     def __str__(self) -> str:
-        return f'AccountPaymentMethodLine#{self.method_line_id} ↔ PaymentGateway#{self.provider_id}'
+        return (f'AccountPaymentMethodLine#{self.method_line_id} ↔ '
+                f'PaymentGateway#{self.provider_id}')
 
 
-class PaymentGatewayJournal(models.Model):
+class PaymentGatewayJournal(models.RecordLoaderMixin, models.Model):
     """Enlace 1-a-1 de una pasarela con el diario donde postea sus pagos
     exitosos — ≙ ``odoo19c: account_payment/models/payment_provider.py:
     10-19`` (``journal_id``).
@@ -179,4 +182,5 @@ class PaymentGatewayJournal(models.Model):
         verbose_name_plural = 'Enlaces pasarela↔diario'
 
     def __str__(self) -> str:
-        return f'PaymentGateway#{self.gateway_id} ↔ AccountJournal#{self.journal_id}'
+        return (f'PaymentGateway#{self.gateway_id} ↔ '
+                f'AccountJournal#{self.journal_id}')

@@ -30,7 +30,7 @@ _ROUNDING_METHOD_TO_DECIMAL = {
 }
 
 
-class AccountCashRounding(models.Model):
+class AccountCashRounding(models.RecordLoaderMixin, models.Model):
     """
     ``account.cash.rounding`` — perfil de redondeo de efectivo por factura.
     """

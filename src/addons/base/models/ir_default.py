@@ -108,7 +108,7 @@ from orm.utils import parse_field_expr
 from tools.cache import ormcache
 
 
-class IrDefault(models.Model):
+class IrDefault(models.RecordLoaderMixin, models.Model):
     """``ir.default`` — valor por defecto de un campo, acotado por usuario/
     empresa/condición. Ver docstring del módulo para el drift respecto a
     Odoo (``field_id`` FK dropeada → ``model``/``field`` Char; precedencia

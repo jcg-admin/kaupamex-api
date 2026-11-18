@@ -68,7 +68,7 @@ import models
 import fields
 
 
-class AccountBankStatement(models.Model):
+class AccountBankStatement(models.RecordLoaderMixin, models.Model):
     """``account.bank.statement`` — estado de cuenta bancario."""
 
     #: Atributos de clase de ``account.bank.statement``, verbatim

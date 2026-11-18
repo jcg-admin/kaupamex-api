@@ -43,7 +43,7 @@ from orm.fields_temporal import (
     TransactionDateTimeField,
     transaction_now,
 )
-from orm.models import Model
+from orm.models import Model, RecordLoaderMixin
 from tools import config
 from tools.constants import GC_UNLINK_LIMIT
 from tools.func import lazy_classproperty
@@ -52,7 +52,7 @@ from tools.func import lazy_classproperty
 MINIMUM_IDLE_SECONDS = 300
 
 
-class TransientModel(TransactionClockSaveMixin, Model):
+class TransientModel(TransactionClockSaveMixin, RecordLoaderMixin, Model):
     """
     Modelo transitorio (wizard/asistente) — ≙ ``TransientModel`` (``:10-33``).
 

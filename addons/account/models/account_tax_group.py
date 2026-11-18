@@ -20,7 +20,7 @@ import fields
 import models
 
 
-class AccountTaxGroup(models.Model):
+class AccountTaxGroup(models.RecordLoaderMixin, models.Model):
     """``account.tax.group`` — agrupador de impuestos (Odoo ``account``)."""
 
     #: Atributos de clase de ``account.tax.group``, verbatim

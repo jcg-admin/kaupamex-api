@@ -90,7 +90,7 @@ import models
 from django.utils.html import escape as html_escape
 
 
-class AccountEdiFormat(models.Model):
+class AccountEdiFormat(models.RecordLoaderMixin, models.Model):
     """``account.edi.format`` — un formato de facturación electrónica.
 
     Fila vacía de comportamiento hasta que un ``l10n_*_edi`` concreto
@@ -130,7 +130,8 @@ class AccountEdiFormat(models.Model):
         verbose_name_plural = 'Formatos EDI'
         constraints = [
             # ≙ ``_unique_code`` (``odoo19c: account_edi_format.py:14-17``).
-            models.UniqueConstraint(fields=['code'], name='uniq_edi_format_code'),
+            models.UniqueConstraint(
+                fields=['code'], name='uniq_edi_format_code'),
         ]
 
     def __str__(self) -> str:
@@ -185,7 +186,8 @@ class AccountEdiFormat(models.Model):
         ``html_escape`` de la referencia (``odoo.tools``) → ``django.utils.
         html.escape`` — mismo contrato: escapa entidades HTML.
         """
-        bullet_list_msg = ''.join(f'<li>{html_escape(msg)}</li>' for msg in errors)
+        bullet_list_msg = ''.join(
+            f'<li>{html_escape(msg)}</li>' for msg in errors)
         return f'{error_title}<ul>{bullet_list_msg}</ul>'
 
 

@@ -1083,7 +1083,7 @@ class ResCompany(TimeStampedModel):
         return zeep.Client(url, *args, **kwargs)
 
 
-class ResCompanyUsersRel(models.Model):
+class ResCompanyUsersRel(models.RecordLoaderMixin, models.Model):
     """
     Tabla de relación ``res_company_users_rel`` — usuario ↔ compañía aceptada.
 

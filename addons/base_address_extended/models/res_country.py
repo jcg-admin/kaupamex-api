@@ -12,7 +12,7 @@ import fields
 import models
 
 
-class CountryAddressPolicy(models.Model):
+class CountryAddressPolicy(models.RecordLoaderMixin, models.Model):
     """Política de dirección por país — RELATED de ``enforce_cities``.
 
     Si está en ``True``, toda dirección de ese país debe elegir una ``ResCity``

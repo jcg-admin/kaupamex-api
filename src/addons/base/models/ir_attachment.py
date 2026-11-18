@@ -77,7 +77,7 @@ from tools.mimetypes import guess_mimetype
 from tools.translate import _
 
 
-class IrAttachment(BaseModel, models.RecordLoaderMixin):
+class IrAttachment(BaseModel):
     """``ir.attachment`` — adjunto (archivo o URL) vinculado a un registro.
 
     Deriva de :class:`~orm.models.BaseModel`, como manda :ref:`h-api-1083`

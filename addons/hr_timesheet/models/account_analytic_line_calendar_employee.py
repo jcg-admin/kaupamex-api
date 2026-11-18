@@ -45,7 +45,10 @@ from addons.base.models import ResUsers
 from addons.hr.models import HrEmployee
 
 
-class AccountAnalyticLineCalendarEmployee(models.Model):
+class AccountAnalyticLineCalendarEmployee(
+    models.RecordLoaderMixin,
+    models.Model,
+):
     """``account.analytic.line.calendar.employee`` — qué empleados muestra
     el calendario personal de un usuario."""
 

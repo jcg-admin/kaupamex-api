@@ -171,7 +171,7 @@ HORIZONTAL_SPLIT_SIDES = [
 ]
 
 
-class AccountReport(models.Model):
+class AccountReport(models.RecordLoaderMixin, models.Model):
     """``account.report`` — la declaración de un reporte contable."""
 
     #: Atributos de clase de ``account.report``, verbatim
@@ -438,7 +438,7 @@ class AccountReport(models.Model):
         return propio
 
 
-class AccountReportLine(models.Model):
+class AccountReportLine(models.RecordLoaderMixin, models.Model):
     """``account.report.line`` — una fila jerárquica del reporte."""
 
     #: Atributos de clase de ``account.report.line``, verbatim
@@ -559,7 +559,7 @@ class AccountReportLine(models.Model):
         ]
 
 
-class AccountReportExpression(models.Model):
+class AccountReportExpression(models.RecordLoaderMixin, models.Model):
     """
     ``account.report.expression`` — cómo se calcula una columna de una línea.
     """
@@ -730,7 +730,7 @@ class AccountReportExpression(models.Model):
             self.create_tax_tags(self.formula, country)
 
 
-class AccountReportColumn(models.Model):
+class AccountReportColumn(models.RecordLoaderMixin, models.Model):
     """``account.report.column`` — una columna del reporte."""
 
     #: Atributos de clase de ``account.report.column``, verbatim
@@ -797,7 +797,7 @@ class AccountReportColumn(models.Model):
         ordering = ['sequence', 'id']
 
 
-class AccountReportExternalValue(models.Model):
+class AccountReportExternalValue(models.RecordLoaderMixin, models.Model):
     """
     ``account.report.external.value`` — un valor que no sale del libro mayor.
 

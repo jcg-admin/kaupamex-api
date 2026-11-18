@@ -113,7 +113,7 @@ class JsonbTypeOf(models.Func):
     output_field = models.CharField()
 
 
-class IrFilters(models.Model):
+class IrFilters(models.RecordLoaderMixin, models.Model):
     """
     ``ir.filters`` — filtro de búsqueda nombrado (dominio+contexto+orden).
     """
