@@ -115,8 +115,39 @@ Unidad: `account-payment-method-line-field-0515` (TASK-API-0515), paso 4 de
    cómputo; sin la siembra, el del nombre; sin el relleno, el de la
    migración.
 
-2. **`partner`**: `res.partner`, `PROTECT`. Migración con paso de datos: el
-   usuario se sustituye por su `partner`.
+2. **`partner`**: `res.partner`, `PROTECT`
+   (`odoo19c: addons/account/models/account_payment.py:116` —
+   `Many2one('res.partner', string="Customer/Vendor", ondelete='restrict',
+   domain="['|', ('parent_id','=', False), ('is_company','=', True)]",
+   tracking=True, check_company=True)`). La columna sigue siendo
+   `partner_id`; cambia a quién apunta.
+
+   Migración `0049_payment_partner_res_partner` de `account`, en tres
+   operaciones, porque el valor guardado es un id de usuario y la
+   restricción de clave ajena no puede cambiar de tabla con esos valores
+   dentro:
+
+   1. la clave deja de tener restricción en la base (`db_constraint=False`);
+   2. `users_to_partners` sustituye cada id de usuario por el `partner_id`
+      de ese usuario (todo usuario tiene uno: `res_users.partner_id` es
+      obligatorio);
+   3. la clave pasa a `base.ResPartner` con `PROTECT`.
+
+   Medido antes de escribirla: ningún sitio de `addons/`, `src/` ni
+   `tests/` escribe `partner=` en un pago, y nadie lee
+   `account_payments` (el nombre inverso), que se conserva.
+
+   Pruebas en `tests/unit/account/test_payment_partner.py`:
+
+   | Caso | Espera |
+   |---|---|
+   | el campo | apunta a `res.partner`, con `ondelete` `restrict` |
+   | borrar un `res.partner` con pagos | rehúsa (`ProtectedError`); el pago sigue |
+   | `users_to_partners` | una fila con el id de un usuario queda con el id de su partner |
+
+   Anulaciones: con `SET_NULL` cae el segundo; con la sustitución anulada,
+   el tercero.
+
 3. **Campos y cómputos** de la tabla, con los nombres de la fuente
    (`payment_method_line_id` como columna `payment_method_line_id`,
    `SET_NULL`, el default de un Many2one no requerido).
