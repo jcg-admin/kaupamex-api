@@ -70,3 +70,17 @@ divergencia de forma con la fuente, no de `BaseModel`. Quedan bajo
 TASK-API-0397 como **DESCONOCIDO**. Su condición de cierre: medir cuáles de
 las 42 son tablas de relación de un `Many2many` (no son extensiones en
 sentido estricto) y cuáles campos que deben volver al modelo extendido.
+
+## El `verify` del paraguas, escrito (2026-11-18)
+
+`tests/unit/orm/test_basemodel_reach.py`. Medido al escribirlo: 38 apps
+declaran algún modelo con `_name`; 13 ya cumplen y 25 no. Un test rojo
+pararía cada F2 (`--maxfail=1`) y cerrarlo con `xfail` está prohibido, así
+que es un **trinquete**: `PENDING` lista las 25 apps y
+`test_the_pending_apps_are_exactly_the_measured_ones` exige que coincida
+exactamente con lo medido. Una adopción saca su app de la lista en el mismo
+commit; una app nueva fuera de `BaseModel` lo rompe. `PENDING` vacío es el
+paraguas cumplido.
+
+Anulación: sacar `uom` de `PENDING` sin adoptarlo hace caer exactamente
+`test_every_named_model_is_a_basemodel[uom]` y el trinquete (2 de 15).
