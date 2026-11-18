@@ -111,7 +111,7 @@ class AccountEdiProxyError(Exception):
         super().__init__(message or code)
 
 
-class AccountEdiProxyUser(models.RecordLoaderMixin, models.Model):
+class AccountEdiProxyUser(models.BaseModel):
     """≙ ``account_edi_proxy_client.user`` (``odoo19c: :25-31``).
 
     Un usuario de un formato EDI concreto (ej. PEPPOL) frente al proxy de

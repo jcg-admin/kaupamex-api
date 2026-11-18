@@ -61,3 +61,13 @@ Símbolos:
 
 RED: 6 fallos (los cuatro primeros de la prueba nueva y dos del
 trinquete). Prueba nueva: 5 casos, con la regla.
+
+Subconjunto derivado (directorios de `tests/` que nombran el modelo,
+`account_edi_proxy_client` o `account_peppol`: `tests/unit/account_edi_proxy_client`,
+`tests/unit/account_peppol`, `tests/unit/orm`, `tests/unit/scripts`):
+4125 passed, 39 skipped, 4 xfailed.
+
+**Anulación.** Con la base devuelta a
+`(models.RecordLoaderMixin, models.Model)` caen 5 de 26: la de herencia,
+las dos de acceso y las dos del trinquete. Sobreviven las de filas del CSV
+y de la regla, que miden la carga, no la base.

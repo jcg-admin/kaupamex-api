@@ -22,12 +22,21 @@
     'depends': [
         'account',  # transitivo, vía account_edi
         'account_edi',  # lock_for_update() reutilizado, no duplicado
-        'certificate',  # CertificateKey._sign/_decrypt/_generate_rsa_private_key
+        'certificate',  # CertificateKey: _sign, _decrypt, generar llave RSA
     ],
     # Licencia de la fuente de la que se adapta este addon, tal como su
     # manifest la declara (DEC-KX-03 punto 1): `account_edi_proxy_client`
     # en Odoo Community es LGPL-3.
     'license': 'LGPL-3',
+    # Seguridad de la fuente
+    # ``odoo19c: addons/account_edi_proxy_client/__manifest__.py:15-17``,
+    # por ``load_data`` en el ciclo de instalación: copia fiel del CSV y de
+    # la regla multiempresa. Las vistas no se cargan: este árbol no sirve el
+    # cliente web.
+    'data': [
+        'security/ir.model.access.csv',
+        'security/account_edi_proxy_client_security.xml',
+    ],
     'application': False,
     'installable': True,
     'auto_install': False,
