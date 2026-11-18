@@ -16,12 +16,11 @@ duplica la lógica; la invoca.
     python manage.py send_pending_emails --batch-size 500
 """
 
-from django.core.management.base import BaseCommand
-
+from addons.base.management.unit_of_work import UnitOfWorkCommand
 from addons.mail.models import MailMail
 
 
-class Command(BaseCommand):
+class Command(UnitOfWorkCommand):
     help = (
         'Procesa la cola de correo saliente una vez. El ciclo normal lo corre '
         'el cron ir_cron_mail_scheduler; esto es la entrada manual.'

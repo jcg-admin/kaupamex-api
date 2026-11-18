@@ -18,7 +18,7 @@ Idempotente (``update_or_create`` por code). Correr:
 """
 
 from decimal import Decimal
-from django.core.management.base import BaseCommand
+from addons.base.management.unit_of_work import UnitOfWorkCommand
 from addons.delivery.models import CarrierRateCard, Courier
 
 # Tasa ILUSTRATIVA EUR→MXN (placeholder; el operador ajusta tarifas reales).
@@ -95,7 +95,7 @@ CARRIERS = [
 ]
 
 
-class Command(BaseCommand):
+class Command(UnitOfWorkCommand):
     help = (
         'Seed carriers + rate cards (catálogo canónico DHL/Bring/FedEx/DSV,'
         ' MXN).'

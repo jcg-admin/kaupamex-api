@@ -61,7 +61,8 @@ from functools import partial
 from collections.abc import Callable, Collection, Iterator, Mapping
 
 from django.apps import apps
-from django.db import DatabaseError, connections, models, transaction
+from django.db import (DEFAULT_DB_ALIAS, DatabaseError, connections, models,
+                       transaction)
 from django.db.models.signals import class_prepared
 from django.db.models.utils import make_model_tuple
 from django.dispatch import receiver
@@ -97,7 +98,8 @@ __all__ = [
     'resolve_model_key', 'check_table_matches_name',
     'registrants_without_table',
     'clear_cache', 'clear_all_caches', 'cache_of', 'registry_of',
-    'registry_for_alias', 'active_registry', 'cache_invalidated_names',
+    'registry_for_alias', 'unit_of_work', 'active_registry',
+    'cache_invalidated_names',
     'signaling_table_names',
     'many2one_company_dependents', 'loaded_xmlids',
     'not_null_fields', 'is_not_null',
@@ -3236,3 +3238,29 @@ def registry_of_row(row, using=None):
 #: (``odoo/orm/registry.py:350-380``). La llena
 #: :func:`orm.model_classes.extend_model`.
 MODELS_EXTENDED_BY_MODULE = {}
+
+
+@contextmanager
+def unit_of_work(alias=DEFAULT_DB_ALIAS):
+    """Una unidad de trabajo fuera de HTTP ≙ ``with registry.cursor() as
+    cr:`` alrededor de una orden (``odoo19c: odoo/cli/shell.py:138``,
+    ``odoo19c: odoo/cli/populate.py:59``).
+
+    La fuente confirma si el bloque termina bien y revierte si lanza
+    (``odoo19c: odoo/sql_db.py:228-245``). Aquí, como en
+    ``UnitOfWorkMiddleware``: el registro comprueba la señalización, el
+    bloque corre en ``transaction.atomic`` con el estado del ORM delimitado,
+    lo pendiente se vuelca antes del ``COMMIT``, y la unidad termina en
+    ``signal_changes()`` o en ``reset_changes()``. Sin reintento: la fuente
+    no reintenta una orden.
+    """
+    registry = registry_for_alias(alias).check_signaling()
+    try:
+        with transaction.atomic(using=alias), \
+                orm.environments.transaction_scope(alias) as orm_transaction:
+            yield orm_transaction
+            orm_transaction.flush()
+    except BaseException:
+        registry.reset_changes()
+        raise
+    registry.signal_changes()

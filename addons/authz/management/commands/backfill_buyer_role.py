@@ -10,15 +10,15 @@ Uso: ``python manage.py backfill_buyer_role``.
 """
 
 from django.contrib.auth import get_user_model
-from django.core.management.base import BaseCommand
 
+from addons.base.management.unit_of_work import UnitOfWorkCommand
 from addons.authz.models import Role, RoleAssignment
 from addons.authz.services import BUYER_ROLE_CODE, invalidate_capabilities
 
 User = get_user_model()
 
 
-class Command(BaseCommand):
+class Command(UnitOfWorkCommand):
     help = "Asigna el rol 'comprador' a los usuarios que no lo tengan."
 
     def handle(self, *args, **options):

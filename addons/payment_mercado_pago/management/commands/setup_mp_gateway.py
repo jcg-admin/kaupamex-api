@@ -29,8 +29,9 @@ Uso:
 import os
 
 import decouple
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import CommandError
 
+from addons.base.management.unit_of_work import UnitOfWorkCommand
 from addons.payment.models import PaymentGateway
 
 
@@ -53,7 +54,7 @@ def _read_first(*names):
     return None
 
 
-class Command(BaseCommand):
+class Command(UnitOfWorkCommand):
     help = (
         'Crea o actualiza el PaymentGateway de MercadoPago con credenciales de'
         ' .env'

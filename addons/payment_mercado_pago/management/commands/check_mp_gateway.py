@@ -52,8 +52,8 @@ import urllib.request
 import uuid
 
 import mercadopago
-from django.core.management.base import BaseCommand
 
+from addons.base.management.unit_of_work import UnitOfWorkCommand
 from addons.payment.models import PaymentGateway
 
 # Tarjeta de PRUEBA oficial de MP México (pública, libre). Solo se usa para
@@ -74,7 +74,7 @@ def _mode_from_token(access_token: str) -> str:
     return 'Producción'
 
 
-class Command(BaseCommand):
+class Command(UnitOfWorkCommand):
     help = 'Diagnostica el PaymentGateway de MercadoPago sin exponer secretos'
 
     # No correr los system checks: el check payments.E001 falla en
@@ -94,8 +94,9 @@ class Command(BaseCommand):
             '--verify-pairing',
             action='store_true',
             help='Prueba decisiva de Checkout API: tokeniza con el public_key '
-                 'e intenta cobrar con el access_token. Detecta que ambos sean '
-                 'de aplicaciones MP distintas (error 2006). Requiere red.',
+                 'e intenta cobrar con el access_token. Detecta que ambos '
+                 'sean de aplicaciones MP distintas (error 2006). Requiere '
+                 'red.',
         )
 
     def handle(self, *args, **options):
@@ -114,25 +115,31 @@ class Command(BaseCommand):
             ))
             raise SystemExit(1)
 
-        creds        = gateway.get_credentials()
-        masked       = gateway.get_masked_credentials()
+        creds = gateway.get_credentials()
+        masked = gateway.get_masked_credentials()
         access_token = creds.get('access_token', '')
-        public_key   = creds.get('public_key', '')
+        public_key = creds.get('public_key', '')
         client_secret = creds.get('client_secret', '')
-        mode         = _mode_from_token(access_token)
+        mode = _mode_from_token(access_token)
 
         self.stdout.write(f'gateway:       id={gateway.pk} MERCADOPAGO')
         self.stdout.write(f'activo:        {gateway.is_active}')
         self.stdout.write(f'modo:          {mode}')
-        self.stdout.write(f'access_token:  {masked.get("access_token", "<AUSENTE>")}')
-        self.stdout.write(f'public_key:    {masked.get("public_key", "<AUSENTE>")}')
+        self.stdout.write(
+            f'access_token:  {masked.get("access_token", "<AUSENTE>")}'
+        )
+        self.stdout.write(
+            f'public_key:    {masked.get("public_key", "<AUSENTE>")}'
+        )
         self.stdout.write(
             f'client_secret: {masked.get("client_secret", "<AUSENTE>")}'
         )
 
         problems = []
         if not gateway.is_active:
-            problems.append('el gateway está inactivo (no se usará para pagos).')
+            problems.append(
+                'el gateway está inactivo (no se usará para pagos).'
+            )
         if not access_token:
             problems.append(
                 'sin access_token: no se puede crear preferencia ni cobrar.'
@@ -150,7 +157,9 @@ class Command(BaseCommand):
         ping_ok = True
         if do_ping:
             if not access_token:
-                problems.append('--ping omitido: no hay access_token que probar.')
+                problems.append(
+                    '--ping omitido: no hay access_token que probar.'
+                )
                 ping_ok = False
             else:
                 ping_ok = self._ping(access_token)
@@ -163,17 +172,19 @@ class Command(BaseCommand):
         if do_pairing:
             if not access_token or not public_key:
                 problems.append(
-                    '--verify-pairing omitido: faltan public_key o access_token.'
+                    '--verify-pairing omitido: faltan public_key o '
+                    'access_token.'
                 )
                 pairing_ok = False
             else:
                 pairing_ok = self._verify_pairing(public_key, access_token)
                 if not pairing_ok:
                     problems.append(
-                        '--verify-pairing falló: el public_key y el access_token '
-                        'son de aplicaciones MP distintas (error 2006 Card Token '
-                        'not found). El token nace en la app del public_key y el '
-                        'cobro lo intenta la app del access_token. Emparéjalos: '
+                        '--verify-pairing falló: el public_key y el '
+                        'access_token son de aplicaciones MP distintas (error '
+                        '2006 Card Token not found). El token nace en la app '
+                        'del public_key y el cobro lo intenta la app del '
+                        'access_token. Emparéjalos: '
                         'ambos deben salir de la MISMA aplicación en MP '
                         'Developers, luego corre setup_mp_gateway.'
                     )
@@ -210,7 +221,7 @@ class Command(BaseCommand):
         try:
             sdk = mercadopago.SDK(access_token)
             resp = sdk.payment_methods().list_all()
-        except Exception as exc:  # noqa: BLE001 — reportamos, no propagamos
+        except Exception as exc:  # reportamos, no propagamos
             self.stderr.write(self.style.WARNING(
                 f'  - ping error: {type(exc).__name__}'
             ))
@@ -243,7 +254,7 @@ class Command(BaseCommand):
                 f'  - pairing: el public_key no crea tokens (HTTP {exc.code}).'
             ))
             return False
-        except Exception as exc:  # noqa: BLE001 — reportamos, no propagamos
+        except Exception as exc:  # reportamos, no propagamos
             self.stderr.write(self.style.WARNING(
                 f'  - pairing: error tokenizando ({type(exc).__name__}).'
             ))
@@ -265,14 +276,14 @@ class Command(BaseCommand):
                 'payment_method_id': 'master',
                 'payer': {'email': 'pairing-check@kaupamex.com'},
             })
-        except Exception as exc:  # noqa: BLE001 — reportamos, no propagamos
+        except Exception as exc:  # reportamos, no propagamos
             self.stderr.write(self.style.WARNING(
                 f'  - pairing: error cobrando ({type(exc).__name__}).'
             ))
             return False
 
         status = resp.get('status') if isinstance(resp, dict) else None
-        body   = resp.get('response', {}) if isinstance(resp, dict) else {}
+        body = resp.get('response', {}) if isinstance(resp, dict) else {}
         # 2006 = Card Token not found → public_key y access_token de apps
         # distintas. Cualquier 2xx (pago creado, aun rechazado) → el token se
         # encontró → emparejamiento correcto.

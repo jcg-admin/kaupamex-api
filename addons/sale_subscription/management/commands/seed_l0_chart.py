@@ -18,8 +18,7 @@ Vive en ``company`` (dueño del concepto L0/system) y **lee** los modelos de
 ``account`` nunca importa ``company`` (DEC-FW-01).
 """
 
-from django.core.management.base import BaseCommand
-
+from addons.base.management.unit_of_work import UnitOfWorkCommand
 from addons.account.models import AccountAccount, AccountJournal
 from addons.base.models import ResCompany
 
@@ -40,7 +39,7 @@ _ACCOUNTS = [
 ]
 
 
-class Command(BaseCommand):
+class Command(UnitOfWorkCommand):
     help = (
         'Siembra (idempotente) la carta contable L0 de Kaupamex: diario de '
         'ventas + cuentas por-cobrar/ingreso de la system company.'

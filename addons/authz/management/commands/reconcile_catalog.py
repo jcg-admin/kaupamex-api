@@ -35,9 +35,10 @@ Uso::
     python manage.py reconcile_catalog --prune    # retira lo no declarado (con freno)
 """
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import CommandError
 from django.db import transaction
 
+from addons.base.management.unit_of_work import UnitOfWorkCommand
 from addons.authz.declaration import discover
 from addons.authz.models import Capability, Module
 from addons.sale_subscription.models import (
@@ -45,7 +46,7 @@ from addons.sale_subscription.models import (
 )
 
 
-class Command(BaseCommand):
+class Command(UnitOfWorkCommand):
     help = (
         'Compara el catálogo sembrado en DB contra lo declarado por los'
         ' addons.'

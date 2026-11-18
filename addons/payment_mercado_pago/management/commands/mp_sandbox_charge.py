@@ -27,8 +27,9 @@ import uuid
 from decimal import Decimal
 
 from django.contrib.auth import get_user_model
+from addons.base.management.unit_of_work import UnitOfWorkCommand
 from addons.sale.models import SaleOrder
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import CommandError
 
 from addons.sale.status_projection import (
     order_status,
@@ -40,10 +41,14 @@ from addons.payment.models import PaymentGateway
 # Tarjetas de PRUEBA oficiales de MP México (públicas, libres). El estado
 # del pago se fuerza con el nombre del titular, no con la tarjeta.
 TEST_CARDS = {
-    'master':    {'number': '5474925432670366', 'cvv': '123',  'exp_mm': 11, 'exp_yy': 2030},
-    'visa':      {'number': '4075595716483764', 'cvv': '123',  'exp_mm': 11, 'exp_yy': 2030},
-    'debmaster': {'number': '5579053461482647', 'cvv': '1234', 'exp_mm': 11, 'exp_yy': 2030},
-    'debvisa':   {'number': '4189141221267633', 'cvv': '123',  'exp_mm': 11, 'exp_yy': 2030},
+    'master': {'number': '5474925432670366', 'cvv': '123',
+               'exp_mm': 11, 'exp_yy': 2030},
+    'visa': {'number': '4075595716483764', 'cvv': '123',
+             'exp_mm': 11, 'exp_yy': 2030},
+    'debmaster': {'number': '5579053461482647', 'cvv': '1234',
+                  'exp_mm': 11, 'exp_yy': 2030},
+    'debvisa': {'number': '4189141221267633', 'cvv': '123',
+                'exp_mm': 11, 'exp_yy': 2030},
 }
 
 # Nombres de titular que MP interpreta como resultado forzado.
@@ -134,8 +139,9 @@ def run_sandbox_charge(status='APRO', method='master', amount='199.00',
         user.save(update_fields=['mp_customer_id'])
 
     # ``name`` único por corrida (uuid): SaleOrder es SoftDeleteModel, así que
-    # una orden "borrada" deja la fila viva y su ``name`` único colisionaría
-    # con un contador. El sufijo aleatorio lo evita. 'MPSMOKE'(7)+12 = 19 <= 20.
+    # una orden "borrada" deja la fila viva y su ``name`` único
+    # colisionaría con un contador. El sufijo aleatorio lo evita.
+    # 'MPSMOKE'(7)+12 = 19 <= 20.
     #
     # Vocabulario canónico tras el retiro del espejo (SOL-098): ``name`` en vez
     # de ``order_number``, ``partner`` en vez de ``user``, y ``state='sale'``
@@ -177,7 +183,8 @@ def run_sandbox_charge(status='APRO', method='master', amount='199.00',
     }
 
     if not keep:
-        # hard_delete: SaleOrder es SoftDeleteModel; su delete() dejaría la fila.
+        # hard_delete: SaleOrder es SoftDeleteModel; su delete() dejaría
+        # la fila.
         for pay in Payment.objects.filter(sale_order=order):
             (pay.hard_delete if hasattr(pay, 'hard_delete') else pay.delete)()
         order.hard_delete()  # los importes viven en la propia fila
@@ -185,7 +192,7 @@ def run_sandbox_charge(status='APRO', method='master', amount='199.00',
     return out
 
 
-class Command(BaseCommand):
+class Command(UnitOfWorkCommand):
     help = 'Cobro de humo contra MercadoPago sandbox (no corre en CI)'
 
     # Mismo motivo que check_mp_gateway/setup_mp_gateway: el deploy check
@@ -211,11 +218,13 @@ class Command(BaseCommand):
                 amount=options['amount'], keep=options['keep'])
         except urllib.error.HTTPError as exc:
             raise CommandError(
-                f'card_tokens falló: HTTP {exc.code} {exc.read().decode()[:200]}')
+                f'card_tokens falló: HTTP {exc.code} '
+                f'{exc.read().decode()[:200]}')
 
         ok = (r['mp_status'] == r['expected_mp_status'])
         self.stdout.write(f'public_key:    ****{r["public_key_last4"]}')
-        self.stdout.write(f'titular/estado: {r["holder_status"]} ({r["method"]})')
+        self.stdout.write(
+            f'titular/estado: {r["holder_status"]} ({r["method"]})')
         self.stdout.write(f'MP status:     {r["mp_status"]} '
                           f'(esperado {r["expected_mp_status"]}) '
                           f'detail={r["mp_detail"]}')
@@ -227,7 +236,9 @@ class Command(BaseCommand):
             self.stdout.write('(orden/pago desechables borrados)')
         if ok:
             self.stdout.write(self.style.SUCCESS(
-                f'RESULTADO: {r["mp_status"].upper()} — coincide con lo esperado.'))
+                f'RESULTADO: {r["mp_status"].upper()} — coincide con lo '
+                'esperado.'))
         else:
             self.stdout.write(self.style.WARNING(
-                f'RESULTADO: {r["mp_status"]} ≠ esperado {r["expected_mp_status"]}.'))
+                f'RESULTADO: {r["mp_status"]} ≠ esperado '
+                f'{r["expected_mp_status"]}.'))

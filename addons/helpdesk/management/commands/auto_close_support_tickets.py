@@ -14,13 +14,12 @@ esperar al ciclo del cron. No duplica la lógica; la invoca.
     python manage.py auto_close_support_tickets --dias 14
 """
 
-from django.core.management.base import BaseCommand
-
+from addons.base.management.unit_of_work import UnitOfWorkCommand
 from addons.helpdesk.models import SupportTicket
 from addons.helpdesk.models.support_ticket import AUTO_CLOSE_DAYS
 
 
-class Command(BaseCommand):
+class Command(UnitOfWorkCommand):
     help = (
         f'Cierra tickets AWAITING_USER sin actividad por {AUTO_CLOSE_DAYS} '
         'dias y notifica al usuario (UC-NOT-08). El ciclo normal lo corre el '

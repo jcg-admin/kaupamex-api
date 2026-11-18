@@ -6,9 +6,10 @@ registra nuevos módulos como no instalados y reconcilia sus dependencias.
 Toda la actualización se confirma o revierte en la conexión seleccionada.
 """
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import CommandError
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
 
+from addons.base.management.unit_of_work import UnitOfWorkCommand
 from addons.authz.declaration import (
     MANIFEST_FILE,
     read_manifest,
@@ -21,7 +22,7 @@ from modules.module import (ADDONS_PATHS, get_module_path, get_modules,
                             installed_addon_names)
 
 
-class Command(BaseCommand):
+class Command(UnitOfWorkCommand):
     help = 'Actualiza el catálogo técnico de addons desde sus __manifest__.py.'
 
     def add_arguments(self, parser):

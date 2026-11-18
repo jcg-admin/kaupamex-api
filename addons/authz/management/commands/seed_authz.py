@@ -26,9 +26,10 @@ El rol ``superadmin`` agrupa todas las capacidades a nivel FULL (default de
 
 Uso: ``python manage.py seed_authz [--skip-checks]``.
 """
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import CommandError
 from django.db import transaction
 
+from addons.base.management.unit_of_work import UnitOfWorkCommand
 from addons.authz.declaration import (
     discover, orphan_capabilities, unknown_depends,
 )
@@ -36,7 +37,7 @@ from addons.authz.models import Capability, Module, Role
 from addons.authz.services import BUYER_ROLE_CODE, SUPERADMIN_ROLE_CODE
 
 
-class Command(BaseCommand):
+class Command(UnitOfWorkCommand):
     help = 'Siembra módulos, capacidades y el rol superadmin de addons.authz.'
 
     @transaction.atomic

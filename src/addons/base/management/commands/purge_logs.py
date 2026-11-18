@@ -16,12 +16,11 @@ desaparece, **se muda** al addon dueño del modelo (H-API-752).
     ./kaupamex-bin purge_logs
 """
 
-from django.core.management.base import BaseCommand
-
+from addons.base.management.unit_of_work import UnitOfWorkCommand
 from addons.base.models import IrLogging
 
 
-class Command(BaseCommand):
+class Command(UnitOfWorkCommand):
     help = (
         'Purga IrLogging por retencion (DEC-LOG-05): tres ventanas '
         '-- INFO/DEBUG 14 d, el 4xx 30 d, el resto de WARNING/ERROR '

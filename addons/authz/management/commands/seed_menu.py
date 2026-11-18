@@ -12,9 +12,9 @@ Secciones (nivel 0) y agrupadores (nivel 1 sin ruta, p.ej. Reportes) llevan
 ``route=''`` y ``cap_code=None``; se podan si no les queda hijo visible.
 """
 
-from django.core.management.base import BaseCommand
 from django.db import transaction
 
+from addons.base.management.unit_of_work import UnitOfWorkCommand
 from addons.authz.models import Capability
 from addons.base.models import IrUiMenu
 from addons.website.models import WebsiteMenu
@@ -334,7 +334,7 @@ ACCOUNT_MENU = [
 ]
 
 
-class Command(BaseCommand):
+class Command(UnitOfWorkCommand):
     help = 'Siembra los menús (ir_ui_menu + website_menu), idempotente.'
 
     @transaction.atomic

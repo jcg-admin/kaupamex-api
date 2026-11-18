@@ -15,9 +15,10 @@ no redistribuible.
 
 from pathlib import Path
 
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import CommandError
 from django.db import transaction
 
+from addons.base.management.unit_of_work import UnitOfWorkCommand
 from addons.base_address_extended.models import CatalogPostalCode
 
 # Orden oficial de columnas del .txt SEPOMEX -> campos del modelo.
@@ -38,10 +39,11 @@ _FIELDS = [
     'zone',
     'city_code',
 ]
-_DEFAULT_PATH = '/home/user/kaupamex-db/provisioners/mariadb/data/sepomex-codigos-postales.txt'
+_DEFAULT_PATH = ('/home/user/kaupamex-db/provisioners/mariadb/data/'
+                 'sepomex-codigos-postales.txt')
 
 
-class Command(BaseCommand):
+class Command(UnitOfWorkCommand):
     help = (
         'Carga el catálogo SEPOMEX de códigos postales en catalog_postal_code.'
     )
