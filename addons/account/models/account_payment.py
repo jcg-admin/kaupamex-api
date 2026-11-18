@@ -9,7 +9,6 @@ Portación fiel de ``account_payment.py`` (Odoo 18/19). Campos núcleo:
 
 from decimal import Decimal
 
-from django.conf import settings
 import api
 import fields
 import models
@@ -80,13 +79,19 @@ class AccountPayment(models.BaseModel, TimeStampedModel):
         related_name='payments',
         help_text='Diario (Odoo journal_id).',
     )
+    #: ≙ ``partner_id``
+    #: (``odoo19c: addons/account/models/account_payment.py:116``).
     partner = fields.Many2one(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.SET_NULL,
+        'base.ResPartner',
+        string="Customer/Vendor",
+        ondelete='restrict',
+        domain="['|', ('parent_id','=', False), ('is_company','=', True)]",
+        tracking=True,
+        check_company=True,
         null=True,
         blank=True,
         related_name='account_payments',
-        help_text='Contacto (Odoo partner_id → party).',
+        help_text='Cliente o proveedor (Odoo partner_id).',
     )
     currency = fields.Many2one(
         'base.ResCurrency',
