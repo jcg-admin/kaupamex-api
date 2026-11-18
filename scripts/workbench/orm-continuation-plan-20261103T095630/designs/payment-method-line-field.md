@@ -76,6 +76,24 @@ Unidad: `account-payment-method-line-field-0515` (TASK-API-0515), paso 4 de
    por el ORM; aquí la siembra se repite tras cada prueba transaccional y
    tiene que ser idempotente también sobre la secuencia nativa.
 
+   **Defecto heredado que el cómputo destapó: `next_by_code` con empresa
+   no ve la secuencia global.** `_compute_name` pide el número con la
+   empresa del pago, y la secuencia sembrada no tiene empresa. Medido con
+   una sonda: `IrSequence.next_by_code('account.payment')` da `PAY00001` y
+   `IrSequence.next_by_code('account.payment', company=company)` da `None`.
+   La fuente busca `('company_id', 'in', [company_id, False])`
+   (`odoo19c: odoo/addons/base/models/ir_sequence.py:287`), que incluye las
+   filas sin empresa; aquí se tradujo a `company__in=[company, None]`, y en
+   SQL `IN (…, NULL)` no casa con una columna nula. La prosa del método
+   afirma que «la propia gana sobre la global»: como porte es **FALSE** en
+   su mitad global. Se corrige a `Q(company=company) |
+   Q(company__isnull=True)` en `next_by_code` de
+   `src/addons/base/models/ir_sequence.py`; el orden —la propia primero—
+   no cambia. Pruebas en
+   `tests/unit/base/test_ir_sequence_next_by_code_company.py`: con empresa
+   y sólo secuencia global, sale la global; con las dos, sale la propia;
+   con secuencia de otra empresa y ninguna global, `None`.
+
    Migración `0048_payment_date_name` de `account`: las dos columnas, el
    relleno de `date`, la siembra de la secuencia y `ComputeStoredFields`
    para `name`. Semilla de pruebas `_payment_sequence_seed` en
