@@ -10,9 +10,13 @@ las mismas doce casillas. ``resource`` es el modelo al que aplica.
 Procedencia de los campos:
 
 - ``name`` → ``name``; ``resource`` → ``resource`` (indexado, como allá).
-- ``export_fields`` (One2many) → ``related_name='export_fields'`` en la línea.
-- ``ir.exports.line.name`` → ``name``; ``export_id`` → ``export`` con
-  ``CASCADE``, que es el ``ondelete`` de la referencia.
+- ``export_fields`` → ``One2many`` declarado en el padre con ``copy=True``
+  (``odoo19c: ir_exports.py:14``): duplicar una exportación duplica sus
+  líneas. Antes sólo era el ``related_name`` de la FK del hijo, y un reverso
+  no declarado no se copia (H-API-1161).
+- ``ir.exports.line.name`` → ``name``; ``export_id`` → ``export_id`` con
+  ``CASCADE``, que es el ``ondelete`` de la referencia, y su columna de
+  siempre (``db_column``).
 
 ``resource`` guarda el **label del modelo Django** (``app_label.ModelName``),
 que es el análogo del ``_name`` de Odoo: el identificador con el que el
@@ -21,12 +25,17 @@ registro se resuelve en el ORM.
 
 from django.db import models
 
+import fields
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from orm.models import RecordLoaderMixin
 
 
 class IrExports(TimeStampedModel):
     """Selección de campos guardada para exportar (``ir.exports``)."""
+
+    _name = 'ir.exports'
+    _description = 'Exports'
+    _order = 'name, id'
 
     name = models.CharField(
         max_length=200,
@@ -42,6 +51,8 @@ class IrExports(TimeStampedModel):
         verbose_name='Modelo',
         help_text="Odoo resource. Label del modelo, p.ej. 'sale.SaleOrder'.",
     )
+    export_fields = fields.One2many(
+        'ir.exports.line', 'export_id', string='Export ID', copy=True)
 
     class Meta:
         db_table = 'ir_exports'
@@ -56,18 +67,23 @@ class IrExports(TimeStampedModel):
 class IrExportsLine(RecordLoaderMixin, models.Model):
     """Un campo dentro de una exportación (``ir.exports.line``)."""
 
+    _name = 'ir.exports.line'
+    _description = 'Exports Line'
+    _order = 'id'
+
     name = models.CharField(
         max_length=120,
         blank=True,
         default='',
         verbose_name='Campo',
     )
-    export = models.ForeignKey(
+    export_id = fields.Many2one(
         IrExports,
         on_delete=models.CASCADE, null=True, blank=True,
         db_index=True,
-        related_name='export_fields',
+        related_name='+',
         verbose_name='Exportación',
+        db_column='export_id',
     )
 
     class Meta:

@@ -30,10 +30,11 @@ def test_a_timestamped_model_duplicates_its_row():
 
 def test_a_django_only_model_duplicates_its_row():
     export = IrExports.objects.create(name='Columnas', resource='x.Y')
-    line = IrExportsLine.objects.create(name='amount', export=export)
+    line = IrExportsLine.objects.create(name='amount', export_id=export)
     duplicate = line.copy({'name': 'amount_total'})
     assert duplicate.pk != line.pk
-    assert (duplicate.name, duplicate.export_id) == ('amount_total', export.pk)
+    assert duplicate.name == 'amount_total'
+    assert duplicate.export_id_id == export.pk
 
 
 def test_every_own_concrete_model_has_copy():
