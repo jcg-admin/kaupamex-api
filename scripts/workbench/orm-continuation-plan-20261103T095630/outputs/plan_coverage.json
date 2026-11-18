@@ -5,8 +5,8 @@
  "open_tasks": 71,
  "frontier": [
   {
-   "id": "ir-exports-one2many-0485",
-   "task": "TASK-API-0485"
+   "id": "basemodel-adoption-0397",
+   "task": "TASK-API-0397"
   }
  ],
  "blocked": [
@@ -29,11 +29,6 @@
    "id": "unlink-universality-0485",
    "task": "TASK-API-0485",
    "reason": "waits for basemodel-adoption-0397"
-  },
-  {
-   "id": "basemodel-adoption-0397",
-   "task": "TASK-API-0397",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
    "id": "sales-team-data-0397",
@@ -271,7 +266,7 @@
  "obligations_without_task": {},
  "obligation_classes": {
   "task_units_settled": 94,
-  "task_with_blocked_unit": 1,
+  "task_with_admissible_unit": 1,
   "task_without_unit": 1448
  },
  "settled_not_integrated": [
@@ -472,6 +467,7 @@
   "multidb-gate-clone",
   "multidb-run-intent-0496",
   "copy-universality-0485",
+  "ir-exports-one2many-0485",
   "create-universality-0485",
   "basemodel-adoption-utm-0397",
   "basemodel-adoption-sales-team-0397",
