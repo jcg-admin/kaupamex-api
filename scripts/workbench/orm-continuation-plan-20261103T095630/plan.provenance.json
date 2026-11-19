@@ -1186,6 +1186,13 @@
         "html-field-sanitize-0485"
       ],
       "writtenAt": "2026-11-19T11:08:41Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "properties-html-sanitize-0485"
+      ],
+      "writtenAt": "2026-11-19T11:57:51Z"
     }
   ]
 }
