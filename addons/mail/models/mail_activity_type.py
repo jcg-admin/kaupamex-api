@@ -15,7 +15,7 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class MailActivityType(TimeStampedModel):
+class MailActivityType(models.BaseModel, TimeStampedModel):
     """``mail.activity.type`` — plantilla de una actividad del chatter."""
 
     # Atributos de clase de modelo — los cuatro que la referencia declara

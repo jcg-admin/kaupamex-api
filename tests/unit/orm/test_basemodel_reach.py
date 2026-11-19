@@ -51,7 +51,6 @@ PENDING = {
     'base',
     'crm',
     'helpdesk',
-    'mail',
     'mass_mailing',
     'product',
     'sale',

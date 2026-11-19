@@ -32,7 +32,7 @@ from .mail_activity_type import MailActivityType
 from .mail_message import MailMessage
 
 
-class MailActivity(TimeStampedModel):
+class MailActivity(models.BaseModel, TimeStampedModel):
     """
     ``mail.activity`` — actividad planificada sobre un registro polimorfico.
     """

@@ -26,9 +26,14 @@
         'bus',  # el canal por el que se notifica el mensaje nuevo
     ],
     # ≙ ``data`` de la fuente (``odoo19c: addons/mail/__manifest__.py:64``):
-    # sólo los grupos por ahora; el resto de la lista entra con su modelo.
+    # los grupos y el CSV de acceso; el resto de la lista entra con su modelo.
+    # Del CSV quedan las 4 filas cuyo modelo tiene fila en ``ir.model``: las 65
+    # restantes nombran modelos sin puerto (``discuss.*``, ``mail.push``…) o
+    # sin cabecera de la fuente (``mail.message``, ``mail.mail``…). Vuelven con
+    # ``mail-model-headers-0397``.
     'data': [
         'data/mail_groups.xml',
+        'security/ir.model.access.csv',
     ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',
