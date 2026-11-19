@@ -626,3 +626,26 @@ abarcó también `_disable_send` y `_connect__`, que estaban entre el método
 viejo y `_check_forced_mail_server`; las pruebas de la conexión lo delataron
 (`AttributeError`) y se restauraron desde `HEAD`, con el diff acotado a
 `_find_mail_server`.
+
+## Paso 5: la extensión de `mail` (borrador, medido)
+
+`odoo19c: addons/mail/models/ir_mail_server.py` (106 líneas) añade
+`mail_template_ids`, `owner_user_id`, `owner_limit_time`, `owner_limit_count`,
+la restricción `_unique_owner_user_id` y siete métodos. Dos de sus piezas
+dependen de código que este árbol no tiene (medido):
+
+| Dependencia | Dónde la usa | Estado aquí |
+|---|---|---|
+| `mail.template.mail_server_id` (`odoo19c: addons/mail/models/mail_template.py:87`) | el `One2many` `mail_template_ids` y `_active_usages_compute` | ausente (`grep mail_server addons/mail/models/mail_template.py` → 0) |
+| `res.users.outgoing_mail_server_id` (`odoo19c: addons/mail/models/res_users.py:50-62,131-148`) | `_check_forced_mail_server` | ausente: la extensión de `res.users` de `mail` (660 líneas, 25 métodos) no está portada |
+
+Medido sobre `mail.template` (`odoo19c: addons/mail/models/mail_template.py`,
+828 líneas): aquí no está sobre `BaseModel`, le faltan 14 de los 26 campos de
+la fuente (`mail_server_id` entre ellos) y los 34 métodos. `mail_server_id`
+suelto sería un porte parcial; lo correcto es la adopción completa de
+`mail.template`, que ya figuraba como prerrequisito de `helpdesk`
+(`designs/basemodel-adoption-helpdesk.md`).
+
+Orden: 5a, la adopción de `mail.template` (partida en ítems al medirla); 5b, la extensión de `res.users`
+de `mail`, que por su tamaño se parte en ítems al medirla; 5c, la extensión
+de `ir.mail_server`.
