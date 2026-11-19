@@ -11,6 +11,7 @@ base-ir-mail-server-complete.md``, paso 1.
 import pytest
 
 from addons.base.models.ir_mail_server import IrMailServer
+from orm.method_chain import chain_links
 
 
 def test_no_module_declares_usages_by_default():
@@ -33,4 +34,6 @@ def test_the_test_sender_is_the_first_complete_email_of_the_filter():
 
 def test_a_domain_only_filter_gives_noreply():
     server = IrMailServer(from_filter='kaupamex.mx')
-    assert server._get_test_email_from() == 'noreply@kaupamex.mx'
+    # La implementación de ``base``, sin la capa que ``mail`` le cuelga.
+    base = chain_links(IrMailServer.__dict__['_get_test_email_from'])[-1]
+    assert base(server) == 'noreply@kaupamex.mx'

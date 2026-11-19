@@ -18,6 +18,7 @@ from exceptions import UserError
 from orm.domains import Domain
 from orm.environments import sudo
 from orm.models import BaseModel
+from orm.method_chain import chain_links
 
 pytestmark = pytest.mark.django_db
 
@@ -90,4 +91,7 @@ def test_the_default_bounce_is_the_configured_sender():
 
 
 def test_every_server_is_allowed_by_default():
-    assert IrMailServer._find_mail_server_allowed_domain() == Domain.TRUE
+    # La implementación de ``base``, sin la capa que ``mail`` le cuelga.
+    base = chain_links(
+        IrMailServer.__dict__['_find_mail_server_allowed_domain'])[-1]
+    assert base(IrMailServer) == Domain.TRUE

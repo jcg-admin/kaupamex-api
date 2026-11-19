@@ -35,3 +35,8 @@ class MailConfig(AppConfig):
         importlib.import_module(
             f'{self.name}.models.res_company'
         ).apply_mail_company_extensions()
+        # ≙ ``mail/models/ir_mail_server.py``: los campos de dueño y las
+        # sobreescrituras de ``ir.mail_server``.
+        importlib.import_module(
+            f'{self.name}.models.ir_mail_server'
+        ).apply_mail_server_extensions()
