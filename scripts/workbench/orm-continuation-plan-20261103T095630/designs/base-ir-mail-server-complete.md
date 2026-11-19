@@ -475,3 +475,29 @@ consumidor y se retira.
 - `fail_silently=True` de la newsletter: la fuente no tiene ese parámetro; el
   equivalente es capturar `MailDeliveryException` en el llamador, y se decide
   al medir qué hace hoy el controlador cuando el envío falla.
+
+### Ejecución del paso 3d-1 (ítem `base-ir-mail-server-senders-0397`, 2026-11-19)
+
+El paso 3d se parte en dos ítems por su radio: 3d-1 lleva la captura de las
+pruebas y dos de los tres remitentes; 3d-2, `dispatch_email` y las ocho
+pruebas que lo leen por `outbox`.
+
+- `tests/mocks/mail_server.py`: porte de `MockSmtplibCase` con
+  `mock_smtplib_connection` y la forma de registro de la fuente; el fixture del
+  mismo nombre vive en `tests/conftest.py`. `_find_mail_server` es aquí un
+  `classmethod`, así que la envoltura que registra sus argumentos conserva el
+  descriptor. `parsed_message` vuelve a analizar `message` para leer el asunto.
+- La cola de `mail.mail`: `MailMail._send_one` construye el mensaje con
+  `_build_email__` (cuerpo `html`) y lo envía con `send_email`, como
+  `mail.mail._send` de la fuente (`odoo19c: addons/mail/models/mail_mail.py:763-870`).
+  Prueba: `tests/integration/mail/test_resend_failed_emails.py`.
+- La confirmación de la newsletter sale por `send_email`. `fail_silently=True`
+  tragaba `SMTPException` y `OSError`; el equivalente captura esas dos y
+  `MailDeliveryException`, y deja el fallo en el log.
+- Pruebas migradas: `test_resend_failed_emails.py` (las lecturas de `outbox`
+  pasan a `emails`, y el fallo se simula haciendo fallar `send_email`) y la
+  confirmación de `test_newsletter_endpoints.py`.
+
+Control: con los remitentes aún en `django.core.mail`, las pruebas migradas
+fallan (4 de 6). Retirar del fixture el parche de `_disable_send` tumba sólo
+la prueba de captura.
