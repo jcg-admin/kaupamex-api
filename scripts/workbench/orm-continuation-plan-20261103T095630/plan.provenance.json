@@ -1242,6 +1242,13 @@
         "basemodel-adoption-account-edi-0397"
       ],
       "writtenAt": "2026-11-19T18:13:29Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-fleet-0397"
+      ],
+      "writtenAt": "2026-11-19T18:54:31Z"
     }
   ]
 }
