@@ -119,7 +119,7 @@ def test_every_access_row_of_the_port_matches_the_source():
               csv.DictReader(open(SOURCE / 'ir.model.access.csv'))}
     port = [row for row in csv.DictReader(open(PORT / 'ir.model.access.csv'))
             if row.get('id')]
-    assert len(port) == 27
+    assert len(port) == 28
     for row in port:
         assert row == source[row['id']]
         access = _ref('purchase.' + row['id'])

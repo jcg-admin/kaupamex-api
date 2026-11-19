@@ -122,7 +122,7 @@ from django.core.exceptions import ValidationError
 from addons.analytic.models.analytic_line import AccountAnalyticLine
 from addons.product.models import ProductProduct
 from orm.method_chain import chain_method
-from orm.model_classes import extend_selection_choices
+from orm.model_classes import extend_selection_choices, note_model_extended_by
 
 #: ≙ ``selection_add=[('invoice', 'Customer Invoice'), ('vendor_bill',
 #: 'Vendor Bill')]`` (odoo19c: :48). Etiquetas en español por convención del
@@ -234,6 +234,10 @@ def apply_account_extensions():
     Cableada en ``AccountConfig.ready()`` vía ``_EXTENSIONES``. Invocable a
     mano; ver ``tests/unit/account/test_account_analytic_line.py``.
     """
+    # ``account`` extiende el modelo (``_inherit`` de la fuente): recibe su
+    # ``account.model_account_analytic_line``, que la ACL de ``purchase``
+    # nombra (``odoo19c: addons/purchase/security/ir.model.access.csv:28``).
+    note_model_extended_by('account', AccountAnalyticLine)
     _add_if_absent(
         AccountAnalyticLine,
         'move_line',

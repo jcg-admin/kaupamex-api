@@ -110,6 +110,13 @@ class AnalyticPlanFieldsMixin(models.Model):
     ``analytic.plan.fields.mixin``, simplificado — ver docstring del módulo).
     """
 
+    #: ≙ la cabecera de la fuente
+    #: (``odoo19c: addons/analytic/models/analytic_line.py:11-14``), un
+    #: ``AbstractModel``: sin tabla.
+    _name = 'analytic.plan.fields.mixin'
+    _description = 'Analytic Plan Fields'
+    _abstract = True
+
     account = fields.Many2one(
         'analytic.AccountAnalyticAccount',
         on_delete=models.PROTECT,
@@ -151,6 +158,14 @@ class AccountAnalyticLine(
     models.Model,
 ):
     """``account.analytic.line`` — apunte analítico (Odoo ``analytic``)."""
+
+    #: ≙ la cabecera de la fuente
+    #: (``odoo19c: addons/analytic/models/analytic_line.py:164-168``).
+    _name = 'account.analytic.line'
+    _inherit = ['analytic.plan.fields.mixin']
+    _description = 'Analytic Line'
+    _order = 'date desc, id desc'
+    _check_company_auto = True
 
     CATEGORIES = [('other', 'Otro')]
 
