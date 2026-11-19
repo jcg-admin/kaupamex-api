@@ -42,6 +42,20 @@ regenerado en `029cb0e3`: 20 símbolos de `src/tools/mail.py` en `absent`.
   importado por la misma fuente (`:14`). Divergencia de mecanismo declarada en
   el docstring de `validate_url`.
 
+## El parche de lxml que la fuente aplica al arrancar
+
+Con lxml 6.1.1 y libxml2 2.14.6, `html.document_fromstring('yop')` deja el
+texto suelto en `<body>` y `html_sanitize('yop')` da `<span>yop</span>`; la
+prueba de la fuente espera `<p>yop</p>`
+(`odoo19c: odoo/addons/base/tests/test_mail.py:50`). La fuente lo resuelve
+en `patch_module` de `odoo19c: odoo/_monkeypatches/lxml.py:10-48`, que envuelve
+`lxml.html.fromstring` y `document_fromstring` cuando
+`LIBXML_VERSION >= (2, 14, 0)`. Se porta en `src/_monkeypatches/lxml.py` y lo
+llama su consumidor, `tools/mail.py`, al importarse, como `tools/safe_eval`
+con `pytz`, porque el cargador perezoso de la raíz no está portado. Prueba:
+`test_basic_sanitizer` de `tests/unit/tools/test_mail_html_sanitizer.py`, que
+cae sin la llamada.
+
 ## Pruebas
 
 Porte de `odoo19c: odoo/addons/base/tests/test_mail.py`: `TestSanitizer`
