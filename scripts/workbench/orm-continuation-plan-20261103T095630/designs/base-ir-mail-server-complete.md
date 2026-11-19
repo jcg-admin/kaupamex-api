@@ -738,3 +738,46 @@ el archivo con su condición de cierre, no se omiten.
   res_users.py:50-68,130-149,165-167,545-660`) y la sobreescritura de
   `_check_forced_mail_server` (`:90-99`), que lee
   `owner_user_id.outgoing_mail_server_id`.
+
+  Unidad `mail-res-users-mail-server-0397`. Módulo nuevo
+  `addons/mail/models/res_users.py` con `apply_mail_user_extensions()`,
+  llamado desde `MailConfig.ready()`; `res.users` no es `BaseModel`, así que
+  va por `extend_model('base', 'ResUsers', ...)` y las acciones `@api.model`
+  son `classmethod` que leen `env().user`. Prueba de todas las piezas:
+  `tests/unit/mail/test_mail_res_users_mail_server.py`.
+
+  - `_compute_outgoing_mail_server_id` (`odoo19c:
+    addons/mail/models/res_users.py:130-149`) asigna los dos campos no
+    almacenados `outgoing_mail_server_id` (`Many2one`, mismo mecanismo que
+    `employee_id` de `hr`) y `outgoing_mail_server_type` (`:50-63`). El
+    dominio es el de la fuente: cada lista interna de `Domain.OR` es un AND
+    implícito, así que el servidor del usuario cumple filtro, `smtp_user` y
+    dueño a la vez. Toda lectura de esos registros va dentro de `sudo()`,
+    porque aquí el `su` es un bloque y no viaja con el recordset.
+  - `_compute_has_external_mail_server` (`odoo19c:
+    addons/mail/models/res_users.py:64-66`) lee
+    `base_setup.default_external_email_server`.
+  - `SELF_READABLE_FIELDS` (`odoo19c: addons/mail/models/res_users.py:155-168`)
+    suma los tres campos del ítem A por `extend_property`, como `hr`.
+  - `_gc_personal_mail_servers` (`odoo19c:
+    addons/mail/models/res_users.py:545-551`), `@api.autovacuum`; lo descubre
+    `ir.autovacuum` (`is_autovacuum` sobre `apps.get_models()`).
+  - `_get_mail_server_values`, `action_setup_outgoing_mail_server`,
+    `action_test_outgoing_mail_server` y `_get_mail_server_setup_end_action`
+    (`odoo19c: addons/mail/models/res_users.py:553-660`); el último queda
+    abstracto (`NotImplementedError`) como en la fuente.
+  - `_check_forced_mail_server` en `addons/mail/models/ir_mail_server.py`
+    (`odoo19c: addons/mail/models/ir_mail_server.py:91-99`) se añade a los
+    `overrides` de `apply_mail_server_extensions`.
+  - `0124_irmailserver_nullable_credentials`
+    (`src/addons/base/migrations/0124_irmailserver_nullable_credentials.py`):
+    `smtp_user` y `smtp_pass` vuelven a ser nulables y sin `default`, como en
+    `odoo19c: odoo/addons/base/models/ir_mail_server.py:169-170`; la acción
+    escribe `smtp_pass = False` (`odoo19c:
+    addons/mail/models/res_users.py:617-627`) y la columna `NOT NULL` lo
+    rechazaba.
+
+  Divergencias declaradas en el módulo: `groups='base.group_user'` de los dos
+  campos no se aplica por campo (`res.users` no es `BaseModel`); el resto de
+  la extensión de `res.users` son los ítems B-G del inventario, con su
+  bloqueo nombrado allí.
