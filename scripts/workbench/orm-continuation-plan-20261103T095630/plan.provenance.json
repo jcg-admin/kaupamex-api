@@ -1263,6 +1263,13 @@
         "basemodel-adoption-crm-0397"
       ],
       "writtenAt": "2026-11-19T20:35:16Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-mass-mailing-0397"
+      ],
+      "writtenAt": "2026-11-19T21:17:16Z"
     }
   ]
 }
