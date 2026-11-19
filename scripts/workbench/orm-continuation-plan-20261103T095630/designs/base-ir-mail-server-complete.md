@@ -716,6 +716,24 @@ el archivo con su condición de cierre, no se omiten.
   mail_server_id`, ítem 3 de la adopción de `mail.template`), y la
   sobreescritura de `_check_forced_mail_server` (ítem 5-1b).
   Prueba: `tests/unit/mail/test_mail_ir_mail_server.py`.
+
+  Piezas que el commit nombra, cada una con su fuente y su prueba:
+
+  - `_install_table_objects` (en `addons/mail/models/ir_mail_server.py`) fija
+    `_email_field = 'smtp_user'` (`odoo19c:
+    addons/mail/models/ir_mail_server.py:12-12`) y registra
+    `_unique_owner_user_id` (`odoo19c:
+    addons/mail/models/ir_mail_server.py:29-32`) en `Meta.constraints` y en
+    `_table_objects` por su nombre completo, como el paso 7 de `_setup`.
+    Prueba: `test_the_extension_declares_the_source_fields` y
+    `test_an_owner_has_at_most_one_server` en
+    `tests/unit/mail/test_mail_ir_mail_server.py`.
+  - `0123_irmailserver_mail_owner_fields`
+    (`src/addons/base/migrations/0123_irmailserver_mail_owner_fields.py`)
+    crea las tres columnas y la restricción de `odoo19c:
+    addons/mail/models/ir_mail_server.py:20-32`; `makemigrations --check`
+    queda limpio. Prueba: `test_an_owner_has_at_most_one_server` (la
+    `IntegrityError` la lanza la restricción de la base).
 - **5-1b**: el ítem A de `res.users` (`odoo19c: addons/mail/models/
   res_users.py:50-68,130-149,165-167,545-660`) y la sobreescritura de
   `_check_forced_mail_server` (`:90-99`), que lee
