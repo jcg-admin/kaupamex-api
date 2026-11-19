@@ -30,10 +30,13 @@ regenerado en `029cb0e3`: 20 símbolos de `src/tools/mail.py` en `absent`.
 
 - `lxml_html_clean`: desde lxml 5.2 `lxml.html.clean` es un paquete aparte
   (medido: `ImportError: lxml.html.clean module is now a separate project
-  lxml_html_clean`). Se añade a `pyproject.toml`, como `pyOpenSSL`. La fuente
-  usa `clean.Cleaner` y `clean._is_javascript_scheme`; los dos los expone el
-  paquete `lxml_html_clean`, así que el import se escribe
-  `import lxml_html_clean as clean` y el resto del cuerpo queda igual.
+  lxml_html_clean`). Se añade a `pyproject.toml`, como `pyOpenSSL`. Del
+  módulo `clean` la fuente sólo usa `clean.Cleaner` (`:97`; medido con
+  `grep -on "clean\.[A-Za-z_]*"`), que el paquete `lxml_html_clean` expone,
+  así que el import se escribe `import lxml_html_clean as clean` y el resto
+  del cuerpo queda igual. `defs`, `html_parser`, `XHTML_NAMESPACE`,
+  `_contains_block_level_tag` y `_looks_like_full_html_*` siguen en
+  `lxml.html`.
 - `werkzeug.urls.url_parse` (`:484`): `werkzeug` no está en este stack. La
   única lectura es `.scheme`, que da igual con `urllib.parse.urlparse`, ya
   importado por la misma fuente (`:14`). Divergencia de mecanismo declarada en
