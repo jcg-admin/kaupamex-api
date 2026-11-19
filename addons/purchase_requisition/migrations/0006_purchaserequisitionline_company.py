@@ -1,13 +1,15 @@
 """``company_id`` de ``purchase.requisition.line``, related almacenado.
 
 ≙ ``odoo19c: addons/purchase_requisition/models/purchase_requisition.py:181``
-(``related='requisition_id.company_id', store=True``). La columna nace con el
-valor de su acuerdo en las filas que ya existen, como la que la fuente
-calcula al crear el campo.
+(``related='requisition_id.company_id', store=True``). La columna nace vacía
+y ``ComputeStoredFields`` la calcula sobre las filas existentes
+(``odoo19c: odoo/orm/models.py:3220-3238``).
 """
 
 import django.db.models.deletion
 from django.db import migrations, models
+
+from orm.migration_operations import ComputeStoredFields
 
 
 class Migration(migrations.Migration):
@@ -31,13 +33,6 @@ class Migration(migrations.Migration):
                 verbose_name="Empresa",
             ),
         ),
-        migrations.RunSQL(
-            sql=(
-                'UPDATE purchase_requisition_line AS line '
-                'SET company_id = agreement.company_id '
-                'FROM purchase_requisition AS agreement '
-                'WHERE agreement.id = line.requisition_id'
-            ),
-            reverse_sql=migrations.RunSQL.noop,
-        ),
+        ComputeStoredFields('purchase_requisition', 'purchaserequisitionline',
+                            ['company']),
     ]
