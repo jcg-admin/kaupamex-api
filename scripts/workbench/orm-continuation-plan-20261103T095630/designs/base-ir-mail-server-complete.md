@@ -758,7 +758,11 @@ el archivo con su condición de cierre, no se omiten.
     addons/mail/models/res_users.py:64-66`) lee
     `base_setup.default_external_email_server`.
   - `SELF_READABLE_FIELDS` (`odoo19c: addons/mail/models/res_users.py:155-168`)
-    suma los tres campos del ítem A por `extend_property`, como `hr`.
+    suma los tres campos del ítem A por `extend_property`, como `hr`; lo
+    instala `_extend_self_field_lists`, el `luego` de
+    `apply_mail_user_extensions`. Prueba:
+    `test_the_three_fields_are_self_readable` en
+    `tests/unit/mail/test_mail_res_users_mail_server.py`.
   - `_gc_personal_mail_servers` (`odoo19c:
     addons/mail/models/res_users.py:545-551`), `@api.autovacuum`; lo descubre
     `ir.autovacuum` (`is_autovacuum` sobre `apps.get_models()`).
