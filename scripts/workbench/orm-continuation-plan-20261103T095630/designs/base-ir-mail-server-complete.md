@@ -101,3 +101,16 @@ reparto entre workers, y eso explica que la segunda ejecución pasara.
 DESCONOCIDO con condición de cierre: identificar la prueba repitiendo con
 `-p xdist --dist loadfile` y `-v` hasta reproducirlo, y ver qué prueba
 precede a la primera fallida en su worker. Sucesor bajo TASK-API-0485.
+
+## Paso 2: los métodos pequeños (borrador)
+
+| Símbolo | Fuente | Puerto |
+|---|---|---|
+| `write` (guardián de archivado) | `:231-264`: `UserError`, mensajes en inglés, `display_name`, encabezado «(Dedicated Outgoing Mail Server)» sólo con varios | `check_can_archive(_many)`: `ValidationError`, mensajes propios en español |
+| `_check_forced_mail_server` | `:546-548`: rehúsa un servidor archivado salvo `allow_archived` | ausente |
+| `_get_default_bounce_address` | `:646-654`: el `email_from` de la config | ausente |
+| `_find_mail_server_allowed_domain` | `:870-873`: `Domain.TRUE`, punto de extensión de `mail` | ausente |
+
+El guardián se lleva a la forma de la fuente (excepción y texto), y los otros
+tres se portan, con sus consumidores medidos en `_find_mail_server` y en
+`send_email`, que llega en el paso 3.
