@@ -24,6 +24,12 @@
     # manifest la declara (DEC-KX-03 punto 1): `onboarding` en Odoo Community
     # es LGPL-3.
     'license': 'LGPL-3',
+    # Seguridad de la fuente (``odoo19c: addons/onboarding/__manifest__.py``),
+    # por ``load_data`` en el ciclo de instalación: copia fiel del CSV. Las
+    # vistas no se cargan: este árbol no sirve el cliente web.
+    'data': [
+        'security/ir.model.access.csv',
+    ],
     'application': False,
     'installable': True,
     'auto_install': False,

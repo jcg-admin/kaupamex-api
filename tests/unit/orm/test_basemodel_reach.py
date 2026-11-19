@@ -57,7 +57,6 @@ PENDING = {
     'helpdesk',
     'mail',
     'mass_mailing',
-    'onboarding',
     'product',
     'purchase_requisition',
     'sale',

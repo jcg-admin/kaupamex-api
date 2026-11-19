@@ -16,7 +16,7 @@ caso de uso real, un step a la vez, vía
 ``OnboardingProgress.get_and_update_onboarding_state``.
 """
 
-from django.db import models
+import models
 from django.db.models.functions import Coalesce
 
 import fields
@@ -30,8 +30,15 @@ from addons.onboarding.models.onboarding_progress import (
 from addons.base.models.timestamped_mixin import TimeStampedModel
 
 
-class OnboardingProgressStep(TimeStampedModel):
+class OnboardingProgressStep(models.BaseModel, TimeStampedModel):
     """``onboarding.progress.step`` — tracker de progreso de un paso."""
+
+    # Atributos de clase de la fuente (``odoo19c:
+    # addons/onboarding/models/onboarding_progress_step.py:9-11``). ``_rec_name
+    # = 'step_id'`` espera a que la clave foránea tome el nombre de la fuente
+    # (unidad ``onboarding-fk-names-0397``).
+    _name = 'onboarding.progress.step'
+    _description = 'Onboarding Progress Step Tracker'
 
     # Odoo step_id (onboarding_progress_step.py:16-17, required, ondelete
     # cascade, index).

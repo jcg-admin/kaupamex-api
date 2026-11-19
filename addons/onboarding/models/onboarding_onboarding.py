@@ -16,7 +16,7 @@ Odoo) — no hay a qué adaptar un cliente web OWL en un backend Django REST.
 Ver ``__manifest__.py``.
 """
 
-from django.db import models
+import models
 
 import fields
 
@@ -31,8 +31,14 @@ from addons.onboarding.models.onboarding_progress_step import (
 )
 
 
-class OnboardingOnboarding(TimeStampedModel):
+class OnboardingOnboarding(models.BaseModel, TimeStampedModel):
     """``onboarding.onboarding`` — panel de onboarding."""
+
+    # Atributos de clase de la fuente (``odoo19c:
+    # addons/onboarding/models/onboarding_onboarding.py:9-11``), verbatim.
+    _name = 'onboarding.onboarding'
+    _description = 'Onboarding'
+    _order = 'sequence asc, id desc'
 
     # Odoo name (onboarding_onboarding.py:13, translate).
     name = fields.Char(
@@ -106,9 +112,9 @@ class OnboardingOnboarding(TimeStampedModel):
         los steps per-company — evita tener que fusionar registros de
         progreso ya existentes (comentario verbatim de la fuente).
         """
-        if self.progress_records.filter(company__isnull=False).exists():
+        if self.progress_records.filtered(lambda p: p.company_id):
             return True
-        return self.steps.filter(is_per_company=True).exists()
+        return bool(self.steps.filtered('is_per_company'))
 
     def get_current_progress(self, company=None):
         """``_compute_current_progress`` (línea 56-69), mitad
@@ -125,15 +131,14 @@ class OnboardingOnboarding(TimeStampedModel):
         lectura más razonable de "el progreso PARA esta compañía".
         """
         context_company_id = _resolve_company_id(company)
-        candidates = self.progress_records.filter(
-            models.Q(company__isnull=True)
-            | models.Q(company_id=context_company_id),
-        )
+        candidates = self.progress_records.filtered(
+            lambda p: p.company_id in (None, context_company_id))
         if context_company_id is not None:
-            specific = candidates.filter(company_id=context_company_id).first()
-            if specific is not None:
+            specific = candidates.filtered(
+                lambda p: p.company_id == context_company_id)[:1]
+            if specific:
                 return specific
-        return candidates.filter(company__isnull=True).first()
+        return candidates.filtered(lambda p: p.company_id is None)[:1] or None
 
     @property
     def current_progress(self):
@@ -166,11 +171,11 @@ class OnboardingOnboarding(TimeStampedModel):
         con la MISMA semántica (recalcular ``progress_step_ids`` de las
         progress records si el conjunto de pasos cambió).
         """
-        previous_ids = set(self.steps.values_list('pk', flat=True))
-        self.steps.set(steps)
+        previous_ids = set(self.steps.ids)
         new_ids = {getattr(s, 'pk', s) for s in steps}
+        self.write({'steps': [fields.Command.set(list(new_ids))]})
         if previous_ids != new_ids:
-            for progress in self.progress_records.all():
+            for progress in self.progress_records:
                 progress.recompute_progress_step_ids()
 
     def action_close(self):
@@ -200,11 +205,10 @@ class OnboardingOnboarding(TimeStampedModel):
         vincula un step per-company).
         """
         if self.is_per_company:
-            global_progress = self.progress_records.filter(
-                company__isnull=True
-            )
-            if global_progress.exists():
-                global_progress.delete()
+            global_progress = self.progress_records.filtered(
+                lambda p: p.company_id is None)
+            if global_progress:
+                global_progress.unlink()
                 self._create_progress()
 
     def action_toggle_visibility(self):
@@ -227,7 +231,7 @@ class OnboardingOnboarding(TimeStampedModel):
             context_company_id if self.is_per_company else None
         )
         linked_step_progress = OnboardingProgressStep.objects.filter(
-            step__in=self.steps.all(),
+            step__in=self.steps.ids,
         ).filter(
             models.Q(company__isnull=True)
             | models.Q(company_id=context_company_id),
@@ -236,7 +240,8 @@ class OnboardingOnboarding(TimeStampedModel):
             onboarding=self,
             company_id=progress_company_id,
         )
-        progress.progress_steps.set(linked_step_progress)
+        progress.write({'progress_steps': [fields.Command.set(
+            list(linked_step_progress.values_list('pk', flat=True)))]})
         return progress
 
     def _prepare_rendering_values(self):
@@ -257,7 +262,7 @@ class OnboardingOnboarding(TimeStampedModel):
         return {
             'close_method': self.panel_close_action_name,
             'close_model': 'onboarding.OnboardingOnboarding',
-            'steps': list(self.steps.all()),
+            'steps': list(self.steps),
             'state': onboarding_states_values,
             'text_completed': self.text_completed,
         }

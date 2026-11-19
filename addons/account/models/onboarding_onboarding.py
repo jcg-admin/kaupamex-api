@@ -103,10 +103,10 @@ def _prepare_rendering_values(self):
     """
     if self.route_name != ROUTE_ACCOUNT_INVOICE:
         return None
-    step = self.steps.filter(
-        panel_step_open_action_name='action_open_step_create_invoice',
-    ).first()
-    if step is None:
+    step = self.steps.filtered(
+        lambda s: s.panel_step_open_action_name
+        == 'action_open_step_create_invoice')[:1]
+    if not step:
         return None
     if step.current_step_state() != 'not_done':
         return None

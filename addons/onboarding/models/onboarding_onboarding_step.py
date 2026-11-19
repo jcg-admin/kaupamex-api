@@ -24,10 +24,11 @@ endpoint que sirva ``step_image``.
 
 from django.apps import apps
 from django.core.exceptions import ValidationError
-from django.db import models
+import models
 
 import fields
 
+from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.onboarding.models.onboarding_progress import (
     STATE_NOT_DONE,
     _resolve_company_id,
@@ -35,18 +36,14 @@ from addons.onboarding.models.onboarding_progress import (
 from addons.onboarding.models.onboarding_progress_step import (
     OnboardingProgressStep,
 )
-from orm.models import RecordLoaderMixin
 
 
-class OnboardingOnboardingStep(RecordLoaderMixin, models.Model):
+class OnboardingOnboardingStep(models.BaseModel, TimeStampedModel):
     """``onboarding.onboarding.step`` — paso de un panel de onboarding.
 
-    NO hereda ``TimeStampedModel``: Odoo declara ``onboarding.onboarding.step``
-    como modelo propio (sin mixin), y a diferencia de ``crm.team``/
-    ``hr.department`` (que sí llevan ``create_date``/``write_date`` fieles a
-    la referencia), aquí ningún campo ni método de la fuente lee esas
-    columnas — se mantiene fiel al modelo real en vez de aplicar el mixin por
-    inercia de convención de proyecto.
+    Lleva las cuatro columnas de ``_log_access`` como todo modelo de la
+    fuente (``LOG_ACCESS_COLUMNS``, ``odoo19c: odoo/orm/models.py:296``); ya
+    las tenía, inyectadas por ``onboarding/0003_log_access_auto_injection``.
     """
 
     # Atributos de clase de modelo — los CUATRO que la fuente declara
@@ -169,7 +166,7 @@ class OnboardingOnboardingStep(RecordLoaderMixin, models.Model):
         """
         if (
             self.pk
-            and self.onboardings.exists()
+            and self.onboardings
             and not self.panel_step_open_action_name
         ):
             raise ValidationError(
@@ -204,8 +201,8 @@ class OnboardingOnboardingStep(RecordLoaderMixin, models.Model):
         if is_per_company_changed:
             # Odoo: "Progress is reset (to be done per-company or, for
             # steps, to have a single record)".
-            self.progress_step_records.all().delete()
-        for onboarding in self.onboardings.all():
+            self.progress_step_records.unlink()
+        for onboarding in self.onboardings:
             onboarding.action_refresh_progress_ids()
 
     def link_onboarding(self, onboarding):
@@ -217,10 +214,10 @@ class OnboardingOnboardingStep(RecordLoaderMixin, models.Model):
         step_ids()") — aquí explícita porque Django no intercepta cambios de
         M2M en ``save()``.
         """
-        already_linked = self.onboardings.filter(pk=onboarding.pk).exists()
-        self.onboardings.add(onboarding)
+        already_linked = onboarding.pk in self.onboardings.ids
+        onboarding.write({'steps': [fields.Command.link(self.pk)]})
         if not already_linked:
-            for progress in onboarding.progress_records.all():
+            for progress in onboarding.progress_records:
                 progress.recompute_progress_step_ids()
 
     def _compute_current_progress(self, company=None):
@@ -241,11 +238,9 @@ class OnboardingOnboardingStep(RecordLoaderMixin, models.Model):
         if not self.pk:
             return None, STATE_NOT_DONE
         context_company_id = _resolve_company_id(company)
-        progress_step = self.progress_step_records.filter(
-            models.Q(company__isnull=True)
-            | models.Q(company_id=context_company_id),
-        ).first()
-        if progress_step is None:
+        progress_step = self.progress_step_records.filtered(
+            lambda p: p.company_id in (None, context_company_id))[:1]
+        if not progress_step:
             return None, STATE_NOT_DONE
         return progress_step, progress_step.step_state
 
@@ -324,7 +319,7 @@ class OnboardingOnboardingStep(RecordLoaderMixin, models.Model):
             'onboarding', 'OnboardingProgress'
         )
         onboarding_progress_records = onboarding_progress_model.objects.filter(
-            onboarding__in=self.onboardings.all(),
+            onboarding__in=self.onboardings.ids,
         ).filter(
             models.Q(company__isnull=True)
             | models.Q(company_id=context_company_id),
@@ -333,5 +328,7 @@ class OnboardingOnboardingStep(RecordLoaderMixin, models.Model):
             step=self,
             company_id=context_company_id if self.is_per_company else None,
         )
-        progress_step.progress_records.set(onboarding_progress_records)
+        for progress in onboarding_progress_records:
+            progress.write(
+                {'progress_steps': [fields.Command.link(progress_step.pk)]})
         return progress_step

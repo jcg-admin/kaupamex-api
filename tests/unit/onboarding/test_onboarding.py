@@ -40,9 +40,21 @@ from addons.onboarding.models import (
     OnboardingProgressStep,
 )
 from modules.module import load_manifest
-from orm.environments import company_scope
+from orm.environments import Environment, company_scope
+from orm.utils import SUPERUSER_ID
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def superuser_env(db, system_user):
+    """Las pruebas de la fuente corren como superusuario
+    (``TransactionCase`` construye su entorno con ``SUPERUSER_ID``). Desde
+    que los modelos son ``BaseModel``, la ACL de la fuente sólo da permisos a
+    ``base.group_system``, así que sin este entorno la escritura se deniega."""
+    environment = Environment(None, SUPERUSER_ID, {})
+    with environment:
+        yield environment
 
 # El addon está en ``INSTALLED_APPS`` y tiene su migración
 # (``onboarding/0001_initial``), así que las tablas las provee el schema de
@@ -90,21 +102,16 @@ class TestStepLinkAndReverseRelation:
         step1 = _step('Step 1')
         step2 = _step('Step 2')
         onboarding = _onboarding('route_link_1', steps=[step1, step2])
-        assert list(
-            onboarding.steps.order_by('id').values_list('title', flat=True),
-        ) == ['Step 1', 'Step 2']
-        assert list(
-            step1.onboardings.values_list('route_name', flat=True)
-        ) == [
-            'route_link_1',
-        ]
+        assert onboarding.steps.sorted('id').mapped('title') == [
+            'Step 1', 'Step 2']
+        assert step1.onboardings.mapped('route_name') == ['route_link_1']
 
     def test_link_onboarding_adds_without_duplicating(self):
         step = _step('Solo step')
         onboarding = _onboarding('route_link_2')
         step.link_onboarding(onboarding)
         step.link_onboarding(onboarding)  # idempotente, no duplica
-        assert list(onboarding.steps.values_list('pk', flat=True)) == [step.pk]
+        assert onboarding.steps.ids == [step.pk]
 
 
 class TestCleanRequiresOpeningAction:
@@ -260,7 +267,7 @@ class TestUniqueConstraints:
         onboarding = _onboarding('route_unique_2')
         OnboardingProgress.objects.create(onboarding=onboarding, company=None)
         OnboardingProgress.objects.create(onboarding=onboarding, company=acme)
-        assert onboarding.progress_records.count() == 2
+        assert len(onboarding.progress_records) == 2
 
     def test_duplicate_progress_step_same_step_same_company_rejected(self):
         acme = _company('acme-onb-6')

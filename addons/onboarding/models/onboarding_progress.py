@@ -22,7 +22,7 @@ los 4 modelos del addon lo reutilizan.
 """
 
 from django.apps import apps
-from django.db import models
+import models
 from django.db.models.functions import Coalesce
 
 import fields
@@ -57,8 +57,15 @@ def _resolve_company_id(company):
     return company
 
 
-class OnboardingProgress(TimeStampedModel):
+class OnboardingProgress(models.BaseModel, TimeStampedModel):
     """``onboarding.progress`` — tracker de progreso de un onboarding."""
+
+    # Atributos de clase de la fuente (``odoo19c:
+    # addons/onboarding/models/onboarding_progress.py:15-17``). ``_rec_name =
+    # 'onboarding_id'`` espera a que la clave foránea tome el nombre de la
+    # fuente (unidad ``onboarding-fk-names-0397``).
+    _name = 'onboarding.progress'
+    _description = 'Onboarding Progress Tracker'
 
     # Odoo onboarding_id (onboarding_progress.py:23-24, required, ondelete
     # cascade, index). FK por string: evita el import circular con
@@ -137,10 +144,9 @@ class OnboardingProgress(TimeStampedModel):
         se deja como propiedad calculada (evita el problema de staleness de
         un campo denormalizado sin trigger de recálculo).
         """
-        done_count = self.progress_steps.filter(
-            step_state__in=(STATE_JUST_DONE, STATE_DONE),
-        ).count()
-        total = self.onboarding.steps.count()
+        done_count = len(self.progress_steps.filtered(
+            lambda s: s.step_state in (STATE_JUST_DONE, STATE_DONE)))
+        total = len(self.onboarding.steps)
         return STATE_NOT_DONE if done_count != total else STATE_DONE
 
     def recompute_progress_step_ids(self):
@@ -156,11 +162,10 @@ class OnboardingProgress(TimeStampedModel):
         """
         current_steps = [
             step.current_progress_step()
-            for step in self.onboarding.steps.all()
+            for step in self.onboarding.steps
         ]
-        self.progress_steps.set(
-            [step for step in current_steps if step is not None],
-        )
+        self.write({'progress_steps': [fields.Command.set(
+            [step.pk for step in current_steps if step])]})
 
     def action_close(self):
         """Odoo línea 46-47."""
@@ -184,7 +189,7 @@ class OnboardingProgress(TimeStampedModel):
         onboarding_states_values = {}
         just_done_step_ids = []
 
-        for step in self.onboarding.steps.all():
+        for step in self.onboarding.steps:
             step_state = step.current_step_state()
             if step_state == STATE_JUST_DONE:
                 just_done_step_ids.append(step.pk)
