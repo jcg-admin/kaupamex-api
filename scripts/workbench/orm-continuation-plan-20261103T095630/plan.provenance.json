@@ -1221,6 +1221,13 @@
         "basemodel-adoption-base-automation-0397"
       ],
       "writtenAt": "2026-11-19T15:51:13Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-purchase-requisition-0397"
+      ],
+      "writtenAt": "2026-11-19T17:08:31Z"
     }
   ]
 }
