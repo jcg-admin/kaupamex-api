@@ -230,3 +230,48 @@ mensaje parcheando `send_email` (`MockEmail`,
 (`grep -rhoE "mail\.outbox" tests`). Al pasar los consumidores a
 `send_email`, esas pruebas pasan a la captura de la fuente, con su fixture
 portado.
+
+### Ejecución del paso 3a: el mensaje (ítem `base-ir-mail-server-message-0397`, 2026-11-19)
+
+- Las cuatro constantes de error, con el texto de la fuente
+  (`odoo19c: odoo/addons/base/models/ir_mail_server.py:147-154`). No tenían
+  consumidores en el árbol.
+- `_build_email__` (`odoo19c: odoo/addons/base/models/ir_mail_server.py:562-644`),
+  `_prepare_email_message__` (`odoo19c: odoo/addons/base/models/ir_mail_server.py:679-733`),
+  `_alter_message__` (`odoo19c: odoo/addons/base/models/ir_mail_server.py:735-762`)
+  y `_prepare_smtp_to_list` (`odoo19c: odoo/addons/base/models/ir_mail_server.py:764-797`),
+  sobre `self.env.context` del recordset, como la fuente. La única
+  adaptación: `datetime.utcnow()` está obsoleto en 3.12+, así que la fecha
+  se toma con `datetime.now(UTC)` sin zona, que es el mismo valor.
+- Los `# noqa: PLW3201` de la fuente no se copian: `PLW3201` es de pylint, y
+  ningún linter de este repo lo aplica.
+- Pruebas en `tests/unit/base/test_ir_mail_server_message.py`: 11.
+- Consumidores derivados (`tests/unit/base`, `tests/unit/mail`, `tests/integration/mail`): 2054 passed con `-n 4`.
+
+Anulaciones, cada una medida por separado:
+
+| Se retira | Caen |
+|---|---|
+| la alternativa en texto plano de un cuerpo `html` | sólo `test_an_html_body_gets_a_plain_alternative` |
+| el filtro `send_smtp_skip_to` | sólo `test_the_recipients_honour_the_validated_and_skip_lists` |
+| el borrado de `Bcc` en `_alter_message__` | sólo `test_alter_message_forges_to_and_drops_bcc` |
+
+### Paso 3b: la conexión (borrador, medido)
+
+`_connect__` (`odoo19c: :394-544`) lee la configuración de arranque con
+`tools.config.get(...)`: `smtp_server`, `smtp_port`, `smtp_user`,
+`smtp_password`, `smtp_ssl`, `smtp_ssl_certificate_filename`,
+`smtp_ssl_private_key_filename`; y `_get_default_from_filter` y
+`_get_default_*_address` leen `from_filter` y `email_from`. Aquí
+`src/tools/config.py` no expone ninguna (`grep smtp src/tools/config.py` → 0),
+y la configuración de correo vive en los `EMAIL_*` de Django. Prerrequisito:
+esos lectores en `tools/config.py`, con el mismo patrón que `test_enable()`.
+
+`_disable_send` (`:389-392`) es `modules.module.current_test or
+cls.pool._init`. `current_test` no existe en `src/modules/module.py`
+(`odoo19c: odoo/modules/module.py:111` lo declara); el equivalente de este
+árbol es `tools.config.test_enable()`, que ya consume
+`ir_template_expressions.py:941`.
+
+Dependencias medidas en `.venv`: `idna` 3.17, `pyOpenSSL` 26.2.0 y
+`urllib3.contrib.pyopenssl` (`PyOpenSSLContext`).
