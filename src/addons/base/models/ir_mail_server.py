@@ -119,14 +119,17 @@ import fields
 import models
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from exceptions import UserError
 
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from orm.domains import Domain
 from tools.mail import (
     email_domain_extract,
     email_domain_normalize,
     email_normalize,
 )
+from tools.translate import _
 
 _logger = logging.getLogger(__name__)
 
@@ -199,8 +202,14 @@ def extract_rfc2822_addresses(text):
     return valid_addresses
 
 
-class IrMailServer(TimeStampedModel):
+class IrMailServer(models.BaseModel, TimeStampedModel):
     """``ir.mail_server`` — un servidor SMTP saliente declarado."""
+
+    # ≙ la cabecera de la fuente (``odoo19c: ir_mail_server.py:142-145``).
+    _name = 'ir.mail_server'
+    _description = 'Mail Server'
+    _order = 'sequence, id'
+    _allow_sudo_commands = False
 
     #: Mensajes de la fuente, en extenso para que se exporten como términos.
     NO_VALID_RECIPIENT = (
@@ -393,53 +402,54 @@ class IrMailServer(TimeStampedModel):
         """
         return {}
 
-    def check_can_archive(self):
-        """``write`` de la fuente — no se archiva un servidor en uso.
+    def write(self, vals):
+        """≙ ``write`` (``odoo19c: ir_mail_server.py:231-264``).
 
-        La fuente distingue el mensaje de **uno** y el de **varios**; se
-        conserva la distinción porque el plural nombra los servidores y el
-        singular no, y perderla deja al operador sin saber cuál desarchivar.
+        No se archiva un servidor en uso. Con uno solo, el mensaje lo nombra;
+        con varios, los ordena por nombre y encabeza los usos de cada uno.
         """
-        usages = self._active_usages_compute()
-        detail = usages.get(self.pk)
-        if not detail:
-            return
-        lines = '\n'.join(f'- {item}' for item in detail)
-        raise ValidationError(
-            'No se puede archivar el servidor de correo saliente '
-            f'({self.name}) porque sigue en uso en:\n{lines}'
-        )
+        usages_per_server = {}
+        if not vals.get('active', True):
+            usages_per_server = self._active_usages_compute()
 
-    @classmethod
-    def check_can_archive_many(cls, servers):
-        """Variante en plural de ``check_can_archive``.
+        if not usages_per_server:
+            return super().write(vals)
 
-        Ordena por nombre antes de componer el mensaje, igual que la fuente
-        (``sorted(..., key=lambda r: r.display_name)``): sin ese orden el
-        mismo conjunto produce mensajes distintos en cada llamada.
-        """
-        blocked = {}
-        for server in servers:
-            detail = server._active_usages_compute().get(server.pk)
-            if detail:
-                blocked[server] = detail
-        if not blocked:
-            return
-        ordered = sorted(blocked, key=lambda server: server.name)
-        if len(ordered) == 1:
-            ordered[0].check_can_archive()
-            return
-        names = ', '.join(server.name for server in ordered)
-        lines = '\n'.join(
+        usage_details_per_server = {}
+        is_multiple_server_usage = len(usages_per_server) > 1
+        for server in self:
+            if server.id not in usages_per_server:
+                continue
+            usage_details = []
+            if is_multiple_server_usage:
+                usage_details.append(str(_(
+                    '%s (Dedicated Outgoing Mail Server):',
+                    server.display_name)))
+            usage_details.extend(
+                f'- {usage}' for usage in usages_per_server[server.id])
+            usage_details_per_server[server] = usage_details
+
+        servers_ordered_by_name = sorted(
+            usage_details_per_server, key=lambda r: r.display_name)
+        error_server_usage = ', '.join(
+            server.display_name for server in servers_ordered_by_name)
+        error_usage_details = '\n'.join(
             line
-            for server in ordered
-            for line in [f'{server.name} (servidor dedicado):']
-            + [f'- {item}' for item in blocked[server]]
-        )
-        raise ValidationError(
-            'No se pueden archivar estos servidores de correo saliente '
-            f'({names}) porque siguen en uso en:\n{lines}'
-        )
+            for server in servers_ordered_by_name
+            for line in usage_details_per_server[server])
+        if is_multiple_server_usage:
+            raise UserError(_(
+                'You cannot archive these Outgoing Mail Servers '
+                '(%(server_usage)s) because they are still used in the '
+                'following case(s):\n%(usage_details)s',
+                server_usage=error_server_usage,
+                usage_details=error_usage_details))
+        raise UserError(_(
+            'You cannot archive this Outgoing Mail Server (%(server_usage)s) '
+            'because it is still used in the following case(s):\n'
+            '%(usage_details)s',
+            server_usage=error_server_usage,
+            usage_details=error_usage_details))
 
     # --- Tamaño y remitentes por defecto --------------------------------
 
@@ -624,3 +634,32 @@ class IrMailServer(TimeStampedModel):
             notifications_email or email_from,
         )
         return None, notifications_email or email_from
+
+    def _check_forced_mail_server(self, mail_server, allow_archived,
+                                  smtp_from):
+        """≙ ``_check_forced_mail_server`` (``odoo19c: :546-548``).
+
+        Un servidor archivado no se fuerza, salvo que se admita.
+        """
+        if not allow_archived and not mail_server.active:
+            raise UserError(_(
+                'The server "%s" cannot be used because it is archived.',
+                mail_server.display_name))
+
+    @classmethod
+    def _get_default_bounce_address(cls):
+        """≙ ``_get_default_bounce_address`` (``odoo19c: :646-654``).
+
+        La fuente devuelve el ``email_from`` de arranque; su equivalente aquí
+        es ``settings.DEFAULT_FROM_EMAIL``, el mismo que lee
+        ``_get_default_from_address``.
+        """
+        return getattr(settings, 'DEFAULT_FROM_EMAIL', None) or None
+
+    @classmethod
+    def _find_mail_server_allowed_domain(cls):
+        """≙ ``_find_mail_server_allowed_domain`` (``odoo19c: :870-873``).
+
+        Todos los servidores: es el punto que ``mail`` acota a los públicos.
+        """
+        return Domain.TRUE

@@ -110,6 +110,18 @@ _ACCESS = (
         (1, 1, 1, 1),
     ),
     (
+        'ir_exports group_system',
+        'base.IrExports',
+        'group_allow_export',
+        (1, 1, 1, 1),
+    ),
+    (
+        'ir_exports_line group_system',
+        'base.IrExportsLine',
+        'group_user',
+        (1, 1, 1, 1),
+    ),
+    (
         'ir_model group_erp_manager',
         'base.IrModel',
         'group_erp_manager',
@@ -160,6 +172,18 @@ _ACCESS = (
         'base.IrModelFieldsSelection',
         'group_user',
         (0, 0, 0, 0),
+    ),
+    (
+        'res_groups_privilege group_user',
+        'base.ResGroupsPrivilege',
+        'group_user',
+        (1, 0, 0, 0),
+    ),
+    (
+        'res_groups_privilege group_erp_manager',
+        'base.ResGroupsPrivilege',
+        'group_erp_manager',
+        (1, 1, 1, 1),
     ),
     (
         'ir_module_category group_user',
@@ -449,6 +473,12 @@ _ACCESS = (
     (
         'ir_config_parameter_system',
         'base.SystemParameter',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
+    (
+        'ir_mail_server',
+        'base.IrMailServer',
         'group_system',
         (1, 1, 1, 1),
     ),
