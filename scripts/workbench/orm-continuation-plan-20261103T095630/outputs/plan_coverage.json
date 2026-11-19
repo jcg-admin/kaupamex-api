@@ -174,11 +174,6 @@
    "id": "orm-float-monetary-convert-to-cache-0485",
    "task": "TASK-API-0485",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
-  },
-  {
-   "id": "mail-alias-domain-first-creation-0397",
-   "task": "TASK-API-0397",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
   }
  ],
  "unrepresented": [
@@ -547,7 +542,8 @@
   "base-ir-mail-server-options-0397",
   "mail-ir-mail-server-extension-0397",
   "mail-res-users-mail-server-0397",
-  "mail-alias-domain-personal-servers-0397"
+  "mail-alias-domain-personal-servers-0397",
+  "mail-alias-domain-first-creation-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
