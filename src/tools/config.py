@@ -161,3 +161,58 @@ def transient_age_limit():
     valor sale de la setting ``TRANSIENT_AGE_LIMIT``.
     """
     return float(getattr(settings, 'TRANSIENT_AGE_LIMIT', 1.0))
+
+
+# --- Transporte SMTP (≙ las opciones ``--email-from`` … ``--smtp-ssl-*``) ---
+# La fuente las declara en su parser
+# (``odoo19c: odoo/tools/config.py:350-366``)
+# y ``ir.mail_server`` las lee con ``tools.config.get`` cuando no hay servidor
+# configurado (``odoo19c: odoo/addons/base/models/ir_mail_server.py:480-493``).
+# Aquí el equivalente son los ``EMAIL_*`` de Django; sus valores globales por
+# defecto (``django.conf.global_settings``) coinciden con los de la fuente
+# salvo los certificados, que allá son ``''`` y aquí ``None``.
+
+
+def email_from():
+    """≙ ``config['email_from']`` — remitente por defecto. Default ``''``."""
+    return getattr(settings, 'DEFAULT_FROM_EMAIL', '') or ''
+
+
+def from_filter():
+    """≙ ``config['from_filter']`` — dominio o buzón del servidor. ``''``."""
+    return getattr(settings, 'EMAIL_FROM_FILTER', '') or ''
+
+
+def smtp_server():
+    """≙ ``config['smtp_server']``. Default ``'localhost'``."""
+    return getattr(settings, 'EMAIL_HOST', '') or 'localhost'
+
+
+def smtp_port():
+    """≙ ``config['smtp_port']``. Default ``25``."""
+    return getattr(settings, 'EMAIL_PORT', None) or 25
+
+
+def smtp_ssl():
+    """≙ ``config['smtp_ssl']`` — la fuente lo usa como STARTTLS. ``False``."""
+    return bool(getattr(settings, 'EMAIL_USE_TLS', False))
+
+
+def smtp_user():
+    """≙ ``config['smtp_user']``. Default ``''``."""
+    return getattr(settings, 'EMAIL_HOST_USER', '') or ''
+
+
+def smtp_password():
+    """≙ ``config['smtp_password']``. Default ``''``."""
+    return getattr(settings, 'EMAIL_HOST_PASSWORD', '') or ''
+
+
+def smtp_ssl_certificate_filename():
+    """≙ ``config['smtp_ssl_certificate_filename']``. Default ``''``."""
+    return getattr(settings, 'EMAIL_SSL_CERTFILE', '') or ''
+
+
+def smtp_ssl_private_key_filename():
+    """≙ ``config['smtp_ssl_private_key_filename']``. Default ``''``."""
+    return getattr(settings, 'EMAIL_SSL_KEYFILE', '') or ''

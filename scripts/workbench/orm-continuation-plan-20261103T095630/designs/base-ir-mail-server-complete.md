@@ -275,3 +275,38 @@ cls.pool._init`. `current_test` no existe en `src/modules/module.py`
 
 Dependencias medidas en `.venv`: `idna` 3.17, `pyOpenSSL` 26.2.0 y
 `urllib3.contrib.pyopenssl` (`PyOpenSSLContext`).
+
+### Ejecución del prerrequisito de 3b: los lectores de `tools.config` (ítem `base-ir-mail-server-config-0397`, 2026-11-19)
+
+Nueve lectores en `src/tools/config.py`, uno por opción de la fuente
+(`odoo19c: odoo/tools/config.py:350-366`), cada uno con el valor por defecto
+de la fuente cuando el setting falta o es falsy:
+
+| Lector | Setting | Por defecto |
+|---|---|---|
+| `email_from` | `DEFAULT_FROM_EMAIL` | `''` |
+| `from_filter` | `EMAIL_FROM_FILTER` (nuevo) | `''` |
+| `smtp_server` | `EMAIL_HOST` | `'localhost'` |
+| `smtp_port` | `EMAIL_PORT` | `25` |
+| `smtp_ssl` | `EMAIL_USE_TLS` (la fuente lo traduce a STARTTLS, `:490-491`) | `False` |
+| `smtp_user` | `EMAIL_HOST_USER` | `''` |
+| `smtp_password` | `EMAIL_HOST_PASSWORD` | `''` |
+| `smtp_ssl_certificate_filename` | `EMAIL_SSL_CERTFILE` | `''` |
+| `smtp_ssl_private_key_filename` | `EMAIL_SSL_KEYFILE` | `''` |
+
+Y los tres valores por defecto de `ir.mail_server` pasan a leerlos, como la
+fuente (`odoo19c: odoo/addons/base/models/ir_mail_server.py:645-677`):
+
+- `_get_default_bounce_address` y `_get_default_from_address` devuelven
+  `config.email_from()`. El primero devolvía `None` cuando faltaba el
+  remitente; la fuente devuelve el valor de config, cuyo defecto es `''`.
+- `_get_default_from_filter` devuelve
+  `get_param('mail.default.from_filter', config.from_filter())`. Antes
+  pasaba `''` como respaldo, aunque su docstring decía que caía al valor de
+  arranque: la prosa heredada era falsa.
+
+Pruebas: `tests/unit/tools/test_config_smtp_readers.py` y
+`tests/unit/base/test_ir_mail_server_config_defaults.py`. Controles de
+anulación: retirar el `or 'localhost'` tumba sólo el caso de valores por
+defecto; quitar el respaldo `config.from_filter()` tumba sólo el caso del
+respaldo.

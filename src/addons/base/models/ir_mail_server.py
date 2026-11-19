@@ -121,7 +121,6 @@ from email.utils import formataddr, make_msgid
 
 import fields
 import models
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from exceptions import UserError
 
@@ -138,6 +137,7 @@ from tools.mail import (
     generate_tracking_message_id,
     html2plaintext,
 )
+from tools import config
 from tools.misc import unique
 from tools.translate import _
 
@@ -472,11 +472,10 @@ class IrMailServer(models.BaseModel, TimeStampedModel):
     def _get_default_from_address():
         """``_get_default_from_address`` — remitente por defecto.
 
-        La fuente lee el parámetro de arranque ``--email-from``; el
-        equivalente de este árbol es ``settings.DEFAULT_FROM_EMAIL``
-        (``config/settings/base.py:244``).
+        La fuente lee el parámetro de arranque ``--email-from``
+        (``odoo19c: :656-664``); aquí lo lee ``tools.config.email_from``.
         """
-        return getattr(settings, 'DEFAULT_FROM_EMAIL', '') or ''
+        return config.email_from()
 
     @classmethod
     def _get_default_from_filter(cls):
@@ -485,7 +484,8 @@ class IrMailServer(models.BaseModel, TimeStampedModel):
         Primero el parámetro de sistema, luego el valor de arranque; mismo
         orden que la fuente.
         """
-        return SystemParameter.get_param(DEFAULT_FROM_FILTER_PARAM, '') or ''
+        return SystemParameter.get_param(
+            DEFAULT_FROM_FILTER_PARAM, config.from_filter())
 
     def _get_test_email_from(self, fallback_email=''):
         """``_get_test_email_from`` — remitente para la prueba de conexión.
@@ -655,11 +655,10 @@ class IrMailServer(models.BaseModel, TimeStampedModel):
     def _get_default_bounce_address(cls):
         """≙ ``_get_default_bounce_address`` (``odoo19c: :646-654``).
 
-        La fuente devuelve el ``email_from`` de arranque; su equivalente aquí
-        es ``settings.DEFAULT_FROM_EMAIL``, el mismo que lee
+        La fuente devuelve el ``email_from`` de arranque, el mismo que lee
         ``_get_default_from_address``.
         """
-        return getattr(settings, 'DEFAULT_FROM_EMAIL', None) or None
+        return config.email_from()
 
     @classmethod
     def _find_mail_server_allowed_domain(cls):
