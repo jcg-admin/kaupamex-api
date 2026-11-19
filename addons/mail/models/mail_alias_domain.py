@@ -43,15 +43,12 @@ Correspondencia Odoo -> Django (adaptación sin azúcar sintáctica):
 ``addons/mail/models/res_company.py`` (columna en ``base/0121``), y
 ``_check_default_from_not_used_by_users`` (``:175-184``) corre tras cada
 ``save()``, como tras ``create``/``write`` en la fuente, contra los servidores
-personales de ``addons/mail/models/ir_mail_server.py``.
+personales de ``addons/mail/models/ir_mail_server.py``. El arranque de
+``create`` (``:152-163``) —el primer dominio se asigna a toda empresa y a todo
+alias sin dominio— lo hace ``_assign_first_domain`` en la misma transacción.
 
 **Divergencias declaradas** respecto a la referencia:
 
-- ``create`` (línea 152) auto-asigna el primer dominio creado a todas las
-  empresas y aliases huérfanos. Es lógica de *bootstrap* de instancia; aquí
-  vive en ``seed_first_domain()`` como método explícito en vez de ocurrir
-  como efecto lateral de un ``create``, porque un efecto lateral global
-  disparado por el primer ``INSERT`` es difícil de razonar y de testear.
 """
 
 from django.core.exceptions import ValidationError
@@ -284,10 +281,29 @@ class MailAliasDomain(TimeStampedModel):
         self.default_from = saneado['default_from'] or self.default_from
         # ≙ ``create``/``write`` (``:150``, ``:172``): la comprobación corre
         # tras escribir y, si falla, la transacción deshace la escritura
+        adding = self._state.adding
         with transaction.atomic():
             result = super().save(*args, **kwargs)
             self._check_default_from_not_used_by_users()
+            if adding:
+                self._assign_first_domain()
         return result
+
+    def _assign_first_domain(self):
+        """≙ el arranque de ``create`` (``:152-163``): el primer dominio se
+        asigna a toda empresa —archivada o no— y a todo alias sin dominio."""
+        cls = type(self)
+        if cls.objects.count() != 1:
+            return
+        company_model = self._meta.get_field('company_ids').related_model
+        with sudo():
+            company_model.objects.filter(alias_domain_id__isnull=True).update(
+                alias_domain_id=self.pk)
+            # uno a uno: ``save`` recalcula ``alias_full_name``, el
+            # ``compute`` almacenado de la fuente
+            for alias in MailAlias.objects.filter(alias_domain__isnull=True):
+                alias.alias_domain = self
+                alias.save()
 
     def _check_default_from_not_used_by_users(self):
         """≙ ``_check_default_from_not_used_by_users`` (``:175-184``): el
