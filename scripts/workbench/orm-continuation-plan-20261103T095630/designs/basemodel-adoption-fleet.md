@@ -38,8 +38,24 @@ filas).
    `fleet.vehicle.odometer.report`, `fleet.vehicle.send.mail` y la fila de
    `mail.activity.type`, que aún no es `BaseModel`). Se declaran en el
    manifiesto con su sucesor.
-4. Consumidores del API de gestor sobre accesores que pasan a recordset, los
-   que la suite derivada destape.
+4. Consumidores del API de gestor sobre accesores que pasan a recordset
+   (medidos con la suite de `tests/unit/fleet`):
+   - `fleet_vehicle.py`: `odometer` (≙ `_get_odometer`,
+     `odoo19c: addons/fleet/models/fleet_vehicle.py`) lee el último registro
+     con `sorted`; `contract_count`, `service_count`, `odometer_count` y
+     `history_count` cuentan con `len`; `service_activity` recorre el
+     recordset; `has_open_contract` filtra con `filtered`; `contract_state`,
+     `contract_renewal_overdue` y `contract_renewal_due_soon` leen el contrato
+     vivo más tardío por un auxiliar, `_latest_open_contract`; `save` archiva
+     contratos y servicios con `write({'active': False})`.
+   - `fleet_vehicle_model_brand.py`: `model_count` con `filtered('active')`;
+     `fleet_vehicle_model.py`: `vehicle_count` con `len`.
+   - `account_fleet/models/fleet_vehicle_log_services.py`: un Many2one vacío
+     de un `BaseModel` es un recordset vacío, no `None`. `_sync_service_fields_from_line`,
+     `sync_vehicle_from_line`, `sync_amount_from_line` y los dos receptores
+     que leen `account_move_line` preguntan por su verdad.
+   - El grupo `fleet_group_manager` se carga sin `user_ids`: `base.user_root`
+     y `base.user_admin` no existen aquí (el mismo caso que `purchase-security.md`).
 5. `test_basemodel_reach.py`: `fleet` sale de `PENDING`.
 
 ## Fuera de esta unidad, con su sucesor
@@ -54,3 +70,7 @@ filas).
 con su `_description`; las filas del CSV que resuelven; los grupos y las
 reglas del XML que resuelven; un usuario interno sin grupo de flota no lee
 un vehículo.
+
+Las pruebas de `tests/unit/fleet/` corren como superusuario (`conftest.py`),
+≙ `TransactionCase` de la fuente; las existentes pasan a `len`, a
+`ensure_one` y a la verdad de un Many2one vacío.
