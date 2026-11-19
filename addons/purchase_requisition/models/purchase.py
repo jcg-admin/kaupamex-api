@@ -208,7 +208,7 @@ from orm.method_chain import chain_method
 from orm.model_classes import extend_model
 
 
-class PurchaseOrderGroup(TimeStampedModel):
+class PurchaseOrderGroup(models.BaseModel, TimeStampedModel):
     """``purchase.order.group`` — «Technical model to group PO for call to
     tenders»."""
 
@@ -238,7 +238,7 @@ class PurchaseOrderGroup(TimeStampedModel):
         ``purchase.order.purchase_group``, así que quien lo escriba invoca
         este método después. Devuelve ``True`` si el grupo se borró.
         """
-        if self.order_ids.count() <= 1:
+        if len(self.order_ids) <= 1:
             self.delete()
             return True
         return False

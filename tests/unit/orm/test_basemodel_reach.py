@@ -57,7 +57,6 @@ PENDING = {
     'mail',
     'mass_mailing',
     'product',
-    'purchase_requisition',
     'sale',
     'stock',
     'website',

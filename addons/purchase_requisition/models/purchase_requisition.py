@@ -69,18 +69,10 @@ compra sale del acuerdo con ese proveedor, no del costo estándar. Ver
 Divergencias declaradas
 ========================
 
-**D-1 — ``_inherit = ['mail.thread', 'mail.activity.mixin']`` no se hereda.**
-La fuente declara el acuerdo como hilo de conversación con actividades. Medido:
-``addons/mail/models/mail_thread.py:35`` declara ``MailThread``, pero es un
-modelo del addon ``mail`` que este addon **no** declara en sus ``depends`` —
-sus dos consumos reales (``message_post`` al cancelar, ``:126``) quedan por
-tanto bloqueados. El atributo ``_inherit`` **se conserva verbatim en la clase**
-(``atributos-de-clase-de-modelo.md``: se portan todos los que la fuente
-declare) para que la deuda sea greppeable; lo que no existe es la herencia.
-
-Consecuencia concreta y declarada: ``action_cancel`` cancela las órdenes pero
-**no deja la nota** que la fuente publica en cada una (``:126``). Se marca en
-su docstring.
+**D-1 — cerrada.** El acuerdo hereda ``MailThread`` y
+``MailActivityMixin``, el ``_inherit`` de la fuente, y ``action_cancel`` deja
+en cada orden cancelada la nota de la fuente (``:126``). Diseño:
+``designs/basemodel-adoption-purchase-requisition.md``.
 
 **D-2 — ``tracking=True`` de tres campos queda bloqueado.** ``date_start``,
 ``date_end`` y ``state`` lo declaran. Medido:
@@ -101,11 +93,10 @@ el cuerpo de ``create`` del de ``write``.
 ``currency_id`` **sí** es ``store=True`` allá; aquí es columna con su cómputo
 en ``save()`` — ver ``_compute_currency_id``.
 
-**D-5 — ``company_id`` de la línea es FK propia, no ``related`` almacenado.**
-La fuente lo declara ``related='requisition_id.company_id', store=True``: una
-columna que el ORM mantiene sincronizada. Sin ese motor, mantenerla al día
-sería trabajo manual y silencioso; se declara **``property``** que lee la del
-acuerdo. Es la misma lectura y no puede desincronizarse.
+**D-5 — cerrada.** ``company_id`` de la línea es el ``related`` almacenado de
+la fuente (``related='requisition_id.company_id', store=True``): la columna
+que lee la regla multiempresa ``purchase_requisition_line_comp_rule``
+(migración ``0006``).
 """
 
 from datetime import datetime
@@ -118,6 +109,9 @@ import fields
 import models
 from addons.analytic.models.analytic_mixin import AnalyticMixin
 from addons.base.models import IrSequence, TimeStampedModel
+from addons.mail.models import MailActivityMixin, MailThread
+from exceptions import UserError
+from tools.translate import _
 
 #: ≙ ``requisition_type`` (``odoo19c: :21-23``) — las dos formas del acuerdo.
 TYPE_BLANKET_ORDER = 'blanket_order'
@@ -156,12 +150,12 @@ def _default_requisition_name():
     return 'Nuevo'
 
 
-class PurchaseRequisition(TimeStampedModel):
+class PurchaseRequisition(models.BaseModel, MailThread, MailActivityMixin,
+                          TimeStampedModel):
     """``purchase.requisition`` — «Purchase Requisition»."""
 
     # Atributos de clase de modelo — los CUATRO que la fuente declara
-    # (``odoo19c: :9-12``), verbatim. ``_inherit`` se conserva aunque la
-    # herencia no exista aquí (D-1 del docstring del módulo).
+    # (``odoo19c: :9-12``), verbatim; el ``_inherit`` es herencia real.
     _name = 'purchase.requisition'
     _description = 'Purchase Requisition'
     _inherit = ['mail.thread', 'mail.activity.mixin']
@@ -296,17 +290,17 @@ class PurchaseRequisition(TimeStampedModel):
 
     def _compute_orders_number(self):
         """≙ ``_compute_orders_number`` (``odoo19c: :72-75``)."""
-        return self.purchase_ids.count()
+        return len(self.purchase_ids)
 
     @property
     def product(self):
         """≙ ``product_id`` (``:33``) — ``related='line_ids.product_id'``.
 
         Un ``related`` sobre un to-many se queda con el primero; aquí se hace
-        explícito con ``.first()``.
+        explícito con el primer registro (``line_ids[:1]``).
         """
-        line = self.line_ids.first()
-        return line.product if line is not None else None
+        line = self.line_ids[:1]
+        return line.product if line else None
 
     def _compute_currency_id(self):
         """≙ ``_compute_currency_id`` (``odoo19c: :64-70``).
@@ -434,7 +428,7 @@ class PurchaseRequisition(TimeStampedModel):
         que es el punto por el que todo borrado pasa.
         """
         self._unlink_if_draft_or_cancel()
-        self.line_ids.all().delete()
+        self.line_ids.unlink()
         return super().delete(*args, **kwargs)
 
     def _unlink_if_draft_or_cancel(self):
@@ -442,9 +436,8 @@ class PurchaseRequisition(TimeStampedModel):
         ≙ ``_unlink_if_draft_or_cancel`` (``odoo19c: :158-161``) — verbatim.
         """
         if self.state not in (STATE_DRAFT, STATE_CANCEL):
-            raise ValidationError(
-                'Sólo se pueden borrar acuerdos en borrador o cancelados.'
-            )
+            raise UserError(_(
+                'You can only delete draft or cancelled requisitions.'))
 
     # -- acciones -----------------------------------------------------------
 
@@ -454,16 +447,17 @@ class PurchaseRequisition(TimeStampedModel):
         Cancela el acuerdo: retira las tarifas de proveedor que creó y cancela
         las solicitudes de cotización que siguen en borrador.
 
-        **D-1 declarada:** la fuente publica además una nota en cada orden
-        cancelada (``:126``, ``po.message_post(...)``). Aquí no: el mecanismo
-        de
-        bitácora no cubre ``purchase.order`` en este árbol. La cancelación sí
-        ocurre; lo que falta es su rastro en la conversación.
+        Cada orden cancelada lleva la nota de la fuente (``:126``).
         """
-        for line in self.line_ids.all():
+        for line in self.line_ids:
             line.supplier_info_ids.all().delete()
-        for order in self.purchase_ids.filter(state='draft'):
+        cancellable_pos = self.purchase_ids.filtered(
+            lambda po: po.state == 'draft')
+        for order in cancellable_pos:
             order.button_cancel()
+        for order in cancellable_pos:
+            order.message_post(body=_(
+                'Cancelled by the agreement associated to this quotation.'))
         self.state = STATE_CANCEL
         self.save(update_fields=['state', 'write_date'])
 
@@ -477,23 +471,20 @@ class PurchaseRequisition(TimeStampedModel):
         Una **plantilla de compra** se confirma sin esas comprobaciones: no
         pacta precio.
         """
-        if not self.line_ids.exists():
-            raise ValidationError(
-                f"No se puede confirmar el acuerdo '{self.name}': no tiene "
-                "líneas de producto."
-            )
+        if not self.line_ids:
+            raise UserError(_(
+                "You cannot confirm agreement '%(agreement)s' because it "
+                "does not contain any product lines.", agreement=self.name))
         if self.requisition_type == TYPE_BLANKET_ORDER:
-            for line in self.line_ids.all():
+            for line in self.line_ids:
                 if line.price_unit <= 0.0:
-                    raise ValidationError(
-                        'No se puede confirmar un pedido abierto con líneas '
-                        'sin precio.'
-                    )
+                    raise UserError(_(
+                        'You cannot confirm a blanket order with lines '
+                        'missing a price.'))
                 if line.product_qty <= 0.0:
-                    raise ValidationError(
-                        'No se puede confirmar un pedido abierto con líneas '
-                        'sin cantidad.'
-                    )
+                    raise UserError(_(
+                        'You cannot confirm a blanket order with lines '
+                        'missing a quantity.'))
                 line._create_supplier_info()
         self.state = STATE_CONFIRMED
         self.save(update_fields=['state', 'write_date'])
@@ -512,18 +503,20 @@ class PurchaseRequisition(TimeStampedModel):
         *«Imagine the mess if someone confirms these duplicates: double the
         order, double the trouble»*.
         """
-        if self.purchase_ids.filter(state__in=['draft', 'sent']).exists():
-            raise ValidationError(
-                'Para cerrar este acuerdo, cancela primero las solicitudes de '
-                'cotización relacionadas.'
-            )
-        for line in self.line_ids.all():
+        if any(order.state in ['draft', 'sent', 'to approve']
+               for order in self.purchase_ids):
+            raise UserError(_(
+                "To close this purchase requisition, cancel related Requests "
+                "for Quotation.\n\nImagine the mess if someone confirms "
+                "these duplicates: double the order, double the trouble :)"))
+        for line in self.line_ids:
             line.supplier_info_ids.all().delete()
         self.state = STATE_DONE
         self.save(update_fields=['state', 'write_date'])
 
 
-class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):
+class PurchaseRequisitionLine(models.BaseModel, AnalyticMixin,
+                              TimeStampedModel):
     """``purchase.requisition.line`` — «Purchase Requisition Line»."""
 
     # Atributos de clase de modelo — los CUATRO que la fuente declara
@@ -584,6 +577,16 @@ class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):
         verbose_name='Acuerdo de compra',
         help_text="Odoo requisition_id (required, ondelete='cascade').",
     )
+    #: ≙ ``company_id`` (``odoo19c: :181``), ``related='requisition_id.
+    #: company_id', store=True``: la columna que lee la regla multiempresa
+    #: ``purchase_requisition_line_comp_rule``.
+    company = fields.Many2one(
+        'base.ResCompany',
+        related='requisition.company', store=True, readonly=True,
+        null=True, blank=True, on_delete=models.SET_NULL,
+        related_name='+',
+        verbose_name='Empresa',
+    )
 
     class Meta:
         db_table = 'purchase_requisition_line'
@@ -595,13 +598,6 @@ class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):
         return str(self.product)
 
     # -- computes -----------------------------------------------------------
-
-    @property
-    def company(self):
-        """
-        ≙ ``company_id`` (``:181``) — ``related='requisition_id.company_id'``.
-        D-5 del docstring del módulo: ``property``, no columna espejo."""
-        return self.requisition.company if self.requisition_id else None
 
     @property
     def qty_ordered(self):
@@ -629,12 +625,9 @@ class PurchaseRequisitionLine(AnalyticMixin, TimeStampedModel):
         cantidades se suman en la unidad en que estén, y se declara aquí en vez
         de fingir una conversión.
         """
-        first_line = (
-            self.requisition.line_ids.filter(product=self.product)
-            .order_by('pk')
-            .first()
-        )
-        if first_line is not None and first_line.pk != self.pk:
+        first_line = self.requisition.line_ids.filtered(
+            lambda line: line.product == self.product).sorted('id')[:1]
+        if first_line and first_line.id != self.pk:
             return 0.0
         POL = apps.get_model('purchase', 'PurchaseOrderLine')
         total = 0.0
