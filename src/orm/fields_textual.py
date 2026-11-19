@@ -69,6 +69,7 @@ from operator import attrgetter
 
 from django.db import DEFAULT_DB_ALIAS, connections, models, router
 from django.db.models.query_utils import DeferredAttribute
+from markupsafe import Markup
 from markupsafe import escape as markup_escape
 
 from exceptions import UserError
@@ -144,8 +145,6 @@ class Html(models.TextField):
     - la rama ``translate=True`` de ``_get_attrs`` (``:589-596``), que pasa
       a ``html_translate``: los términos traducibles no están portados
       (TASK-GEN-0060);
-    - ``convert_to_record`` y ``convert_to_read`` (``:684-694``), que
-      devuelven ``Markup``: unidad sucesora ``html-field-markup-0397``;
     - ``get_trans_terms`` (``:696-698``): su ``super()`` es
       ``BaseString.get_trans_terms``, que no está portado (TASK-GEN-0060).
     """
@@ -350,6 +349,21 @@ class Html(models.TextField):
                     ))
 
         return html_sanitize(value, **sanitize_vals)
+
+    def convert_to_record(self, value, record):
+        """≙ ``Html.convert_to_record`` (``:684-688``): el valor saneado se
+        entrega como ``Markup``, que quien lo lee puede pintar sin escapar."""
+        r = super().convert_to_record(value, record)
+        if isinstance(r, bytes):
+            r = r.decode()
+        return r and Markup(r)
+
+    def convert_to_read(self, value, record, use_display_name=True):
+        """≙ ``Html.convert_to_read`` (``:690-694``)."""
+        r = super().convert_to_read(value, record, use_display_name)
+        if isinstance(r, bytes):
+            r = r.decode()
+        return r and Markup(r)
 
     def pre_save(self, model_instance, add):
         """``Model.save()`` sanea con :meth:`_convert`, igual que ``write``.

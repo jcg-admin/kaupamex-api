@@ -1654,8 +1654,11 @@ class FieldDescriptor(DeferredAttribute):
                     # aquí: esta rama es el acierto de caché del almacén
                     # Django, y un ``None`` sale como ``False``, como en la
                     # fuente (``fields_misc.py:66-68``). Tipo exacto: las
-                    # subclases de propiedades tienen su contrato.
-                    if type(field) is models.JSONField:
+                    # subclases de propiedades tienen su contrato. ``Html``
+                    # entrega ``Markup`` también desde esta rama
+                    # (``fields_textual.py:684-688``).
+                    if (type(field) is models.JSONField
+                            or isinstance(field, Html)):
                         return field.convert_to_record(value, instance)
                     return value
 
