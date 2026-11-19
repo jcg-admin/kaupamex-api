@@ -434,3 +434,44 @@ ACL, así que se ejecuta como sistema.
 Controles de anulación: quitar el corte de `_disable_send` en `send_email`
 tumba sólo la prueba de modo de prueba; quitar el `quit()` tumba sólo la
 prueba de la sesión propia.
+
+### Paso 3d: un solo camino de salida (borrador, medido)
+
+**Los remitentes que hoy salen por `django.core.mail`** (medido con
+`grep -rln "from django.core.mail\|from django.core import mail" src addons`):
+
+| Sitio | Qué hace |
+|---|---|
+| `addons/mail/models/email_executor.py:25,58,65` | `dispatch_email`: `send_mail` de Django en un hilo del pool (o síncrono con `DISPATCH_EMAIL_SYNC`) y reencola en `mail.mail` si falla; **23 llamadas** en 12 archivos de producción |
+| `addons/mail/models/mail_mail.py:59,429` | la cola de `mail.mail` (`process_email_queue`) |
+| `addons/website_mass_mailing/controllers/subscribe.py:10,34` | confirmación de la newsletter, con `fail_silently=True` |
+
+Los tres construyen el mensaje con `_build_email__` y lo envían con
+`send_email`. `dispatch_email` conserva su hilo y su reencolado (no es un
+símbolo de la fuente, es la cola de este árbol), pero su transporte pasa a ser
+`send_email`.
+
+**La captura en las pruebas.** Hoy 12 archivos de pruebas leen
+`django.core.mail.outbox` (60 lecturas), que llena el backend `locmem` de
+`config/settings/testing.py:133`. Con `send_email`, bajo pruebas
+`_disable_send` corta antes de enviar, como en la fuente, y `outbox` queda
+vacío. El equivalente de la fuente es `MockSmtplibCase.mock_smtplib_connection`
+(`odoo19c: odoo/addons/base/tests/common.py:378-460`): sustituye
+`smtplib.SMTP` y `SMTP_SSL` por una sesión que registra cada `send_message` en
+`emails` (mensaje, `From`, `To`, `Cc`, `smtp_from`, `smtp_to_list`,
+`from_filter`) y pone `_disable_send` en falso. Se porta como fixture de pytest
+con el mismo nombre y la misma forma de registro, y las 60 lecturas de
+`outbox` pasan a leer `emails`. Después, `EMAIL_BACKEND` de pruebas queda sin
+consumidor y se retira.
+
+**Por medir antes de implementar:**
+
+- `send_email` dentro del hilo del pool. **Medido:** `env()` se arma con
+  `ContextVar` (`src/orm/environments.py:143-149,2106-2128`), y un hilo de
+  `ThreadPoolExecutor` arranca con sus valores por defecto: `uid=None`,
+  `su=False`. Dentro del hilo el modelo se obtiene con
+  `Environment(uid=SUPERUSER_ID)['ir.mail_server']`, como la cola de la fuente,
+  que corre bajo el cron del superusuario.
+- `fail_silently=True` de la newsletter: la fuente no tiene ese parámetro; el
+  equivalente es capturar `MailDeliveryException` en el llamador, y se decide
+  al medir qué hace hoy el controlador cuando el envío falla.
