@@ -1138,32 +1138,32 @@ abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/js_transpiler.py	convert_as	f
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/js_transpiler.py	remove_as	function	absent	task_without_unit	TASK-API-0486		structural=unresolved:archivo espejo inexistente;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py		file	not_verified	task_without_unit	TASK-API-0486		mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	getaddresses	function	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner	class	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner	class	absent	task_units_settled	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner.__call__	method	not_verified	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner.strip_class	method	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner.parse_style	method	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner.kill_conditional_comments	method	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	tag_quote	function	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	fromstring	function	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	html_normalize	function	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	html_sanitize	function	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	validate_url	function	absent	task_without_unit	TASK-API-0486	TASK-API-0247	structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner.strip_class	method	absent	task_units_settled	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner.parse_style	method	absent	task_units_settled	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner.kill_conditional_comments	method	absent	task_units_settled	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	tag_quote	function	absent	task_units_settled	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	fromstring	function	absent	task_units_settled	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	html_normalize	function	absent	task_units_settled	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	html_sanitize	function	absent	task_units_settled	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	validate_url	function	absent	task_units_settled	TASK-API-0486	TASK-API-0247	structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	is_html_empty	function	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	html_keep_url	function	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	html_to_inner_content	function	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	create_link	function	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	html_keep_url	function	absent	task_units_settled	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	html_to_inner_content	function	absent	task_units_settled	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	create_link	function	absent	task_units_settled	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	html2plaintext	function	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	plaintext2html	function	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	append_content_to_html	function	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	prepend_html_content	function	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	plaintext2html	function	absent	task_units_settled	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	append_content_to_html	function	absent	task_units_settled	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	prepend_html_content	function	absent	task_units_settled	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	email_split_tuples	function	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	email_split	function	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_normalize_email	function	not_verified	task_without_unit	TASK-API-0486		structural=signature;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner._style_re	attribute	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner._style_whitelist	attribute	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner.conditional_comments	attribute	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner.sanitize_style	attribute	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
-abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner.strip_classes	attribute	absent	task_without_unit	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner._style_re	attribute	absent	task_units_settled	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner._style_whitelist	attribute	absent	task_units_settled	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner.conditional_comments	attribute	absent	task_units_settled	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner.sanitize_style	attribute	absent	task_units_settled	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
+abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/mail.py	_Cleaner.strip_classes	attribute	absent	task_units_settled	TASK-API-0486		structural=unresolved;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/misc.py		file	not_verified	task_without_unit	TASK-API-0486		mirror=yes
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/misc.py	Sentinel	class	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-
 abe4040ec1a45beee90fb694e4eae4453e46b389	src/tools/misc.py	find_in_path	function	not_verified	task_without_unit	TASK-API-0486		structural=match;write_path=-;evidence=-

@@ -265,9 +265,9 @@
  },
  "obligations_without_task": {},
  "obligation_classes": {
-  "task_units_settled": 83,
+  "task_units_settled": 103,
   "task_with_admissible_unit": 1,
-  "task_without_unit": 1448
+  "task_without_unit": 1428
  },
  "settled_not_integrated": [
   "tag-delete-unlink-other-alias",
@@ -544,7 +544,8 @@
   "mail-res-users-mail-server-0397",
   "mail-alias-domain-personal-servers-0397",
   "mail-alias-domain-first-creation-0397",
-  "tools-mail-html-sanitizer-0397"
+  "tools-mail-html-sanitizer-0397",
+  "tools-mail-html-sanitizer-0486"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
