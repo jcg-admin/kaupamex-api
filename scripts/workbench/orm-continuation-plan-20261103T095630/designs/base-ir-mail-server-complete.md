@@ -158,6 +158,7 @@ RED en `tests/unit/base/test_ir_mail_server_basemodel.py`.
   es `test_the_system_group_has_the_source_acl` en
   `tests/unit/base/test_ir_mail_server_basemodel.py`.
 - Pruebas en `tests/unit/base/test_ir_mail_server_basemodel.py`: 8.
+- Consumidores derivados (`grep -rlE "IrMailServer|ir\.mail_server|ir_mail_server|send_email|MailMail|mail_mail|email_executor" tests/`): 5515 passed con `-n 4`. Ningún código vivo usa `IrMailServer` (el envío va por la configuración de Django), así que el ACL nuevo no deniega ninguna ruta de envío.
 
 Anulaciones, cada una medida por separado:
 
