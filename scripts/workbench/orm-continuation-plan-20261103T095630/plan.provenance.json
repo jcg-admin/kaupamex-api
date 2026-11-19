@@ -1235,6 +1235,13 @@
         "basemodel-adoption-authz-totp-0397"
       ],
       "writtenAt": "2026-11-19T17:39:42Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-account-edi-0397"
+      ],
+      "writtenAt": "2026-11-19T18:13:29Z"
     }
   ]
 }
