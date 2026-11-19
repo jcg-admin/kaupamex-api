@@ -27,8 +27,9 @@ Unidad hija `basemodel-adoption-account-edi-0397` del paraguas
 
 Consumidores del segundo, que pasan al API de recordset:
 `compute_edi_format_ids` (`addons/account_edi/models/account_journal.py`), con
-`ids`, `filtered` y `write` con `fields.Command.set`, y el bucle de formatos de
-`account_move.py`. `write` con comandos pasa por el manager de Django, que
+`ids`, `filtered` y `write` con `fields.Command.set`, y
+`_create_edi_documents_after_post` de `account_move.py`, que recorre
+`journal.edi_format_ids` (≙ `odoo19c: addons/account_edi/models/account_move.py:240`). `write` con comandos pasa por el manager de Django, que
 emite `m2m_changed`: `_guard_edi_format_removal` sigue disparando.
 
 ## Cambios
