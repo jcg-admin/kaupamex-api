@@ -52,8 +52,11 @@ filas).
      `fleet_vehicle_model.py`: `vehicle_count` con `len`.
    - `account_fleet/models/fleet_vehicle_log_services.py`: un Many2one vacío
      de un `BaseModel` es un recordset vacío, no `None`. `_sync_service_fields_from_line`,
-     `sync_vehicle_from_line`, `sync_amount_from_line` y los dos receptores
-     que leen `account_move_line` preguntan por su verdad.
+     `sync_vehicle_from_line`, `sync_amount_from_line`,
+     `account_move_state`, `get_account_move` y los receptores
+     `_guard_amount_immutable_when_billed` y `_unlink_if_no_linked_bill`, que
+     leen `account_move_line`, preguntan por su verdad
+     (≙ `odoo19c: addons/account_fleet/models/fleet_vehicle_log_services.py`).
    - El grupo `fleet_group_manager` se carga sin `user_ids`: `base.user_root`
      y `base.user_admin` no existen aquí (el mismo caso que `purchase-security.md`).
 5. `test_basemodel_reach.py`: `fleet` sale de `PENDING`.
