@@ -310,3 +310,45 @@ Pruebas: `tests/unit/tools/test_config_smtp_readers.py` y
 anulación: retirar el `or 'localhost'` tumba sólo el caso de valores por
 defecto; quitar el respaldo `config.from_filter()` tumba sólo el caso del
 respaldo.
+
+### Paso 3b: la conexión (ítem `base-ir-mail-server-connect-0397`), diseño
+
+**Prosa heredada que este paso corrige.** El docstring del módulo tiene una
+sección «Qué NO se porta» que declara tres divergencias, y las tres son
+falsas a la luz de la corrección del ejecutor del 2026-11-19:
+
+- «todo el transporte… Duplicarlo daría dos caminos de salida». El paso 3a ya
+  portó cuatro de esos métodos, y el remedio a los dos caminos es que haya uno
+  solo, `send_email` (paso 3d), no que falte;
+- «los tres parches globales… una decisión de plataforma». La fuente los
+  aplica al importar el módulo (`odoo19c: odoo/addons/base/models/
+  ir_mail_server.py:68-98`), y portarlos completos es aplicarlos igual;
+- «`_verify_check_hostname_callback` pertenece al conector, que no se porta».
+  El conector se porta en este paso.
+
+**Qué se porta** (`odoo19c: odoo/addons/base/models/ir_mail_server.py`):
+
+| Símbolo | Líneas | Nota |
+|---|---|---|
+| imports de pyOpenSSL, `cryptography`, `urllib3.contrib.pyopenssl`, `idna` | 16-56 | rama `OpenSSL >= 24.3.0` (aquí 26.2.0); la rama vieja se porta igual, con la misma condición |
+| `_print_debug` + `smtplib.SMTP._print_debug = …` | 68-71 | parche al importar |
+| `RFC5322_IDENTIFICATION_HEADERS`, `USER_DEFINED_HEADERS`, `_noFoldPolicy`, `_maxFoldPolicy`, `IdentificationFieldsNoFoldPolicy` + `email.policy.SMTP = …` | 73-92 | parche al importar |
+| `WriteToLogger` + `smtplib.stderr = …` | 94-98 | parche al importar |
+| `_verify_check_hostname_callback` | 122-137 | |
+| `_disable_send` | 388-392 | `current_test or pool._init` → `tools.config.test_enable() or env().registry._init` (`orm/registry.py:1812,1919`) |
+| `_connect__` | 394-534 | |
+| `_smtp_login__` | 541-551 | |
+
+**Dependencias.** `pyOpenSSL`, `idna` y `urllib3` están en `uv.lock` sólo como
+transitivas (26.2.0, 3.17, 2.7.0). La fuente las importa en su módulo, así que
+pasan a declararse en `pyproject.toml` con la versión ya resuelta: sin
+descarga nueva.
+
+**Pruebas** (`tests/unit/base/test_ir_mail_server_connect.py`): `_connect__`
+devuelve `None` bajo pruebas; con `_disable_send` en falso y `smtplib.SMTP`
+sustituido por un doble, la conexión recibe el host, el puerto y el `from_filter`
+del servidor y, sin servidor, los de `tools.config`; STARTTLS se activa por
+`smtp_ssl`; el usuario con dominio internacional se codifica con `idna`;
+servidor ausente → `UserError` «Missing SMTP Server»; los tres parches están
+aplicados tras importar el módulo (`smtplib.SMTP._print_debug`,
+`smtplib.stderr`, `email.policy.SMTP`), y un `Message-ID` largo no se pliega.
