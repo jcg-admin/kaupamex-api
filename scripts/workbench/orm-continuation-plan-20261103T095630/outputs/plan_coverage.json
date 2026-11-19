@@ -554,7 +554,8 @@
   "html-field-sanitize-0485",
   "properties-html-sanitize-0485",
   "html-field-markup-0485",
-  "basemodel-adoption-onboarding-0397"
+  "basemodel-adoption-onboarding-0397",
+  "basemodel-adoption-base-automation-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
