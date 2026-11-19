@@ -385,3 +385,27 @@ Pendiente, fuera de este paso: `extract_rfc2822_addresses` sigue capturando
 `UnicodeEncodeError` de `email.utils.formataddr`, y no `idna.IDNAError` del
 `formataddr` de `tools`, como hace la fuente (`:105-119`). Ahora que `idna` es
 una dependencia declarada, se corrige con el paso 3c.
+
+### Paso 3c: el envío y la prueba de conexión (borrador, medido)
+
+`odoo19c: odoo/addons/base/models/ir_mail_server.py`:
+
+| Símbolo | Líneas | Estado aquí |
+|---|---|---|
+| `_test_logger` | 59 | ausente |
+| `send_email` | 798-868 | ausente |
+| `test_smtp_connection` | 300-382 | ausente |
+| `action_retrieve_max_email_size` | 384-386 | ausente |
+| `_get_test_email_to` | 297-298 | ausente |
+| `_get_test_email_from` | 280-295 | firma divergente: aquí recibe `fallback_email`; la fuente cae a `self.env.user.email` |
+| `extract_rfc2822_addresses` | 105-119 | captura `UnicodeEncodeError` de `email.utils.formataddr`; la fuente usa el `formataddr` de `tools` y captura `idna.IDNAError` |
+
+### Paso 3e: la superficie del modelo (borrador, medido)
+
+Tres divergencias que el docstring presenta como equivalentes y no lo son:
+
+| Fuente | Aquí | Diferencia medida |
+|---|---|---|
+| `smtp_authentication_info`: campo calculado no almacenado, `@api.depends('smtp_authentication')`, texto inglés (`:204-220`) | `@property` con texto español reescrito | el valor no es el de la fuente, y `False` pasa a `''` |
+| `_check_smtp_ssl_files`: `@api.constrains`, `UserError` en inglés (`:222-229`) | `clean()`, `ValidationError` en español | otro mecanismo, otra excepción y otro mensaje; `clean()` no corre en `create`/`write` del ORM |
+| `_onchange_encryption`: `@api.onchange('smtp_encryption')`; `ssl` → 465 con aviso si falta `SMTP_SSL`; cualquier otro → **25** (`:979-990`) | `suggested_port()`, que devuelve el puerto actual fuera de `ssl` | la rama `else` no fija 25, y no hay aviso |

@@ -150,3 +150,4 @@ f2-365fd1bf	full-batch	365fd1bf	-	0	13959	0	0	8	-	13959 passed, 66 skipped, 8 xf
 f2-a0a5e811	full-batch	a0a5e811	-	0	13965	0	0	8	-	13965 passed, 66 skipped, 8 xfailed, EXIT=0	verde	base-ir-mail-server-basemodel-0397	f2-a0a5e811.log:0eefd32d2b07d5e048c1df2487268efb1ec9a3c36ab19399e5f25cd6b4342564
 f2-1c2b4d7a	full-batch	1c2b4d7a	-	0	13976	0	0	8	-	13976 passed, 66 skipped, 8 xfailed in 1299.61s EXIT=0	verde	base-ir-mail-server-message-0397	f2-1c2b4d7a.log:4b441cbc41a788ed01e931b3a8a5c7a29c299b95b3ccef0834e3a3ca7f92fe25
 f2-149002b9	full-batch	149002b9	-	0	13981	0	0	8	-	13981 passed, 66 skipped, 8 xfailed in 1414.44s EXIT=0	verde	base-ir-mail-server-config-0397	f2-149002b9.log:df4c963793d6c53abbea12dbd25a74545cf35d4c37282eb7f39612f1b231016a
+f2-80837f7d	full-batch	80837f7d	-	0	13989	0	0	8	-	13989 passed, 66 skipped, 8 xfailed in 1298.04s EXIT=0	verde	base-ir-mail-server-connect-0397	f2-80837f7d.log:eba2131233df6b2ac2da3739ddd59bd40034c4ffbce12eff0256317fb03aefb2
