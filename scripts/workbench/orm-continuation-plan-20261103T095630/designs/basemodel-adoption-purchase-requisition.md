@@ -50,17 +50,39 @@ Unidad hija `basemodel-adoption-purchase-requisition-0397` del paraguas
    `action_done` añade `to approve`.
 5. `test_basemodel_reach.py`: `purchase_requisition` sale de `PENDING`.
 
+## Ejecución (medido al implementar)
+
+6. D-5 se cierra en esta unidad, porque la regla
+   `purchase_requisition_line_comp_rule` la necesita: cargar el XML falló con
+   *«Campo inválido purchase_requisition.PurchaseRequisitionLine.company_id»*
+   mientras la empresa de la línea era una `property`. `company` de la línea
+   es ahora `fields.Many2one(related='requisition.company', store=True)`
+   (≙ `odoo19c: addons/purchase_requisition/models/purchase_requisition.py:181`),
+   con la migración `0006_purchaserequisitionline_company`, que rellena las
+   filas existentes con la empresa de su acuerdo.
+7. Del CSV salen dos filas, las de `purchase.requisition.alternative.warning`
+   y `purchase.requisition.create.alternative`: son transitorios abstractos,
+   sin tabla ni fila en `ir.model`, así que `model_*` no resuelve. Es el caso
+   que `account-security.md` declaró para once asistentes de `account`. Se
+   declaran en el manifiesto; sucesor `transient-wizard-tables-0397`.
+8. Las acciones que esta unidad toca (`action_confirm`, `action_done`,
+   `_unlink_if_draft_or_cancel`) levantan `UserError` con el texto de la
+   fuente, no el `ValidationError` de Django; `_compute_ordered_qty` lee
+   `line_ids` como recordset.
+
 ## Fuera de esta unidad, con su sucesor
 
 - D-3: el cuerpo de `save`/`delete` pasa a `create`/`write`/`unlink` con la
   forma de la fuente — `purchase-requisition-crud-0397`.
-- D-2 (`tracking=True`), D-4 (`compute` sin `store` como `property`) y D-5
-  (`company_id` de la línea) — `purchase-requisition-divergences-0397`.
+- D-2 (`tracking=True`) y D-4 (`compute` sin `store` como `property`) —
+  `purchase-requisition-divergences-0397`.
+- Las dos filas de los asistentes — `transient-wizard-tables-0397`.
 
 ## Pruebas
 
 `tests/unit/purchase_requisition/test_purchase_requisition_basemodel.py`: los
 tres modelos son `BaseModel` con su `_description`; el acuerdo es
-`MailThread`; las 7 filas del CSV y los tres registros del XML; un usuario
+`MailThread`; las 5 filas del CSV que resuelven y los tres registros del
+XML; un usuario
 interno sin compras no lee un acuerdo; `order_count`; `action_done` rehúsa
 con `to approve`; `action_cancel` deja la nota en la orden.
