@@ -383,7 +383,7 @@ class IrMailServer(TimeStampedModel):
 
     # --- Guardián de archivado ------------------------------------------
 
-    def active_usages(self):
+    def _active_usages_compute(self):
         """``_active_usages_compute`` — qué usa este servidor.
 
         Devuelve ``{}``. **Es el contrato de la fuente**, no un hueco: los
@@ -400,7 +400,7 @@ class IrMailServer(TimeStampedModel):
         conserva la distinción porque el plural nombra los servidores y el
         singular no, y perderla deja al operador sin saber cuál desarchivar.
         """
-        usages = self.active_usages()
+        usages = self._active_usages_compute()
         detail = usages.get(self.pk)
         if not detail:
             return
@@ -420,7 +420,7 @@ class IrMailServer(TimeStampedModel):
         """
         blocked = {}
         for server in servers:
-            detail = server.active_usages().get(server.pk)
+            detail = server._active_usages_compute().get(server.pk)
             if detail:
                 blocked[server] = detail
         if not blocked:
@@ -443,7 +443,7 @@ class IrMailServer(TimeStampedModel):
 
     # --- Tamaño y remitentes por defecto --------------------------------
 
-    def get_max_email_size(self):
+    def _get_max_email_size(self):
         """``_get_max_email_size`` — el del servidor, o el parámetro global."""
         if self.max_email_size:
             return float(self.max_email_size)
@@ -454,7 +454,7 @@ class IrMailServer(TimeStampedModel):
         )
 
     @staticmethod
-    def get_default_from_address():
+    def _get_default_from_address():
         """``_get_default_from_address`` — remitente por defecto.
 
         La fuente lee el parámetro de arranque ``--email-from``; el
@@ -464,7 +464,7 @@ class IrMailServer(TimeStampedModel):
         return getattr(settings, 'DEFAULT_FROM_EMAIL', '') or ''
 
     @classmethod
-    def get_default_from_filter(cls):
+    def _get_default_from_filter(cls):
         """``_get_default_from_filter`` — el de la config global.
 
         Primero el parámetro de sistema, luego el valor de arranque; mismo
@@ -472,7 +472,7 @@ class IrMailServer(TimeStampedModel):
         """
         return SystemParameter.get_param(DEFAULT_FROM_FILTER_PARAM, '') or ''
 
-    def get_test_email_from(self, fallback_email=''):
+    def _get_test_email_from(self, fallback_email=''):
         """``_get_test_email_from`` — remitente para la prueba de conexión.
 
         Toma el primer correo completo del ``from_filter``; si el filtro sólo
@@ -480,7 +480,7 @@ class IrMailServer(TimeStampedModel):
         correo del usuario actual cuando no hay filtro — aquí ese usuario lo
         aporta el llamador, porque este archivo no conoce el request.
         """
-        parts = self.parse_from_filter(self.from_filter)
+        parts = self._parse_from_filter(self.from_filter)
         email_from = next((part for part in parts if '@' in part), '')
         if not email_from and parts:
             email_from = f'noreply@{parts[0]}'
@@ -496,7 +496,7 @@ class IrMailServer(TimeStampedModel):
     # --- Filtro de remitente y selección de servidor --------------------
 
     @staticmethod
-    def parse_from_filter(from_filter):
+    def _parse_from_filter(from_filter):
         """``_parse_from_filter`` — trocea el filtro y descarta lo vacío."""
         return [
             part.strip()
@@ -505,7 +505,7 @@ class IrMailServer(TimeStampedModel):
         ]
 
     @classmethod
-    def match_from_filter(cls, email_from, from_filter):
+    def _match_from_filter(cls, email_from, from_filter):
         """``_match_from_filter`` — ¿el remitente casa el filtro?
 
         Un filtro vacío casa **siempre** — es "sin restricción", no "no casa
@@ -516,7 +516,7 @@ class IrMailServer(TimeStampedModel):
             return True
         normalized_from = email_normalize(email_from)
         normalized_domain = email_domain_extract(normalized_from)
-        for part in cls.parse_from_filter(from_filter):
+        for part in cls._parse_from_filter(from_filter):
             if '@' in part:
                 if email_normalize(part) == normalized_from:
                     return True
@@ -525,16 +525,16 @@ class IrMailServer(TimeStampedModel):
         return False
 
     @classmethod
-    def filter_servers_fallback(cls, servers):
+    def _filter_mail_servers_fallback(cls, servers):
         """``_filter_mail_servers_fallback`` — candidatos de respaldo.
 
-        Devuelve todos. Igual que ``active_usages``, es el contrato de la
-        fuente para que otro módulo lo acote, no un hueco.
+        Devuelve todos. Igual que ``_active_usages_compute``, es el contrato
+        de la fuente para que otro módulo lo acote, no un hueco.
         """
         return servers
 
     @classmethod
-    def find_mail_server(
+    def _find_mail_server(
         cls, email_from, servers=None, notifications_email=None
     ):
         """``_find_mail_server`` — servidor **y** remitente a usar.
@@ -551,7 +551,7 @@ class IrMailServer(TimeStampedModel):
         from_domain = email_domain_extract(normalized_from)
         if notifications_email is None:
             notifications_email = email_normalize(
-                cls.get_default_from_address()
+                cls._get_default_from_address()
             )
         notifications_domain = email_domain_extract(notifications_email)
 
@@ -568,7 +568,7 @@ class IrMailServer(TimeStampedModel):
                     continue
                 if any(
                     normalize(part) == target
-                    for part in cls.parse_from_filter(server.from_filter)
+                    for part in cls._parse_from_filter(server.from_filter)
                 ):
                     return server
             return None
@@ -582,7 +582,7 @@ class IrMailServer(TimeStampedModel):
             if server is not None:
                 return server, email_from
 
-        servers = cls.filter_servers_fallback(servers)
+        servers = cls._filter_mail_servers_fallback(servers)
 
         # 3. Contra el correo de notificaciones: correo exacto, luego dominio.
         if notifications_email:
@@ -609,10 +609,10 @@ class IrMailServer(TimeStampedModel):
             return servers[0], notifications_email or email_from
 
         # Sin filas: cae a la configuración global.
-        from_filter = cls.get_default_from_filter()
-        if cls.match_from_filter(email_from, from_filter):
+        from_filter = cls._get_default_from_filter()
+        if cls._match_from_filter(email_from, from_filter):
             return None, email_from
-        if notifications_email and cls.match_from_filter(
+        if notifications_email and cls._match_from_filter(
             notifications_email, from_filter
         ):
             return None, notifications_email
