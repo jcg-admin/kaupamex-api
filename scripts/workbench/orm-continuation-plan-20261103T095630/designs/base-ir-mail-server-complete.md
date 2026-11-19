@@ -501,3 +501,19 @@ pruebas que lo leen por `outbox`.
 Control: con los remitentes aún en `django.core.mail`, las pruebas migradas
 fallan (4 de 6). Retirar del fixture el parche de `_disable_send` tumba sólo
 la prueba de captura.
+
+### Paso 3d-2: `dispatch_email` por `send_email` (borrador, medido)
+
+- `dispatch_email` construye el mensaje con `_build_email__` y lo envía con
+  `send_email`, en el hilo del pool o síncrono, con
+  `Environment(uid=SUPERUSER_ID)` (ver la medición del hilo, arriba). Los
+  llamadores pasan `html_message` en 8 sitios y `notification` en 2 (medido
+  con `grep -A7 "dispatch_email("`). `send_mail` de Django arma
+  `multipart/alternative` con `message` y `html_message`; el equivalente es
+  `body=html_message, subtype='html', body_alternative=message`.
+- Las lecturas de `outbox` que quedan, por forma (medido con `grep -oE`):
+  `django_mail.outbox` 16, `.clear()` 13, `mail.outbox` 11, `[0].to` 6,
+  `[0].subject` 4, `[0].body` 1. Pasan a `emails[i]['smtp_to_list']` y a
+  `parsed_message(...)`.
+- Después, `EMAIL_BACKEND` de pruebas (`config/settings/testing.py:133`) queda
+  sin consumidor y se retira.
