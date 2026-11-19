@@ -785,3 +785,13 @@ el archivo con su condición de cierre, no se omiten.
   campos no se aplica por campo (`res.users` no es `BaseModel`); el resto de
   la extensión de `res.users` son los ítems B-G del inventario, con su
   bloqueo nombrado allí.
+
+- **5-1c** (`mail-alias-domain-personal-servers-0397`):
+  `_check_default_from_not_used_by_users` de `mail.alias.domain` (`odoo19c:
+  addons/mail/models/mail_alias_domain.py:175-184`), que la fuente llama tras
+  `create` (`:150`) y tras `write` (`:172`). Aquí la llama `save` de
+  `addons/mail/models/mail_alias_domain.py` dentro de `transaction.atomic()`,
+  para que un rechazo deshaga la escritura igual que la transacción de la
+  fuente. Lee los servidores personales (`owner_user_id`) que trajo 5-1a, con
+  `_match_from_filter` de `base`. Prueba:
+  `tests/unit/mail/test_mail_alias_domain_personal_servers.py`.
