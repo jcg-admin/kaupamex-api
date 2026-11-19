@@ -580,11 +580,11 @@ class PurchaseRequisitionLine(models.BaseModel, AnalyticMixin,
     #: ≙ ``company_id`` (``odoo19c: :181``), ``related='requisition_id.
     #: company_id', store=True``: la columna que lee la regla multiempresa
     #: ``purchase_requisition_line_comp_rule``.
-    company = fields.Many2one(
+    company_id = fields.Many2one(
         'base.ResCompany',
         related='requisition.company', store=True, readonly=True,
         null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='+',
+        related_name='+', db_column='company_id',
         verbose_name='Empresa',
     )
 

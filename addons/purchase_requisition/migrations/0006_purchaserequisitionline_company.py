@@ -22,9 +22,10 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name="purchaserequisitionline",
-            name="company",
+            name="company_id",
             field=models.ForeignKey(
                 blank=True,
+                db_column="company_id",
                 editable=False,
                 null=True,
                 on_delete=django.db.models.deletion.SET_NULL,
@@ -34,5 +35,5 @@ class Migration(migrations.Migration):
             ),
         ),
         ComputeStoredFields('purchase_requisition', 'purchaserequisitionline',
-                            ['company']),
+                            ['company_id']),
     ]
