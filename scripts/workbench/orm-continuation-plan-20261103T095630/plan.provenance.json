@@ -1143,6 +1143,13 @@
         "base-ir-mail-server-options-0397"
       ],
       "writtenAt": "2026-11-19T06:31:50Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "mail-ir-mail-server-extension-0397"
+      ],
+      "writtenAt": "2026-11-19T07:44:35Z"
     }
   ]
 }
