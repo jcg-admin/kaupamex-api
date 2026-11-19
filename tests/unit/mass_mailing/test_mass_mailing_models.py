@@ -20,21 +20,21 @@ class TestMailingListAndContacts:
         lst = MailingList.objects.create(name='Ofertas')
         contact = MailingContact.objects.create(email='a@x.com', name='Ana')
         sub = MailingSubscription.objects.create(
-            contact_id=contact, mailing_list=lst
+            contact_id=contact, list_id=lst
         )
         assert sub.opt_out is False
         # reversos por related_name
-        assert lst.subscription_ids.filter(pk=sub.pk).exists()
-        assert contact.subscription_ids.filter(pk=sub.pk).exists()
+        assert sub in lst.subscription_ids
+        assert sub in contact.subscription_ids
 
     def test_subscription_unique_per_list(self, db):
         lst = MailingList.objects.create(name='L')
         c = MailingContact.objects.create(email='a@x.com')
-        MailingSubscription.objects.create(contact_id=c, mailing_list=lst)
+        MailingSubscription.objects.create(contact_id=c, list_id=lst)
         with pytest.raises(IntegrityError):
             with transaction.atomic():
                 MailingSubscription.objects.create(
-                    contact_id=c, mailing_list=lst
+                    contact_id=c, list_id=lst
                 )
 
     def test_optout_is_per_list_not_global(self, db):
@@ -42,9 +42,9 @@ class TestMailingListAndContacts:
         l1 = MailingList.objects.create(name='L1')
         l2 = MailingList.objects.create(name='L2')
         s1 = MailingSubscription.objects.create(
-            contact_id=c, mailing_list=l1, opt_out=True
+            contact_id=c, list_id=l1, opt_out=True
         )
-        s2 = MailingSubscription.objects.create(contact_id=c, mailing_list=l2)
+        s2 = MailingSubscription.objects.create(contact_id=c, list_id=l2)
         # el contacto salio de L1 pero sigue en L2 (fiel a Odoo)
         assert s1.opt_out is True and s2.opt_out is False
 
@@ -72,8 +72,8 @@ class TestMailingTrace:
         c = MailingContact.objects.create(email='a@x.com')
         t = MailingTrace.objects.create(mailing=m, contact=c, email=c.email)
         assert t.trace_status == MailingTrace.STATUS_OUTGOING
-        assert m.trace_ids.filter(pk=t.pk).exists()
-        assert c.trace_ids.filter(pk=t.pk).exists()
+        assert t in m.trace_ids
+        assert t in c.trace_ids
 
     def test_trace_unique_per_contact(self, db):
         m = MailingMailing.objects.create(subject='X')
@@ -101,7 +101,7 @@ class TestSubscriptionOptInLifecycle:
         c = MailingContact.objects.create(email='a@x.com')
         item = MailingList.objects.create(name='News')
         return MailingSubscription.objects.create(
-            contact_id=c, mailing_list=item)
+            contact_id=c, list_id=item)
 
     def test_new_subscription_is_pending(self, db):
         s = self._sub()
@@ -131,7 +131,7 @@ class TestSubscriptionOptInLifecycle:
         s1 = self._sub()
         c2 = MailingContact.objects.create(email='b@x.com')
         s2 = MailingSubscription.objects.create(
-            contact_id=c2, mailing_list=s1.mailing_list
+            contact_id=c2, list_id=s1.list_id
         )
         assert s1.unsubscribe_token != s2.unsubscribe_token
 

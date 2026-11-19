@@ -70,7 +70,7 @@ class TestSubscribe:
 
         assert (
             MailingSubscription.objects.filter(
-                mailing_list=mm.newsletter_list(),
+                list_id=mm.newsletter_list(),
                 contact_id__email='nuevo@example.com',
             ).count()
             == 1

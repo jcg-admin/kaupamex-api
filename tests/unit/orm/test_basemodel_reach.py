@@ -50,7 +50,6 @@ PENDING = {
     'analytic',
     'base',
     'helpdesk',
-    'mass_mailing',
     'product',
     'sale',
     'stock',

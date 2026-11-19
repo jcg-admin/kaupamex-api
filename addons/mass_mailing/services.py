@@ -79,7 +79,7 @@ def find_by_email(email):
     """Suscripción a la lista Newsletter por email del contacto, o ``None``."""
     return (
         MailingSubscription.objects.filter(
-            mailing_list=newsletter_list(), contact_id__email=email
+            list_id=newsletter_list(), contact_id__email=email
         )
         .select_related('contact_id')
         .first()
@@ -98,7 +98,7 @@ def create_pending(email, confirmation_token):
     )
     return MailingSubscription.objects.create(
         contact_id=contact,
-        mailing_list=newsletter_list(),
+        list_id=newsletter_list(),
         confirmation_token=confirmation_token,
         unsubscribe_token=signing.dumps(
             secrets.token_urlsafe(16),
@@ -135,7 +135,7 @@ def find_by_confirmation_token(email, token):
     """Suscripción PENDING por (email, confirmation_token), o ``None``."""
     return (
         MailingSubscription.objects.filter(
-            mailing_list=newsletter_list(),
+            list_id=newsletter_list(),
             contact_id__email=email,
             confirmation_token=token,
         )
@@ -175,7 +175,7 @@ def _status_filter(qs, status):
 def list_subscriptions(status=None):
     """Suscripciones de la lista Newsletter (opcionalmente filtradas)."""
     qs = (
-        MailingSubscription.objects.filter(mailing_list=newsletter_list())
+        MailingSubscription.objects.filter(list_id=newsletter_list())
         .select_related('contact_id')
         .order_by('-create_date', '-id')
     )
@@ -191,7 +191,7 @@ def recipients_for(status):
     return list(
         _status_filter(
             MailingSubscription.objects.filter(
-                mailing_list=newsletter_list()
+                list_id=newsletter_list()
             ).select_related('contact_id'),
             status,
         ).values_list('contact_id__email', flat=True)

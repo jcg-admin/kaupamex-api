@@ -23,7 +23,7 @@ from addons.mail.models import MailThread
 from .mailing_list import MailingList
 
 
-class MailingMailing(MailThread, TimeStampedModel):
+class MailingMailing(models.BaseModel, MailThread, TimeStampedModel):
     """
     ``mailing.mailing`` — campana de correo masivo (hereda ``mail.thread``).
     """

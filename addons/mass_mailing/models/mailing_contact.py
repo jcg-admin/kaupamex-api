@@ -19,8 +19,16 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class MailingContact(TimeStampedModel):
+class MailingContact(models.BaseModel, TimeStampedModel):
     """``mailing.contact`` — destinatario de campanas masivas."""
+
+    #: ≙ la cabecera de la fuente, verbatim
+    #: (``odoo19c: addons/mass_mailing/models/mailing_contact.py:14-17``).
+    #: ``_inherit`` nombra el contrato aunque sus dos mixins no tengan puerto.
+    _name = 'mailing.contact'
+    _inherit = ['mail.thread.blacklist', 'properties.base.definition.mixin']
+    _description = 'Mailing Contact'
+    _order = 'name ASC, id DESC'
 
     name = fields.Char(
         max_length=255,

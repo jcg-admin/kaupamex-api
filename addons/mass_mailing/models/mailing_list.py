@@ -13,8 +13,17 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class MailingList(TimeStampedModel):
+class MailingList(models.BaseModel, TimeStampedModel):
     """``mailing.list`` — lista de correo para envios masivos."""
+
+    #: ≙ la cabecera de la fuente
+    #: (``odoo19c: addons/mass_mailing/models/mailing_list.py:12-18``). La
+    #: fuente asigna ``_order`` dos veces y gana la segunda.
+    _name = 'mailing.list'
+    _description = 'Mailing List'
+    _mailing_enabled = True
+    _order = 'create_date DESC'
+    _disable_data_merge = True
 
     name = fields.Char(
         max_length=255,

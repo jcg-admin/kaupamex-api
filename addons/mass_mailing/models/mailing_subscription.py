@@ -4,7 +4,8 @@ Portacion fiel de ``mass_mailing/models/mailing_subscription.py``
 (``mailing.subscription``, antes ``mailing.contact.subscription``): la tabla
 intermedia con datos del M2M ``mailing.contact`` ↔ ``mailing.list``. El opt-out
 es **por lista** (un contacto puede seguir una lista y salirse de otra), fiel a
-Odoo — a diferencia del opt-out global del ``NewsletterSubscriber`` de proyecto.
+Odoo — a diferencia del opt-out global del ``NewsletterSubscriber`` de
+proyecto.
 """
 import secrets
 
@@ -28,7 +29,7 @@ def _generate_unsubscribe_token():
     return signing.dumps(secrets.token_urlsafe(16), salt='mailing-unsub')
 
 
-class MailingSubscription(TimeStampedModel):
+class MailingSubscription(models.BaseModel, TimeStampedModel):
     """``mailing.subscription`` — contacto suscrito a una lista, con opt-out.
 
     Aloja tambien el **doble opt-in por lista** que traia el ``newsletter`` de
@@ -37,16 +38,28 @@ class MailingSubscription(TimeStampedModel):
     global del ``NewsletterSubscriber`` — en Odoo la suscripcion es por lista.
     """
 
+    #: ≙ la cabecera de la fuente
+    #: (``odoo19c: addons/mass_mailing/models/mailing_subscription.py:11-15``).
+    _name = 'mailing.subscription'
+    _description = 'Mailing List Subscription'
+    _table = 'mailing_subscription'
+    _rec_name = 'contact_id'
+    _order = 'list_id DESC, contact_id DESC'
+
     contact_id = fields.Many2one(
         MailingContact, null=False, on_delete=models.CASCADE,
         related_name='subscription_ids',
         help_text='Contacto (Odoo contact_id).',
         db_column='contact_id',
     )
-    mailing_list = fields.Many2one(
+    #: ≙ ``list_id`` (``odoo19c: addons/mass_mailing/models/
+    #: mailing_subscription.py:18``), con su nombre: el ``_order`` de la
+    #: fuente lo nombra.
+    list_id = fields.Many2one(
         MailingList, null=False, on_delete=models.CASCADE,
-        related_name='subscription_ids',
+        related_name='subscription_ids', db_index=True,
         help_text='Lista (Odoo list_id).',
+        db_column='list_id',
     )
     opt_out = fields.Boolean(
         default=False,
@@ -58,16 +71,21 @@ class MailingSubscription(TimeStampedModel):
     )
     # Doble opt-in (adaptacion de proyecto DEC-NEW-02, ex-``newsletter``).
     confirmed_at = fields.Datetime(
-        null=True, blank=True,
-        help_text='Momento de la confirmacion (nulo = pendiente doble opt-in).',
+        null=True,
+        blank=True,
+        help_text=(
+            'Momento de la confirmacion (nulo = pendiente doble opt-in).'),
     )
     confirmation_token = fields.Char(
         max_length=200, null=True, blank=True, default=None,
         help_text='Token del enlace de confirmacion (doble opt-in).',
     )
     unsubscribe_token = fields.Char(
-        max_length=200, unique=True, default=_generate_unsubscribe_token,
-        help_text='Token del enlace de baja (Odoo lo computa; aqui se almacena).',
+        max_length=200,
+        unique=True,
+        default=_generate_unsubscribe_token,
+        help_text=(
+            'Token del enlace de baja (Odoo lo computa; aqui se almacena).'),
     )
 
     class Meta:
@@ -77,13 +95,15 @@ class MailingSubscription(TimeStampedModel):
         verbose_name_plural = 'Suscripciones a listas de correo'
         constraints = [
             models.UniqueConstraint(
-                fields=['contact_id', 'mailing_list'],
+                fields=['contact_id', 'list_id'],
                 name='unique_mailing_subscription',
             ),
         ]
 
     def __str__(self) -> str:
-        return f'{self.contact_id_id}→{self.mailing_list_id} (opt_out={self.opt_out})'
+        return (
+            f'{self.contact_id_id}→{self.list_id_id} (opt_out={self.opt_out})'
+        )
 
     @property
     def is_pending(self) -> bool:

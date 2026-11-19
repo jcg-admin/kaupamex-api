@@ -23,8 +23,15 @@ from .mailing_contact import MailingContact
 from .mailing_mailing import MailingMailing
 
 
-class MailingTrace(TimeStampedModel):
+class MailingTrace(models.BaseModel, TimeStampedModel):
     """``mailing.trace`` — entrega de un envio masivo a un destinatario."""
+
+    #: ≙ la cabecera de la fuente
+    #: (``odoo19c: addons/mass_mailing/models/mailing_trace.py:54-57``).
+    _name = 'mailing.trace'
+    _description = 'Mailing Statistics'
+    _rec_name = 'id'
+    _order = 'create_date DESC'
 
     # Odoo trace_status (mailing_trace.py:87).
     STATUS_OUTGOING = 'outgoing'
