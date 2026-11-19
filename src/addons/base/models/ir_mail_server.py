@@ -759,96 +759,88 @@ class IrMailServer(models.BaseModel, TimeStampedModel):
         """
         return servers
 
-    @classmethod
-    def _find_mail_server(
-        cls, email_from, servers=None, notifications_email=None
-    ):
-        """``_find_mail_server`` — servidor **y** remitente a usar.
+    def _find_mail_server(self, email_from, mail_servers=None):
+        """≙ ``_find_mail_server`` (``odoo19c: :874-948``): servidor **y**
+        remitente a usar.
 
         Devuelve ``(servidor_o_None, email_from)``. Ver el docstring del
         módulo: el remitente devuelto **cambia según el paso** de la cascada,
-        y ésa es la mitad que no se puede omitir.
-
-        ``None`` como servidor significa "usa la configuración global"
-        (``EMAIL_*``), que es lo que la fuente expresa como "los argumentos de
-        odoo-bin".
+        y ésa es la mitad que no se puede omitir. ``None`` como servidor
+        significa "usa la configuración global", que la fuente expresa como
+        "los argumentos de odoo-bin".
         """
-        normalized_from = email_normalize(email_from)
-        from_domain = email_domain_extract(normalized_from)
-        if notifications_email is None:
-            notifications_email = email_normalize(
-                cls._get_default_from_address()
-            )
+        email_from_normalized = email_normalize(email_from)
+        email_from_domain = email_domain_extract(email_from_normalized)
+        notifications_email = (
+            self.env.context.get('domain_notifications_email')
+            or email_normalize(self._get_default_from_address()))
         notifications_domain = email_domain_extract(notifications_email)
 
-        if servers is None:
-            servers = list(cls.objects.order_by('sequence', 'id'))
-        # 0. Un servidor archivado nunca se usa.
-        servers = [server for server in servers if server.active]
+        if mail_servers is None:
+            mail_servers = self.sudo().search(
+                self._find_mail_server_allowed_domain(), order='sequence')
+        # 0. Un servidor archivado nunca se usa
+        mail_servers = mail_servers.filtered('active')
 
-        def first_match(target, normalize):
-            if not target:
-                return None
-            for server in servers:
-                if not server.from_filter:
-                    continue
-                if any(
-                    normalize(part) == target
-                    for part in cls._parse_from_filter(server.from_filter)
+        def first_match(target, normalize_method):
+            for mail_server in mail_servers:
+                if mail_server.from_filter and any(
+                    normalize_method(email.strip()) == target
+                    for email in mail_server.from_filter.split(',')
                 ):
-                    return server
+                    return mail_server
             return None
 
-        # 1-2. Contra el remitente pedido: correo exacto, luego dominio.
-        if normalized_from:
-            server = first_match(normalized_from, email_normalize)
-            if server is not None:
-                return server, email_from
-            server = first_match(from_domain, email_domain_normalize)
-            if server is not None:
-                return server, email_from
+        # 1. Un servidor para el remitente pedido; se salta si el remitente
+        # es falso (p. ej. OdooBot no tiene correo)
+        if email_from_normalized:
+            if mail_server := first_match(email_from_normalized,
+                                          email_normalize):
+                return mail_server, email_from
 
-        servers = cls._filter_mail_servers_fallback(servers)
+            if mail_server := first_match(email_from_domain,
+                                          email_domain_normalize):
+                return mail_server, email_from
 
-        # 3. Contra el correo de notificaciones: correo exacto, luego dominio.
+        mail_servers = self._filter_mail_servers_fallback(mail_servers)
+
+        # 2. Un servidor para <notifications@dominio.com>
         if notifications_email:
-            server = first_match(notifications_email, email_normalize)
-            if server is not None:
-                return server, notifications_email
-            server = first_match(notifications_domain, email_domain_normalize)
-            if server is not None:
-                return server, notifications_email
+            if mail_server := first_match(notifications_email,
+                                          email_normalize):
+                return mail_server, notifications_email
 
-        # 4. Primer servidor sin filtro: suplanta el remitente, sin más
-        # opción.
-        unfiltered = [server for server in servers if not server.from_filter]
-        if unfiltered:
-            return unfiltered[0], notifications_email or email_from
+            if mail_server := first_match(notifications_domain,
+                                          email_domain_normalize):
+                return mail_server, notifications_email
 
-        # 5. Cualquier servidor, aunque esté configurado para otro dominio.
-        if servers:
+        # 3. El primer servidor sin "from_filter": suplanta el FROM porque
+        # no hay otra opción (el correo de notificaciones si existe, si no el
+        # del usuario)
+        if mail_server := mail_servers.filtered(lambda m: not m.from_filter):
+            return mail_server[0], notifications_email or email_from
+
+        # 4. El primer servidor aunque esté configurado para otro dominio
+        if mail_servers:
             _logger.warning(
-                'Ningún servidor de correo casa el filtro de remitente; se usa'
-                ' %s como respaldo.',
-                notifications_email or email_from,
-            )
-            return servers[0], notifications_email or email_from
+                "No mail server matches the from_filter, using %s as "
+                "fallback", notifications_email or email_from)
+            return mail_servers[0], notifications_email or email_from
 
-        # Sin filas: cae a la configuración global.
-        from_filter = cls._get_default_from_filter()
-        if cls._match_from_filter(email_from, from_filter):
+        # 5. La configuración SMTP de arranque
+        from_filter = self.env['ir.mail_server']._get_default_from_filter()
+
+        if self._match_from_filter(email_from, from_filter):
             return None, email_from
-        if notifications_email and cls._match_from_filter(
-            notifications_email, from_filter
-        ):
+
+        if notifications_email and self._match_from_filter(
+                notifications_email, from_filter):
             return None, notifications_email
 
         _logger.warning(
-            'El filtro de remitente de la configuración global no casa el '
-            'correo de notificaciones ni el del usuario; se usa %s como '
-            'respaldo.',
-            notifications_email or email_from,
-        )
+            "The from filter of the CLI configuration does not match the "
+            "notification email or the user email, using %s as fallback",
+            notifications_email or email_from)
         return None, notifications_email or email_from
 
     @classmethod

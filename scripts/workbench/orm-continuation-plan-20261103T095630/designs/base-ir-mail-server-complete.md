@@ -609,3 +609,20 @@ smtp_from)`), que ya tiene la forma de la fuente. Las pruebas de
 `tests/unit/base/test_ir_mail_server_from_filter.py` pasan `servers=` y
 `notifications_email=`; pasan a `mail_servers=` y a
 `with_context(domain_notifications_email=...)`.
+
+### Ejecución del paso 4 (ítem `base-ir-mail-server-find-0397`, 2026-11-19)
+
+`_find_mail_server(self, email_from, mail_servers=None)` recorre recordsets,
+toma el correo de notificaciones del contexto `domain_notifications_email` (o
+de `_get_default_from_address()`), busca con
+`self.sudo().search(self._find_mail_server_allowed_domain(), order='sequence')`
+y escribe los avisos de la fuente. Las pruebas pasan a servidores guardados
+combinados con `|`, como los recibe la fuente, y se ejecutan como sistema.
+
+Control: buscar sin el dominio permitido tumba sólo la prueba que lo mide.
+
+Un tropiezo propio, corregido antes de verificar: el reemplazo del cuerpo
+abarcó también `_disable_send` y `_connect__`, que estaban entre el método
+viejo y `_check_forced_mail_server`; las pruebas de la conexión lo delataron
+(`AttributeError`) y se restauraron desde `HEAD`, con el diff acotado a
+`_find_mail_server`.

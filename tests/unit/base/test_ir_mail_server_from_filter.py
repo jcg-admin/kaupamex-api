@@ -31,24 +31,30 @@ Qué haría fallar a cada control
     devolviera sólo el servidor pasaría los demás casos.
 """
 
+from unittest import mock
+
 import pytest
 
 from addons.base.models.ir_mail_server import IrMailServer
+from orm.domains import Domain
+from orm.environments import SUPERUSER_ID, Environment, sudo
 
 pytestmark = pytest.mark.django_db
 
 
-def _server(from_filter='', sequence=10, active=True):
-    """
-    Un servidor **sin guardar**: la cascada acepta la lista por argumento.
-    """
-    return IrMailServer(
-        name=f'smtp-{sequence}',
-        smtp_host='localhost',
-        from_filter=from_filter,
-        sequence=sequence,
-        active=active,
-    )
+def _model(**context):
+    return Environment(uid=SUPERUSER_ID)['ir.mail_server'].with_context(
+        **context)
+
+
+def _saved(from_filter='', sequence=10, active=True, name=None):
+    """Un servidor guardado: la cascada recibe un recordset, como allá."""
+    with sudo():
+        return IrMailServer.create({
+            'name': name or f'smtp-{sequence}-{from_filter}',
+            'smtp_host': 'localhost', 'from_filter': from_filter,
+            'sequence': sequence, 'active': active,
+        })
 
 
 class TestMatchFromFilter:
@@ -113,72 +119,91 @@ class TestMatchFromFilter:
 
 class TestFindMailServer:
     """
-    ≙ ``_find_mail_server`` — la cascada de cinco pasos, con su remitente.
+    ≙ ``_find_mail_server`` (``odoo19c: :874-948``) — la cascada de cinco
+    pasos, con su remitente. Como en la fuente, los candidatos llegan como
+    recordset en ``mail_servers`` y el correo de notificaciones, por el
+    contexto ``domain_notifications_email``.
     """
 
+    @pytest.fixture(autouse=True)
+    def _without_default_sender(self, settings):
+        """Sin remitente por defecto: el correo de notificaciones sólo llega
+        por el contexto, como cada caso lo declara."""
+        settings.DEFAULT_FROM_EMAIL = ''
+
+    @pytest.fixture(autouse=True)
+    def _as_system(self):
+        """Como sistema: en la fuente la cascada recorre los servidores que
+        ``_connect__`` le entrega con ``sudo()``."""
+        with sudo():
+            yield
+
     def test_the_exact_address_wins_over_the_domain(self):
-        by_domain = _server(from_filter='kaupamex.mx', sequence=1)
-        exact = _server(from_filter='ana@kaupamex.mx', sequence=2)
-        server, sender = IrMailServer._find_mail_server(
-            'ana@kaupamex.mx',
-            servers=[by_domain, exact],
-            notifications_email='',
-        )
-        assert server is exact
+        by_domain = _saved(from_filter='kaupamex.mx', sequence=1)
+        exact = _saved(from_filter='ana@kaupamex.mx', sequence=2)
+        server, sender = _model()._find_mail_server(
+            'ana@kaupamex.mx', mail_servers=by_domain | exact)
+        assert server == exact
         assert sender == 'ana@kaupamex.mx'
 
     def test_the_domain_step_keeps_the_requested_sender(self):
         """CONTROL — el par: en los pasos 1 y 2 el remitente NO se suplanta."""
-        by_domain = _server(from_filter='kaupamex.mx')
-        server, sender = IrMailServer._find_mail_server(
-            'Ana <ana@KAUPAMEX.mx>',
-            servers=[by_domain],
-            notifications_email='',
-        )
-        assert server is by_domain
+        by_domain = _saved(from_filter='kaupamex.mx')
+        server, sender = _model()._find_mail_server(
+            'Ana <ana@KAUPAMEX.mx>', mail_servers=by_domain)
+        assert server == by_domain
         assert sender == 'Ana <ana@KAUPAMEX.mx>'
 
     def test_the_notifications_step_replaces_the_sender(self):
-        """El paso 3 SÍ suplanta: se envía como el buzón de notificaciones."""
-        operator_server = _server(from_filter='avisos@kaupamex.mx')
-        server, sender = IrMailServer._find_mail_server(
-            'ana@otra.mx',
-            servers=[operator_server],
-            notifications_email='avisos@kaupamex.mx',
-        )
-        assert server is operator_server
+        """El paso 2 SÍ suplanta: se envía como el buzón de notificaciones."""
+        operator_server = _saved(from_filter='avisos@kaupamex.mx')
+        server, sender = _model(
+            domain_notifications_email='avisos@kaupamex.mx',
+        )._find_mail_server('ana@otra.mx', mail_servers=operator_server)
+        assert server == operator_server
         assert sender == 'avisos@kaupamex.mx'
 
-    def test_an_unfiltered_server_is_the_fourth_step(self):
-        unfiltered = _server(from_filter='')
-        server, sender = IrMailServer._find_mail_server(
-            'ana@otra.mx',
-            servers=[unfiltered],
-            notifications_email='avisos@kaupamex.mx',
-        )
-        assert server is unfiltered
+    def test_an_unfiltered_server_is_the_third_step(self):
+        unfiltered = _saved(from_filter='')
+        server, sender = _model(
+            domain_notifications_email='avisos@kaupamex.mx',
+        )._find_mail_server('ana@otra.mx', mail_servers=unfiltered)
+        assert server == unfiltered
         assert sender == 'avisos@kaupamex.mx'
 
     def test_the_last_step_uses_any_server_even_if_it_does_not_match(self):
-        foreign = _server(from_filter='tercera.mx')
-        server, sender = IrMailServer._find_mail_server(
-            'ana@otra.mx', servers=[foreign], notifications_email=''
-        )
-        assert server is foreign
+        foreign = _saved(from_filter='tercera.mx')
+        server, sender = _model()._find_mail_server(
+            'ana@otra.mx', mail_servers=foreign)
+        assert server == foreign
         assert sender == 'ana@otra.mx'
 
     def test_an_archived_server_is_never_used(self):
         """CONTROL — el paso 0. Sin él, el archivado ganaría por el paso 1."""
-        archived = _server(from_filter='ana@kaupamex.mx', active=False)
-        server, _sender = IrMailServer._find_mail_server(
-            'ana@kaupamex.mx', servers=[archived], notifications_email=''
-        )
+        archived = _saved(from_filter='ana@kaupamex.mx', active=False)
+        server, _sender = _model()._find_mail_server(
+            'ana@kaupamex.mx', mail_servers=archived)
         assert server is None
 
     def test_without_rows_it_falls_back_to_the_global_config(self):
         """Sin servidores, ``None`` significa «usa la configuración global»."""
-        server, sender = IrMailServer._find_mail_server(
-            'ana@kaupamex.mx', servers=[], notifications_email=''
-        )
+        server, sender = _model()._find_mail_server(
+            'ana@kaupamex.mx', mail_servers=_model().browse([]))
         assert server is None
         assert sender == 'ana@kaupamex.mx'
+
+    def test_the_search_is_limited_by_the_allowed_domain(self):
+        """``_find_mail_server_allowed_domain`` acota la búsqueda (``:890``).
+
+        Es el punto que ``mail`` sobreescribe para dejar fuera los servidores
+        personales; sin él la sobreescritura no tendría efecto.
+        """
+        IrMailServer.objects.all().delete()
+        _saved(from_filter='ana@kaupamex.mx', sequence=1, name='personal')
+        public = _saved(from_filter='ana@kaupamex.mx', sequence=2,
+                        name='publico')
+        with mock.patch.object(
+                IrMailServer, '_find_mail_server_allowed_domain',
+                classmethod(lambda cls: Domain('name', '=', 'publico'))):
+            server, _sender = _model()._find_mail_server('ana@kaupamex.mx')
+        assert server == public
