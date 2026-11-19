@@ -38,6 +38,13 @@ dependencies = [
     # proveedor). Ya llegaba transitivo via mercadopago; se declara directo
     # porque ahora hay imports propios (uv no garantiza transitivas).
     "requests>=2.31.0",
+    # Conexión SMTP de ir.mail_server: la referencia importa pyOpenSSL,
+    # urllib3.contrib.pyopenssl e idna en su módulo
+    # (odoo19c: odoo/addons/base/models/ir_mail_server.py:16-23). Llegaban
+    # transitivas; se declaran porque ahora hay imports propios.
+    "pyOpenSSL>=26.2.0",
+    "urllib3>=2.7.0",
+    "idna>=3.17",
     # Pagos
     "mercadopago>=2.2.0",
     # CORS

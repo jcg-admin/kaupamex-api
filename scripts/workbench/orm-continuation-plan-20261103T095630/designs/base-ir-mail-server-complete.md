@@ -352,3 +352,36 @@ del servidor y, sin servidor, los de `tools.config`; STARTTLS se activa por
 servidor ausente → `UserError` «Missing SMTP Server»; los tres parches están
 aplicados tras importar el módulo (`smtplib.SMTP._print_debug`,
 `smtplib.stderr`, `email.policy.SMTP`), y un `Message-ID` largo no se pliega.
+
+### Ejecución del paso 3b (ítem `base-ir-mail-server-connect-0397`, 2026-11-19)
+
+Portados `_print_debug`, `IdentificationFieldsNoFoldPolicy`, `WriteToLogger`
+y sus tres parches al importar, `_verify_check_hostname_callback`,
+`_disable_send`, `_connect__` y `_smtp_login__`. `pyOpenSSL`, `urllib3` e
+`idna` quedan declaradas en `pyproject.toml`. El lock sólo gana las seis
+líneas de dependencia; la línea `revision = 5`, escrita por un uv más nuevo
+que el de esta VM (0.11.32), se conserva.
+
+Divergencia declarada: las ramas de versión antigua de los imports
+(`odoo19c: odoo/addons/base/models/ir_mail_server.py:36-56`) no se portan,
+porque con los pisos declarados no se pueden ejecutar, y además el checker de
+estilo rechaza un import condicional.
+
+Lo que la medición corrigió:
+
+- La primera prueba del plegado usaba un `Message-ID` largo y pasaba **sin**
+  el parche: Python ya no lo pliega. Se cambió a un `Subject` largo, que la
+  política de 998 columnas deja en una línea y la de 78 pliega.
+- urllib3 2.x ya no cae al `commonName` cuando el certificado no tiene SAN
+  (`no appropriate subjectAltName fields were found`). Es la conducta real del
+  código portado con la dependencia instalada; la prueba emite el certificado
+  con SAN.
+
+Controles de anulación: quitar la codificación `idna` del usuario tumba sólo
+la prueba de `idna`; quitar el parche de `email.policy.SMTP` tumba sólo las
+dos pruebas que dependen de él (la de los parches y la del plegado).
+
+Pendiente, fuera de este paso: `extract_rfc2822_addresses` sigue capturando
+`UnicodeEncodeError` de `email.utils.formataddr`, y no `idna.IDNAError` del
+`formataddr` de `tools`, como hace la fuente (`:105-119`). Ahora que `idna` es
+una dependencia declarada, se corrige con el paso 3c.

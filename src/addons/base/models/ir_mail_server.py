@@ -70,24 +70,20 @@ pasan antes y después.
 Qué NO se porta, con su medición
 ================================
 
-- **Todo el transporte**: ``_connect__``, ``send_email``, ``_build_email__``,
-  ``_prepare_email_message__``, ``_alter_message__``,
-  ``_prepare_smtp_to_list``, ``test_smtp_connection``,
-  ``action_retrieve_max_email_size``. Aquí el transporte es
-  ``django.core.mail`` (ver arriba). Duplicarlo daría dos caminos de salida
-  para el mismo correo.
-- **Los tres parches globales al import** (líneas 71-99 de la fuente):
-  ``smtplib.SMTP._print_debug``, ``smtplib.stderr = WriteToLogger()`` y
-  ``email.policy.SMTP = IdentificationFieldsNoFoldPolicy(...)``. Mutan la
-  **stdlib para todo el proceso** con sólo importar el módulo. Un archivo de
-  modelos que cambia el comportamiento de ``email`` en toda la aplicación es
-  una decisión de plataforma, no un detalle de portación, y no se toma de
-  rebote aquí. La razón del tercero —no plegar ``Message-ID``, porque plegarlo
-  rompe el hilo de conversación— es real y queda anotada para cuando se
-  decida dónde vive.
-- **``_verify_check_hostname_callback``** (pyOpenSSL): valida que el CN/SAN
-  del certificado case el hostname SMTP. Pertenece al conector, que no se
-  porta.
+- **El transporte que falta**: ``send_email``, ``test_smtp_connection``,
+  ``action_retrieve_max_email_size``, ``_get_test_email_to`` y
+  ``_onchange_encryption``. Se portan en los pasos 3c y 3d del diseño
+  (``designs/base-ir-mail-server-complete.md``); ahí los tres remitentes que
+  hoy usan ``django.core.mail`` pasan por ``send_email``, de modo que quede
+  un solo camino de salida, como en la fuente. El mensaje (paso 3a) y la
+  conexión (paso 3b) ya están portados, con los tres parches globales que la
+  fuente aplica al importar (``:68-98``) y ``_verify_check_hostname_callback``.
+- **Las ramas de versión antigua de los imports** (``:36-56``): la carga de
+  PEM con ``OpenSSL.crypto`` para pyOpenSSL < 24.3.0 y
+  ``urllib3.packages.ssl_match_hostname`` para urllib3 <= 1.25. Con los
+  pisos que ``pyproject.toml`` declara (pyOpenSSL >= 26.2.0, urllib3 >=
+  2.7.0) ninguna de las dos se puede ejecutar, así que los imports van sin
+  condición: la rama vigente de la fuente, sin el código muerto.
 - **``groups='base.group_system'``** en ``smtp_user`` / ``smtp_pass`` /
   ``smtp_ssl_certificate`` / ``smtp_ssl_private_key``. En la referencia es una
   restricción **a nivel de campo**: sólo el grupo de sistema los lee. Aquí la
@@ -111,22 +107,35 @@ clase del ``_name``, así que ese guion bajo no transporta información y sí
 rompe PEP 8. Se porta como ``IrMailServer``.
 """
 
+import base64
 import datetime
 import email.policy
+import functools
 import logging
 import re
+import smtplib
+import ssl
 from email.message import EmailMessage
 from email.parser import BytesParser
 from email.utils import formataddr, make_msgid
 
 import fields
+import idna
 import models
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
+from cryptography.x509 import load_pem_x509_certificate
 from django.core.exceptions import ValidationError
 from exceptions import UserError
+from OpenSSL.crypto import Error as SSLCryptoError
+from OpenSSL.SSL import VERIFY_FAIL_IF_NO_PEER_CERT, VERIFY_PEER
+from OpenSSL.SSL import Error as SSLError
+from urllib3.contrib.pyopenssl import PyOpenSSLContext, get_subj_alt_name
+from urllib3.util.ssl_match_hostname import CertificateError, match_hostname
 
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from orm.domains import Domain
+from orm.environments import env
 from tools.mail import (
     email_domain_extract,
     email_domain_normalize,
@@ -186,6 +195,52 @@ class MailDeliveryException(Exception):
     """Error de entrega de correo (``MailDeliveryException`` de la fuente)."""
 
 
+def _print_debug(self, *args):
+    """≙ ``_print_debug`` (``odoo19c: :68-71``): la depuración de ``smtplib``
+    va al log en DEBUG, no a ``stderr``."""
+    _logger.debug(' '.join(str(a) for a in args))
+
+
+smtplib.SMTP._print_debug = _print_debug
+
+# ≙ ``odoo19c: :73-92`` — rodeo de bpo-35805: no plegar las cabeceras de
+# identificación (un MTA reescribe un ``Message-ID`` plegado y el hilo se
+# pierde) y plegar las de usuario a 998 columnas en vez de 78.
+RFC5322_IDENTIFICATION_HEADERS = {
+    'message-id', 'in-reply-to', 'references', 'resent-msg-id'}
+USER_DEFINED_HEADERS = {'bcc', 'cc', 'from', 'reply-to', 'subject', 'to'}
+_noFoldPolicy = email.policy.SMTP.clone(max_line_length=None)
+# rfc5322#section-2.1.1
+_maxFoldPolicy = email.policy.SMTP.clone(max_line_length=998)
+
+
+class IdentificationFieldsNoFoldPolicy(email.policy.EmailPolicy):
+    """La política SMTP de la fuente, que la instala para todo el proceso."""
+
+    def _fold(self, name, value, *args, **kwargs):
+        if name.lower() in RFC5322_IDENTIFICATION_HEADERS:
+            return _noFoldPolicy._fold(name, value, *args, **kwargs)
+        if name.lower() in USER_DEFINED_HEADERS:
+            return _maxFoldPolicy._fold(name, value, *args, **kwargs)
+        return super()._fold(name, value, *args, **kwargs)
+
+
+# Parche global de la fuente, conservando su ``linesep``.
+email.policy.SMTP = IdentificationFieldsNoFoldPolicy(
+    linesep=email.policy.SMTP.linesep)
+
+
+class WriteToLogger:
+    """≙ ``WriteToLogger`` (``odoo19c: :94-98``): el ``stderr`` de
+    ``smtplib`` escribe en el log."""
+
+    def write(self, s):
+        _logger.debug(s)
+
+
+smtplib.stderr = WriteToLogger()
+
+
 def is_ascii(text):
     """``is_ascii`` — verbatim de la fuente."""
     return all(ord(cp) < 128 for cp in text)
@@ -210,6 +265,26 @@ def extract_rfc2822_addresses(text):
         except (UnicodeEncodeError, UnicodeError):
             continue
     return valid_addresses
+
+
+def _verify_check_hostname_callback(cnx, x509, err_no, err_depth,
+                                    return_code, *, hostname):
+    """≙ ``_verify_check_hostname_callback`` (``odoo19c: :122-137``).
+
+    pyOpenSSL sólo mira ``err_no``; además se exige que el ``hostname`` del
+    servidor SMTP case el CN o el SAN del certificado hoja.
+    """
+    if err_no:
+        return False
+
+    if err_depth == 0:  # certificado hoja
+        peercert = {
+            "subject": ((("commonName", x509.get_subject().CN),),),
+            "subjectAltName": get_subj_alt_name(x509),
+        }
+        match_hostname(peercert, hostname)  # lanza si no casa
+
+    return True
 
 
 class IrMailServer(models.BaseModel, TimeStampedModel):
@@ -640,6 +715,177 @@ class IrMailServer(models.BaseModel, TimeStampedModel):
         )
         return None, notifications_email or email_from
 
+    @classmethod
+    def _disable_send(cls):
+        """≙ ``_disable_send`` (``odoo19c: :388-392``): sin envío bajo
+        pruebas ni mientras el registro se inicializa.
+
+        ``modules.module.current_test`` es ``tools.config.test_enable()``
+        aquí, y ``pool._init`` es ``Registry._init`` de la base del entorno.
+        """
+        return config.test_enable() or env().registry._init
+
+    def _connect__(self, host=None, port=None, user=None, password=None,
+                   encryption=None, smtp_from=None, ssl_certificate=None,
+                   ssl_private_key=None, smtp_debug=False,
+                   mail_server_id=None, allow_archived=False):
+        """≙ ``_connect__`` (``odoo19c: :394-534``): una conexión SMTP nueva.
+
+        Bajo pruebas no conecta y devuelve ``None``. Con ``mail_server_id``
+        usa ese servidor; sin ``host`` busca el servidor por remitente; y sin
+        servidor —o con autenticación ``cli``— toma los parámetros dados o los
+        de ``tools.config``.
+        """
+        # No conectar en modo de prueba
+        if self._disable_send():
+            return None
+        mail_server = smtp_encryption = None
+        if mail_server_id:
+            mail_server = self.sudo().browse(mail_server_id)
+            self._check_forced_mail_server(
+                mail_server, allow_archived, smtp_from)
+
+        elif not host:
+            mail_server, smtp_from = self.sudo()._find_mail_server(smtp_from)
+
+        if not mail_server:
+            mail_server = self.env['ir.mail_server']
+        ssl_context = None
+
+        if mail_server and mail_server.smtp_authentication != "cli":
+            smtp_server = mail_server.smtp_host
+            smtp_port = mail_server.smtp_port
+            if mail_server.smtp_authentication == "certificate":
+                smtp_user = None
+                smtp_password = None
+            else:
+                smtp_user = mail_server.smtp_user
+                smtp_password = mail_server.smtp_pass
+            smtp_encryption = mail_server.smtp_encryption
+            smtp_debug = smtp_debug or mail_server.smtp_debug
+            from_filter = mail_server.from_filter
+
+            if mail_server.smtp_authentication == "certificate":
+                try:
+                    ssl_context = PyOpenSSLContext(ssl.PROTOCOL_TLS)
+                    if mail_server.smtp_encryption in (
+                            'ssl_strict', 'starttls_strict'):
+                        ssl_context.set_default_verify_paths()
+                        ssl_context._ctx.set_verify(
+                            VERIFY_PEER | VERIFY_FAIL_IF_NO_PEER_CERT,
+                            functools.partial(
+                                _verify_check_hostname_callback,
+                                hostname=smtp_server)
+                        )
+                    else:  # ssl, starttls
+                        ssl_context.verify_mode = ssl.CERT_NONE
+                    ssl_context._ctx.use_certificate(
+                        load_pem_x509_certificate(
+                            base64.b64decode(
+                                mail_server.smtp_ssl_certificate)))
+                    ssl_context._ctx.use_privatekey(load_pem_private_key(
+                        base64.b64decode(mail_server.smtp_ssl_private_key),
+                        password=None))
+                    # La llave privada tiene que casar el certificado
+                    ssl_context._ctx.check_privatekey()
+                except SSLCryptoError as e:
+                    raise UserError(_(
+                        'The private key or the certificate is not a valid'
+                        ' file. \n%s', str(e)))
+                except SSLError as e:
+                    raise UserError(_(
+                        'Could not load your certificate / private key.'
+                        ' \n%s', str(e)))
+            elif mail_server.smtp_encryption != 'none':
+                if mail_server.smtp_encryption in (
+                        'ssl_strict', 'starttls_strict'):
+                    ssl_context = ssl.create_default_context()
+                    ssl_context.check_hostname = True
+                    ssl_context.verify_mode = ssl.CERT_REQUIRED
+                else:  # ssl, starttls
+                    ssl_context = ssl.create_default_context()
+                    ssl_context.check_hostname = False
+                    ssl_context.verify_mode = ssl.CERT_NONE
+
+        else:
+            # Parámetros sueltos, o ninguno y sin servidor por defecto
+            smtp_server = host or config.smtp_server()
+            smtp_port = config.smtp_port() if port is None else port
+            smtp_user = user or config.smtp_user()
+            smtp_password = password or config.smtp_password()
+            if mail_server:
+                from_filter = mail_server.from_filter
+            else:
+                from_filter = self.env[
+                    'ir.mail_server']._get_default_from_filter()
+
+            smtp_encryption = encryption
+            if smtp_encryption is None and config.smtp_ssl():
+                smtp_encryption = 'starttls'  # smtp_ssl => STARTTLS desde v7
+            smtp_ssl_certificate_filename = (
+                ssl_certificate or config.smtp_ssl_certificate_filename())
+            smtp_ssl_private_key_filename = (
+                ssl_private_key or config.smtp_ssl_private_key_filename())
+
+            if (smtp_ssl_certificate_filename
+                    and smtp_ssl_private_key_filename):
+                try:
+                    ssl_context = PyOpenSSLContext(ssl.PROTOCOL_TLS)
+                    ssl_context.verify_mode = ssl.CERT_NONE
+                    ssl_context.load_cert_chain(
+                        smtp_ssl_certificate_filename,
+                        keyfile=smtp_ssl_private_key_filename)
+                    # La llave privada tiene que casar el certificado
+                    ssl_context._ctx.check_privatekey()
+                except SSLCryptoError as e:
+                    raise UserError(_(
+                        'The private key or the certificate is not a valid'
+                        ' file. \n%s', str(e)))
+                except SSLError as e:
+                    raise UserError(_(
+                        'Could not load your certificate / private key.'
+                        ' \n%s', str(e)))
+
+        if not smtp_server:
+            raise UserError(_(
+                "Missing SMTP Server\n"
+                "Please define at least one SMTP server, "
+                "or provide the SMTP parameters explicitly.",
+            ))
+
+        if smtp_encryption in ('ssl', 'ssl_strict'):
+            connection = smtplib.SMTP_SSL(
+                smtp_server, smtp_port, timeout=SMTP_TIMEOUT,
+                context=ssl_context)
+        else:
+            connection = smtplib.SMTP(
+                smtp_server, smtp_port, timeout=SMTP_TIMEOUT)
+        connection.set_debuglevel(smtp_debug)
+        if smtp_encryption in ('starttls', 'starttls_strict'):
+            # starttls() hace ehlo() si hace falta y descarta la lista de
+            # servicios previa (RFC 3207): una capacidad AUTH que sólo
+            # aparece sobre el canal cifrado se detecta en el paso siguiente.
+            connection.starttls(context=ssl_context)
+
+        if smtp_user:
+            # Autenticar; lanza si el servidor no ofrece AUTH
+            local, at, domain = smtp_user.rpartition('@')
+            if at:
+                smtp_user = local + at + idna.encode(domain).decode('ascii')
+            mail_server._smtp_login__(
+                connection, smtp_user, smtp_password or '')
+
+        # Algunos métodos de SMTP no comprueban si EHLO/HELO se envió; como
+        # login() pudo enviarlo, el resto lo da por enviado.
+        connection.ehlo_or_helo_if_needed()
+
+        # El ``from_filter`` del servidor o de la config, para decidir al
+        # preparar el mensaje si hay que cambiar el FROM.
+        connection.from_filter = from_filter
+        connection.smtp_from = smtp_from
+
+        return connection
+
     def _check_forced_mail_server(self, mail_server, allow_archived,
                                   smtp_from):
         """≙ ``_check_forced_mail_server`` (``odoo19c: :546-548``).
@@ -650,6 +896,12 @@ class IrMailServer(models.BaseModel, TimeStampedModel):
             raise UserError(_(
                 'The server "%s" cannot be used because it is archived.',
                 mail_server.display_name))
+
+    def _smtp_login__(self, connection, smtp_user, smtp_password):
+        """≙ ``_smtp_login__`` (``odoo19c: :541-551``): autentica la
+        conexión. Otros módulos lo sobreescriben con otro método de
+        autenticación; se llama sobre el modelo o sobre un registro."""
+        connection.login(smtp_user, smtp_password)
 
     @classmethod
     def _get_default_bounce_address(cls):
