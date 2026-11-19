@@ -891,6 +891,7 @@ class Website(TimeStampedModel):
         ),
     )
     custom_code_head = fields.Html(
+        sanitize=False,
         null=True,
         blank=True,
         help_text=(
@@ -899,6 +900,7 @@ class Website(TimeStampedModel):
         ),
     )
     custom_code_footer = fields.Html(
+        sanitize=False,
         null=True,
         blank=True,
         help_text=(
@@ -907,6 +909,7 @@ class Website(TimeStampedModel):
         ),
     )
     robots_txt = fields.Html(
+        sanitize=False,
         null=True,
         blank=True,
         help_text=(

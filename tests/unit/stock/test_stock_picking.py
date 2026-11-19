@@ -1098,7 +1098,9 @@ def test_log_activity_schedules_one_activity_per_document(
         res_model='stock.picking', res_id=picking.pk
     ).first()
     assert activity is not None
-    assert activity.note == 'nota de prueba 521'
+    # ``note`` es ``Html`` y se sanea al guardar: el texto llano sale en
+    # párrafo, como ``html_sanitize`` de la fuente
+    assert activity.note == '<p>nota de prueba 521</p>'
     assert activity.user_id == responsible.pk
 
 

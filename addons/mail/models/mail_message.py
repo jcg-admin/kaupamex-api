@@ -73,9 +73,10 @@ class MailMessage(TimeStampedModel):
         ),
     )
     body = fields.Html(
+        sanitize_style=True,
         blank=True,
         default='',
-        help_text='Contenido HTML del mensaje (Odoo body; saneo en capa UI).',
+        help_text='Contenido HTML del mensaje (Odoo body).',
     )
     model = fields.Char(
         max_length=128,

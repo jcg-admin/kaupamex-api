@@ -44,6 +44,7 @@ class DigestTip(TimeStampedModel):
         help_text='Odoo user_ids — usuarios que ya recibieron este tip.',
     )
     tip_description = fields.Html(
+        sanitize=False,
         blank=True,
         default='',
         verbose_name='Descripción',

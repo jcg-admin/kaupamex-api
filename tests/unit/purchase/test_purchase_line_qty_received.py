@@ -169,7 +169,7 @@ def test_a_received_quantity_change_posts_the_note_on_the_order(order):
     assert message.body == (
         '<div><strong>The received quantity has been updated.</strong>'
         f'<ul><li>{line.product_id.display_name}:</li>Received Quantity: '
-        '2.0 -&gt; 5.0<br/></ul></div>')
+        '2.0 -&gt; 5.0<br></ul></div>')  # saneado: salida html, ``<br>``
     assert message.subtype_id == IrModelData._xmlid_to_res_id('mail.mt_note')
 
 

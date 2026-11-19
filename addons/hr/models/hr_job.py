@@ -65,7 +65,8 @@ class HrJob(models.BaseModel, MailThread, TimeStampedModel):
         help_text='Número de nuevos empleados que se espera reclutar.',
     )
     description = fields.Html(
-        blank=True, default='', verbose_name='Descripción'
+        blank=True, default='', verbose_name='Descripción',
+        sanitize_attributes=False,
     )
     requirements = fields.Text(
         blank=True, default='', verbose_name='Requisitos'

@@ -806,10 +806,10 @@ class ServerActionHistoryWizard(TransientModel):
     #: ≙ ``code_diff = fields.Html(compute=…, sanitize_tags=False)``
     #: (``:479``).
     #: El ``sanitize_tags=False`` de la fuente permite el ``<style>`` que
-    #: ``get_diff`` adjunta; aquí no hay saneador que desactivar, así que el
-    #: parámetro no tiene receptor y su efecto ya se cumple.
+    #: ``get_diff`` adjunta.
     code_diff = fields.Html(
         compute='_compute_code_diff',
+        sanitize_tags=False,
         help_text=(
             'Odoo code_diff. La diferencia entre el código vigente y '
             'el de la revisión, como tabla HTML.'

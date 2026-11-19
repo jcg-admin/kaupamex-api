@@ -1,7 +1,7 @@
 """Campos textuales — fiel a ``odoo/orm/fields_textual.py`` (Odoo 19).
 
-``Char``, ``Text`` y ``Html`` (Odoo ``Html``: ≈ ``TextField`` + saneo con
-``dompurify`` en UI). Alias de nombre Odoo → clase Django (firma Django).
+``Char``, ``Text`` y ``Html`` (Odoo ``Html``: ≈ ``TextField`` con su
+saneo). Alias de nombre Odoo → clase Django (firma Django).
 
 ``store=False`` — el campo sin columna
 =======================================
@@ -56,16 +56,23 @@ Dos invariantes deliberados:
   ``django.db.models.TextField``, así que las migraciones ya generadas con el
   alias siguen siendo idénticas y ``makemigrations --check`` queda limpio.
 
-El **saneo NO va en el campo** — sigue en la capa UI (``dompurify``), igual que
-antes; la clase sólo aporta el tipo.
+El **saneo va en el campo**, como en la fuente (unidad
+``html-field-sanitize-0397``): :class:`Html` porta los diez atributos de
+saneo, el atajo ``email_outgoing`` y ``_convert`` sobre ``html_sanitize``.
 """
 
 import collections.abc
 import json
+import logging
+from difflib import unified_diff
+from operator import attrgetter
 
 from django.db import DEFAULT_DB_ALIAS, connections, models, router
 from django.db.models.query_utils import DeferredAttribute
+from markupsafe import escape as markup_escape
 
+from exceptions import UserError
+from netsvc import COLOR_PATTERN, DEFAULT, GREEN, RED, ColoredFormatter
 from orm.environments import env as current_env
 from orm.fields_company_dependent import CompanyDependent, make_dispatcher
 from orm.fields_nonstored import (
@@ -73,8 +80,18 @@ from orm.fields_nonstored import (
     annotate_related,
     apply_source_defaults,
 )
+from tools.mail import (
+    html2plaintext,
+    html_normalize,
+    html_sanitize,
+    is_html_empty,
+    plaintext2html,
+)
 from tools.misc import SENTINEL
 from tools.sql import SQL, convert_column, convert_column_translatable
+from tools.translate import _
+
+_logger = logging.getLogger(__name__)
 
 __all__ = ['Char', 'Text', 'Html', 'LangProxyDict', 'TranslatedChar',
            'TranslatedValue']
@@ -87,13 +104,71 @@ Text = make_dispatcher('Text', 'text', models.TextField)
 
 
 class Html(models.TextField):
-    """``fields.Html`` — un ``TextField`` con identidad de tipo (H-API-700).
+    """``fields.Html`` — ≙ ``odoo19c: odoo/orm/fields_textual.py:545-702``.
 
-    ≙ ``odoo/orm/fields_textual.py`` clase ``Html`` de la referencia, reducida
-    a lo que este árbol necesita: que ``isinstance(campo, Html)`` distinga un
-    campo HTML de un ``Text`` en runtime. Sin saneo (capa UI) y sin columna
-    propia (sigue ``TEXT``).
+    Encapsula un contenido HTML.
+
+    :param bool sanitize: si el valor se sanea (por defecto ``True``)
+    :param bool sanitize_overridable: si los usuarios del grupo
+        ``base.group_sanitize_override`` pueden saltarse el saneo (por
+        defecto ``False``)
+    :param bool sanitize_tags: si se sanean las etiquetas (sólo se acepta
+        una lista blanca, por defecto ``True``)
+    :param bool sanitize_attributes: si se sanean los atributos (sólo se
+        acepta una lista blanca, por defecto ``True``)
+    :param bool sanitize_style: si se sanean los atributos ``style`` (por
+        defecto ``False``)
+    :param bool sanitize_conditional_comments: si se eliminan los
+        comentarios condicionales (por defecto ``True``)
+    :param bool sanitize_output_method: si se sanea como html o como xhtml
+        (por defecto ``html``)
+    :param bool strip_style: si se retiran los atributos ``style`` (se
+        retiran y por tanto no se sanean, por defecto ``False``)
+    :param bool strip_classes: si se retiran los atributos ``class`` (por
+        defecto ``False``)
+
+    Dos invariantes de este árbol (H-API-700): la columna sigue siendo
+    ``TEXT`` —la clase no redefine ``db_type``— y :meth:`deconstruct`
+    devuelve la ruta de ``TextField``, así que los atributos de saneo no
+    llegan a la migración: describen la conducta, no la columna.
+
+    **Las dos rutas de escritura sanean.** ``BaseModel.write`` convierte cada
+    valor con ``convert_to_cache`` (``orm/models.py``) y el volcado lo lleva
+    a la columna; un modelo de Django que no es ``BaseModel`` escribe con
+    ``Model.save()``, que no pasa por ``convert_to_cache``, así que
+    :meth:`pre_save` también llama a :meth:`_convert`. Es idempotente: sanear
+    un valor ya saneado lo deja igual.
+
+    Pendiente, con su condición de cierre:
+
+    - la rama ``translate=True`` de ``_get_attrs`` (``:589-596``), que pasa
+      a ``html_translate``: los términos traducibles no están portados
+      (TASK-GEN-0060);
+    - ``convert_to_record`` y ``convert_to_read`` (``:684-694``), que
+      devuelven ``Markup``: unidad sucesora ``html-field-markup-0397``;
+    - ``get_trans_terms`` (``:696-698``): su ``super()`` es
+      ``BaseString.get_trans_terms``, que no está portado (TASK-GEN-0060).
     """
+
+    type = 'html'
+    _column_type = ('text', 'text')
+
+    sanitize: bool = True                     # si el valor se sanea
+    # si los usuarios de `base.group_sanitize_override` saltan el saneo
+    sanitize_overridable: bool = False
+    # si se sanean las etiquetas (sólo se acepta una lista blanca)
+    sanitize_tags: bool = True
+    # si se sanean los atributos (sólo se acepta una lista blanca)
+    sanitize_attributes: bool = True
+    sanitize_style: bool = False              # si se sanea ``style``
+    sanitize_form: bool = True                # si se sanean los formularios
+    # si se eliminan los comentarios condicionales; si no, se conservan con
+    # su contenido saneado
+    sanitize_conditional_comments: bool = True
+    sanitize_output_method: str = 'html'      # html o xhtml
+    # si se retira ``style`` (retirado y por tanto no saneado)
+    strip_style: bool = False
+    strip_classes: bool = False               # si se retira ``class``
 
     def __new__(cls, *args, company_dependent=False, related=None, **kwargs):
         """Despacha a ``CompanyDependent`` sin dejar de ser una clase.
@@ -134,19 +209,162 @@ class Html(models.TextField):
     ):
         """Deriva el vocabulario de la fuente y lo reenvía al constructor.
 
-        **Reenvía en vez de tragar.** La versión anterior nombraba ``store`` y
-        ``related`` sólo para que no llegaran al constructor de Django —y con
-        eso nunca aterrizaban en ``_args__``, así que la costura veía un campo
-        que no declaraba nada y le dejaba los defaults de clase. Hoy los
-        reenvía: ``_field_init_with_copy`` los recoge y los retira él mismo
-        (``orm/fields.py``), medido sobre los once tipos en la sonda
-        ``probe_vocabulary_reaches_args_by_type``.
+        **Reenvía en vez de tragar.** ``_field_init_with_copy`` anota en
+        ``_args__`` todo lo declarado —``store``, ``related`` y los diez
+        atributos de saneo— y retira lo que Django no conoce
+        (``orm/fields.py``); ``_setup_attrs__`` los escribe en el campo al
+        contribuir, como la fuente. Aquí se escriben además en el campo
+        suelto, que responde antes de contribuir a una clase.
         """
         if store is not _UNSET:
             kwargs['store'] = store
         related_attrs = apply_source_defaults(related, kwargs)
         super().__init__(*args, **kwargs)
         annotate_related(self, related, related_attrs)
+        self.__dict__.update(
+            (key, value)
+            for key, value in self._sanitize_attrs(self._args__).items()
+            if key in _HTML_SANITIZE_ATTRS
+        )
+
+    @staticmethod
+    def _sanitize_attrs(attrs):
+        """El atajo ``email_outgoing`` de ``_get_attrs`` (``:576-588``).
+
+        Los correos salientes y entrantes no se sanean con las mismas
+        opciones: los comentarios condicionales no hacen falta en un correo
+        entrante que se muestra en el cliente web, pero sí en plantillas y
+        envíos masivos, porque Outlook puede renderizarlos.
+        """
+        attrs = dict(attrs)
+        if attrs.get('sanitize') == 'email_outgoing':
+            attrs['sanitize'] = True
+            attrs.update({key: value for key, value in {
+                'sanitize_tags': False,
+                'sanitize_attributes': False,
+                'sanitize_conditional_comments': False,
+                'sanitize_output_method': 'xml',
+            }.items() if key not in attrs})
+        return attrs
+
+    def _get_attrs(self, model_class, name):
+        """≙ ``Html._get_attrs`` (``:576-598``); lo llama ``_setup_attrs__``
+        junto con el ``_get_attrs`` de la base."""
+        attrs = super()._get_attrs(model_class, name)
+        return self._sanitize_attrs(attrs)
+
+    _related_sanitize = property(attrgetter('sanitize'))
+    _related_sanitize_tags = property(attrgetter('sanitize_tags'))
+    _related_sanitize_attributes = property(
+        attrgetter('sanitize_attributes'))
+    _related_sanitize_style = property(attrgetter('sanitize_style'))
+    _related_strip_style = property(attrgetter('strip_style'))
+    _related_strip_classes = property(attrgetter('strip_classes'))
+
+    _description_sanitize = property(attrgetter('sanitize'))
+    _description_sanitize_tags = property(attrgetter('sanitize_tags'))
+    _description_sanitize_attributes = property(
+        attrgetter('sanitize_attributes'))
+    _description_sanitize_style = property(attrgetter('sanitize_style'))
+    _description_strip_style = property(attrgetter('strip_style'))
+    _description_strip_classes = property(attrgetter('strip_classes'))
+
+    def convert_to_column(self, value, record, values=None, validate=True):
+        value = self._convert(value, record, validate=validate)
+        return super().convert_to_column(value, record, values,
+                                         validate=False)
+
+    def convert_to_cache(self, value, record, validate=True):
+        return self._convert(value, record, validate)
+
+    def _convert(self, value, record, validate):
+        if value is None or value is False:
+            return None
+
+        if not validate or not self.sanitize:
+            return value
+
+        sanitize_vals = {
+            'silent': True,
+            'sanitize_tags': self.sanitize_tags,
+            'sanitize_attributes': self.sanitize_attributes,
+            'sanitize_style': self.sanitize_style,
+            'sanitize_form': self.sanitize_form,
+            'sanitize_conditional_comments':
+                self.sanitize_conditional_comments,
+            'output_method': self.sanitize_output_method,
+            'strip_style': self.strip_style,
+            'strip_classes': self.strip_classes
+        }
+
+        if self.sanitize_overridable:
+            if _user_has_group(record, 'base.group_sanitize_override'):
+                return value
+
+            original_value = getattr(record, self.name)
+            if original_value:
+                # el saneo también normaliza
+                original_value_sanitized = html_sanitize(
+                    original_value, **sanitize_vals)
+                original_value_normalized = html_normalize(original_value)
+
+                if (
+                    not original_value_sanitized  # el saneo puede vaciarlo
+                    or original_value_normalized != original_value_sanitized
+                ):
+                    # El campo contiene elementos que el saneo retiraría:
+                    # alguien de un grupo que podía saltarse el saneo lo
+                    # guardó antes.
+
+                    diff = unified_diff(
+                        original_value_sanitized.splitlines(),
+                        original_value_normalized.splitlines(),
+                    )
+
+                    root_handlers = logging.getLogger().handlers
+                    with_colors = bool(root_handlers) and isinstance(
+                        root_handlers[0].formatter, ColoredFormatter)
+                    description = _record_description(record)
+                    diff_str = (
+                        f'The field ({description}, {self.string}) will '
+                        f'not be editable:\n')
+                    for line in list(diff)[2:]:
+                        if with_colors:
+                            color = {'-': RED, '+': GREEN}.get(
+                                line[:1], DEFAULT)
+                            diff_str += COLOR_PATTERN % (
+                                30 + color, 40 + DEFAULT,
+                                line.rstrip() + "\n")
+                        else:
+                            diff_str += line.rstrip() + '\n'
+                    _logger.info(diff_str)
+
+                    raise UserError(_(
+                        "The field value you're saving (%(model)s %(field)s) "
+                        "includes content that is restricted for security "
+                        "reasons. It is possible that someone with higher "
+                        "privileges previously modified it, and you are "
+                        "therefore not able to modify it yourself while "
+                        "preserving the content.",
+                        model=description, field=self.string,
+                    ))
+
+        return html_sanitize(value, **sanitize_vals)
+
+    def pre_save(self, model_instance, add):
+        """``Model.save()`` sanea con :meth:`_convert`, igual que ``write``.
+
+        El valor original de la rama ``sanitize_overridable`` es el de la
+        base, no el del atributo —que ya trae el nuevo—: :class:`_StoredRow`
+        lo lee de la fila guardada.
+        """
+        value = super().pre_save(model_instance, add)
+        record = model_instance
+        if self.sanitize_overridable:
+            record = _StoredRow(model_instance, self, add)
+        value = self._convert(value, record, True)
+        setattr(model_instance, self.attname, value)
+        return value
 
     def deconstruct(self):
         """Deconstruye como ``django.db.models.TextField``.
@@ -154,10 +372,70 @@ class Html(models.TextField):
         Las migraciones existentes se generaron cuando ``Html`` era un alias de
         ``TextField``; conservar esa ruta evita que ``makemigrations`` proponga
         un ``AlterField`` por cada campo HTML del árbol (verificado con
-        ``makemigrations --check --dry-run`` → *No changes detected*).
+        ``makemigrations --check --dry-run`` → *No changes detected*). Los
+        atributos de saneo no son de la columna y tampoco viajan.
         """
         name, _path, args, kwargs = super().deconstruct()
+        for key in _HTML_SANITIZE_ATTRS:
+            kwargs.pop(key, None)
         return name, 'django.db.models.TextField', args, kwargs
+
+    escape = staticmethod(markup_escape)
+    is_empty = staticmethod(is_html_empty)
+    to_plaintext = staticmethod(html2plaintext)
+    from_plaintext = staticmethod(plaintext2html)
+
+
+#: Los diez atributos de saneo de ``Html`` (``:563-575``).
+_HTML_SANITIZE_ATTRS = (
+    'sanitize', 'sanitize_overridable', 'sanitize_tags',
+    'sanitize_attributes', 'sanitize_style', 'sanitize_form',
+    'sanitize_conditional_comments', 'sanitize_output_method',
+    'strip_style', 'strip_classes',
+)
+
+
+def _user_has_group(record, group):
+    """``record.env.user.has_group(group)`` (``:631``).
+
+    Un modelo de Django que no es ``BaseModel`` no lleva ``env``; el usuario
+    es entonces el del entorno activo.
+    """
+    environment = getattr(record, 'env', None) or current_env()
+    return environment.user.has_group(group)
+
+
+def _record_description(record):
+    """``record._description`` (``:663``); un modelo de Django sin cabecera
+    de la fuente cae a su ``verbose_name``."""
+    description = getattr(record, '_description', None)
+    if description:
+        return description
+    return str(type(record)._meta.verbose_name)
+
+
+class _StoredRow:
+    """La fila guardada, vista como el registro que ``_convert`` lee.
+
+    En ``write`` de la fuente, ``record[self.name]`` es todavía el valor
+    anterior; en ``pre_save`` el atributo ya trae el nuevo, así que el campo
+    se lee de la base. Una fila que se crea no tiene valor anterior.
+    """
+
+    def __init__(self, instance, field, adding):
+        self._instance = instance
+        self._field = field
+        self._adding = adding
+
+    def __getattr__(self, name):
+        if name != self._field.name:
+            return getattr(self._instance, name)
+        instance = self._instance
+        if self._adding or instance.pk is None:
+            return None
+        return type(instance)._base_manager.filter(
+            pk=instance.pk).values_list(
+                self._field.attname, flat=True).first()
 
 
 def Char(

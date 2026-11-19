@@ -95,6 +95,7 @@ class MailTemplate(TimeStampedModel):
         help_text='Reply-To (Odoo reply_to).',
     )
     body_html = fields.Html(
+        sanitize='email_outgoing',
         blank=True,
         default='',
         help_text=(

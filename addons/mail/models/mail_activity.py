@@ -76,6 +76,7 @@ class MailActivity(TimeStampedModel):
         help_text='Resumen (Odoo summary).',
     )
     note = fields.Html(
+        sanitize_style=True,
         blank=True,
         default='',
         help_text='Nota (Odoo note).',

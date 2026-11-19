@@ -69,6 +69,7 @@ class MailingMailing(MailThread, TimeStampedModel):
         help_text='Remitente (Odoo email_from).',
     )
     body_html = fields.Html(
+        sanitize='email_outgoing',
         blank=True,
         default='',
         help_text='Cuerpo HTML (Odoo body_html).',

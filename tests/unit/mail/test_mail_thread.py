@@ -74,7 +74,10 @@ class TestMailThreadMessagePost:
         ticket.message_post(body='uno')
         ticket.message_post(body='dos')
         bodies = set(ticket.message_ids.values_list('body', flat=True))
-        assert bodies == {'uno', 'dos'}
+        # ``body`` se sanea al guardar (``sanitize_style=True``): el texto
+        # llano sale envuelto en párrafo, como ``html_sanitize('yop')`` de la
+        # fuente (``odoo19c: odoo/addons/base/tests/test_mail.py:50``)
+        assert bodies == {'<p>uno</p>', '<p>dos</p>'}
         assert ticket.message_ids.count() == 2
 
     def test_message_type_override(self, ticket):
