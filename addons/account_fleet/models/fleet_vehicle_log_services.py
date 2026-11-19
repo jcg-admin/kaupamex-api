@@ -123,7 +123,8 @@ def _add_if_absent(model, name, field):
         model.add_to_class(name, field)
 
 
-# -- las funciones que se cuelgan por nombre en apply_account_fleet_extensions() --
+# -- las funciones que se cuelgan por nombre en
+# apply_account_fleet_extensions() --
 
 
 def account_move_state(self):
@@ -136,7 +137,7 @@ def account_move_state(self):
     0 hits) — se navega directo a ``account_move_line.move.state``.
     """
     line = self.account_move_line
-    return line.move.state if line is not None else None
+    return line.move.state if line else None
 
 
 def get_account_move(self):
@@ -146,7 +147,7 @@ def get_account_move(self):
     a abrir en vez de un diccionario de navegación de Odoo.
     """
     line = self.account_move_line
-    return line.move if line is not None else None
+    return line.move if line else None
 
 
 def sync_vehicle_from_line(self):
@@ -158,10 +159,10 @@ def sync_vehicle_from_line(self):
     required field"*).
     """
     line = self.account_move_line
-    if line is None:
+    if not line:
         return
     line_vehicle = line.vehicle
-    if line_vehicle is None:
+    if not line_vehicle:
         return
     self.vehicle = line_vehicle
 
@@ -172,7 +173,7 @@ def sync_amount_from_line(self):
     El costo del servicio es el debe (``debit``) de la línea vinculada.
     """
     line = self.account_move_line
-    if line is None:
+    if not line:
         return
     self.amount = line.debit
 
@@ -182,7 +183,7 @@ def _sync_service_fields_from_line(service):
     crear el servicio como al cambiar la línea vinculada. Bypassa el guard
     de ``amount`` con ``_SYNCING_FROM_BILL``: es el propio compute, no una
     escritura manual del usuario."""
-    if service.account_move_line is None:
+    if not service.account_move_line:
         return
     sync_vehicle_from_line(service)
     sync_amount_from_line(service)
@@ -229,7 +230,7 @@ def _guard_amount_immutable_when_billed(sender, instance, **kwargs):
     escribió el llamador"; sin él, ``_sync_service_fields_from_line`` se
     bloquearía a sí misma.
     """
-    if instance.account_move_line is None:
+    if not instance.account_move_line:
         return
     if _SYNCING_FROM_BILL.get():
         return
@@ -253,7 +254,7 @@ def _unlink_if_no_linked_bill(sender, instance, **kwargs):
     """≙ ``_unlink_if_no_linked_bill`` (``odoo19c:
     fleet_vehicle_log_services.py:45-51``, ``@api.ondelete(at_uninstall=
     False)``)."""
-    if instance.account_move_line is None:
+    if not instance.account_move_line:
         return
     if _IGNORE_LINKED_BILL_CONSTRAINT.get():
         return

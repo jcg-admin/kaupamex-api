@@ -15,12 +15,19 @@ equivalente en DRF; esa navegación la resuelve la capa de vistas/rutas.
 """
 
 import fields
+import models
 
 from addons.base.models import TimeStampedModel
 
 
-class FleetVehicleModelBrand(TimeStampedModel):
+class FleetVehicleModelBrand(models.BaseModel, TimeStampedModel):
     """``fleet.vehicle.model.brand`` — p. ej. "Toyota", "Ford"."""
+
+    #: Verbatim de la fuente:
+    #: ``odoo19c: addons/fleet/models/fleet_vehicle_model_brand.py``.
+    _name = 'fleet.vehicle.model.brand'
+    _description = 'Brand of the vehicle'
+    _order = 'name asc'
 
     name = fields.Char(max_length=150, help_text='Odoo name (required).')
     active = fields.Boolean(default=True, help_text='Odoo active.')
@@ -47,4 +54,4 @@ class FleetVehicleModelBrand(TimeStampedModel):
     @property
     def model_count(self):
         """Modelos activos de la marca (Odoo ``_compute_model_count``)."""
-        return self.models.filter(active=True).count()
+        return len(self.models.filtered('active'))

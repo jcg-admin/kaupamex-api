@@ -15,7 +15,7 @@ from addons.mail.models import MailThread
 from .fleet_vehicle_odometer import FleetVehicleOdometer
 
 
-class FleetVehicleLogServices(MailThread, TimeStampedModel):
+class FleetVehicleLogServices(models.BaseModel, MailThread, TimeStampedModel):
     """``fleet.vehicle.log.services`` — un servicio realizado a un vehículo."""
 
     #: ≙ la cabecera de la fuente, verbatim:

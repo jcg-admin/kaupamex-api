@@ -23,6 +23,18 @@
     # LGPL-3.
     'license': 'LGPL-3',
     'application': False,  # corte parcial, no el módulo completo
+    # Seguridad de la fuente
+    # (``odoo19c: addons/fleet/__manifest__.py:31-33``), en su orden: copia
+    # fiel, sin ``fleet_group_manager.user_ids`` (``base.user_root`` y
+    # ``base.user_admin`` no existen aquí, como en ``purchase``) y sin los
+    # registros de los modelos que este árbol no porta
+    # (``fleet.vehicle.cost.report``, ``fleet.vehicle.odometer.report`` y
+    # ``fleet.vehicle.send.mail``: tres filas del CSV y la regla
+    # ``ir_rule_fleet_report``). Vuelven con ``fleet-report-models-0397``.
+    'data': [
+        'security/fleet_security.xml',
+        'security/ir.model.access.csv',
+    ],
     'installable': True,
     'auto_install': False,
 }

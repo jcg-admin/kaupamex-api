@@ -74,7 +74,7 @@ class TestFleetVehicleModelComputedProperties:
 class TestFleetVehicleModelCategoryLink:
     def test_category_is_optional(self, brand):
         model = FleetVehicleModel.objects.create(name='Corolla', brand=brand)
-        assert model.category is None
+        assert not model.category
 
     def test_category_reverse_relation(self, brand):
         category = FleetVehicleModelCategory.objects.create(name='Sedán')
@@ -83,4 +83,4 @@ class TestFleetVehicleModelCategoryLink:
             brand=brand,
             category=category,
         )
-        assert category.models.get(pk=model.pk) == model
+        assert model in category.models

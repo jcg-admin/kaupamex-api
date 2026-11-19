@@ -14,8 +14,13 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class FleetVehicleOdometer(TimeStampedModel):
+class FleetVehicleOdometer(models.BaseModel, TimeStampedModel):
     """``fleet.vehicle.odometer`` — una lectura de odómetro con fecha."""
+
+    #: ≙ ``odoo19c: addons/fleet/models/fleet_vehicle_odometer.py``, verbatim.
+    _name = 'fleet.vehicle.odometer'
+    _description = 'Odometer log for a vehicle'
+    _order = 'date desc'
 
     date = fields.Date(
         null=True, blank=True, help_text='Odoo date (default hoy).'

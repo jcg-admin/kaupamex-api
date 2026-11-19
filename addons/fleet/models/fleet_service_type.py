@@ -7,12 +7,18 @@ Adaptación fiel de Odoo fleet/models/fleet_service_type.py
 """
 
 import fields
+import models
 
 from addons.base.models import TimeStampedModel
 
 
-class FleetServiceType(TimeStampedModel):
+class FleetServiceType(models.BaseModel, TimeStampedModel):
     """``fleet.service.type`` — tipo de costo: contrato, servicio, o ambos."""
+
+    #: ≙ ``odoo19c: addons/fleet/models/fleet_service_type.py``, verbatim.
+    _name = 'fleet.service.type'
+    _description = 'Fleet Service Type'
+    _order = 'name'
 
     CATEGORY_CONTRACT = 'contract'
     CATEGORY_SERVICE = 'service'

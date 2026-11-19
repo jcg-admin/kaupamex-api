@@ -14,14 +14,20 @@ ramas — ver el docstring de ``fleet_vehicle.py``.
 """
 
 import fields
+import models
 
 from addons.base.models import TimeStampedModel
 
 
-class FleetVehicleState(TimeStampedModel):
+class FleetVehicleState(models.BaseModel, TimeStampedModel):
     """``fleet.vehicle.state`` — columna del kanban de vehículos (p. ej.
 
     "Nueva solicitud", "En lista de espera", "Activo", "Vendido")."""
+
+    #: ≙ ``odoo19c: addons/fleet/models/fleet_vehicle_state.py``, verbatim.
+    _name = 'fleet.vehicle.state'
+    _description = 'Vehicle Status'
+    _order = 'sequence asc'
 
     name = fields.Char(
         max_length=150,

@@ -10,10 +10,16 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class FleetVehicleAssignationLog(TimeStampedModel):
+class FleetVehicleAssignationLog(models.BaseModel, TimeStampedModel):
     """
     ``fleet.vehicle.assignation.log`` — quién condujo qué vehículo y cuándo.
     """
+
+    #: Verbatim de la fuente:
+    #: ``odoo19c: addons/fleet/models/fleet_vehicle_assignation_log.py``.
+    _name = 'fleet.vehicle.assignation.log'
+    _description = 'Drivers history on a vehicle'
+    _order = 'create_date desc, date_start desc'
 
     vehicle = fields.Many2one(
         'fleet.FleetVehicle',

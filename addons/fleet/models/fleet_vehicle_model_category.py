@@ -10,8 +10,14 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class FleetVehicleModelCategory(TimeStampedModel):
+class FleetVehicleModelCategory(models.BaseModel, TimeStampedModel):
     """``fleet.vehicle.model.category`` — p. ej. "Sedán", "SUV", "Pickup"."""
+
+    #: Verbatim de la fuente:
+    #: ``odoo19c: addons/fleet/models/fleet_vehicle_model_category.py``.
+    _name = 'fleet.vehicle.model.category'
+    _description = 'Category of the model'
+    _order = 'sequence asc, id asc'
 
     name = fields.Char(
         max_length=150, unique=True, help_text='Odoo name (unique).'

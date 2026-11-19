@@ -10,8 +10,12 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class FleetVehicleTag(TimeStampedModel):
+class FleetVehicleTag(models.BaseModel, TimeStampedModel):
     """``fleet.vehicle.tag`` — etiqueta M2M aplicable a ``fleet.vehicle``."""
+
+    #: ≙ ``odoo19c: addons/fleet/models/fleet_vehicle_tag.py``, verbatim.
+    _name = 'fleet.vehicle.tag'
+    _description = 'Vehicle Tag'
 
     name = fields.Char(
         max_length=150,

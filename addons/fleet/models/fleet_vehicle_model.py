@@ -53,7 +53,7 @@ FUEL_TYPES = [
 ]
 
 
-class FleetVehicleModel(MailThread, TimeStampedModel):
+class FleetVehicleModel(models.BaseModel, MailThread, TimeStampedModel):
     """``fleet.vehicle.model`` — p. ej. "Toyota / Corolla"."""
 
     #: ≙ la cabecera de la fuente, verbatim:
@@ -224,7 +224,7 @@ class FleetVehicleModel(MailThread, TimeStampedModel):
     @property
     def vehicle_count(self):
         """``_compute_vehicle_count`` — vehículos que usan este modelo."""
-        return self.vehicles.count()
+        return len(self.vehicles)
 
     @property
     def co2_emission_unit(self):

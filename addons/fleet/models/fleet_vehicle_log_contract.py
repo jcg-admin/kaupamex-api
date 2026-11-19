@@ -29,7 +29,7 @@ from addons.base.models import TimeStampedModel
 from addons.mail.models import MailThread
 
 
-class FleetVehicleLogContract(MailThread, TimeStampedModel):
+class FleetVehicleLogContract(models.BaseModel, MailThread, TimeStampedModel):
     """``fleet.vehicle.log.contract`` — seguro, leasing, mantenimiento, etc."""
 
     #: ≙ la cabecera de la fuente, verbatim:

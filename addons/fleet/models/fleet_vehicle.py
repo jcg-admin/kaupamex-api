@@ -115,7 +115,7 @@ MODEL_FIELDS_TO_VEHICLE = {
 }
 
 
-class FleetVehicle(MailThread, TimeStampedModel):
+class FleetVehicle(models.BaseModel, MailThread, TimeStampedModel):
     """``fleet.vehicle`` — un vehículo concreto de la flota."""
 
     #: ≙ la cabecera de la fuente, verbatim:
@@ -454,7 +454,7 @@ class FleetVehicle(MailThread, TimeStampedModel):
     @property
     def odometer(self):
         """``_get_odometer`` — el último valor registrado, o 0."""
-        last = self.odometer_logs.order_by('-value').first()
+        last = self.odometer_logs.sorted('value', reverse=True)[:1]
         return last.value if last else 0
 
     @odometer.setter
@@ -473,26 +473,26 @@ class FleetVehicle(MailThread, TimeStampedModel):
 
     @property
     def contract_count(self):
-        return self.log_contracts.count()
+        return len(self.log_contracts)
 
     @property
     def service_count(self):
-        return self.log_services.count()
+        return len(self.log_services)
 
     @property
     def odometer_count(self):
-        return self.odometer_logs.count()
+        return len(self.odometer_logs)
 
     @property
     def history_count(self):
-        return self.assignation_logs.count()
+        return len(self.assignation_logs)
 
     @property
     def service_activity(self):
         """``_compute_service_activity`` — agregado de ``activity_ids.state``
         de las bitácoras de servicio (excluye ``planned``); punto 6."""
         states = set()
-        for service in self.log_services.all():
+        for service in self.log_services:
             for activity in service.activity_ids:
                 if activity.state and activity.state != 'planned':
                     states.add(activity.state)
@@ -502,41 +502,33 @@ class FleetVehicle(MailThread, TimeStampedModel):
     def has_open_contract(self):
         """Espeja ``FleetVehicleLogContract.has_open_contract`` para este
         vehículo: ¿tiene algún contrato ``open`` vigente?"""
-        return self.log_contracts.filter(
-            state='open',
-            expiration_date__gte=date.today(),
-        ).exists()
+        return bool(self.log_contracts.filtered(
+            lambda contract: contract.state == 'open'
+            and contract.expiration_date
+            and contract.expiration_date >= date.today()))
+
+    def _latest_open_contract(self):
+        """El contrato no cerrado de vencimiento más tardío, o vacío."""
+        return self.log_contracts.filtered(
+            lambda contract: contract.state != 'closed'
+            and contract.expiration_date).sorted(
+                'expiration_date', reverse=True)[:1]
 
     @property
     def contract_state(self):
         """``_compute_contract_reminder`` — estado del contrato más reciente
         (por ``expiration_date``) entre los no cerrados."""
-        latest = (
-            self.log_contracts.exclude(state='closed')
-            .exclude(expiration_date__isnull=True)
-            .order_by('-expiration_date')
-            .first()
-        )
+        latest = self._latest_open_contract()
         return latest.state if latest else ''
 
     @property
     def contract_renewal_overdue(self):
-        latest = (
-            self.log_contracts.exclude(state='closed')
-            .exclude(expiration_date__isnull=True)
-            .order_by('-expiration_date')
-            .first()
-        )
+        latest = self._latest_open_contract()
         return bool(latest and latest.expiration_date < date.today())
 
     @property
     def contract_renewal_due_soon(self):
-        latest = (
-            self.log_contracts.exclude(state='closed')
-            .exclude(expiration_date__isnull=True)
-            .order_by('-expiration_date')
-            .first()
-        )
+        latest = self._latest_open_contract()
         if not latest or self.contract_renewal_overdue:
             return False
         delay = int(
@@ -639,5 +631,5 @@ class FleetVehicle(MailThread, TimeStampedModel):
         if self.driver_id and self.driver_id != previous_driver_id:
             self.create_driver_history()
         if not self.active:
-            self.log_contracts.update(active=False)
-            self.log_services.update(active=False)
+            self.log_contracts.write({'active': False})
+            self.log_services.write({'active': False})

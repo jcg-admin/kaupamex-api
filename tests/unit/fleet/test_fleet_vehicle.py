@@ -129,39 +129,39 @@ class TestFleetVehicleOdometer:
         vehicle = FleetVehicle.objects.create(model=model, driver=driver)
         vehicle.odometer = 15000
         assert vehicle.odometer == 15000
-        log = vehicle.odometer_logs.get()
+        log = vehicle.odometer_logs.ensure_one()
         assert log.value == 15000
         assert log.driver_id == driver.pk
 
     def test_setting_zero_odometer_is_a_no_op(self, model):
         vehicle = FleetVehicle.objects.create(model=model)
         vehicle.odometer = 0
-        assert vehicle.odometer_logs.count() == 0
+        assert len(vehicle.odometer_logs) == 0
 
 
 class TestFleetVehicleDriverHistory:
     def test_assigning_driver_on_create_logs_history(self, model, driver):
         vehicle = FleetVehicle.objects.create(model=model, driver=driver)
-        assert vehicle.assignation_logs.count() == 1
-        entry = vehicle.assignation_logs.get()
+        assert len(vehicle.assignation_logs) == 1
+        entry = vehicle.assignation_logs.ensure_one()
         assert entry.driver_id == driver.pk
         assert entry.date_start == date.today()
 
     def test_changing_driver_logs_a_new_entry(self, model, driver):
         vehicle = FleetVehicle.objects.create(model=model)
-        assert vehicle.assignation_logs.count() == 0
+        assert len(vehicle.assignation_logs) == 0
         vehicle.driver = driver
         vehicle.save()
-        assert vehicle.assignation_logs.count() == 1
+        assert len(vehicle.assignation_logs) == 1
 
     def test_resaving_same_driver_does_not_duplicate_history(
         self, model, driver
     ):
         vehicle = FleetVehicle.objects.create(model=model, driver=driver)
-        assert vehicle.assignation_logs.count() == 1
+        assert len(vehicle.assignation_logs) == 1
         vehicle.description = 'Actualización sin cambio de conductor'
         vehicle.save()
-        assert vehicle.assignation_logs.count() == 1
+        assert len(vehicle.assignation_logs) == 1
 
 
 class TestFleetVehicleDeactivation:

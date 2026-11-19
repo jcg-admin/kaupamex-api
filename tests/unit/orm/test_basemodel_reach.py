@@ -50,7 +50,6 @@ PENDING = {
     'analytic',
     'base',
     'crm',
-    'fleet',
     'helpdesk',
     'mail',
     'mass_mailing',
