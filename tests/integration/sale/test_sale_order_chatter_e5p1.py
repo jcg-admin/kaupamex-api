@@ -83,7 +83,8 @@ class TestElCanonicoEsUnHilo:
         assert MailMessage.objects.filter(
             model='sale.order',
             res_id=orden.pk,
-            body='nota interna',
+            # ``body`` se sanea al guardar: el texto llano sale en párrafo
+            body='<p>nota interna</p>',
         ).exists()
 
 
