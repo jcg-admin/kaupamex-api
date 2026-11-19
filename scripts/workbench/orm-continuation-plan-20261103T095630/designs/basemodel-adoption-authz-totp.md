@@ -21,9 +21,11 @@ Unidad hija `basemodel-adoption-authz-totp-0397` del paraguas
 
 ## La prosa heredada, validada
 
-`res_users.py` decía que *«el ORM de Django no interpone ACL sobre el
-queryset»*, y por eso el conteo no necesitaba `sudo()`. Con `BaseModel` sí la
-interpone: el conteo pasa a `sudo()`, como en la fuente.
+`res_users.py` dice que *«el ORM de Django no interpone ACL sobre el
+queryset»*, y por eso el conteo no necesita `sudo()`. Medido con la adopción
+hecha: sigue siendo cierto, porque `objects` no pasa por `check_access`; un
+usuario interno cuenta y purga sus intentos aunque la ACL del registro sea
+`0,0,0,0`. El conteo no cambia.
 
 ## Cambios
 
@@ -33,9 +35,7 @@ interpone: el conteo pasa a `sudo()`, como en la fuente.
    manifiesto en el orden de la fuente. Del XML salen el acceso y la regla de
    `auth_totp.wizard`, que este árbol no porta como modelo (el asistente vive
    en `services.py`); se declaran en el manifiesto.
-3. `_totp_rate_limit` y `_totp_rate_limit_purge` (`res_users.py`) leen y
-   escriben el registro dentro de `sudo()`.
-4. `test_basemodel_reach.py`: `authz_totp` sale de `PENDING`.
+3. `test_basemodel_reach.py`: `authz_totp` sale de `PENDING`.
 
 ## Fuera de esta unidad, con su sucesor
 
@@ -46,5 +46,6 @@ interpone: el conteo pasa a `sudo()`, como en la fuente.
 
 `tests/unit/authz_totp/test_authz_totp_basemodel.py`: los dos modelos son
 `BaseModel` con su `_description`; las 3 filas del CSV; las 3 reglas del
-dispositivo; un usuario interno no lee el registro de intentos y aun así su
-intento se cuenta y se purga.
+dispositivo; un usuario interno no lee el registro de intentos por el
+entorno, y su intento se cuenta y se purga (guarda de que la ACL vacía no
+rompe el conteo).
