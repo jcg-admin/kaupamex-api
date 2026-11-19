@@ -1958,7 +1958,21 @@ class FieldDescriptor(DeferredAttribute):
                 # ``Field.__set__`` de la fuente pasa por ``convert_to_cache``:
                 # el valor asignado se guarda en forma JSON, no por referencia.
                 value = field.convert_to_cache(value, instance, validate=False)
-            instance.__dict__[field.attname] = value
+                instance.__dict__[field.attname] = value
+            elif (isinstance(field, (Properties, PropertiesDefinition))
+                    and not instance.__dict__.get('_orm_building')):
+                # ``Properties`` y ``PropertiesDefinition``: en la fuente la
+                # asignación llega a ``write``, que guarda la forma de caché
+                # (la lista de definiciones reducida a ``{nombre: valor}``,
+                # las ``_html`` saneadas). ``save()`` lee la columna de este
+                # atributo, así que recibe esa forma; ``field.write`` sigue
+                # recibiendo la lista, que lleva ``definition_changed`` (la
+                # conversión sólo le quita ``display_name``, como en la
+                # fuente).
+                instance.__dict__[field.attname] = field.convert_to_cache(
+                    value, instance)
+            else:
+                instance.__dict__[field.attname] = value
 
         # Django asigna la identidad tras INSERT y al refrescar la fila. No
         # es una columna de negocio que deba entrar al conjunto de flush.

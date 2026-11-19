@@ -1,6 +1,7 @@
 """Campos de propiedades dinámicas — fiel a ``odoo/orm/fields_properties.py``.
 
-Odoo ``Properties``/``PropertiesDefinition`` = propiedades dinámicas por registro
+Odoo ``Properties``/``PropertiesDefinition`` = propiedades dinámicas por
+registro
 (esquema definido en un padre). En Django el equivalente natural es
 ``JSONField`` (esquema validado en el serializer/clean). Alias de lectura.
 
@@ -17,7 +18,8 @@ esa clase — misma divergencia de forma que ``orm/fields.py`` declara para
 ``to_sql``: la clase es de Django y no es nuestra para declararla.
 
 Consecuencia que conviene saber, y es una diferencia real con la fuente: allá
-sólo ``Properties`` lo tiene; aquí el método se adjunta a ``JSONField``, así que
+sólo ``Properties`` lo tiene; aquí el método se adjunta a ``JSONField``, así
+que
 un ``fields.Json`` también responde a ``property_to_sql``. Es un
 ensanchamiento, no un defecto: el operador ``->`` de PostgreSQL funciona igual
 sobre cualquier ``jsonb``, y ``_field_to_sql`` sólo lo invoca cuando la
@@ -55,6 +57,7 @@ from orm.fields_nonstored import (
 from orm.utils import (COLLECTION_TYPES, SQL_OPERATORS, as_record_list,
                        display_name_of,
                        parse_field_expr, regex_alphanumeric)
+from tools.mail import html_sanitize
 from tools.misc import OrderedSet, has_list_types, is_list_of
 from tools.sql import SQL
 from tools.translate import _
@@ -69,7 +72,8 @@ _COMPARISON_LOOKUP = {'<': 'lt', '>': 'gt', '<=': 'lte', '>=': 'gte'}
 
 
 def _model_of(model_name):
-    """La clase de ese nombre, o ``None`` — ≙ ``env[nombre]`` / ``nombre in env``.
+    """La clase de ese nombre, o ``None`` — ≙ ``env[nombre]`` / ``nombre in
+    env``.
 
     La fuente indexa el entorno, que conoce todo modelo por su ``_name``, y usa
     ``modelo in env`` como comprobación de existencia. Aquí se consulta el
@@ -88,7 +92,11 @@ def _model_of(model_name):
         return None
 
 
-__all__ = ['Properties', 'PropertiesDefinition', 'check_property_field_value_name']
+__all__ = [
+    'Properties',
+    'PropertiesDefinition',
+    'check_property_field_value_name',
+]
 
 #: ``NoneType`` — la fuente lo importa de ``types``; aquí se deriva, que es lo
 #: mismo y no añade un import por una sola cita.
@@ -122,7 +130,7 @@ class Properties(models.JSONField):
 
     **NO** se porta todavía el resto del archivo de la fuente —el
     ``compute``/``inverse`` que materializa el campo en lectura, la validación
-    de la definición, el saneo HTML por propiedad y la superficie web—. No es
+    de la definición y la superficie web—. No es
     una divergencia declarada en lugar de portar: es **porte por tramos con
     sucesor registrado**, tarea **#130**, y el tramo que falta no lo toca
     ningún consumidor de este árbol hoy (medido: ninguna de las 11
@@ -160,6 +168,19 @@ class Properties(models.JSONField):
     #: ≙ el ``_setup_done`` de la fuente — guarda de :meth:`setup`.
     _setup_done = False
 
+    #: ≙ ``HTML_SANITIZE_OPTIONS`` (``odoo19c:
+    #: odoo/orm/fields_properties.py:70-78``) — el saneo de una propiedad
+    #: ``html``, verbatim.
+    HTML_SANITIZE_OPTIONS = {
+        'sanitize_attributes': True,
+        'sanitize_tags': True,
+        'sanitize_style': False,
+        'sanitize_form': True,
+        'sanitize_conditional_comments': True,
+        'strip_style': False,
+        'strip_classes': False,
+    }
+
     #: ≙ ``ALLOWED_TYPES`` (``odoo19c: fields_properties.py``) — los tipos que
     #: una propiedad puede declarar. Se porta verbatim.
     ALLOWED_TYPES = (
@@ -185,7 +206,8 @@ class Properties(models.JSONField):
         self.definition = definition
 
     def _setup_definition_attrs(self, model_class=None):
-        """≙ ``_setup_definition_attrs`` — parte ``definition`` en sus dos mitades.
+        """≙ ``_setup_definition_attrs`` — parte ``definition`` en sus dos
+        mitades.
 
         La fuente lo corre desde ``_setup_attrs__``, que su ORM invoca al
         construir la clase de modelo. Aquí lo invoca el mismo símbolo, llamado
@@ -253,26 +275,37 @@ class Properties(models.JSONField):
         La rama ``Property`` de la fuente **no** aplica: ese envoltorio es de
         su capa de lectura, que es el tramo no portado (tarea #130).
 
-        DIVERGENCIA DECLARADA en ``validate``: la fuente sanea con
-        ``html_sanitize`` las propiedades cuyo nombre acaba en ``_html``. Aquí
-        el saneo de HTML vive en la capa UI (``dompurify``) —la misma decisión
-        que ``fields_textual.Html`` ya declara para el campo entero—, así que
-        la bandera se acepta y no dispara saneo. No es un hueco silencioso: es
-        la misma frontera, aplicada al mismo tipo de dato.
+        Con ``validate``, las propiedades cuyo nombre acaba en ``_html`` se
+        sanean con ``html_sanitize`` y :attr:`HTML_SANITIZE_OPTIONS`
+        (``:156-163``), igual que el campo ``Html``.
         """
         if not value:
             return None
         if isinstance(value, dict):
-            return copy.deepcopy(value)
-        if isinstance(value, str):
+            # sin efectos laterales sobre datos mutables compartidos
+            value = copy.deepcopy(value)
+        elif isinstance(value, str):
             value = json.loads(value)
             if not isinstance(value, dict):
                 raise ValueError(f"Wrong property value {value!r}")
-            return value
-        if isinstance(value, list):
+        elif isinstance(value, list):
+            # la lista con todas las definiciones se reduce a un dict
+            # {nombre: valor}: el hijo guarda lo mínimo
             self._remove_display_name(value)
-            return self._list_to_dict(value)
-        raise TypeError(f"Wrong property type {type(value)!r}")
+            value = self._list_to_dict(value)
+        else:
+            raise TypeError(f"Wrong property type {type(value)!r}")
+
+        if validate:
+            # sanear las propiedades marcadas ``_html``
+            for property_name, property_value in value.items():
+                if property_name.endswith('_html'):
+                    value[property_name] = html_sanitize(
+                        property_value,
+                        **self.HTML_SANITIZE_OPTIONS,
+                    )
+
+        return value
 
     @classmethod
     def _add_missing_names(cls, values_list):
@@ -282,7 +315,9 @@ class Properties(models.JSONField):
         primeros 64 bits de un UUID4, verbatim.
         """
         for definition in values_list:
-            if definition.get('definition_changed') and not definition.get('name'):
+            if definition.get('definition_changed') and not definition.get(
+                'name'
+            ):
                 # keep only the first 64 bits
                 definition['name'] = str(uuid.uuid4()).replace('-', '')[:16]
 
@@ -290,11 +325,14 @@ class Properties(models.JSONField):
     def _remove_display_name(cls, values_list, value_key='value'):
         """≙ ``_remove_display_name`` — quita la etiqueta que manda el cliente.
 
-        «- many2one: (35, 'Bob') -> 35 · many2many: [(35, 'Bob'), (36, 'Alice')]
+        «- many2one: (35, 'Bob') -> 35 · many2many: [(35, 'Bob'), (36,
+        'Alice')]
         -> [35, 36]». Modifica ``values_list`` en el sitio.
         """
         for property_definition in values_list:
-            if not isinstance(property_definition, dict) or not property_definition.get('name'):
+            if not isinstance(
+                property_definition, dict
+            ) or not property_definition.get('name'):
                 continue
 
             property_value = property_definition.get(value_key)
@@ -317,7 +355,8 @@ class Properties(models.JSONField):
 
     @classmethod
     def _list_to_dict(cls, values_list):
-        """≙ ``_list_to_dict`` — la definición completa reducida a ``{nombre: valor}``.
+        """≙ ``_list_to_dict`` — la definición completa reducida a ``{nombre:
+        valor}``.
 
         «To not repeat data in database, we only store the value of each
         property on the child. The properties definition is stored on the
@@ -342,15 +381,32 @@ class Properties(models.JSONField):
                 # Do not store None key
                 continue
 
-            if property_type not in ('integer', 'float') or property_value != 0:
+            if (
+                property_type not in ('integer', 'float')
+                or property_value != 0
+            ):
                 property_value = property_value or False
-            if property_type in ('many2one', 'many2many') and property_model and property_value:
+            if (
+                property_type in ('many2one', 'many2many')
+                and property_model
+                and property_value
+            ):
                 # check that value are correct before storing them in database
-                if property_type == 'many2many' and property_value and not is_list_of(property_value, int):
-                    raise ValueError(f"Wrong many2many value {property_value!r}")
+                if (
+                    property_type == 'many2many'
+                    and property_value
+                    and not is_list_of(property_value, int)
+                ):
+                    raise ValueError(
+                        f"Wrong many2many value {property_value!r}"
+                    )
 
-                if property_type == 'many2one' and not isinstance(property_value, int):
-                    raise ValueError(f"Wrong many2one value {property_value!r}")
+                if property_type == 'many2one' and not isinstance(
+                    property_value, int
+                ):
+                    raise ValueError(
+                        f"Wrong many2one value {property_value!r}"
+                    )
 
             dict_value[property_definition['name']] = property_value
 
@@ -358,19 +414,24 @@ class Properties(models.JSONField):
 
     @classmethod
     def _dict_to_list(cls, values_dict, properties_definition):
-        """≙ ``_dict_to_list`` — la inversa: el valor del hijo sobre la definición.
+        """≙ ``_dict_to_list`` — la inversa: el valor del hijo sobre la
+        definición.
 
         «Ignore every values in the child that is not defined on the
         container» — que es exactamente el criterio con que
         ``_clean_properties`` decide qué sobra.
         """
         if not is_list_of(properties_definition, dict):
-            raise ValueError(f'Wrong properties value {properties_definition!r}')
+            raise ValueError(
+                f'Wrong properties value {properties_definition!r}'
+            )
 
         values_list = copy.deepcopy(properties_definition)
         for property_definition in values_list:
             if property_definition['name'] in values_dict:
-                property_definition['value'] = values_dict[property_definition['name']]
+                property_definition['value'] = values_dict[
+                    property_definition['name']
+                ]
             else:
                 property_definition.pop('value', None)
         return values_list
@@ -458,7 +519,8 @@ class Properties(models.JSONField):
                         self.convert_to_cache(value, record))
 
     def pre_save(self, model_instance, add):
-        """El enganche de Django que materializa el ``compute`` de la fuente."""
+        """El enganche de Django que materializa el ``compute`` de la
+        fuente."""
         if self.definition_record:
             self._compute([model_instance])
         return super().pre_save(model_instance, add)
@@ -482,7 +544,8 @@ class Properties(models.JSONField):
 
         container = values.get(self.definition_record)
         if not container:
-            # container is not given in the value, can not find properties definition
+            # container is not given in the value, can not find properties
+            # definition
             return {}
 
         if not isinstance(container, (int, models.Model)):
@@ -503,10 +566,10 @@ class Properties(models.JSONField):
             isinstance(properties_values, list)
             and any(d.get('definition_changed') for d in properties_values)
         )):
-            # If a parent is set without properties, we might want to change its
-            # definition when we create the new record. But if we just set the
-            # value without changing the definition, in that case we can just
-            # ignored the passed values
+            # If a parent is set without properties, we might want to change
+            # its definition when we create the new record. But if we just set
+            # the value without changing the definition, in that case we can
+            # just ignored the passed values
             return {}
 
         assert isinstance(properties_values, (list, dict))
@@ -536,19 +599,18 @@ class Properties(models.JSONField):
     column_conversion_needs_record = True
 
     def convert_to_column(self, value, record, values=None, validate=True):
-        """≙ ``convert_to_column`` (``odoo19c: :124-129``) — la forma de columna."""
+        """≙ ``convert_to_column`` (``odoo19c: :124-129``) — la forma de
+        columna."""
         if not value:
             return None
         value = self.convert_to_cache(value, record, validate=validate)
         return json.dumps(value)
 
     def get_prep_value(self, value):
-        """El enganche de Django, que delega en el símbolo de la fuente.
+        """El enganche de Django: desenvuelve el :class:`Property`.
 
-        ``convert_to_column`` recibe el registro y aquí no llega: Django
-        prepara el valor sin él. Se pasa ``None``, que es lo que la fuente
-        haría con un campo sin saneo — el único uso del registro en ese cuerpo
-        es el saneo HTML, y ese es la divergencia ya declarada.
+        El saneo de las propiedades ``_html`` no depende del registro y ya lo
+        aplicó ``convert_to_cache`` al escribir el valor (``:156-163``).
         """
         if isinstance(value, Property):
             value = value._values
@@ -630,7 +692,9 @@ class Properties(models.JSONField):
 
     def convert_to_read(self, value, record, use_display_name=True):
         """≙ ``convert_to_read`` (``odoo19c: :196-197``)."""
-        return self.convert_to_read_multi([value], [record], use_display_name)[0]
+        return self.convert_to_read_multi([value], [record], use_display_name)[
+            0
+        ]
 
     def convert_to_read_multi(self, values, records, use_display_name=True,
                               using=DEFAULT_DB_ALIAS):
@@ -705,13 +769,18 @@ class Properties(models.JSONField):
                 property_value = property_definition.get('value') or []
                 default = property_definition.get('default') or []
 
-                if type_ not in ('many2one', 'many2many') or not _model_of(comodel):
+                if type_ not in ('many2one', 'many2many') or not _model_of(
+                    comodel
+                ):
                     continue
 
                 if type_ == 'many2one':
                     default = [default] if default else []
-                    property_value = ([property_value]
-                                      if isinstance(property_value, int) else [])
+                    property_value = (
+                        [property_value]
+                        if isinstance(property_value, int)
+                        else []
+                    )
                 elif not is_list_of(property_value, int):
                     property_value = []
 
@@ -734,9 +803,12 @@ class Properties(models.JSONField):
         «Add the "display_name" for each many2one / many2many properties.
         Modify in place "values_list".»
 
-        DIVERGENCIA MEDIDA en la etiqueta: la fuente lee ``record.display_name``,
-        que su ``BaseModel`` declara para **todo** modelo. Aquí sólo lo declaran
-        13 modelos (medido), así que se cae a ``str(record)`` —el ``__str__`` de
+        DIVERGENCIA MEDIDA en la etiqueta: la fuente lee
+        ``record.display_name``,
+        que su ``BaseModel`` declara para **todo** modelo. Aquí sólo lo
+        declaran
+        13 modelos (medido), así que se cae a ``str(record)`` —el ``__str__``
+        de
         Django, que es el equivalente natural— cuando el modelo no lo declara.
         Construir el ``display_name`` universal es la tarea **#134**.
         """
@@ -797,7 +869,9 @@ class Properties(models.JSONField):
                 # E.G. convert zero to False
                 property_value = bool(property_value)
 
-            elif property_type in ('char', 'text') and not isinstance(property_value, str):
+            elif property_type in ('char', 'text') and not isinstance(
+                property_value, str
+            ):
                 property_value = False
 
             elif property_value and property_type == 'selection':
@@ -810,8 +884,12 @@ class Properties(models.JSONField):
 
             elif property_value and property_type == 'tags':
                 # remove all tags that are not defined on the container
-                all_tags = {tag[0] for tag in property_definition.get('tags') or ()}
-                property_value = [tag for tag in property_value if tag in all_tags]
+                all_tags = {
+                    tag[0] for tag in property_definition.get('tags') or ()
+                }
+                property_value = [
+                    tag for tag in property_value if tag in all_tags
+                ]
 
             elif property_type == 'many2one':
                 if (not isinstance(property_value, int)
@@ -842,12 +920,14 @@ class Properties(models.JSONField):
     # -- Búsqueda ------------------------------------------------------------
 
     def property_to_sql(self, field_sql, property_name, model, alias, query):
-        """≙ ``property_to_sql`` (``odoo19c: :674-676``) — ``(campo -> 'nombre')``."""
+        """≙ ``property_to_sql`` (``odoo19c: :674-676``) — ``(campo ->
+        'nombre')``."""
         check_property_field_value_name(property_name)
         return SQL("(%s -> %s)", field_sql, property_name)
 
     def condition_to_q(self, field_expr, operator, value, model=None):
-        """≙ ``condition_to_sql`` (``odoo19c: :678-771``) — la condición de búsqueda.
+        """≙ ``condition_to_sql`` (``odoo19c: :678-771``) — la condición de
+        búsqueda.
 
         DIVERGENCIA DE FORMA, la que ``orm/domains.py`` ya declara para toda
         esta capa: allá el retorno es ``SQL`` porque la fuente compone el
@@ -899,9 +979,11 @@ class Properties(models.JSONField):
                 if check_null_op_false == 'exact':
                     # check null value too
                     fname = key.split('__')[0]
-                    qs.append(q_false
-                              | models.Q(**{f'{fname}__isnull': True})
-                              | ~models.Q(**{f'{fname}__has_key': property_name}))
+                    qs.append(
+                        q_false
+                        | models.Q(**{f'{fname}__isnull': True})
+                        | ~models.Q(**{f'{fname}__has_key': property_name})
+                    )
                 else:
                     qs.append(~q_false)
 
@@ -918,7 +1000,11 @@ class Properties(models.JSONField):
                 qs.append(~q_sub if operator == 'not in' else q_sub)
 
             assert qs, 'No Q generated for property'
-            combine = operator_module.or_ if operator == 'in' else operator_module.and_
+            combine = (
+                operator_module.or_
+                if operator == 'in'
+                else operator_module.and_
+            )
             return functools.reduce(combine, qs)
 
         # ≙ ``:742-771`` — el resto de operadores. La fuente escribe aquí su
@@ -987,7 +1073,8 @@ class Properties(models.JSONField):
         propiedad relacional— y el resto delega en el caso base del campo.
 
         **Este porte estuvo declinado con una razón que caducó**
-        (:ref:`h-api-992`). Decía: *"BLOQUEADO por ``filtered_domain`` … medido:
+        (:ref:`h-api-992`). Decía: *"BLOQUEADO por ``filtered_domain`` …
+        medido:
         ``grep`` da 0"*. El porte de ``ir_default`` construyó ese mecanismo
         —``orm/models.py`` lo declara como función de módulo y como método de
         ``AccessQuerySet``— y con él ``Field.filter_function`` y
@@ -1158,7 +1245,9 @@ def check_property_field_value_name(property_name):
     El nombre de una propiedad va **interpolado en el SQL**, así que se acota
     antes: hasta 512 caracteres y sólo minúsculas, dígitos y guion bajo.
     """
-    if not (0 < len(property_name) <= 512) or not regex_alphanumeric.match(property_name):
+    if not (0 < len(property_name) <= 512) or not regex_alphanumeric.match(
+        property_name
+    ):
         raise ValueError(f"Wrong property field value name {property_name!r}.")
 
 
@@ -1217,7 +1306,9 @@ class Property(abc.Mapping):
         if not prop:
             raise KeyError(property_name)
 
-        if prop.get('type') in ('many2one', 'many2many') and prop.get('comodel'):
+        if prop.get('type') in ('many2one', 'many2many') and prop.get(
+            'comodel'
+        ):
             model = _model_of(prop.get('comodel'))
             if model is None:
                 return False
@@ -1257,7 +1348,8 @@ class PropertiesDefinition(models.JSONField):
     container record to define the structure of expected properties on
     subrecords. It is used to check the properties definition.»
 
-    Hasta ``api@43fb9385`` esto era ``PropertiesDefinition = models.JSONField``,
+    Hasta ``api@43fb9385`` esto era ``PropertiesDefinition =
+    models.JSONField``,
     un alias pelado, y el alias **no validaba nada**: una definición con una
     clave inventada, un tipo desconocido o dos propiedades con el mismo nombre
     entraba a la columna y sólo se notaba al leerla. Es lo que este porte
@@ -1313,20 +1405,24 @@ class PropertiesDefinition(models.JSONField):
     }
 
     def deconstruct(self):
-        """Deconstruye como ``django.db.models.JSONField`` — ver el docstring."""
+        """Deconstruye como ``django.db.models.JSONField`` — ver el
+        docstring."""
         name, _path, args, kwargs = super().deconstruct()
         return name, 'django.db.models.JSONField', args, kwargs
 
     column_conversion_needs_record = True
 
     def convert_to_column(self, value, record, values=None, validate=True):
-        """≙ ``convert_to_column`` (``odoo19c: :871-908``) — la forma de columna."""
+        """≙ ``convert_to_column`` (``odoo19c: :871-908``) — la forma de
+        columna."""
         if not value:
             return None
         if isinstance(value, str):
             value = json.loads(value)
         if not isinstance(value, list):
-            raise TypeError(f'Wrong properties definition type {type(value)!r}')
+            raise TypeError(
+                f'Wrong properties definition type {type(value)!r}'
+            )
 
         if validate:
             Properties._remove_display_name(value, value_key='default')
@@ -1351,7 +1447,9 @@ class PropertiesDefinition(models.JSONField):
         if isinstance(value, str):
             value = json.loads(value)
         if not isinstance(value, list):
-            raise TypeError(f'Wrong properties definition type {type(value)!r}')
+            raise TypeError(
+                f'Wrong properties definition type {type(value)!r}'
+            )
 
         if validate:
             Properties._remove_display_name(value, value_key='default')
@@ -1374,7 +1472,8 @@ class PropertiesDefinition(models.JSONField):
         for property_definition in value:
             if not all(property_definition.get(key)
                        for key in self.REQUIRED_KEYS):
-                # some required keys are missing, ignore this property definition
+                # some required keys are missing, ignore this property
+                # definition
                 continue
 
             # don't modify the value in cache
@@ -1391,7 +1490,9 @@ class PropertiesDefinition(models.JSONField):
 
             elif type_ in ('selection', 'tags'):
                 # always set at least an empty array if there's no option
-                property_definition[type_] = property_definition.get(type_) or []
+                property_definition[type_] = (
+                    property_definition.get(type_) or []
+                )
 
             result.append(property_definition)
 
@@ -1434,7 +1535,10 @@ class PropertiesDefinition(models.JSONField):
         properties_names = set()
 
         for property_definition in properties_definition:
-            for property_parameter, allowed_types in self.PROPERTY_PARAMETERS_MAP.items():
+            for (
+                property_parameter,
+                allowed_types,
+            ) in self.PROPERTY_PARAMETERS_MAP.items():
                 if (property_definition.get('type') not in allowed_types
                         and property_parameter in property_definition):
                     raise ValueError(
@@ -1445,8 +1549,10 @@ class PropertiesDefinition(models.JSONField):
             invalid_keys = property_definition_keys - set(allowed_keys)
             if invalid_keys:
                 raise ValueError(
-                    'Some key are not allowed for a properties definition [%s].'
-                    % ', '.join(invalid_keys))
+                    'Some key are not allowed for a properties definition '
+                    '[%s].'
+                    % ', '.join(invalid_keys)
+                )
 
             check_property_field_value_name(property_definition['name'])
 
@@ -1460,17 +1566,26 @@ class PropertiesDefinition(models.JSONField):
             property_name = property_definition.get('name')
             if not property_name or property_name in properties_names:
                 raise ValueError(
-                    f'The property name {property_name!r} is not set or duplicated.')
+                    f'The property name {property_name!r} is not set or '
+                    'duplicated.'
+                )
             properties_names.add(property_name)
 
             if property_type == 'html' and not property_name.endswith('_html'):
                 raise ValueError("HTML property name should end with `_html`.")
 
             if property_type != 'html' and property_name.endswith('_html'):
-                raise ValueError("Only HTML properties can have the `_html` suffix.")
+                raise ValueError(
+                    "Only HTML properties can have the `_html` suffix."
+                )
 
             if property_type and property_type not in Properties.ALLOWED_TYPES:
                 raise ValueError(f'Wrong property type {property_type!r}.')
+
+            if property_type == 'html' and (
+                    default := property_definition.get('default')):
+                property_definition['default'] = html_sanitize(
+                    default, **Properties.HTML_SANITIZE_OPTIONS)
 
             model_name = property_definition.get('comodel')
             if model_name and _model_of(model_name) is None:
@@ -1488,7 +1603,9 @@ class PropertiesDefinition(models.JSONField):
                     duplicated = set(filter(
                         lambda x: all_options.count(x) > 1, all_options))
                     raise ValueError(
-                        f'Some options are duplicated: {", ".join(duplicated)}.')
+                        'Some options are duplicated: '
+                        f'{", ".join(duplicated)}.'
+                    )
 
             property_tags = property_definition.get('tags')
             if property_tags:
