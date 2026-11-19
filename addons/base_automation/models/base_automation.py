@@ -90,14 +90,16 @@ import api
 import logging
 import re
 import calendar
+import contextvars
 from datetime import timedelta
 from uuid import uuid4
 
 from django.apps import apps as django_apps
-from django.db import connection, models
+from django.db import connection
 from django.utils import timezone
 
 import fields
+import models
 from addons.base.models import IrActionsServer, IrCron, IrLogging, IrModel
 from addons.base.models.ir_model import IrModelFields, IrModelFieldsSelection
 from addons.base.models.timestamped_mixin import TimeStampedModel
@@ -105,11 +107,16 @@ from addons.mail.models import MailActivityMixin, MailThread
 from addons.resource.models.resource_calendar import ResourceCalendar
 from exceptions import UserError, ValidationError
 from orm import domains
-from orm.environments import env, get_current_uid, get_current_user
+from orm.environments import env, get_current_uid, get_current_user, sudo
 from tools import safe_eval as safe_eval_tools
 from tools.safe_eval import safe_eval
 
 _logger = logging.getLogger(__name__)
+
+#: Verdadero mientras corre ``BaseAutomation.write``: es él quien actualiza
+#: cron y dispatch, con la asimetría de la fuente, y el ``save()`` que alcanza
+#: ``BaseModel.write`` no repite la actualización.
+_IN_WRITE = contextvars.ContextVar('base_automation_in_write', default=False)
 
 #: ≙ DOMAIN_FIELDS_RE de la referencia — extrae nombres de campo de un
 #: dominio en notación de tripletas ``[('campo', 'op', valor), ...]``.
@@ -301,7 +308,8 @@ class BaseAutomationAction(TimeStampedModel):
         return f'{self.action_id} -> {self.automation_id}'
 
 
-class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
+class BaseAutomation(models.BaseModel, MailThread, MailActivityMixin,
+                     TimeStampedModel):
     """``base.automation`` — regla de automatización declarativa."""
 
     #: ≙ ``odoo19c: addons/base_automation/models/base_automation.py:125-127``,
@@ -774,23 +782,34 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         """≙ ``_compute_trigger_field_ids``. Requiere ``pk`` (M2M) — ver
         ``_sync_m2m_dependent_fields``, que la invoca después del save."""
         if self.trigger == 'on_create_or_write':
-            self.trigger_field_ids.set(
-                _get_domain_fields(self.model_id, self.filter_domain))
+            ids = list(_get_domain_fields(
+                self.model_id, self.filter_domain).values_list(
+                    'pk', flat=True))
         elif self.trigger not in TIME_TRIGGERS:
             field_qs = self._get_trigger_specific_field()
-            self.trigger_field_ids.set(field_qs if field_qs else [])
+            ids = list(field_qs.values_list('pk', flat=True)) if field_qs \
+                else []
         else:
-            self.trigger_field_ids.clear()
+            ids = []
+        # Asignar un calculado no pasa por el ``write`` del modelo en la
+        # fuente ni por su control de acceso: se escribe con el de
+        # ``BaseModel`` como superusuario.
+        with sudo():
+            super(BaseAutomation, self).write(
+                {'trigger_field_ids': [fields.Command.set(ids)]})
 
     def _compute_on_change_field_ids(self):
         """≙ ``_compute_on_change_field_ids``. El campo se puebla por
         dominio; el DISPATCH de onchange está bloqueado (ver docstring del
         módulo — ``_onchange_domain``/``_onchange_trigger``)."""
+        ids = []
         if self.trigger == 'on_change':
-            self.on_change_field_ids.set(
-                _get_domain_fields(self.model_id, self.filter_domain))
-        else:
-            self.on_change_field_ids.clear()
+            ids = list(_get_domain_fields(
+                self.model_id, self.filter_domain).values_list(
+                    'pk', flat=True))
+        with sudo():
+            super(BaseAutomation, self).write(
+                {'on_change_field_ids': [fields.Command.set(ids)]})
 
     def _sync_m2m_dependent_fields(self):
         """Orquesta ``_compute_trigger_field_ids`` +
@@ -964,7 +983,8 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         super().save(*args, **kwargs)
         self._sync_m2m_dependent_fields()
         self._compute_action_server_ids()
-        if creating or self._critical_fields_changed():
+        if not _IN_WRITE.get() and (
+                creating or self._critical_fields_changed()):
             self._update_cron()
             self._update_registry()
             # ≙ invalidación de caché — sin efecto (ver docstring)
@@ -1030,53 +1050,58 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         del módulo— así que se conserva la consulta y no su efecto, que es lo
         que ``save()`` ya hacía.
         """
-        automations = [cls.objects.create(**vals) for vals in vals_list]
+        automations = super().create(vals_list)
         for automation in automations:
             automation._update_cron()
             automation._update_registry()
             automation._has_trigger_onchange()
         return automations
 
-    def write(self, **vals):
+    def write(self, vals):
         """≙ ``write`` (``odoo19c: base_automation.py:500-511``).
 
-        Conserva el nombre y, con él, la asimetría que la fuente escribe: un
-        cambio en ``CRITICAL_FIELDS`` actualiza cron **y** dispatch; uno que
-        sólo toca ``RANGE_FIELDS`` actualiza **sólo** el cron. ``save()`` no
-        puede distinguirlas —para cuando corre, la instancia ya trae los
-        valores nuevos y no sabe cuáles entraron—, así que esa mitad del
-        comportamiento sólo existe por esta puerta.
-
-        La firma es ``**vals`` y el cuerpo es *poner los atributos y guardar*,
-        el idioma ya fijado por ``addons/stock/models/stock_location.py:575``.
-        Devuelve ``self``.
+        La asimetría de la fuente: un cambio en ``CRITICAL_FIELDS`` actualiza
+        cron **y** dispatch; uno que sólo toca ``RANGE_FIELDS`` actualiza
+        **sólo** el cron.
         """
+        # ``write`` decide las actualizaciones; el ``save()`` que alcanza
+        # ``BaseModel.write`` no las repite
+        token = _IN_WRITE.set(True)
+        try:
+            res = super().write(vals)
+        finally:
+            _IN_WRITE.reset(token)
         entrantes = set(vals)
-        for name, value in vals.items():
-            setattr(self, name, value)
-        super().save()
-        if entrantes.intersection(self.CRITICAL_FIELDS):
-            self._update_cron()
-            self._update_registry()
-            self._has_trigger_onchange()
-        elif entrantes.intersection(self.RANGE_FIELDS):
-            self._update_cron()
-        self._critical_snapshot = self._current_critical_snapshot()
-        return self
+        for automation in self:
+            if entrantes.intersection(self.CRITICAL_FIELDS):
+                automation._update_cron()
+                automation._update_registry()
+                automation._has_trigger_onchange()
+            elif entrantes.intersection(self.RANGE_FIELDS):
+                automation._update_cron()
+            automation._critical_snapshot = (
+                automation._current_critical_snapshot())
+        return res
 
     def unlink(self):
-        """≙ ``unlink`` (``odoo19c: base_automation.py:513-521``).
-
-        Conserva el nombre; el cuerpo delega en :meth:`delete`, que es donde
-        vive la actualización de cron y dispatch. Existe para que el símbolo de
-        la fuente se pueda llamar por su nombre desde un puerto hermano, sin
-        que quien lea la referencia tenga que saber que aquí se llama de otra
-        forma.
-        """
-        return self.delete()
+        """≙ ``unlink`` (``odoo19c: base_automation.py:513-521``): borra y
+        actualiza cron y dispatch."""
+        res = super().unlink()
+        self._update_cron()
+        self._update_registry()
+        return res
 
     def _current_critical_snapshot(self):
-        return tuple(getattr(self, f, None) for f in self.CRITICAL_FIELDS)
+        """Los valores de ``CRITICAL_FIELDS``; un x2many por sus ids, que
+        se comparan por valor (un conjunto de consulta se compara por
+        identidad y daría «cambiado» en cada lectura)."""
+        values = []
+        for name in self.CRITICAL_FIELDS:
+            value = getattr(self, name, None)
+            if hasattr(value, 'values_list'):
+                value = tuple(sorted(value.values_list('pk', flat=True)))
+            values.append(value)
+        return tuple(values)
 
     def _critical_fields_changed(self):
         previous = getattr(self, '_critical_snapshot', None)

@@ -51,7 +51,6 @@ PENDING = {
     'analytic',
     'authz_totp',
     'base',
-    'base_automation',
     'crm',
     'fleet',
     'helpdesk',

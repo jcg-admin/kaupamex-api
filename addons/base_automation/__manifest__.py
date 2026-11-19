@@ -13,10 +13,17 @@
     # existe en este árbol, y `digest` allá sólo aporta el disparador de KPI
     # que este porte no consume — ambos se omiten con esa razón declarada.
     'depends': [
-        'base',      # IrActionsServer, IrCron, IrLogging, IrModel*, TimeStampedModel
+        # IrActionsServer, IrCron, IrLogging, IrModel*, TimeStampedModel
+        'base',
         'mail',      # MailThread, MailActivityMixin
         'resource',  # ResourceCalendar (trg_date_calendar_id)
     ],
     'license': 'LGPL-3',
+    # Seguridad de la fuente (``odoo19c:
+    # addons/base_automation/__manifest__.py:20``), por ``load_data`` en el
+    # ciclo de instalación: copia fiel del CSV.
+    'data': [
+        'security/ir.model.access.csv',
+    ],
     'installable': True,
 }

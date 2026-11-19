@@ -44,7 +44,8 @@ from rest_framework import serializers
 
 from addons.base.models.ir_model import IrModel
 from addons.base_automation.models.base_automation import BaseAutomation
-from orm.environments import env
+from orm.environments import Environment, env
+from orm.utils import SUPERUSER_ID
 
 
 class TestDjangoSeparatesThreeAxes:
@@ -269,6 +270,14 @@ class TestDjangoDoesHaveAttributeLevelLaziness:
     ``select_related`` dejara de poblar la caché del descriptor: el conteo de
     consultas del segundo caso pasaría de ``0`` a ``1``.
     """
+
+    @pytest.fixture(autouse=True)
+    def superuser_env(self, db):
+        """Como superusuario: ``base.automation`` es ``BaseModel`` y su ACL
+        sólo abre ``base.group_system``; el caso mide la pereza de Django, no
+        el control de acceso."""
+        with Environment(None, SUPERUSER_ID, {}):
+            yield
 
     def _automation(self, model_name, label):
         model_row, _ = IrModel.objects.get_or_create(

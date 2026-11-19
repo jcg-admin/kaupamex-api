@@ -88,11 +88,11 @@ class TestWrite:
     """≙ ``write`` (``:500-511``) — y la asimetría crítico/rango."""
 
     def test_it_sets_the_values_and_persists_them(self, rule):
-        rule.write(name='Renombrada')
+        rule.write({'name': 'Renombrada'})
         assert BaseAutomation.objects.get(pk=rule.pk).name == 'Renombrada'
 
     def test_it_returns_self(self, rule):
-        assert rule.write(name='Otra vez') is rule
+        assert rule.write({'name': 'Otra vez'})
 
     def test_a_critical_field_refreshes_cron_and_registry(
         self, rule, monkeypatch
@@ -108,7 +108,7 @@ class TestWrite:
             '_update_registry',
             lambda self: llamadas.append('registry'),
         )
-        rule.write(active=False)
+        rule.write({'active': False})
         assert llamadas == ['cron', 'registry']
 
     def test_a_range_field_refreshes_only_the_cron(self, rule, monkeypatch):
@@ -124,7 +124,7 @@ class TestWrite:
             '_update_registry',
             lambda self: llamadas.append('registry'),
         )
-        rule.write(trg_date_range=3)
+        rule.write({'trg_date_range': 3})
         assert llamadas == ['cron']
 
     def test_an_indifferent_field_refreshes_neither(self, rule, monkeypatch):
@@ -139,7 +139,7 @@ class TestWrite:
             '_update_registry',
             lambda self: llamadas.append('registry'),
         )
-        rule.write(name='Indiferente')
+        rule.write({'name': 'Indiferente'})
         assert llamadas == []
 
 
