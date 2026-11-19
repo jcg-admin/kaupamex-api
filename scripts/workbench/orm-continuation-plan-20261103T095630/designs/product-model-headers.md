@@ -35,8 +35,12 @@ ningún campo.
    `partner` a `partner_id` (`ProductSupplierinfo.__str__`,
    `_get_filtered_supplier`; `_compute_effective_vendor_id` y
    `_compute_display_name` de `purchase_stock`), y las altas y filtros de
-   `ProductSupplierinfo` usan `partner_id=` (`_prepare_supplier_info`,
-   `purchase_requisition`).
+   `ProductSupplierinfo` usan `partner_id=` (`_prepare_supplier_info`;
+   en `purchase_requisition`, `PurchaseRequisitionLine.save` y
+   `PurchaseRequisitionLine._create_supplier_info`, ≙ `_create_supplier_info`
+   de `odoo19c: addons/purchase_requisition/models/purchase_requisition.py:248`,
+   que crea la tarifa con `partner_id`). Prueba de esos dos:
+   `tests/unit/purchase_requisition`.
 5. `purchase/security/ir.model.access.csv`: vuelven las dos filas de la
    fuente (`access_product_supplierinfo_purchase_manager`,
    `access_product_pricelist_item_purchase_manager`, `:31-32`), en su
