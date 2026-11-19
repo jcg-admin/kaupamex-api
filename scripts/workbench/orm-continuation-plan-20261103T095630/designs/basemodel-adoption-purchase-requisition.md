@@ -43,7 +43,7 @@ Unidad hija `basemodel-adoption-purchase-requisition-0397` del paraguas
 3. Consumidores del API de gestor sobre accesores que pasan a recordset
    (`purchase_ids`, `line_ids`, `order_ids`): `_compute_orders_number`,
    `product`, `delete`, `action_cancel`, `action_confirm`, `action_done` y
-   `PurchaseOrderGroup` (`purchase.py`). `supplier_info_ids` apunta a
+   `PurchaseOrderGroup.implode_if_alone` (`purchase.py`, que cuenta `order_ids` con `len`; ≙ `odoo19c: addons/purchase_requisition/models/purchase.py:16-20`). `supplier_info_ids` apunta a
    `product.supplierinfo`, que no es `BaseModel`: sigue siendo un conjunto
    de consulta.
 4. `action_cancel` publica la nota de la fuente con `message_post`;
