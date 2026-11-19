@@ -552,3 +552,20 @@ que leen `outbox`.
 
 Control: con `dispatch_email` aún en Django, las pruebas migradas fallan
 (23 de 167).
+
+**Qué cambia el paso 3e** (ítem `base-ir-mail-server-surface-0397`), en
+`src/addons/base/models/ir_mail_server.py`:
+
+- `smtp_authentication_info` pasa de `@property` a campo `Char` calculado no
+  almacenado con `_compute_smtp_authentication_info`, con el texto de la fuente
+  (`odoo19c: odoo/addons/base/models/ir_mail_server.py:204-220`).
+- `clean()` se retira y su comprobación vuelve a ser `_check_smtp_ssl_files`
+  con `@api.constrains` y `UserError`
+  (`odoo19c: odoo/addons/base/models/ir_mail_server.py:222-229`).
+- `suggested_port()` y `SSL_PORT` se retiran por `_onchange_encryption` con
+  `@api.onchange('smtp_encryption')`
+  (`odoo19c: odoo/addons/base/models/ir_mail_server.py:979-990`).
+
+Ninguno tiene consumidores fuera del modelo (medido con `grep -rn
+"smtp_authentication_info\|suggested_port\|\.clean()" src addons tests`).
+Prueba: `tests/unit/base/test_ir_mail_server_surface.py`.
