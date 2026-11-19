@@ -409,3 +409,28 @@ Tres divergencias que el docstring presenta como equivalentes y no lo son:
 | `smtp_authentication_info`: campo calculado no almacenado, `@api.depends('smtp_authentication')`, texto inglés (`:204-220`) | `@property` con texto español reescrito | el valor no es el de la fuente, y `False` pasa a `''` |
 | `_check_smtp_ssl_files`: `@api.constrains`, `UserError` en inglés (`:222-229`) | `clean()`, `ValidationError` en español | otro mecanismo, otra excepción y otro mensaje; `clean()` no corre en `create`/`write` del ORM |
 | `_onchange_encryption`: `@api.onchange('smtp_encryption')`; `ssl` → 465 con aviso si falta `SMTP_SSL`; cualquier otro → **25** (`:979-990`) | `suggested_port()`, que devuelve el puerto actual fuera de `ssl` | la rama `else` no fija 25, y no hay aviso |
+
+### Ejecución del paso 3c (ítem `base-ir-mail-server-send-0397`, 2026-11-19)
+
+Portados `_test_logger`, `send_email`, `test_smtp_connection`,
+`action_retrieve_max_email_size` y `_get_test_email_to`, y corregidos
+`_get_test_email_from` y `extract_rfc2822_addresses` a la forma de la fuente:
+
+- `_get_test_email_from` deja de recibir `fallback_email` y cae a
+  `self.env.user.email`, con el `UserError` de la fuente. La prueba vieja
+  (`ValidationError` sin usuario) codificaba la firma retirada y se borra; la
+  negativa la cubre la prueba nueva, con el mensaje de la fuente.
+- `extract_rfc2822_addresses` usa el `formataddr` de `tools` y captura
+  `idna.IDNAError`: un dominio internacional se conserva codificado
+  (`ana@xn--bcher-kva.mx`), donde antes se descartaba.
+- El tamaño máximo detectado se guarda con `write`: en la fuente asignar el
+  campo escribe, y aquí una asignación no persiste.
+
+Lo que la medición corrigió en las pruebas, no en el porte: el remitente de
+sobre es la dirección de rebote antes que `From`
+(`_prepare_email_message__`), y la prueba de conexión lee el registro con las
+ACL, así que se ejecuta como sistema.
+
+Controles de anulación: quitar el corte de `_disable_send` en `send_email`
+tumba sólo la prueba de modo de prueba; quitar el `quit()` tumba sólo la
+prueba de la sesión propia.

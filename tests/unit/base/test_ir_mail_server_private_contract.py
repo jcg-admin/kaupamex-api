@@ -9,7 +9,6 @@ orm-continuation-plan-20261103T095630/designs/
 base-ir-mail-server-complete.md``, paso 1.
 """
 import pytest
-from django.core.exceptions import ValidationError
 
 from addons.base.models.ir_mail_server import IrMailServer
 
@@ -35,8 +34,3 @@ def test_the_test_sender_is_the_first_complete_email_of_the_filter():
 def test_a_domain_only_filter_gives_noreply():
     server = IrMailServer(from_filter='kaupamex.mx')
     assert server._get_test_email_from() == 'noreply@kaupamex.mx'
-
-
-def test_without_filter_or_fallback_the_test_sender_is_refused():
-    with pytest.raises(ValidationError):
-        IrMailServer(from_filter='')._get_test_email_from()

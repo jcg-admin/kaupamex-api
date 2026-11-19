@@ -70,14 +70,14 @@ pasan antes y después.
 Qué NO se porta, con su medición
 ================================
 
-- **El transporte que falta**: ``send_email``, ``test_smtp_connection``,
-  ``action_retrieve_max_email_size``, ``_get_test_email_to`` y
-  ``_onchange_encryption``. Se portan en los pasos 3c y 3d del diseño
-  (``designs/base-ir-mail-server-complete.md``); ahí los tres remitentes que
-  hoy usan ``django.core.mail`` pasan por ``send_email``, de modo que quede
-  un solo camino de salida, como en la fuente. El mensaje (paso 3a) y la
-  conexión (paso 3b) ya están portados, con los tres parches globales que la
-  fuente aplica al importar (``:68-98``) y ``_verify_check_hostname_callback``.
+- **Lo que falta del transporte**: que los tres remitentes que hoy usan
+  ``django.core.mail`` pasen por ``send_email`` (paso 3d de
+  ``designs/base-ir-mail-server-complete.md``), para que quede un solo
+  camino de salida, como en la fuente. El mensaje, la conexión, el envío y
+  la prueba de conexión ya están portados (pasos 3a a 3c), con los tres
+  parches globales que la fuente aplica al importar (``:68-98``). La
+  superficie del modelo que aún diverge —``smtp_authentication_info``,
+  ``_check_smtp_ssl_files`` y ``_onchange_encryption``— es el paso 3e.
 - **Las ramas de versión antigua de los imports** (``:36-56``): la carga de
   PEM con ``OpenSSL.crypto`` para pyOpenSSL < 24.3.0 y
   ``urllib3.packages.ssl_match_hostname`` para urllib3 <= 1.25. Con los
@@ -117,7 +117,8 @@ import smtplib
 import ssl
 from email.message import EmailMessage
 from email.parser import BytesParser
-from email.utils import formataddr, make_msgid
+from email.utils import make_msgid
+from socket import gaierror, timeout
 
 import fields
 import idna
@@ -143,14 +144,16 @@ from tools.mail import (
     email_normalize_all,
     email_split_and_format,
     encapsulate_email,
+    formataddr,
     generate_tracking_message_id,
     html2plaintext,
 )
 from tools import config
-from tools.misc import unique
+from tools.misc import human_size, unique
 from tools.translate import _
 
 _logger = logging.getLogger(__name__)
+_test_logger = logging.getLogger('odoo.tests')
 
 #: Segundos de espera de una sesión SMTP (``SMTP_TIMEOUT`` de la fuente).
 SMTP_TIMEOUT = 60
@@ -247,23 +250,24 @@ def is_ascii(text):
 
 
 def extract_rfc2822_addresses(text):
-    """Direcciones RFC 2822 válidas dentro de ``text``.
+    """≙ ``extract_rfc2822_addresses`` (``odoo19c: :105-119``).
 
-    Ignora las malformadas y las no-ASCII, igual que la fuente. Allá el
-    descarte lo produce ``idna.IDNAError`` al formatear; aquí lo produce el
-    ``UnicodeEncodeError`` del propio ``formataddr(charset='ascii')``, que es
-    el mismo punto de fallo sin añadir la dependencia ``idna``.
+    Docstring de la fuente: *"Returns a list of valid RFC2822 addresses that
+    can be found in ``source``, ignoring malformed ones and non-ASCII
+    ones."* Un dominio internacional se conserva codificado con ``idna`` por
+    el ``formataddr`` de ``tools``; el que ``idna`` no puede codificar se
+    descarta.
     """
     if not text:
         return []
+    candidates = _ADDRESS_PATTERN.findall(text)
     valid_addresses = []
-    for candidate in _ADDRESS_PATTERN.findall(text):
+    for c in candidates:
         try:
-            valid_addresses.append(
-                formataddr(('', candidate), charset='ascii')
-            )
-        except (UnicodeEncodeError, UnicodeError):
-            continue
+            valid_addresses.append(formataddr(('', c), charset='ascii'))
+        except idna.IDNAError:
+            # silent OK because la fuente descarta la dirección malformada
+            pass
     return valid_addresses
 
 
@@ -562,26 +566,156 @@ class IrMailServer(models.BaseModel, TimeStampedModel):
         return SystemParameter.get_param(
             DEFAULT_FROM_FILTER_PARAM, config.from_filter())
 
-    def _get_test_email_from(self, fallback_email=''):
-        """``_get_test_email_from`` — remitente para la prueba de conexión.
+    def _get_test_email_from(self):
+        """≙ ``_get_test_email_from`` (``odoo19c: :280-295``).
 
-        Toma el primer correo completo del ``from_filter``; si el filtro sólo
-        trae dominios, compone ``noreply@<primer dominio>``. La fuente cae al
-        correo del usuario actual cuando no hay filtro — aquí ese usuario lo
-        aporta el llamador, porque este archivo no conoce el request.
+        El primer correo completo del ``from_filter``; si el filtro sólo trae
+        dominios, ``noreply@<primer dominio>``; sin filtro, el correo del
+        usuario actual.
         """
-        parts = self._parse_from_filter(self.from_filter)
-        email_from = next((part for part in parts if '@' in part), '')
-        if not email_from and parts:
-            email_from = f'noreply@{parts[0]}'
+        email_from = False
+        if from_filter_parts := self._parse_from_filter(self.from_filter):
+            # el primer correo completo de las partes del filtro
+            email_from = next(
+                (email for email in from_filter_parts if "@" in email), False)
+            # sin correo completo -> noreply
+            if not email_from:
+                email_from = f"noreply@{from_filter_parts[0]}"
         if not email_from:
-            email_from = fallback_email
-        if not email_from or '@' not in email_from:
-            raise ValidationError(
-                'Configure un correo para simular el envío por este servidor '
-                'saliente.'
-            )
+            # Sin filtro: el correo del usuario actual
+            email_from = self.env.user.email
+        if not email_from or "@" not in email_from:
+            raise UserError(_(
+                'Please configure an email on the current user to simulate '
+                'sending an email message via this outgoing server'))
         return email_from
+
+    def _get_test_email_to(self):
+        """≙ ``_get_test_email_to`` (``odoo19c: :297-298``), verbatim."""
+        return "noreply@odoo.com"
+
+    def test_smtp_connection(self, autodetect_max_email_size=False):
+        """≙ ``test_smtp_connection`` (``odoo19c: :300-382``).
+
+        Simula un envío sin enviarlo: ``MAIL FROM``, ``RCPT TO`` y el inicio
+        de ``DATA``. Con ``autodetect_max_email_size`` guarda además el tamaño
+        máximo que anuncia el servidor; la fuente lo asigna al campo, que en
+        su ORM escribe, y aquí se escribe con ``write``.
+        """
+        for server in self:
+            smtp = False
+            try:
+                # simular un envío desde el correo del usuario, sin enviarlo
+                email_from = server._get_test_email_from()
+                email_to = server._get_test_email_to()
+                smtp = self._connect__(
+                    mail_server_id=server.id, allow_archived=True,
+                    smtp_from=email_from)
+                # MAIL FROM detecta problemas del filtro de remitente
+                (code, repl) = smtp.mail(email_from)
+                if code != 250:
+                    raise UserError(_(
+                        'The server refused the sender address '
+                        '(%(email_from)s) with error %(repl)s',
+                        email_from=email_from, repl=repl))
+                # RCPT TO detecta la mayoría de los problemas de relevo
+                (code, repl) = smtp.rcpt(email_to)
+                if code not in (250, 251):
+                    raise UserError(_(
+                        'The server refused the test recipient '
+                        '(%(email_to)s) with error %(repl)s',
+                        email_to=email_to, repl=repl))
+                # Iniciar DATA detecta algunos rechazos diferidos; data()
+                # enviaría el correo de verdad
+                smtp.putcmd("data")
+                (code, repl) = smtp.getreply()
+                if code != 354:
+                    raise UserError(_(
+                        'The server refused the test connection with error '
+                        '%(repl)s', repl=repl))
+                if autodetect_max_email_size:
+                    max_size = smtp.esmtp_features.get('size')
+                    if not max_size:
+                        raise UserError(_(
+                            'The server "%(server_name)s" doesn\'t return '
+                            'the maximum email size.',
+                            server_name=server.name))
+                    server.write(
+                        {'max_email_size': float(max_size) / (1024 ** 2)})
+            except (UnicodeError, idna.core.InvalidCodepoint) as e:
+                raise UserError(_("Invalid server name!\n %s", e)) from e
+            except (gaierror, timeout) as e:
+                raise UserError(_(
+                    "No response received. Check server address and port "
+                    "number.\n %s", e)) from e
+            except smtplib.SMTPServerDisconnected as e:
+                raise UserError(_(
+                    "The server has closed the connection unexpectedly. "
+                    "Check configuration served on this port number.\n %s",
+                    e)) from e
+            except smtplib.SMTPResponseException as e:
+                raise UserError(_(
+                    "Server replied with following exception:\n %s",
+                    e)) from e
+            except smtplib.SMTPNotSupportedError as e:
+                raise UserError(_(
+                    "An option is not supported by the server:\n %s",
+                    e)) from e
+            except smtplib.SMTPException as e:
+                raise UserError(_(
+                    "An SMTP exception occurred. Check port number and "
+                    "connection security type.\n %s", e)) from e
+            except CertificateError as e:
+                raise UserError(_(
+                    "An SSL exception occurred. Check connection security "
+                    "type.\n CertificateError: %s", e)) from e
+            except (ssl.SSLError, SSLError) as e:
+                raise UserError(_(
+                    "An SSL exception occurred. Check connection security "
+                    "type.\n %s", e)) from e
+            except UserError:
+                raise
+            except Exception as e:
+                _logger.warning(
+                    "Connection test on %s failed with a generic error.",
+                    server, exc_info=True)
+                raise UserError(_(
+                    "Connection Test Failed! Here is what we got instead:"
+                    "\n %s", e)) from e
+            finally:
+                try:
+                    if smtp:
+                        smtp.close()
+                except Exception:
+                    # silent OK because es consecuencia de la excepción
+                    # anterior, que es la que se informa
+                    pass
+
+        if autodetect_max_email_size:
+            message = _(
+                'Email maximum size updated (%(details)s).',
+                details=', '.join(
+                    f'{server.name}: '
+                    f'{human_size(server.max_email_size * 1024 ** 2)}'
+                    for server in self))
+        else:
+            message = _('Connection Test Successful!')
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'message': message,
+                'type': 'success',
+                'sticky': False,
+                # fuerza recargar el formulario
+                'next': {'type': 'ir.actions.act_window_close'},
+            },
+        }
+
+    def action_retrieve_max_email_size(self):
+        """≙ ``action_retrieve_max_email_size`` (``odoo19c: :384-386``)."""
+        self.ensure_one()
+        return self.test_smtp_connection(autodetect_max_email_size=True)
 
     # --- Filtro de remitente y selección de servidor --------------------
 
@@ -1087,3 +1221,54 @@ class IrMailServer(models.BaseModel, TimeStampedModel):
                 and email_normalize(address, strict=False) not in skip_to_lst
             )
         ]
+
+    def send_email(self, message, mail_server_id=None, smtp_server=None,
+                   smtp_port=None, smtp_user=None, smtp_password=None,
+                   smtp_encryption=None, smtp_ssl_certificate=None,
+                   smtp_ssl_private_key=None, smtp_debug=False,
+                   smtp_session=None):
+        """≙ ``send_email`` (``odoo19c: :798-868``): envía sin cola.
+
+        Sin reintentos: quien llama atiende ``MailDeliveryException`` para
+        que el correo no se pierda. ``smtp_session``, si se da, sustituye a
+        ``mail_server_id`` y a los ``smtp_*``, y quien llama la cierra.
+        Devuelve el ``Message-Id`` del mensaje enviado.
+        """
+        smtp = smtp_session
+        if not smtp:
+            smtp = self._connect__(
+                smtp_server, smtp_port, smtp_user, smtp_password,
+                smtp_encryption, smtp_from=message['From'],
+                ssl_certificate=smtp_ssl_certificate,
+                ssl_private_key=smtp_ssl_private_key,
+                smtp_debug=smtp_debug, mail_server_id=mail_server_id,)
+
+        smtp_from, smtp_to_list, message = self._prepare_email_message__(
+            message, smtp)
+
+        # ¡No enviar en modo de prueba!
+        if self._disable_send():
+            _test_logger.debug("skip sending email in test mode")
+            return message['Message-Id']
+
+        try:
+            message_id = message['Message-Id']
+
+            smtp.send_message(message, smtp_from, smtp_to_list)
+
+            # una smtp_session ya abierta no se cierra aquí
+            if not smtp_session:
+                smtp.quit()
+        except smtplib.SMTPServerDisconnected:
+            raise
+        except Exception as e:
+            msg = _(
+                "Mail delivery failed via SMTP server '%(server)s'.\n"
+                "%(exception_name)s: %(message)s",
+                server=smtp_server,
+                exception_name=e.__class__.__name__,
+                message=e,
+            )
+            _logger.info(msg)
+            raise MailDeliveryException(_("Mail Delivery Failed"), msg)
+        return message_id
