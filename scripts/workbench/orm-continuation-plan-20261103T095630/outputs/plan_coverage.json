@@ -540,7 +540,8 @@
   "base-ir-mail-server-surface-0397",
   "base-ir-mail-server-find-0397",
   "base-ir-mail-server-options-0397",
-  "mail-ir-mail-server-extension-0397"
+  "mail-ir-mail-server-extension-0397",
+  "mail-res-users-mail-server-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
