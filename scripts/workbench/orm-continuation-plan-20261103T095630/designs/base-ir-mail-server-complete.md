@@ -588,3 +588,24 @@ divergencias declaradas en el docstring del módulo: las ramas de versión
 antigua de los imports y `groups='base.group_system'` en los cuatro campos
 secretos. Queda pendiente `addons/mail/models/ir_mail_server.py` (el
 `owner_user_id` y sus ocho métodos).
+
+## Paso 4: el contrato de `_find_mail_server` (borrador, medido)
+
+Prerrequisito de la extensión de `mail`
+(`odoo19c: addons/mail/models/ir_mail_server.py`), que sobreescribe
+`_find_mail_server_allowed_domain` para limitar la búsqueda a los servidores
+públicos y `_filter_mail_servers_fallback` para filtrar por propietario. Hoy
+ninguna de las dos sobreescrituras tendría efecto:
+
+| Fuente (`odoo19c: odoo/addons/base/models/ir_mail_server.py:874-948`) | Aquí |
+|---|---|
+| `_find_mail_server(self, email_from, mail_servers=None)` | `(cls, email_from, servers=None, notifications_email=None)` |
+| el correo de notificaciones sale de `self.env.context['domain_notifications_email']` o de `_get_default_from_address()` | parámetro `notifications_email` propio |
+| busca con `self.sudo().search(self._find_mail_server_allowed_domain(), order='sequence')` | `cls.objects.order_by('sequence', 'id')`, sin el dominio |
+| `mail_servers.filtered('active')`, recordsets en toda la cascada | listas |
+
+Único llamador de producción: `_connect__` (`self.sudo()._find_mail_server(
+smtp_from)`), que ya tiene la forma de la fuente. Las pruebas de
+`tests/unit/base/test_ir_mail_server_from_filter.py` pasan `servers=` y
+`notifications_email=`; pasan a `mail_servers=` y a
+`with_context(domain_notifications_email=...)`.
