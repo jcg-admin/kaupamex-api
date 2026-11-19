@@ -166,14 +166,17 @@ OPTIONS = {
         default='',
         help='Ruta al build del SPA; vacío desactiva serve_spa',
     ),
-    'EMAIL_BACKEND': Option(
-        'EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend'
-    ),
     'EMAIL_HOST': Option('EMAIL_HOST', default=''),
     'EMAIL_PORT': Option('EMAIL_PORT', default=587, cast=int),
     'EMAIL_USE_TLS': Option('EMAIL_USE_TLS', default=True, cast=bool),
     'EMAIL_HOST_USER': Option('EMAIL_HOST_USER', default=''),
     'EMAIL_HOST_PASSWORD': Option('EMAIL_HOST_PASSWORD', default=''),
+    # ≙ --from-filter, --smtp-ssl-certificate-filename y
+    # --smtp-ssl-private-key-filename de la fuente
+    # (odoo19c: odoo/tools/config.py:352,364,366); los lee tools.config.
+    'EMAIL_FROM_FILTER': Option('EMAIL_FROM_FILTER', default=''),
+    'EMAIL_SSL_CERTFILE': Option('EMAIL_SSL_CERTFILE', default=''),
+    'EMAIL_SSL_KEYFILE': Option('EMAIL_SSL_KEYFILE', default=''),
     'FRONTEND_URL': Option('FRONTEND_URL', default='https://kaupamex.com'),
     'MEDIA_ROOT': Option('MEDIA_ROOT', default='/opt/kaupamex/media'),
 }

@@ -20,7 +20,8 @@ SECURE_SSL_REDIRECT = False
 # No envía a internet — el desarrollador puede verificar asunto, destinatario
 # y cuerpo del email en la UI web de Mailpit.
 # Arrancar Mailpit: sudo bash provisioners/smtp/setup_mailpit.sh
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# El correo sale por ir.mail_server.send_email, que sin servidor declarado lee
+# estos valores con los lectores de tools.config.
 EMAIL_HOST = '127.0.0.1'
 EMAIL_PORT = 1025
 EMAIL_USE_TLS = False

@@ -111,12 +111,14 @@ UI_DIST = opt('UI_DIST')
 # Variables opcionales (defaults válidos para la mayoría de proveedores):
 #   EMAIL_PORT          default: 587
 #   EMAIL_USE_TLS       default: True  (STARTTLS en puerto 587)
-EMAIL_BACKEND = opt('EMAIL_BACKEND')
 EMAIL_HOST = opt('EMAIL_HOST')
 EMAIL_PORT = opt('EMAIL_PORT')
 EMAIL_USE_TLS = opt('EMAIL_USE_TLS')
 EMAIL_HOST_USER = opt('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = opt('EMAIL_HOST_PASSWORD')
+EMAIL_FROM_FILTER = opt('EMAIL_FROM_FILTER')
+EMAIL_SSL_CERTFILE = opt('EMAIL_SSL_CERTFILE')
+EMAIL_SSL_KEYFILE = opt('EMAIL_SSL_KEYFILE')
 
 # URL base del frontend — usada en tokens_email.py para construir los
 # enlaces de verificación de cuenta y recuperación de contraseña.
