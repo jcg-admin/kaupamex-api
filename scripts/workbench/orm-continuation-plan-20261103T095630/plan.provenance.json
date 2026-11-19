@@ -1214,6 +1214,13 @@
         "basemodel-adoption-onboarding-0397"
       ],
       "writtenAt": "2026-11-19T14:26:35Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-base-automation-0397"
+      ],
+      "writtenAt": "2026-11-19T15:51:13Z"
     }
   ]
 }
