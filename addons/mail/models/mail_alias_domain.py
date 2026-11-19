@@ -39,21 +39,14 @@ Correspondencia Odoo -> Django (adaptación sin azúcar sintáctica):
   de ``SystemParameter`` (``ir.config_parameter`` ya portado en
   ``addons.base``): lee ``mail.catchall.domain.allowed``.
 
+``res.company.alias_domain_id`` —la inversa de ``company_ids``— lo declara
+``addons/mail/models/res_company.py`` (columna en ``base/0121``), y
+``_check_default_from_not_used_by_users`` (``:175-184``) corre tras cada
+``save()``, como tras ``create``/``write`` en la fuente, contra los servidores
+personales de ``addons/mail/models/ir_mail_server.py``.
+
 **Divergencias declaradas** respecto a la referencia:
 
-- ``res.company.alias_domain_id`` (el FK que hace de inversa a ``company_ids``)
-  no está portado. Sin él un dominio no se puede asignar a una empresa, que es
-  el motivo por el que Odoo creó este modelo en v17. El modelo queda utilizable
-  (los alias sí lo referencian) pero **la parte por-empresa está incompleta**;
-  se cierra al añadir el campo en ``base/models/res_company.py``.
-- ``_check_default_from_not_used_by_users`` (línea 175) valida que ningún
-  servidor de correo *personal* use el mismo remitente. Depende de
-  ``ir.mail_server.owner_user_id``, campo que la extensión
-  ``odoo19c: addons/mail/models/ir_mail_server.py:20`` añade y que **nuestro**
-  ``IrMailServer`` todavía no tiene. La comprobación queda **pendiente**, no
-  silenciada: ver el hallazgo de esta portación. ``_match_from_filter`` sí
-  está portado (``base/models/ir_mail_server.py:479``), así que al añadir el
-  campo la validación se cierra sin más trabajo.
 - ``create`` (línea 152) auto-asigna el primer dominio creado a todas las
   empresas y aliases huérfanos. Es lógica de *bootstrap* de instancia; aquí
   vive en ``seed_first_domain()`` como método explícito en vez de ocurrir
@@ -62,13 +55,17 @@ Correspondencia Odoo -> Django (adaptación sin azúcar sintáctica):
 """
 
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 
 import fields
 
 from addons.base.models.ir_config_parameter import SystemParameter
+from addons.base.models.ir_mail_server import IrMailServer
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.mail.models.mail_alias import DOT_ATOM_TEXT, MailAlias
+from exceptions import UserError
+from orm.environments import env, sudo
+from tools.translate import _
 
 
 class MailAliasDomain(TimeStampedModel):
@@ -285,7 +282,27 @@ class MailAliasDomain(TimeStampedModel):
         self.bounce_alias = saneado['bounce_alias'] or self.bounce_alias
         self.catchall_alias = saneado['catchall_alias'] or self.catchall_alias
         self.default_from = saneado['default_from'] or self.default_from
-        return super().save(*args, **kwargs)
+        # ≙ ``create``/``write`` (``:150``, ``:172``): la comprobación corre
+        # tras escribir y, si falla, la transacción deshace la escritura
+        with transaction.atomic():
+            result = super().save(*args, **kwargs)
+            self._check_default_from_not_used_by_users()
+        return result
+
+    def _check_default_from_not_used_by_users(self):
+        """≙ ``_check_default_from_not_used_by_users`` (``:175-184``): el
+        remitente por defecto no puede ser el de un servidor personal."""
+        match_from_filter = IrMailServer._match_from_filter
+        with sudo():
+            personal_mail_servers = env()['ir.mail_server'].search(
+                [('owner_user_id', '!=', False)])
+            if any(
+                match_from_filter(self.default_from_email, server.from_filter)
+                for server in personal_mail_servers
+            ):
+                raise UserError(_(
+                    "A personal mail server is using that address, you can "
+                    "not use it."))
 
     # -- Búsqueda de alias por lista de correos (Odoo _find_aliases) --------
 
