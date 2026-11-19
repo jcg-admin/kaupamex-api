@@ -119,7 +119,7 @@ TRUSTED_DEVICE_AGE_DAYS = 90
 BROWSER_SCOPE = 'browser'
 
 
-class AuthTotpDevice(_ResUsersApikeysBase):
+class AuthTotpDevice(models.BaseModel, _ResUsersApikeysBase):
     """``auth_totp.device`` — ≙ ``Auth_TotpDevice`` (``:9-38``)."""
 
     _name = 'auth_totp.device'

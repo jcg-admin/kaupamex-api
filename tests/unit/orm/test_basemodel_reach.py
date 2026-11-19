@@ -49,7 +49,6 @@ PENDING = {
     'account',
     'account_edi',
     'analytic',
-    'authz_totp',
     'base',
     'crm',
     'fleet',

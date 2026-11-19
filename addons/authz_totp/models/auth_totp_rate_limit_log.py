@@ -82,7 +82,7 @@ GC_FLOOR_SECONDS = 300
 GC_MAX_AGE_SECONDS = 3600
 
 
-class AuthTotpRateLimitLog(TimeStampedModel):
+class AuthTotpRateLimitLog(models.BaseModel, TimeStampedModel):
     """
     ``auth.totp.rate.limit.log`` — ≙ ``AuthTotpRateLimitLog`` (``:4-15``).
     """
