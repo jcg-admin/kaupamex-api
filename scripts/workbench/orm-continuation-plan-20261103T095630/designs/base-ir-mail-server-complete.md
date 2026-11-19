@@ -569,3 +569,22 @@ Control: con `dispatch_email` aún en Django, las pruebas migradas fallan
 Ninguno tiene consumidores fuera del modelo (medido con `grep -rn
 "smtp_authentication_info\|suggested_port\|\.clean()" src addons tests`).
 Prueba: `tests/unit/base/test_ir_mail_server_surface.py`.
+
+### Ejecución del paso 3e (ítem `base-ir-mail-server-surface-0397`, 2026-11-19)
+
+`smtp_authentication_info` es un `Char` calculado no almacenado con
+`_compute_smtp_authentication_info` y el texto de la fuente;
+`_check_smtp_ssl_files` vuelve a ser `@api.constrains` con `UserError`; y
+`_onchange_encryption` sustituye a `suggested_port()`, con la rama `else`
+que fija 25. Se retiran `clean()`, `suggested_port()` y `SSL_PORT`.
+`makemigrations base --check` no detecta cambios: el campo no lleva columna.
+
+Control: quitar la rama `else` de `_onchange_encryption` tumba sólo la prueba
+del puerto 25.
+
+Con este paso, lo que la fuente declara en
+`odoo19c: odoo/addons/base/models/ir_mail_server.py` queda portado, salvo dos
+divergencias declaradas en el docstring del módulo: las ramas de versión
+antigua de los imports y `groups='base.group_system'` en los cuatro campos
+secretos. Queda pendiente `addons/mail/models/ir_mail_server.py` (el
+`owner_user_id` y sus ocho métodos).

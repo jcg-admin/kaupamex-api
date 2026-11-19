@@ -69,10 +69,6 @@ pasan antes y después.
 Qué NO se porta, con su medición
 ================================
 
-- **La superficie del modelo que aún diverge** —``smtp_authentication_info``,
-  ``_check_smtp_ssl_files`` y ``_onchange_encryption``—: es el paso 3e de
-  ``designs/base-ir-mail-server-complete.md``. El transporte está portado
-  entero (pasos 3a a 3d) y es el único camino de salida, como en la fuente.
 - **Las ramas de versión antigua de los imports** (``:36-56``): la carga de
   PEM con ``OpenSSL.crypto`` para pyOpenSSL < 24.3.0 y
   ``urllib3.packages.ssl_match_hostname`` para urllib3 <= 1.25. Con los
@@ -115,12 +111,12 @@ from email.parser import BytesParser
 from email.utils import make_msgid
 from socket import gaierror, timeout
 
+import api
 import fields
 import idna
 import models
 from cryptography.hazmat.primitives.serialization import load_pem_private_key
 from cryptography.x509 import load_pem_x509_certificate
-from django.core.exceptions import ValidationError
 from exceptions import UserError
 from OpenSSL.crypto import Error as SSLCryptoError
 from OpenSSL.SSL import VERIFY_FAIL_IF_NO_PEER_CERT, VERIFY_PEER
@@ -182,8 +178,6 @@ ENCRYPTION_CHOICES = [
     ('ssl', 'SSL/TLS, sólo cifrado'),
 ]
 
-#: Puerto convencional de SSL/TLS dedicado (``_onchange_encryption``).
-SSL_PORT = 465
 
 #: ``address_pattern`` de la fuente, verbatim.
 _ADDRESS_PATTERN = re.compile(r'([^" ,<@]+@[^>" ,]+)')
@@ -339,6 +333,8 @@ class IrMailServer(models.BaseModel, TimeStampedModel):
         default=AUTH_LOGIN,
         verbose_name='Autenticar con',
     )
+    smtp_authentication_info = fields.Char(
+        'Authentication Info', compute='_compute_smtp_authentication_info')
     smtp_user = fields.Char(
         max_length=255,
         blank=True,
@@ -428,46 +424,57 @@ class IrMailServer(models.BaseModel, TimeStampedModel):
     def __str__(self):
         return self.name
 
-    @property
-    def smtp_authentication_info(self):
-        """``_compute_smtp_authentication_info`` — texto de ayuda del método.
+    @api.depends('smtp_authentication')
+    def _compute_smtp_authentication_info(self):
+        """≙ ``_compute_smtp_authentication_info`` (``odoo19c: :204-220``)."""
+        for server in self:
+            if server.smtp_authentication == 'login':
+                server.smtp_authentication_info = _(
+                    'Connect to your server through your usual username and '
+                    'password. \n'
+                    'This is the most basic SMTP authentication process and '
+                    'may not be accepted by all providers. \n')
+            elif server.smtp_authentication == 'certificate':
+                server.smtp_authentication_info = _(
+                    'Authenticate by using SSL certificates, belonging to '
+                    'your domain name. \n'
+                    'SSL certificates allow you to authenticate your mail '
+                    'server for the entire domain name.')
+            elif server.smtp_authentication == 'cli':
+                server.smtp_authentication_info = _(
+                    'Use the SMTP configuration set in the "Command Line '
+                    'Interface" arguments.')
+            else:
+                server.smtp_authentication_info = False
 
-        ``compute`` sin ``store`` en la fuente → propiedad derivada aquí.
-        """
-        if self.smtp_authentication == AUTH_LOGIN:
-            return (
-                'Conecta con el usuario y la contraseña habituales. Es el '
-                'método más básico y no todos los proveedores lo aceptan.'
-            )
-        if self.smtp_authentication == AUTH_CERTIFICATE:
-            return (
-                'Autentica con certificados SSL del dominio. Un certificado '
-                'autentica el servidor de correo para todo el nombre de '
-                'dominio.'
-            )
-        if self.smtp_authentication == AUTH_CLI:
-            return 'Usa la configuración SMTP global de la plataforma.'
-        return ''
+    @api.constrains('smtp_authentication', 'smtp_ssl_certificate',
+                    'smtp_ssl_private_key')
+    def _check_smtp_ssl_files(self):
+        """≙ ``_check_smtp_ssl_files`` (``odoo19c: :222-229``)."""
+        for mail_server in self:
+            if mail_server.smtp_authentication == 'certificate':
+                if not mail_server.smtp_ssl_private_key:
+                    raise UserError(_('SSL private key is missing for %s.',
+                                      mail_server.name))
+                if not mail_server.smtp_ssl_certificate:
+                    raise UserError(_('SSL certificate is missing for %s.',
+                                      mail_server.name))
 
-    def clean(self):
-        """``_check_smtp_ssl_files`` — certificado y llave, o ninguno."""
-        super().clean()
-        if self.smtp_authentication != AUTH_CERTIFICATE:
-            return
-        if not self.smtp_ssl_private_key:
-            raise ValidationError(
-                f'Falta la llave privada SSL de {self.name}.'
-            )
-        if not self.smtp_ssl_certificate:
-            raise ValidationError(f'Falta el certificado SSL de {self.name}.')
-
-    def suggested_port(self):
-        """``_onchange_encryption`` — puerto convencional según el cifrado.
-
-        La fuente lo aplica como onchange del formulario; aquí es consulta,
-        no efecto: quien edite decide si lo toma.
-        """
-        return SSL_PORT if self.smtp_encryption == 'ssl' else self.smtp_port
+    @api.onchange('smtp_encryption')
+    def _onchange_encryption(self):
+        """≙ ``_onchange_encryption`` (``odoo19c: :979-990``)."""
+        result = {}
+        if self.smtp_encryption == 'ssl':
+            self.smtp_port = 465
+            if 'SMTP_SSL' not in smtplib.__all__:
+                result['warning'] = {
+                    'title': _('Warning'),
+                    'message': _('Your server does not seem to support SSL, '
+                                 'you may want to try STARTTLS instead'),
+                }
+        else:
+            self.smtp_port = 25
+        return result
 
     # --- Guardián de archivado ------------------------------------------
 
