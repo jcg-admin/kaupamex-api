@@ -7353,6 +7353,11 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
         """
         record = object.__new__(cls)
         record._state = ModelState()
+        # Ids reales nombran filas que ya existen: guardarlas es un UPDATE,
+        # como ``write`` sobre un ``browse`` de la fuente. Sólo un registro
+        # de ``new()`` (``NewId``, falso) o el recordset vacío conservan el
+        # ``adding`` de Django.
+        record._state.adding = not (ids and all(ids))
         record.env = env
         record._ids = ids
         record._prefetch_ids = prefetch_ids

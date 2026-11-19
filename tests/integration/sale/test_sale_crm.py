@@ -39,7 +39,7 @@ def test_crm_lead_with_stage_and_team(db):
     )
     assert lead.stage_id.is_won is True
     assert lead.team_id.name == 'Ventas'
-    assert lead in stage.leads.all()
+    assert lead in stage.leads
 
 
 def test_sale_order_opportunity_link_and_count(db):

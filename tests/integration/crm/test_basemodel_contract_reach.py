@@ -1,11 +1,11 @@
-"""Contratos de ``BaseModel`` que llegan a ``crm.lead`` sin heredar de ella.
+"""Contratos de ``BaseModel`` que llegan a ``crm.lead``.
 
-``crm.lead`` no es subclase de ``orm.models.BaseModel``: sus bases son
-``MailThread``, ``MailActivityMixin``, ``UtmMixin``,
-``FormatAddressMixin`` y ``TimeStampedModel``. Que no herede no prueba que no
-reciba los contratos: ``TimeStampedModel`` adopta los mixins de ``src/orm``,
-y ``adopt_access_manager`` le pone un manager cuyo queryset delega en
-``AccessQuerySet``.
+Escritas cuando ``crm.lead`` no derivaba de ``BaseModel`` y recibía los
+contratos por ``TimeStampedModel`` y el manager de ``AccessQuerySet``. Desde
+la adopción (``designs/basemodel-adoption-crm.md``) deriva de él y carga la
+ACL de la fuente (``odoo19c: addons/crm/security/ir.model.access.csv``): las
+pruebas corren como superusuario, ≙ ``TransactionCase``, salvo la de acceso,
+que nombra su usuario.
 
 Cada prueba deriva su valor esperado de la referencia
 (``odoo19c: odoo/orm/models.py`` en ``odoo-tools@abe4040e``), no del código
@@ -17,10 +17,18 @@ from addons.base.models.ir_model import IrModel, IrModelAccess
 from addons.crm.models import CrmLead, CrmLostReason
 from django.contrib.auth import get_user_model
 from exceptions import AccessError, UserError
+from orm.environments import Environment
+from orm.utils import SUPERUSER_ID
 
 pytestmark = pytest.mark.integration
 
 LABEL = CrmLead._meta.label
+
+
+@pytest.fixture(autouse=True)
+def superuser_env(db):
+    with Environment(None, SUPERUSER_ID, {}):
+        yield
 
 
 def _user(login):
@@ -55,9 +63,13 @@ class TestAccessCheckReachesTheLeadThroughItsManager:
     ``None``; cae la primera prueba y la de control sigue verde.
     """
 
+    @pytest.fixture(autouse=True)
+    def superuser_env(self):
+        """Sin elevación: el entorno de superusuario saltaría la ACL."""
+        yield
+
     def test_a_user_without_model_permission_is_refused(self, db):
-        assert not IrModelAccess.objects.filter(
-            model_id__model=LABEL).exists(), 'precondición: sin ACL'
+        """Un usuario sin grupo de ventas: ninguna fila de la ACL lo cubre."""
         lead = CrmLead.objects.create(name='Sin permiso')
         who = _user('alcance.sin.acl@kaupamex.mx')
         with pytest.raises(AccessError):
@@ -157,7 +169,7 @@ class TestLeadUnarchiveComposesWithItsParent:
         lead.action_unarchive()
         lead.refresh_from_db()
         assert lead.active is True
-        assert lead.lost_reason_id is None
+        assert not lead.lost_reason_id
 
     def test_an_active_lead_keeps_its_lost_reason(self, db):
         reason = CrmLostReason.objects.create(name='Plazo')

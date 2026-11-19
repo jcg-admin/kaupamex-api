@@ -3129,7 +3129,6 @@ tests/unit/orm/test_determine_inverse.py::campos
 tests/unit/orm/test_determine_inverse.py::espia
 tests/unit/orm/test_determine_inverse.py::inverso_previo
 tests/unit/orm/test_determine_inverse.py::veces
-tests/unit/orm/test_determine_inverse.py::visto
 tests/unit/orm/test_display_name.py::fuera
 tests/unit/orm/test_display_name.py::grupo
 tests/unit/orm/test_display_name.py::guardado

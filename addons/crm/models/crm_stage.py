@@ -24,7 +24,7 @@ AVAILABLE_PRIORITIES = [
 ]
 
 
-class CrmStage(TimeStampedModel):
+class CrmStage(models.BaseModel, TimeStampedModel):
     """``crm.stage`` — etapa del pipeline de oportunidades.
 
     Modela las etapas principales de un flujo de gestión documental. Los

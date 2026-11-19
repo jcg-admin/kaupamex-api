@@ -19,6 +19,8 @@ import api
 from addons.crm.models.crm_stage import CrmStage
 from addons.web.models.models import Base, RecordSnapshot
 from orm import registry
+from orm.environments import Environment
+from orm.utils import SUPERUSER_ID
 
 
 @pytest.fixture(autouse=True)
@@ -40,12 +42,15 @@ def _reset_marked_methods():
     yield
     registry.clear_marked_methods()
 
+
 _SPEC = {'name': {}, 'is_won': {}, 'sequence': {}}
 
 
 def _stage(**kwargs):
     """Una etapa **sin guardar** — el registro virtual del formulario."""
-    return CrmStage(**{'name': 'Nueva', 'is_won': False, 'sequence': 10, **kwargs})
+    return CrmStage(
+        **{'name': 'Nueva', 'is_won': False, 'sequence': 10, **kwargs}
+    )
 
 
 # --- RecordSnapshot ---------------------------------------------------------
@@ -130,15 +135,24 @@ def test_diff_with_force_reports_every_field():
         'name': 'Nueva', 'is_won': False, 'sequence': 10}
 
 
+@pytest.mark.django_db
 def test_two_snapshots_of_different_records_are_not_equal():
     """La igualdad incluye el registro, no sólo los valores.
 
     Paridad con la referencia (``:2265-2266``), que mete el registro en la
     comparación a propósito. Discrimina comparar identidad de comparar
     contenido: dos etapas distintas con los mismos valores no son la misma.
+
+    ``crm.stage`` deriva de ``BaseModel``, y dos instancias de Django sin
+    guardar son el mismo recordset (``crm.stage(None,)``): los dos registros
+    virtuales salen de ``new()``, cada uno con su ``NewId``, como en la
+    fuente.
     """
     spec = {'name': {}}
-    one, other = _stage(), _stage()
+    with Environment(None, SUPERUSER_ID, {}) as environment:
+        stages = environment['crm.stage']
+        one = stages.new({'name': 'Nueva'})
+        other = stages.new({'name': 'Nueva'})
 
     assert RecordSnapshot(one, spec) != RecordSnapshot(other, spec)
     assert RecordSnapshot(one, spec) == RecordSnapshot(one, spec)
@@ -196,8 +210,9 @@ def test_onchange_returns_the_value_the_method_assigned(monkeypatch):
         if self.is_won:
             self.name = 'Ganada'
 
-    monkeypatch.setattr(CrmStage, '_onchange_rename_when_won', _rename_when_won,
-                        raising=False)
+    monkeypatch.setattr(
+        CrmStage, '_onchange_rename_when_won', _rename_when_won, raising=False
+    )
     registry.clear_marked_methods()
 
     result = Base.onchange(_stage(), {'is_won': True}, ['is_won'], _SPEC)
@@ -240,7 +255,9 @@ def test_the_source_record_is_not_mutated():
     """
     record = _stage()
 
-    Base.onchange(record, {'sequence': 42, 'name': 'Otra'}, ['sequence', 'name'], _SPEC)
+    Base.onchange(
+        record, {'sequence': 42, 'name': 'Otra'}, ['sequence', 'name'], _SPEC
+    )
 
     assert record.sequence == 10
     assert record.name == 'Nueva'
@@ -328,7 +345,9 @@ def test_x2many_diff_reports_the_inner_change_of_a_line_that_stays():
     after = RecordSnapshot(record, spec)
     after['team_ids'] = {1: _line_snapshot('Otro')}
 
-    assert after.diff(before) == {'team_ids': {'update': {1: {'name': 'Otro'}}}}
+    assert after.diff(before) == {
+        'team_ids': {'update': {1: {'name': 'Otro'}}}
+    }
 
 
 def test_x2many_without_changes_is_not_reported():

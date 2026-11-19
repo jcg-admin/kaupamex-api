@@ -13,7 +13,7 @@ from addons.base.models import TimeStampedModel
 from tools.translate import _
 
 
-class CrmLostReason(TimeStampedModel):
+class CrmLostReason(models.BaseModel, TimeStampedModel):
     """``crm.lost.reason`` — motivo de pérdida de una oportunidad."""
 
     _name = 'crm.lost.reason'

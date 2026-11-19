@@ -42,13 +42,22 @@ transaccionalidad entre la escritura y su inverso, que es la tarea #255.
 import pytest
 from django.apps import apps
 
-from orm.utils import model_field_registry
+from orm.environments import Environment
+from orm.utils import SUPERUSER_ID, model_field_registry
 
 
 CrmLead = apps.get_model('crm', 'CrmLead')
 CrmTeam = apps.get_model('sales_team', 'CrmTeam')
 ResCompany = apps.get_model('base', 'ResCompany')
 ResPartner = apps.get_model('base', 'ResPartner')
+
+
+@pytest.fixture(autouse=True)
+def superuser_env(db):
+    """``crm.lead`` deriva de ``BaseModel``: su escritura pasa por la ACL, y
+    estas pruebas miden el inverso, no el permiso."""
+    with Environment(None, SUPERUSER_ID, {}):
+        yield
 
 
 def field_of(model, name):
@@ -75,10 +84,13 @@ def partner(db):
 def lead(partner):
     """La iniciativa se construye con empresa Y equipo, y no es decoracion.
 
-    ``_compute_company_id`` (``crm_lead.py:624``) cae a ``partner_id.company_id``
+    ``_compute_company_id`` (``crm_lead.py:624``) cae a
+    ``partner_id.company_id``
     cuando no hay equipo ni responsable, y ``ResPartner`` **no declara ese
-    campo** en este arbol — es el bloqueo medido de la tarea #110. Con un equipo
-    cuya empresa coincide, la propuesta sobrevive las cuatro guardas y el computo
+    campo** en este arbol — es el bloqueo medido de la tarea #110. Con un
+    equipo
+    cuya empresa coincide, la propuesta sobrevive las cuatro guardas y el
+    computo
     devuelve antes de leer al cliente. Es la misma forma que
     ``tests/unit/orm/test_check_company.py:147``.
     """
@@ -90,7 +102,8 @@ def lead(partner):
 
 
 class TestTheDispatcherExists:
-    """``determine_inverse`` es el hermano de ``determine_domain``, ya portado."""
+    """``determine_inverse`` es el hermano de ``determine_domain``, ya
+    portado."""
 
     def test_the_field_declares_it(self):
         assert callable(field_of(CrmLead, 'email_from').determine_inverse)
@@ -100,12 +113,12 @@ class TestTheDispatcherExists:
         resuelve el nombre de metodo contra el registro
         (``odoo19c: odoo/orm/fields.py:1922-1924``, cuyo cuerpo entero es
         ``determine(self.inverse, records)``)."""
-        visto = {}
+        seen = {}
         lead.email_from = 'nuevo@ejemplo.mx'
         original = CrmLead._inverse_email_from
 
         def espia(self):
-            visto['llamado'] = True
+            seen['called'] = True
             return original(self)
 
         CrmLead._inverse_email_from = espia
@@ -113,7 +126,7 @@ class TestTheDispatcherExists:
             field_of(CrmLead, 'email_from').determine_inverse(lead)
         finally:
             CrmLead._inverse_email_from = original
-        assert visto == {'llamado': True}
+        assert seen == {'called': True}
 
 
 class TestWriteInvokesIt:
@@ -133,13 +146,18 @@ class TestWriteInvokesIt:
         lead.refresh_from_db()
         assert lead.email_from == 'ambos@ejemplo.mx'
 
-    def test_emptying_the_field_does_not_empty_the_partner(self, lead, partner):
+    def test_emptying_the_field_does_not_empty_the_partner(
+        self, lead, partner
+    ):
         """Segundo control, y discrimina el despachador de una escritura ciega.
 
-        El inverso consulta ``_get_partner_email_update(force_void=False)``, que
-        **rehusa** cuando la iniciativa se queda sin correo — para no propagar un
+        El inverso consulta ``_get_partner_email_update(force_void=False)``,
+        que
+        **rehusa** cuando la iniciativa se queda sin correo — para no propagar
+        un
         vacio sobre un valor bueno (``crm_lead.py:1148-1150``). Un despachador
-        que escribiera por su cuenta, sin llamar al metodo declarado, dejaria al
+        que escribiera por su cuenta, sin llamar al metodo declarado, dejaria
+        al
         cliente sin correo aqui.
         """
         lead.write({'email_from': 'bueno@ejemplo.mx'})
@@ -158,7 +176,8 @@ class TestWriteInvokesIt:
     def test_a_field_without_inverse_reaches_nothing(self, lead, partner):
         """El control que discrimina: la MISMA maquinaria sobre un campo sin
         ``inverse`` no toca al partner. Sin este caso, los de arriba no
-        distinguen «se invoco el inverso» de «escribir cualquier cosa propaga»."""
+        distinguen «se invoco el inverso» de «escribir cualquier cosa
+        propaga»."""
         antes = (partner.email, partner.phone)
         lead.write({'name': 'Otro nombre'})
         partner.refresh_from_db()

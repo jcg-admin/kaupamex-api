@@ -36,7 +36,7 @@ def _get_default_color():
     return randint(1, 11)
 
 
-class CrmLeadScoringFrequency(TimeStampedModel):
+class CrmLeadScoringFrequency(models.BaseModel, TimeStampedModel):
     """
     ``crm.lead.scoring.frequency`` — una fila por (variable, valor, equipo).
     """
@@ -91,7 +91,7 @@ class CrmLeadScoringFrequency(TimeStampedModel):
         return f'{self.variable}={self.value}'
 
 
-class CrmLeadScoringFrequencyField(TimeStampedModel):
+class CrmLeadScoringFrequencyField(models.BaseModel, TimeStampedModel):
     """``crm.lead.scoring.frequency.field`` — campo admitido como variable."""
 
     _name = 'crm.lead.scoring.frequency.field'

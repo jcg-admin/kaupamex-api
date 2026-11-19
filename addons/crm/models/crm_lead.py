@@ -27,7 +27,8 @@ tres desenlaces, nunca el silencio):
 
 Los cómputos con ``store=True`` en la fuente son columnas reales y las mantiene
 ``save()``; los que no almacenan son ``property`` que delegan en su
-``_compute_*`` con el nombre de la fuente intacto (``porte-completo-no-parcial``:
+``_compute_*`` con el nombre de la fuente intacto
+(``porte-completo-no-parcial``:
 el guion bajo es el contrato).
 """
 import logging
@@ -53,7 +54,9 @@ from addons.base.models.res_currency import ResCurrency
 from addons.base.models.res_lang import ResLang
 from addons.base.models.res_partner import FormatAddressMixin, ResPartner
 from addons.crm.models import crm_stage
-from addons.crm.models.crm_lead_scoring_frequency import CrmLeadScoringFrequency
+from addons.crm.models.crm_lead_scoring_frequency import (
+    CrmLeadScoringFrequency,
+)
 from addons.crm.models.crm_lost_reason import CrmLostReason
 from addons.crm.models.crm_recurring_plan import CrmRecurringPlan
 from addons.crm.models.crm_stage import CrmStage
@@ -159,8 +162,8 @@ def _pk(value):
     return getattr(value, 'pk', value)
 
 
-class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
-              TimeStampedModel):
+class CrmLead(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
+              FormatAddressMixin, TimeStampedModel):
     """``crm.lead`` — iniciativa u oportunidad de venta."""
 
     # Atributos de clase de modelo — los siete que la referencia declara
@@ -210,9 +213,15 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     )
     # ≙ user_id (:104-107).
     user_id = fields.Many2one(
-        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL,
-        db_index=True, related_name='crm_leads_owned', verbose_name='Salesperson',
-        db_column='user_id', check_company=True,
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        db_index=True,
+        related_name='crm_leads_owned',
+        verbose_name='Salesperson',
+        db_column='user_id',
+        check_company=True,
         help_text='Vendedor asignado (Odoo user_id).',
     )
     # ≙ team_id (:111-113): ondelete="set null", compute + store + precompute.
@@ -227,9 +236,13 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     # ≙ lead_properties (:114-116):
     # definition='team_id.lead_properties_definition'.
     lead_properties = fields.Properties(
-        definition='team_id.lead_properties_definition', null=True, blank=True,
+        definition='team_id.lead_properties_definition',
+        null=True,
+        blank=True,
         verbose_name='Properties',
-        help_text='Propiedades libres definidas por el equipo (Odoo lead_properties).',
+        help_text=(
+            'Propiedades libres definidas por el equipo (Odoo '
+            'lead_properties).'),
     )
     # ≙ company_id (:117-119).
     company_id = fields.Many2one(
@@ -290,37 +303,62 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     # ≙ expected_revenue (:144), tracking=True,
     # currency_field='company_currency'.
     expected_revenue = fields.Monetary(
-        max_digits=16, decimal_places=2, default=0, verbose_name='Expected Revenue',
+        max_digits=16,
+        decimal_places=2,
+        default=0,
+        verbose_name='Expected Revenue',
         help_text='Ingreso esperado (Odoo expected_revenue).',
     )
     # ≙ prorated_revenue (:145), store + compute.
     prorated_revenue = fields.Monetary(
-        max_digits=16, decimal_places=2, default=0, verbose_name='Prorated Revenue',
-        help_text='Ingreso prorrateado por probabilidad (Odoo prorated_revenue).',
-        compute='_compute_prorated_revenue', store=True,
+        max_digits=16,
+        decimal_places=2,
+        default=0,
+        verbose_name='Prorated Revenue',
+        help_text=(
+            'Ingreso prorrateado por probabilidad (Odoo prorated_revenue).'),
+        compute='_compute_prorated_revenue',
+        store=True,
     )
     # ≙ recurring_revenue (:146).
     recurring_revenue = fields.Monetary(
-        max_digits=16, decimal_places=2, default=0, verbose_name='Recurring Revenues',
+        max_digits=16,
+        decimal_places=2,
+        default=0,
+        verbose_name='Recurring Revenues',
         help_text='Ingreso recurrente (Odoo recurring_revenue).',
     )
     # ≙ recurring_plan (:147) — la fuente NO le pone sufijo _id, y se respeta.
     recurring_plan = fields.Many2one(
-        CrmRecurringPlan, null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='crm_leads', verbose_name='Recurring Plan',
-        db_column='recurring_plan', help_text='Plan recurrente (Odoo recurring_plan).',
+        CrmRecurringPlan,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='crm_leads',
+        verbose_name='Recurring Plan',
+        db_column='recurring_plan',
+        help_text='Plan recurrente (Odoo recurring_plan).',
     )
     # ≙ recurring_revenue_monthly (:148-149), store + compute.
     recurring_revenue_monthly = fields.Monetary(
-        max_digits=16, decimal_places=2, default=0, verbose_name='Expected MRR',
-        help_text='Ingreso recurrente mensual (Odoo recurring_revenue_monthly).',
-        compute='_compute_recurring_revenue_monthly', store=True,
+        max_digits=16,
+        decimal_places=2,
+        default=0,
+        verbose_name='Expected MRR',
+        help_text=(
+            'Ingreso recurrente mensual (Odoo recurring_revenue_monthly).'),
+        compute='_compute_recurring_revenue_monthly',
+        store=True,
     )
     # ≙ recurring_revenue_monthly_prorated (:150-151), store + compute.
     recurring_revenue_monthly_prorated = fields.Monetary(
-        max_digits=16, decimal_places=2, default=0, verbose_name='Prorated MRR',
+        max_digits=16,
+        decimal_places=2,
+        default=0,
+        verbose_name='Prorated MRR',
         help_text='MRR prorrateado (Odoo recurring_revenue_monthly_prorated).',
-        compute='_compute_recurring_revenue_monthly_prorated', store=True,
+        compute='_compute_recurring_revenue_monthly_prorated',
+        store=True,
     )
     # ≙ recurring_revenue_prorated (:152-153), store + compute.
     recurring_revenue_prorated = fields.Monetary(
@@ -412,10 +450,16 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     )
     # ≙ email_from (:187-189), tracking=40, index='trigram', compute + inverse.
     email_from = fields.Char(
-        max_length=255, blank=True, default='', db_index=True,
-        verbose_name='Email', help_text='Correo del contacto (Odoo email_from).',
-        compute='_compute_email_from', store=True,
-        readonly=False, inverse='_inverse_email_from',
+        max_length=255,
+        blank=True,
+        default='',
+        db_index=True,
+        verbose_name='Email',
+        help_text='Correo del contacto (Odoo email_from).',
+        compute='_compute_email_from',
+        store=True,
+        readonly=False,
+        inverse='_inverse_email_from',
     )
     # ≙ email_normalized (:190) — la fuente lo hereda de
     # ``mail.thread.blacklist`` y sólo lo redeclara para indexarlo. Ese mixin
@@ -428,11 +472,16 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     # ≙ email_domain_criterion (:191-196), index='btree_not_null',
     # compute + store.
     email_domain_criterion = fields.Char(
-        max_length=255, blank=True, default='', db_index=True,
+        max_length=255,
+        blank=True,
+        default='',
+        db_index=True,
         verbose_name='Email Domain Criterion',
-        help_text='Dominio del correo, para buscar duplicados por coincidencia '
-                  'exacta (Odoo email_domain_criterion).',
-        compute='_compute_email_domain_criterion', store=True,
+        help_text=(
+            'Dominio del correo, para buscar duplicados por coincidencia '
+            'exacta (Odoo email_domain_criterion).'),
+        compute='_compute_email_domain_criterion',
+        store=True,
     )
     # ≙ phone (:197-199), tracking=50, compute + inverse.
     phone = fields.Char(
@@ -478,18 +527,31 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
 
     # -- Address fields ------------------------------------------------------
     # ≙ street / street2 / zip / city (:213-216), compute + store.
-    street = fields.Char(max_length=255, blank=True, default='', verbose_name='Street')
-    street2 = fields.Char(max_length=255, blank=True, default='', verbose_name='Street2')
-    zip = fields.Char(max_length=24, blank=True, default='', verbose_name='Zip')
-    city = fields.Char(max_length=255, blank=True, default='', verbose_name='City')
+    street = fields.Char(
+        max_length=255, blank=True, default='', verbose_name='Street'
+    )
+    street2 = fields.Char(
+        max_length=255, blank=True, default='', verbose_name='Street2'
+    )
+    zip = fields.Char(
+        max_length=24, blank=True, default='', verbose_name='Zip'
+    )
+    city = fields.Char(
+        max_length=255, blank=True, default='', verbose_name='City'
+    )
     # ≙ state_id (:217-220) / country_id (:221-223), compute + store.
     state_id = fields.Many2one(
         ResCountryState, null=True, blank=True, on_delete=models.SET_NULL,
         related_name='crm_leads', verbose_name='State', db_column='state_id',
     )
     country_id = fields.Many2one(
-        ResCountry, null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='crm_leads', verbose_name='Country', db_column='country_id',
+        ResCountry,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='crm_leads',
+        verbose_name='Country',
+        db_column='country_id',
     )
 
     # -- Probability (Opportunity only) --------------------------------------
@@ -500,22 +562,35 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     )
     # ≙ automated_probability (:228), readonly, compute + store.
     automated_probability = fields.Float(
-        default=0.0, verbose_name='Automated Probability',
-        help_text='Probabilidad calculada por el scoring (Odoo automated_probability).',
+        default=0.0,
+        verbose_name='Automated Probability',
+        help_text=(
+            'Probabilidad calculada por el scoring (Odoo '
+            'automated_probability).'),
     )
 
     # -- Won/Lost ------------------------------------------------------------
     # ≙ won_status (:231-237), tracking=70, compute + store.
     won_status = fields.Selection(
-        max_length=8, choices=WON_STATUS, default='pending',
-        verbose_name='Won/Lost', help_text='Ganada, perdida o en curso (Odoo won_status).',
-        compute='_compute_won_status', store=True,
+        max_length=8,
+        choices=WON_STATUS,
+        default='pending',
+        verbose_name='Won/Lost',
+        help_text='Ganada, perdida o en curso (Odoo won_status).',
+        compute='_compute_won_status',
+        store=True,
     )
     # ≙ lost_reason_id (:238-240), ondelete='restrict', tracking=71.
     lost_reason_id = fields.Many2one(
-        CrmLostReason, null=True, blank=True, on_delete=models.PROTECT,
-        db_index=True, related_name='leads', verbose_name='Lost Reason',
-        db_column='lost_reason_id', help_text='Motivo de pérdida (Odoo lost_reason_id).',
+        CrmLostReason,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        db_index=True,
+        related_name='leads',
+        verbose_name='Lost Reason',
+        db_column='lost_reason_id',
+        help_text='Motivo de pérdida (Odoo lost_reason_id).',
     )
 
     class Meta:
@@ -531,7 +606,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
                 condition=Q(probability__gte=0) & Q(probability__lte=100),
                 name='crm_lead_check_probability',
                 violation_error_message=(
-                    'The probability of closing the deal should be between 0% and 100%!'
+                    (
+                        'The probability of closing the deal should be '
+                        'between 0% and 100%!')
                 ),
             ),
         ]
@@ -564,7 +641,11 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         """≙ ``_check_won_validity`` (:262-266)."""
         if self.stage_id and self.stage_id.is_won and self.probability != 100:
             raise ValidationError(
-                _("A lead in a Won stage cannot be lost. Move it to another stage first.")
+                _(
+                    (
+                        'A lead in a Won stage cannot be lost. Move it to '
+                        'another stage first.')
+                )
             )
 
     @api.depends('company_id')
@@ -576,7 +657,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
 
     @property
     def user_company_ids(self):
-        """≙ el campo ``user_company_ids`` (:108-110), calculado sin columna."""
+        """≙ el campo ``user_company_ids`` (:108-110), calculado sin
+        columna."""
         return self._compute_user_company_ids()
 
     @api.depends('company_id')
@@ -584,7 +666,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         """≙ ``_compute_company_currency`` (:277-283)."""
         if not self.company_id_id:
             return ResCurrency.objects.filter(
-                pk__in=ResCompany.objects.values_list('currency_id', flat=True)[:1]
+                pk__in=ResCompany.objects.values_list(
+                    'currency_id', flat=True
+                )[:1]
             ).first()
         return self.company_id.currency_id
 
@@ -597,10 +681,13 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         """≙ ``_field_to_sql`` (:285-298) — el JOIN que hace agregable
         ``company_currency``.
 
-        DIVERGENCIA DE MECANISMO declarada: la fuente reescribe la expresión SQL
+        DIVERGENCIA DE MECANISMO declarada: la fuente reescribe la expresión
+        SQL
         del campo porque su motor agrega monetarios por moneda de empresa. Aquí
-        ``company_currency`` no es columna sino ``property``, y la agregación por
-        moneda la resuelve el ``ORM`` de Django con un ``annotate`` desde el lado
+        ``company_currency`` no es columna sino ``property``, y la agregación
+        por
+        moneda la resuelve el ``ORM`` de Django con un ``annotate`` desde el
+        lado
         de ``res_company``. El símbolo se conserva delegando en su base para no
         romper la cadena de sobrescritura del motor espejado.
         """
@@ -621,8 +708,12 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             or self.team_id.user_id_id == user.pk
         ):
             return
-        field_name = 'use_leads' if self.type == self.TYPE_LEAD else 'use_opportunities'
-        team = CrmTeam._get_default_team_id(user_id=user.pk, domain={field_name: True})
+        field_name = (
+            'use_leads' if self.type == self.TYPE_LEAD else 'use_opportunities'
+        )
+        team = CrmTeam._get_default_team_id(
+            user_id=user.pk, domain={field_name: True}
+        )
         if team is not None and self.team_id_id != team.pk:
             self.team_id = team
 
@@ -633,7 +724,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         BLOQUEO MEDIDO en las dos ramas que leen la empresa **del cliente**:
         ``ResPartner`` no declara ``company_id`` en este arbol, asi que
         ``self.partner_id.company_id`` levanta ``AttributeError``. La fuente si
-        lo tiene (``odoo19c: res_partner.py``), y portarlo es la tarea **#110**.
+        lo tiene (``odoo19c: res_partner.py``), y portarlo es la tarea
+        **#110**.
 
         Hasta entonces el cliente **no aporta empresa**: las dos ramas se leen
         con ``_partner_company()``, que devuelve ``None`` cuando el campo no
@@ -655,13 +747,18 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
                     and proposal.pk != self.team_id.company_id_id:
                 proposal = None
             # equipo sin empresa y sin responsable
-            elif self.team_id and not self.team_id.company_id_id and not self.user_id_id:
+            elif (
+                self.team_id
+                and not self.team_id.company_id_id
+                and not self.user_id_id
+            ):
                 proposal = None
-            # sin equipo y sin responsable: se vacía y que la asignación decida,
-            # salvo que el cliente traiga la suya
+            # sin equipo y sin responsable: se vacía y que la asignación
+            # decida, salvo que el cliente traiga la suya
             elif not self.team_id_id and not self.user_id_id and (
                     not self.partner_id_id
-                    or getattr(self._partner_company(), 'pk', None) != proposal.pk):
+                    or getattr(self._partner_company(), 'pk', None)
+                    != proposal.pk):
                 proposal = None
 
         # propuesta nueva por orden: equipo > responsable > cliente
@@ -771,7 +868,11 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         """
         if self.partner_id_id:
             commercial = self.partner_id.commercial_partner_id
-            if commercial and commercial.is_company and commercial.pk != self.partner_id_id:
+            if (
+                commercial
+                and commercial.is_company
+                and commercial.pk != self.partner_id_id
+            ):
                 return commercial
             return None
         if self.partner_name:
@@ -792,9 +893,14 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         arrastre correo y teléfono del anterior.
         """
         commercial = self.commercial_partner_id
-        of_the_partner = self.partner_id.commercial_partner_id if self.partner_id_id else None
+        of_the_partner = (
+            self.partner_id.commercial_partner_id
+            if self.partner_id_id
+            else None
+        )
         if self.partner_id_id and commercial and \
-                commercial.pk != (of_the_partner.pk if of_the_partner else None):
+                commercial.pk != (of_the_partner.pk if of_the_partner
+                                  else None):
             self.partner_id = None
             self.email_from = ''
             self.phone = ''
@@ -807,7 +913,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         if not self.partner_id_id:
             self.contact_name = ''
             return
-        for key, value in self._prepare_contact_name_from_partner(self.partner_id).items():
+        for key, value in self._prepare_contact_name_from_partner(
+            self.partner_id
+        ).items():
             setattr(self, key, value)
 
     @api.depends('partner_id')
@@ -816,20 +924,30 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         if not self.partner_id_id:
             self.partner_name = ''
             return
-        for key, value in self._prepare_partner_name_from_partner(self.partner_id).items():
+        for key, value in self._prepare_partner_name_from_partner(
+            self.partner_id
+        ).items():
             setattr(self, key, value)
 
     @api.depends('partner_id')
     def _compute_function(self):
         """≙ ``_compute_function`` (:456-461)."""
-        if not self.function or (self.partner_id_id and self.partner_id.function):
-            self.function = (self.partner_id.function if self.partner_id_id else '') or ''
+        if not self.function or (
+            self.partner_id_id and self.partner_id.function
+        ):
+            self.function = (
+                self.partner_id.function if self.partner_id_id else ''
+            ) or ''
 
     @api.depends('partner_id')
     def _compute_website(self):
         """≙ ``_compute_website`` (:463-468)."""
-        if not self.website or (self.partner_id_id and self.partner_id.website):
-            self.website = (self.partner_id.website if self.partner_id_id else '') or ''
+        if not self.website or (
+            self.partner_id_id and self.partner_id.website
+        ):
+            self.website = (
+                self.partner_id.website if self.partner_id_id else ''
+            ) or ''
 
     @api.depends('partner_id')
     def _compute_lang_id(self):
@@ -840,7 +958,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         if not self.partner_id_id:
             return
         code = self.partner_id.lang
-        self.lang_id = ResLang.objects.filter(code=code).first() if code else None
+        self.lang_id = (
+            ResLang.objects.filter(code=code).first() if code else None
+        )
 
     @api.depends('lang_id')
     def _compute_lang_active_count(self):
@@ -859,7 +979,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
 
     @property
     def stage_id_color(self):
-        """≙ el campo ``stage_id_color`` (:135), ``related='stage_id.color'``."""
+        """≙ el campo ``stage_id_color`` (:135),
+        ``related='stage_id.color'``."""
         return self.stage_id.color if self.stage_id_id else 0
 
     @property
@@ -867,7 +988,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         """≙ el campo ``partner_is_blacklisted`` (:178),
         ``related='partner_id.is_blacklisted'``.
 
-        Bloqueado por lo mismo que ``email_normalized``: ``mail.thread.blacklist``
+        Bloqueado por lo mismo que ``email_normalized``:
+        ``mail.thread.blacklist``
         no existe en este árbol, así que ``res.partner`` no declara todavía
         ``is_blacklisted``. Se lee del cliente cuando exista; hasta entonces es
         ``False``, que es el valor que el contrato promete por defecto.
@@ -881,13 +1003,19 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         """≙ ``_compute_partner_address_values`` (:490-494)."""
         if not self.partner_id_id:
             return
-        for key, value in self._prepare_address_values_from_partner(self.partner_id).items():
+        for key, value in self._prepare_address_values_from_partner(
+            self.partner_id
+        ).items():
             setattr(self, key, value)
 
     @api.depends('partner_id.email')
     def _compute_email_from(self):
         """≙ ``_compute_email_from`` (:496-500)."""
-        if self.partner_id_id and self.partner_id.email and self._get_partner_email_update():
+        if (
+            self.partner_id_id
+            and self.partner_id.email
+            and self._get_partner_email_update()
+        ):
             self.email_from = self.partner_id.email
 
     def _inverse_email_from(self):
@@ -910,12 +1038,18 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             self.email_domain_criterion = ''
             return
         _local, _sep, domain = self.email_normalized.partition('@')
-        self.email_domain_criterion = '' if domain in FREE_EMAIL_DOMAINS else domain
+        self.email_domain_criterion = (
+            '' if domain in FREE_EMAIL_DOMAINS else domain
+        )
 
     @api.depends('partner_id.phone')
     def _compute_phone(self):
         """≙ ``_compute_phone`` (:515-519)."""
-        if self.partner_id_id and self.partner_id.phone and self._get_partner_phone_update():
+        if (
+            self.partner_id_id
+            and self.partner_id.phone
+            and self._get_partner_phone_update()
+        ):
             self.phone = self.partner_id.phone
 
     def _inverse_phone(self):
@@ -937,8 +1071,14 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             self.phone_state = None
             return
         digits = [c for c in self.phone if c.isdigit()]
-        foreign_chars = [c for c in self.phone if not (c.isdigit() or c in ' +-().')]
-        self.phone_state = 'correct' if len(digits) >= 7 and not foreign_chars else 'incorrect'
+        foreign_chars = [
+            c for c in self.phone if not (c.isdigit() or c in ' +-().')
+        ]
+        self.phone_state = (
+            'correct'
+            if len(digits) >= 7 and not foreign_chars
+            else 'incorrect'
+        )
 
     @api.depends('email_from')
     def _compute_email_state(self):
@@ -956,7 +1096,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     @api.depends('probability', 'automated_probability')
     def _compute_is_automated_probability(self):
         """≙ ``_compute_is_automated_probability`` (:551-556)."""
-        return round(self.probability or 0.0, 2) == round(self.automated_probability or 0.0, 2)
+        return round(self.probability or 0.0, 2) == round(
+            self.automated_probability or 0.0, 2
+        )
 
     @property
     def is_automated_probability(self):
@@ -978,25 +1120,41 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     def _compute_prorated_revenue(self):
         """≙ ``_compute_prorated_revenue`` (:568-571)."""
         self.prorated_revenue = round(
-            float(self.expected_revenue or 0.0) * float(self.probability or 0) / 100.0, 2)
+            float(self.expected_revenue or 0.0)
+            * float(self.probability or 0)
+            / 100.0,
+            2,
+        )
 
     @api.depends('recurring_revenue', 'recurring_plan.number_of_months')
     def _compute_recurring_revenue_monthly(self):
         """≙ ``_compute_recurring_revenue_monthly`` (:573-576)."""
-        months = self.recurring_plan.number_of_months if self.recurring_plan_id else 0
-        self.recurring_revenue_monthly = float(self.recurring_revenue or 0.0) / (months or 1)
+        months = (
+            self.recurring_plan.number_of_months
+            if self.recurring_plan_id
+            else 0
+        )
+        self.recurring_revenue_monthly = float(
+            self.recurring_revenue or 0.0
+        ) / (months or 1)
 
     @api.depends('recurring_revenue_monthly', 'probability')
     def _compute_recurring_revenue_monthly_prorated(self):
         """≙ ``_compute_recurring_revenue_monthly_prorated`` (:578-581)."""
         self.recurring_revenue_monthly_prorated = (
-            float(self.recurring_revenue_monthly or 0.0) * float(self.probability or 0) / 100.0)
+            float(self.recurring_revenue_monthly or 0.0)
+            * float(self.probability or 0)
+            / 100.0
+        )
 
     @api.depends('recurring_revenue', 'probability')
     def _compute_recurring_revenue_prorated(self):
         """≙ ``_compute_recurring_revenue_prorated`` (:583-586)."""
         self.recurring_revenue_prorated = (
-            float(self.recurring_revenue or 0.0) * float(self.probability or 0) / 100.0)
+            float(self.recurring_revenue or 0.0)
+            * float(self.probability or 0)
+            / 100.0
+        )
 
     @api.depends('calendar_event_ids', 'calendar_event_ids.start')
     def _compute_meeting_display(self):
@@ -1007,7 +1165,10 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         registro no tiene ninguna reunión, que es el caso de todos hoy.
         Condición de cierre: portar el addon ``calendar``.
         """
-        return {'meeting_display_date': None, 'meeting_display_label': _('No Meeting')}
+        return {
+            'meeting_display_date': None,
+            'meeting_display_label': _('No Meeting'),
+        }
 
     @property
     def meeting_display_date(self):
@@ -1031,7 +1192,11 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     @api.depends('active', 'probability', 'stage_id')
     def _compute_won_status(self):
         """≙ ``_compute_won_status`` (:612-620)."""
-        if self.probability == 100 and self.stage_id_id and self.stage_id.is_won:
+        if (
+            self.probability == 100
+            and self.stage_id_id
+            and self.stage_id.is_won
+        ):
             self.won_status = 'won'
         elif not self.active and self.probability == 0:
             self.won_status = 'lost'
@@ -1051,14 +1216,24 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
 
         def _return_if_relevant(predicado):
             """≙ ``return_if_relevant`` (:632-645)."""
-            ids = list(type(self).objects.filter(predicado)
-                       .exclude(pk=self.pk).values_list('pk', flat=True)[:SEARCH_RESULT_LIMIT])
+            ids = list(
+                type(self)
+                .objects.filter(predicado)
+                .exclude(pk=self.pk)
+                .values_list('pk', flat=True)[:SEARCH_RESULT_LIMIT]
+            )
             return set(ids) if len(ids) < SEARCH_RESULT_LIMIT else set()
 
         duplicates = set()
         if self.email_domain_criterion:
-            duplicates |= _return_if_relevant(Q(email_domain_criterion=self.email_domain_criterion))
-        commercial = self.partner_id.commercial_partner_id if self.partner_id_id else None
+            duplicates |= _return_if_relevant(
+                Q(email_domain_criterion=self.email_domain_criterion)
+            )
+        commercial = (
+            self.partner_id.commercial_partner_id
+            if self.partner_id_id
+            else None
+        )
         if commercial is not None:
             # La fuente NO filtra por una columna de entidad comercial: pide
             # ``("partner_id", "child_of", commercial.ids)`` (:664-667), o sea
@@ -1078,7 +1253,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
                 .exclude(pk=self.pk).values_list('pk', flat=True)
             )
         if self.phone_sanitized:
-            duplicates |= _return_if_relevant(Q(phone_sanitized=self.phone_sanitized))
+            duplicates |= _return_if_relevant(
+                Q(phone_sanitized=self.phone_sanitized)
+            )
         return {
             'duplicate_lead_ids': type(self).objects.filter(
                 pk__in=duplicates | ({self.pk} if self.pk else set())),
@@ -1093,7 +1270,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     @property
     def duplicate_lead_count(self):
         """≙ el campo ``duplicate_lead_count`` (:244), sin columna."""
-        return self._compute_potential_lead_duplicates()['duplicate_lead_count']
+        return self._compute_potential_lead_duplicates()[
+            'duplicate_lead_count'
+        ]
 
     @api.depends('email_from', 'partner_id')
     def _compute_partner_email_update(self):
@@ -1119,7 +1298,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     def _compute_is_partner_visible(self):
         """≙ ``_compute_is_partner_visible`` (:689-705).
 
-        En una iniciativa el cliente casi nunca está puesto —al ponerlo se suele
+        En una iniciativa el cliente casi nunca está puesto —al ponerlo se
+        suele
         convertir en oportunidad—, así que el campo sólo se muestra cuando está
         puesto, cuando ya es oportunidad, o en modo depuración.
         """
@@ -1158,7 +1338,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             for f in PARTNER_FIELDS_TO_SYNC if f != 'lang'
         })
         if partner.lang:
-            values['lang_id'] = ResLang.objects.filter(code=partner.lang).first()
+            values['lang_id'] = ResLang.objects.filter(
+                code=partner.lang
+            ).first()
         values.update(self._prepare_contact_name_from_partner(partner))
         values.update(self._prepare_partner_name_from_partner(partner))
         return values
@@ -1169,11 +1351,15 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         Todos o ninguno: mezclar dos direcciones produce una tercera que no es
         de nadie.
         """
-        if any(getattr(partner, f, None) for f in PARTNER_ADDRESS_FIELDS_TO_SYNC):
+        if any(
+            getattr(partner, f, None) for f in PARTNER_ADDRESS_FIELDS_TO_SYNC
+        ):
             source = partner
         else:
             source = self
-        return {f: getattr(source, f, None) for f in PARTNER_ADDRESS_FIELDS_TO_SYNC}
+        return {
+            f: getattr(source, f, None) for f in PARTNER_ADDRESS_FIELDS_TO_SYNC
+        }
 
     def _prepare_contact_name_from_partner(self, partner):
         """≙ ``_prepare_contact_name_from_partner`` (:739-741)."""
@@ -1186,19 +1372,24 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         Nombre de empresa: el del padre del cliente si lo tiene; si no, el suyo
         cuando es empresa; si no, su ``company_name``.
 
-        DEPENDE DE LA FORMA DE LA FK, y hoy las dos conviven (:ref:`h-api-275`):
+        DEPENDE DE LA FORMA DE LA FK, y hoy las dos conviven
+        (:ref:`h-api-275`):
 
-        - **forma A** — ``parent = fields.Many2one(...)``: columna ``parent_id``
+        - **forma A** — ``parent = fields.Many2one(...)``: columna
+        ``parent_id``
           correcta, ``attname`` ``parent_id``, y el registro se lee por
           ``.parent``. Es lo que ``ResPartner`` declara hoy, y lo que **736 de
           las 878** FK del arbol declaran (medido).
-        - **forma C** — ``parent_id = fields.Many2one(..., db_column='parent_id')``:
+        - **forma C** — ``parent_id = fields.Many2one(...,
+        db_column='parent_id')``:
           columna Y accessor coinciden con la fuente a la vez; el ``attname``
           pasa a ser ``parent_id_id``. Es la forma de destino, y ``crm`` ya la
           usa para SUS propias FK (``self.partner_id_id``).
 
-        El barrido de A a C es la tarea **#143**. Mientras ``ResPartner`` siga en
-        forma A, se lee ``partner.parent`` / ``partner.parent_id``; lo que habia
+        El barrido de A a C es la tarea **#143**. Mientras ``ResPartner`` siga
+        en
+        forma A, se lee ``partner.parent`` / ``partner.parent_id``; lo que
+        habia
         —``partner.parent_id.name if partner.parent_id_id``— mezclaba las dos y
         levantaba ``AttributeError`` en cuanto un cliente llegaba al computo.
         Cuando #143 mueva ``ResPartner``, su reescritor tiene que alcanzar
@@ -1218,14 +1409,18 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         consumen el cómputo, el inverso y el aviso de la interfaz.
 
         :param bool force_void: con ``False`` se omite cuando la iniciativa
-          tiene el correo vacío, para no propagar un vacío sobre un valor bueno.
+          tiene el correo vacío, para no propagar un vacío sobre un valor
+          bueno.
         """
         if self.partner_id_id and (force_void or self.email_from) \
                 and self.email_from != self.partner_id.email:
             own = (email_normalize_all(self.email_from) or [None])[0] \
                 or self.email_from or False
-            from_partner = (email_normalize_all(self.partner_id.email) or [None])[0] \
-                or self.partner_id.email or False
+            from_partner = (
+                (email_normalize_all(self.partner_id.email) or [None])[0]
+                or self.partner_id.email
+                or False
+            )
             return own != from_partner
         return False
 
@@ -1240,7 +1435,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         return False
 
     def _phone_format(self, number):
-        """Formato E.164 mínimo — el ``_phone_format`` de ``mail.thread.phone``.
+        """Formato E.164 mínimo — el ``_phone_format`` de
+        ``mail.thread.phone``.
 
         DIVERGENCIA DE MECANISMO declarada: la fuente lo hereda de ese mixin,
         que envuelve la librería ``phonenumbers``. Aquí el mixin no existe, así
@@ -1286,8 +1482,18 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         previous = None
 
         if not es_alta:
-            previous = type(self).objects.filter(pk=self.pk).values(
-                'stage_id', 'user_id', 'won_status', 'active', 'probability').first()
+            previous = (
+                type(self)
+                .objects.filter(pk=self.pk)
+                .values(
+                    'stage_id',
+                    'user_id',
+                    'won_status',
+                    'active',
+                    'probability',
+                )
+                .first()
+            )
 
         if previous is not None:
             # cambio de etapa: sella la fecha del último cambio
@@ -1331,7 +1537,12 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         res = super().save(*args, **kwargs)
 
         # alta directamente en etapa ganada: sella la fecha de cierre
-        if es_alta and not self.date_closed and self.stage_id_id and self.stage_id.is_won:
+        if (
+            es_alta
+            and not self.date_closed
+            and self.stage_id_id
+            and self.stage_id.is_won
+        ):
             self.date_closed = now
             super().save(update_fields=['date_closed'])
 
@@ -1349,7 +1560,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         """Ejecuta, en orden de dependencia, los cómputos que sí son columna.
 
         No tiene contraparte de un solo símbolo en la fuente: allá el ORM
-        resuelve el grafo de ``@api.depends`` y dispara cada cómputo cuando toca.
+        resuelve el grafo de ``@api.depends`` y dispara cada cómputo cuando
+        toca.
         Aquí ese motor no existe, así que el orden se escribe a mano — y se
         escribe **una vez**, en vez de repetirlo en cada llamador.
         """
@@ -1379,11 +1591,15 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         self._compute_day_close()
 
     @classmethod
-    def search_fetch(cls, domain, field_names=None, offset=0, limit=None, order=None):
-        """≙ ``search_fetch`` (:893-971) — orden por vencimiento de MI actividad.
+    def search_fetch(
+        cls, domain, field_names=None, offset=0, limit=None, order=None
+    ):
+        """≙ ``search_fetch`` (:893-971) — orden por vencimiento de MI
+        actividad.
 
         BLOQUEADO por ``search_fetch`` — el ORM espejado no lo declara: es la
-        superficie de ``search_read`` del canal RPC, que este árbol resuelve por
+        superficie de ``search_read`` del canal RPC, que este árbol resuelve
+        por
         DRF. La fuente intercepta el orden
         ``my_activity_date_deadline`` y resuelve la búsqueda en dos pasos
         (primero las iniciativas con actividad propia, ordenadas por su
@@ -1393,7 +1609,11 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         El símbolo se conserva delegando en el orden normal, que es lo que la
         propia fuente hace cuando el orden pedido no lo menciona (:920-921).
         """
-        qs = cls.objects.filter(domain) if isinstance(domain, Q) else cls.objects.all()
+        qs = (
+            cls.objects.filter(domain)
+            if isinstance(domain, Q)
+            else cls.objects.all()
+        )
         if order:
             qs = qs.order_by(*[o.strip() for o in order.split(',')])
         return qs[offset:(offset + limit)] if limit else qs[offset:]
@@ -1410,11 +1630,16 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         alcanzan_lost, dejan_lost = [], []
 
         for lead in leads:
-            nuevo = new_status_by_lead.get(lead.pk, {'is_lost': False, 'is_won': False})
-            viejo = old_status_by_lead.get(lead.pk, {'is_lost': False, 'is_won': False})
+            nuevo = new_status_by_lead.get(
+                lead.pk, {'is_lost': False, 'is_won': False}
+            )
+            viejo = old_status_by_lead.get(
+                lead.pk, {'is_lost': False, 'is_won': False}
+            )
             if nuevo['is_lost'] and nuevo['is_won']:
                 raise ValidationError(
-                    _("The lead %s cannot be won and lost at the same time.") % lead
+                    _("The lead %s cannot be won and lost at the same time.")
+                    % lead
                 )
             if nuevo['is_lost'] and not viejo['is_lost']:
                 alcanzan_lost.append(lead)
@@ -1438,12 +1663,20 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         hoy si ya era oportunidad, y un responsable inactivo no se arrastra.
         """
         default = dict(default or {})
-        vals = super().copy_data(default=default) if hasattr(super(), 'copy_data') else dict(default)
+        vals = (
+            super().copy_data(default=default)
+            if hasattr(super(), 'copy_data')
+            else dict(default)
+        )
         now = record_transaction_now(self)
         vals.setdefault('type', self.type)
         vals.setdefault('team_id', self.team_id_id)
-        is_active = bool(self.user_id_id and getattr(self.user_id, 'is_active', True))
-        vals['date_open'] = now if self.type == self.TYPE_OPPORTUNITY and is_active else None
+        is_active = bool(
+            self.user_id_id and getattr(self.user_id, 'is_active', True)
+        )
+        vals['date_open'] = (
+            now if self.type == self.TYPE_OPPORTUNITY and is_active else None
+        )
         if not is_active:
             vals['user_id'] = None
         return vals
@@ -1470,17 +1703,31 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         """
         team_ids = set()
         if show_user_team_stages and user is not None:
-            team_ids |= set(CrmTeam.objects.filter(member_ids=user).values_list('pk', flat=True))
+            team_ids |= set(
+                CrmTeam.objects.filter(member_ids=user).values_list(
+                    'pk', flat=True
+                )
+            )
         if team_id:
             team_ids.add(team_id)
         presentes = Q(pk__in=[s.pk for s in stages])
         if team_ids:
-            criterion = presentes | Q(team_ids__isnull=True) | Q(team_ids__in=list(team_ids))
+            criterion = (
+                presentes
+                | Q(team_ids__isnull=True)
+                | Q(team_ids__in=list(team_ids))
+            )
         else:
             criterion = presentes | Q(team_ids__isnull=True)
-        return CrmStage.objects.filter(criterion).distinct().order_by('sequence', 'pk')
+        return (
+            CrmStage.objects.filter(criterion)
+            .distinct()
+            .order_by('sequence', 'pk')
+        )
 
-    def _stage_find(self, team_id=False, domain=None, order=('sequence', 'id'), limit=1):
+    def _stage_find(
+        self, team_id=False, domain=None, order=('sequence', 'id'), limit=1
+    ):
         """≙ ``_stage_find`` (:1071-1099).
 
         Busca la etapa que corresponde: las del equipo dado más las del propio
@@ -1492,13 +1739,19 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         if self.team_id_id:
             team_ids.add(self.team_id_id)
         if team_ids:
-            criterion = Q(team_ids__isnull=True) | Q(team_ids__in=list(team_ids))
+            criterion = Q(team_ids__isnull=True) | Q(
+                team_ids__in=list(team_ids)
+            )
         else:
             criterion = Q(team_ids__isnull=True)
         qs = CrmStage.objects.filter(criterion)
         if domain:
             qs = qs.filter(**domain)
-        order_by = ['sequence', 'pk'] if tuple(order) == ('sequence', 'id') else list(order)
+        order_by = (
+            ['sequence', 'pk']
+            if tuple(order) == ('sequence', 'id')
+            else list(order)
+        )
         qs = qs.distinct().order_by(*order_by)
         if limit is None:
             return qs
@@ -1514,12 +1767,16 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         Al reactivar se fuerza el recálculo de la probabilidad. Archivar no
         dispara nada: una iniciativa puede estar archivada sin estar perdida.
         """
-        activated = not self.active
+        activated = self.filtered(lambda rec: not rec.active)
         result = super().action_unarchive()
         if activated:
-            self.write({'lost_reason_id': None})
-            self._compute_probabilities()
-            self.save(update_fields=['automated_probability', 'probability'])
+            activated.write({'lost_reason_id': False})
+            # ``_compute_probabilities`` es de un registro y asigna: cada
+            # reactivado guarda lo que calculó
+            for lead in activated:
+                lead._compute_probabilities()
+                lead.save(update_fields=['automated_probability',
+                                         'probability'])
         return result
 
     def action_restore(self):
@@ -1553,17 +1810,28 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         implícito por la restricción).
 
         El comentario ABD de la fuente se conserva porque explica el porqué del
-        rodeo: un pipeline puede alternar etapas «ganada» y «normal», así que se
+        rodeo: un pipeline puede alternar etapas «ganada» y «normal», así que
+        se
         busca la primera de victoria **por encima** de la actual y, si no la
         hay, la última por debajo.
         """
         self.action_unarchive()
-        won_stages = list(self._stage_find(domain={'is_won': True}, limit=None))
+        won_stages = list(
+            self._stage_find(domain={'is_won': True}, limit=None)
+        )
         current_sequence = self.stage_id.sequence if self.stage_id_id else 0
-        stage = next((s for s in won_stages if s.sequence > current_sequence), None)
+        stage = next(
+            (s for s in won_stages if s.sequence > current_sequence), None
+        )
         if stage is None:
-            stage = next((s for s in reversed(won_stages) if s.sequence <= current_sequence),
-                         won_stages[0] if won_stages else None)
+            stage = next(
+                (
+                    s
+                    for s in reversed(won_stages)
+                    if s.sequence <= current_sequence
+                ),
+                won_stages[0] if won_stages else None,
+            )
         if stage is not None:
             self.stage_id = stage
             self.probability = 100
@@ -1635,8 +1903,11 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             return bool(self.expected_revenue) and value is not None \
                 and value < self.expected_revenue
 
-        team_stages = won_this_year.filter(team_id=self.team_id_id) if self.team_id_id \
+        team_stages = (
+            won_this_year.filter(team_id=self.team_id_id)
+            if self.team_id_id
             else won_this_year.filter(team_id__isnull=True)
+        )
 
         closed_today = mine.filter(create_date__gte=tz_midnight).count()
         closed_yesterday = mine.filter(
@@ -1656,13 +1927,22 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         if _is_lower_than_expected_revenue(_max_revenue(team_stages, 7)):
             return _('Yeah! Best deal out of the last 7 days for the team.')
         if _is_lower_than_expected_revenue(_max_revenue(mine, 31)):
-            return _('You just beat your personal record for the past 30 days.')
+            return _(
+                'You just beat your personal record for the past 30 days.'
+            )
         if _is_lower_than_expected_revenue(_max_revenue(mine, 7)):
             return _('You just beat your personal record for the past 7 days.')
         if closed_today == 5:
             return _("You're on fire! Fifth deal won today")
-        if closed_today == 1 and closed_yesterday and closed_minus2day and not closed_minus3day:
-            return _("You're on a winning streak. 3 deals in 3 days, congrats!")
+        if (
+            closed_today == 1
+            and closed_yesterday
+            and closed_minus2day
+            and not closed_minus3day
+        ):
+            return _(
+                "You're on a winning streak. 3 deals in 3 days, congrats!"
+            )
         # el cierre más rápido del mes, con la guarda del minuto de la fuente:
         # sólo cuenta si transcurrió tiempo real desde el alta
         min_days = won_this_year.filter(
@@ -1673,18 +1953,31 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
                 and (self.date_closed - self.create_date).total_seconds() > 60:
             return _('Wow, that was fast. That deal did not stand a chance!')
         # salto de la primera etapa directamente a la victoria
-        stages = [int(k) for k, dur in self.duration_tracking.items() if dur >= 60]
+        stages = [
+            int(k) for k, dur in self.duration_tracking.items() if dur >= 60
+        ]
         if len(stages) == 1:
             first_stage = CrmStage.objects.filter(
                 Q(team_ids__isnull=True) | Q(team_ids=self.team_id_id)
             ).order_by('sequence').first()
             if first_stage is not None and first_stage.pk == stages[0]:
-                return _('No detours, no delays - from %(stage_name)s straight to the win!') % {
-                    'stage_name': first_stage.name}
-        if self.country_id_id and won_this_year.filter(country_id=self.country_id_id).count() == 1:
-            return _('You just expanded the map! First win in %(country)s.') % {
-                'country': self.country_id.name}
-        if self.source_id_id and won_this_year.filter(source_id=self.source_id_id).count() == 1:
+                return _(
+                    (
+                        'No detours, no delays - from %(stage_name)s straight '
+                        'to the win!')
+                ) % {'stage_name': first_stage.name}
+        if (
+            self.country_id_id
+            and won_this_year.filter(country_id=self.country_id_id).count()
+            == 1
+        ):
+            return _(
+                'You just expanded the map! First win in %(country)s.'
+            ) % {'country': self.country_id.name}
+        if (
+            self.source_id_id
+            and won_this_year.filter(source_id=self.source_id_id).count() == 1
+        ):
             return _('Yay, your first win from %(utm_source_name)s!') % {
                 'utm_source_name': self.source_id.name}
         return False
@@ -1704,11 +1997,14 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         """≙ ``action_schedule_meeting`` (:1266-1294).
 
         BLOQUEADO por el addon ``calendar``. Se conserva el **descriptor de
-        acción** verbatim —que es el contrato que un cliente consume— y se omite
+        acción** verbatim —que es el contrato que un cliente consume— y se
+        omite
         sólo el tramo de calendario inteligente, que necesita leer reuniones.
         Condición de cierre: portar el addon ``calendar``.
         """
-        opportunity_id = self.pk if self.type == self.TYPE_OPPORTUNITY else False
+        opportunity_id = (
+            self.pk if self.type == self.TYPE_OPPORTUNITY else False
+        )
         partner_ids = [self.partner_id_id] if self.partner_id_id else []
         return {
             'type': 'ir.actions.act_window',
@@ -1782,7 +2078,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         if default_type == cls.TYPE_LEAD:
             titulo = _('Create a new lead')
         else:
-            titulo = _('Create an opportunity to start playing with your pipeline.')
+            titulo = _(
+                'Create an opportunity to start playing with your pipeline.'
+            )
         return (f'<p class="o_view_nocontent_smiling_face">{titulo}</p>'
                 f'<p class="oe_view_nocontent_alias"></p>')
 
@@ -1799,17 +2097,27 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         """
         if cls._is_rule_based_assignment_activated():
             return
-        userless = [lead for lead in leads if not lead.user_id_id and lead.team_id_id]
+        userless = [
+            lead for lead in leads if not lead.user_id_id and lead.team_id_id
+        ]
         for team, team_stages in groupby(userless, lambda lead: lead.team_id):
             if not team or not team.user_id_id:
                 continue
             for lead in team_stages:
                 lead.user_id_id = team.user_id_id
                 lead.save(update_fields=['user_id'])
-                lead.message_post(body=_(
-                    'This new lead created by %(creation_source)s was automatically '
-                    'assigned to team leader %(user_name)s'
-                ) % {'user_name': team.user_id.name, 'creation_source': creation_source})
+                lead.message_post(
+                    body=_(
+                        (
+                            'This new lead created by %(creation_source)s was '
+                            'automatically assigned to team leader '
+                            '%(user_name)s')
+                    )
+                    % {
+                        'user_name': team.user_id.name,
+                        'creation_source': creation_source,
+                    }
+                )
 
     def log_meeting(self, meeting):
         """≙ ``log_meeting`` (:1454-1477).
@@ -1828,7 +2136,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         """≙ ``_merge_data`` (:1479-1522).
 
         Cada tipo de campo se funde distinto: el texto se concatena, los
-        relacionales múltiples se ignoran salvo callable propio, y el resto toma
+        relacionales múltiples se ignoran salvo callable propio, y el resto
+        toma
         el primer valor no vacío — donde «primero» es el orden de confianza.
         """
         if fnames is None:
@@ -1871,11 +2180,15 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             return False
 
     @classmethod
-    def merge_opportunity(cls, leads, user_id=False, team_id=False, auto_unlink=True):
+    def merge_opportunity(
+        cls, leads, user_id=False, team_id=False, auto_unlink=True
+    ):
         """≙ ``merge_opportunity`` (:1524-1538).
 
-        Fundir iniciativas da una iniciativa; fundir cualquier cosa con al menos
-        una oportunidad da una oportunidad. La superviviente es la más confiable,
+        Fundir iniciativas da una iniciativa; fundir cualquier cosa con al
+        menos
+        una oportunidad da una oportunidad. La superviviente es la más
+        confiable,
         actualizada con lo que aporten las demás.
         """
         return cls._merge_opportunity(leads, user_id=user_id, team_id=team_id,
@@ -1891,11 +2204,21 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         leads = list(leads)
         if len(leads) <= 1:
             raise UserError(
-                _('Select at least two Leads/Opportunities from the list to merge them.'))
+                _(
+                    (
+                        'Select at least two Leads/Opportunities from the '
+                        'list to merge them.')
+                )
+            )
         if max_length and len(leads) > max_length:
-            raise UserError(_(
-                'To prevent data loss, Leads and Opportunities can only be merged '
-                'by groups of %(max_length)s.') % {'max_length': max_length})
+            raise UserError(
+                _(
+                    (
+                        'To prevent data loss, Leads and Opportunities can '
+                        'only be merged by groups of %(max_length)s.')
+                )
+                % {'max_length': max_length}
+            )
 
         sorted_leads = cls._sort_by_confidence_level(leads, reverse=True)
         head, tail = sorted_leads[0], sorted_leads[1:]
@@ -1920,12 +2243,18 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             stage = merged_data.get('stage_id')
             etapa_pk = stage.pk if hasattr(stage, 'pk') else stage
             if etapa_pk not in ids:
-                merged_data['stage_id'] = team_stages[0] if team_stages else None
+                merged_data['stage_id'] = (
+                    team_stages[0] if team_stages else None
+                )
 
         # no reescribir lo que la cabeza ya tiene, para no recomputar de balde
-        if 'user_id' in merged_data and head.user_id_id == _pk(merged_data['user_id']):
+        if 'user_id' in merged_data and head.user_id_id == _pk(
+            merged_data['user_id']
+        ):
             merged_data.pop('user_id')
-        if 'team_id' in merged_data and head.team_id_id == _pk(merged_data['team_id']):
+        if 'team_id' in merged_data and head.team_id_id == _pk(
+            merged_data['team_id']
+        ):
             merged_data.pop('team_id')
 
         for key, value in merged_data.items():
@@ -1945,26 +2274,53 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         La dirección se propaga entera, tomada de la iniciativa con más campos
         de dirección puestos (a igualdad, la de mayor confianza).
         """
-        source = max(leads, key=lambda lead: len(
-            [f for f in PARTNER_ADDRESS_FIELDS_TO_SYNC if getattr(lead, f, None)]))
-        return {f: getattr(source, f, None) for f in PARTNER_ADDRESS_FIELDS_TO_SYNC}
+        source = max(
+            leads,
+            key=lambda lead: len(
+                [
+                    f
+                    for f in PARTNER_ADDRESS_FIELDS_TO_SYNC
+                    if getattr(lead, f, None)
+                ]
+            ),
+        )
+        return {
+            f: getattr(source, f, None) for f in PARTNER_ADDRESS_FIELDS_TO_SYNC
+        }
 
     @classmethod
     def _merge_get_fields_specific(cls):
         """≙ ``_merge_get_fields_specific`` (:1609-1618)."""
         return {
             'description': lambda fname, leads: '<br/><br/>'.join(
-                d for d in (lead.description for lead in leads) if not is_html_empty(d)),
-            'type': lambda fname, leads: cls.TYPE_OPPORTUNITY if any(
-                lead.type == cls.TYPE_OPPORTUNITY for lead in leads) else cls.TYPE_LEAD,
+                d
+                for d in (lead.description for lead in leads)
+                if not is_html_empty(d)
+            ),
+            'type': lambda fname, leads: (
+                cls.TYPE_OPPORTUNITY
+                if any(lead.type == cls.TYPE_OPPORTUNITY for lead in leads)
+                else cls.TYPE_LEAD
+            ),
             'priority': lambda fname, leads: max(
-                [lead.priority for lead in leads if lead.priority], default=False),
+                [lead.priority for lead in leads if lead.priority],
+                default=False,
+            ),
             'tag_ids': lambda fname, leads: [
-                t for lead in leads for t in lead.tag_ids.all()],
+                t for lead in leads for t in lead.tag_ids.all()
+            ],
             'lost_reason_id': lambda fname, leads: (
-                None if leads and leads[0].probability
-                else next((lead.lost_reason_id for lead in leads
-                           if lead.lost_reason_id_id), None)),
+                None
+                if leads and leads[0].probability
+                else next(
+                    (
+                        lead.lost_reason_id
+                        for lead in leads
+                        if lead.lost_reason_id_id
+                    ),
+                    None,
+                )
+            ),
         }
 
     @classmethod
@@ -1994,9 +2350,13 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             for message in opportunity.message_ids:
                 if message.subject:
                     subject = _("From %(source_name)s: %(source_subject)s") % {
-                        'source_name': opportunity.name, 'source_subject': message.subject}
+                        'source_name': opportunity.name,
+                        'source_subject': message.subject,
+                    }
                 else:
-                    subject = _("From %(source_name)s") % {'source_name': opportunity.name}
+                    subject = _("From %(source_name)s") % {
+                        'source_name': opportunity.name
+                    }
                 message.res_id = self.pk
                 message.subject = subject
                 message.save(update_fields=['res_id', 'subject'])
@@ -2083,7 +2443,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         compone con el mismo contenido —qué se fundió y qué seguidores
         llegaron— en el cuerpo del mensaje.
         """
-        names = ', '.join(lead.name or str(lead.pk) for lead in opportunities_tail)
+        names = ', '.join(
+            lead.name or str(lead.pk) for lead in opportunities_tail
+        )
         body = _('Merged with: %(names)s') % {'names': names}
         if merged_followers:
             body += '<br/>' + _('Followers moved: %(count)s') % {
@@ -2114,7 +2476,10 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             elif value and property_type == 'many2many':
                 property_dict['values'] = [{'name': rec[1]} for rec in value]
             elif value and property_type in ('selection', 'tags'):
-                options = {op[0]: op[1:] for op in (definition.get(property_type) or [])}
+                options = {
+                    op[0]: op[1:]
+                    for op in (definition.get(property_type) or [])
+                }
                 if property_type == 'selection':
                     option = options.get(value)
                     property_dict['value'] = option[0] if option else None
@@ -2145,7 +2510,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         return upd_values
 
     @classmethod
-    def convert_opportunity(cls, leads, partner, user_ids=False, team_id=False):
+    def convert_opportunity(
+        cls, leads, partner, user_ids=False, team_id=False
+    ):
         """≙ ``convert_opportunity`` (:1850-1861).
 
         Una ganada no se reconvierte, ni una archivada.
@@ -2153,11 +2520,15 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         for lead in leads:
             if not lead.active or lead.won_status == 'won':
                 continue
-            for key, value in lead._convert_opportunity_data(partner, team_id).items():
+            for key, value in lead._convert_opportunity_data(
+                partner, team_id
+            ).items():
                 setattr(lead, key, value)
             lead.save()
         if user_ids or team_id:
-            cls._handle_salesmen_assignment(leads, user_ids=user_ids, team_id=team_id)
+            cls._handle_salesmen_assignment(
+                leads, user_ids=user_ids, team_id=team_id
+            )
         return True
 
     @classmethod
@@ -2168,7 +2539,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             if force_partner_id:
                 lead.partner_id_id = force_partner_id
             if not lead.partner_id_id and create_missing:
-                lead.partner_id = lead._create_customer(with_parent=with_parent)
+                lead.partner_id = lead._create_customer(
+                    with_parent=with_parent
+                )
             lead.save(update_fields=['partner_id'])
 
     @classmethod
@@ -2190,14 +2563,20 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
                 if team_id:
                     lead.team_id_id = team_id
                 lead.user_id_id = user_ids[idx]
-                lead.save(update_fields=['team_id', 'user_id'] if team_id else ['user_id'])
+                lead.save(
+                    update_fields=(
+                        ['team_id', 'user_id'] if team_id else ['user_id']
+                    )
+                )
 
     # ------------------------------------------------------------
     # MERGE / CONVERT TOOLS — CLASSIFICATION
     # ------------------------------------------------------------
 
     @classmethod
-    def _get_lead_duplicates(cls, partner=None, email=None, include_lost=False):
+    def _get_lead_duplicates(
+        cls, partner=None, email=None, include_lost=False
+    ):
         """≙ ``_get_lead_duplicates`` (:1911-1941).
 
         :param include_lost: con ``True`` la búsqueda incluye oportunidades
@@ -2273,15 +2652,23 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             partner_company = with_parent
         elif self.partner_name:
             partner_company = ResPartner.objects.create(
-                **self._prepare_customer_values(self.partner_name, is_company=True))
+                **self._prepare_customer_values(
+                    self.partner_name, is_company=True
+                )
+            )
         elif self.partner_id_id:
             partner_company = self.partner_id
         else:
             partner_company = None
 
         if contact_name:
-            return ResPartner.objects.create(**self._prepare_customer_values(
-                contact_name, is_company=False, parent_id=_pk(partner_company)))
+            return ResPartner.objects.create(
+                **self._prepare_customer_values(
+                    contact_name,
+                    is_company=False,
+                    parent_id=_pk(partner_company),
+                )
+            )
         if partner_company is not None:
             return partner_company
         return ResPartner.objects.create(
@@ -2302,7 +2689,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
                         or (parse_contact_from_email(self.email_from)[0]
                             if self.email_from else '')
                         or self.email_from)
-        is_company = bool(self.partner_name) and contact_name == self.partner_name
+        is_company = (
+            bool(self.partner_name) and contact_name == self.partner_name
+        )
         values = base.setdefault(key, {})
         values.update({
             k: v for k, v in self._prepare_customer_values(
@@ -2316,7 +2705,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             values.pop('company_name', None)
         return base
 
-    def _prepare_customer_values(self, partner_name, is_company=False, parent_id=False):
+    def _prepare_customer_values(
+        self, partner_name, is_company=False, parent_id=False
+    ):
         """≙ ``_prepare_customer_values`` (:2035-2068).
 
         :returns: el diccionario con el que se crea el ``res.partner``.
@@ -2340,7 +2731,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             # empresa / jerarquía
             'parent_id': parent_id,
             'is_company': is_company,
-            'company_name': not is_company and not parent_id and self.partner_name,
+            'company_name': not is_company
+            and not parent_id
+            and self.partner_name,
             'type': 'contact',
         }
         if self.lang_id_id and self.lang_id.active:
@@ -2350,7 +2743,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     @classmethod
     def _is_rule_based_assignment_activated(cls):
         """≙ ``_is_rule_based_assignment_activated`` (:2070-2073)."""
-        return bool(SystemParameter.get_param('crm.lead.auto.assignment', False))
+        return bool(
+            SystemParameter.get_param('crm.lead.auto.assignment', False)
+        )
 
     # ------------------------------------------------------------
     # MAILING
@@ -2363,9 +2758,12 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     def _creation_message(self):
         """≙ ``_creation_message`` (:2082-2086)."""
         if self.team_id_id:
-            return _('A new lead has been created for the team "%(team_name)s".') % {
-                'team_name': self.team_id.name}
-        return _('A new lead has been created and is not assigned to any team.')
+            return _(
+                'A new lead has been created for the team "%(team_name)s".'
+            ) % {'team_name': self.team_id.name}
+        return _(
+            'A new lead has been created and is not assigned to any team.'
+        )
 
     def _track_subtype(self, init_values):
         """≙ ``_track_subtype`` (:2088-2100).
@@ -2386,13 +2784,19 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         base = getattr(super(), '_track_subtype', None)
         return base(init_values) if base else None
 
-    def _notify_by_email_prepare_rendering_context(self, message, msg_vals=False, **kwargs):
+    def _notify_by_email_prepare_rendering_context(
+        self, message, msg_vals=False, **kwargs
+    ):
         """≙ ``_notify_by_email_prepare_rendering_context`` (:2102-2113).
 
         Añade la fecha límite como subtítulo del correo de notificación.
         """
-        base = getattr(super(), '_notify_by_email_prepare_rendering_context', None)
-        render_context = base(message, msg_vals=msg_vals, **kwargs) if base else {}
+        base = getattr(
+            super(), '_notify_by_email_prepare_rendering_context', None
+        )
+        render_context = (
+            base(message, msg_vals=msg_vals, **kwargs) if base else {}
+        )
         render_context.setdefault('subtitles', [])
         if self.date_deadline:
             render_context['subtitles'].append(
@@ -2409,7 +2813,11 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         ``get_empty_list_help``: el porte de ``crm_team.py``.
         """
         base = getattr(super(), '_notify_get_reply_to', None)
-        return base(default=default, author_id=author_id) if base else {self.pk: default}
+        return (
+            base(default=default, author_id=author_id)
+            if base
+            else {self.pk: default}
+        )
 
     @classmethod
     def message_new(cls, msg_dict, custom_values=None):
@@ -2447,7 +2855,7 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         """
         if self.email_from and not self.partner_id_id:
             new_partners = [p for p in getattr(message, 'partner_ids', [])
-                      if p.email == self.email_from]
+                            if p.email == self.email_from]
             if new_partners:
                 nuevo = new_partners[0]
                 type(self).objects.filter(
@@ -2484,7 +2892,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     # ------------------------------------------------------------
 
     @classmethod
-    def _pls_get_naive_bayes_probabilities(cls, leads, batch_mode=False, is_tooltip=False):
+    def _pls_get_naive_bayes_probabilities(
+        cls, leads, batch_mode=False, is_tooltip=False
+    ):
         """≙ ``_pls_get_naive_bayes_probabilities`` (:2194-2371).
 
         Clasificador bayesiano ingenuo. La probabilidad de que un suceso ocurra
@@ -2502,7 +2912,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         pocos datos el cálculo no es realista; cuantos más registros, más
         precisa la estimación.
 
-        :param bool is_tooltip: recalcula la probabilidad de un único registro y
+        :param bool is_tooltip: recalcula la probabilidad de un único registro
+        y
           devuelve además la lista de tríos (score, campo, valor) de todos los
           campos que entran en el cálculo. El score indica si el impacto es
           positivo (>.5) o negativo (<.5).
@@ -2520,15 +2931,19 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         criterion = None
         if batch_mode:
             criterion = Q(active=True, won_status='pending',
-                         pk__in=[lead.pk for lead in leads])
-        leads_values_dict = cls._pls_get_lead_pls_values(leads, criterion=criterion)
+                          pk__in=[lead.pk for lead in leads])
+        leads_values_dict = cls._pls_get_lead_pls_values(
+            leads, criterion=criterion
+        )
         if not leads_values_dict:
             return lead_probabilities, tooltip_data
 
         # pares únicos a buscar en la tabla de frecuencias, y las ya ganadas
         leads_fields = set()
         won_leads = set()
-        won_stage_ids = set(CrmStage.objects.filter(is_won=True).values_list('pk', flat=True))
+        won_stage_ids = set(
+            CrmStage.objects.filter(is_won=True).values_list('pk', flat=True)
+        )
         for lead_id, values in leads_values_dict.items():
             for field, value in values['values']:
                 if field == 'stage_id' and value in won_stage_ids:
@@ -2540,22 +2955,31 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             CrmLeadScoringFrequency.objects
             .filter(variable__in=leads_fields).order_by('team_id', 'pk')
         )
-        frequency_team_ids = [t for t in {f.team_id_id for f in frequencies} if t]
+        frequency_team_ids = [
+            t for t in {f.team_id_id for f in frequencies} if t
+        ]
 
         # 1. contar cada valor por separado. No todas las variables entran (se
         # descartan las vacías), así que la probabilidad de cada valor se
         # calcula contra el total de SU propia variable. El equipo -1 acumula
         # todo, para las iniciativas cuyo equipo no está en la tabla.
-        result = {tid: {f: {'won_total': 0, 'lost_total': 0} for f in leads_fields}
-                  for tid in frequency_team_ids}
-        result[-1] = {f: {'won_total': 0, 'lost_total': 0} for f in leads_fields}
+        result = {
+            tid: {f: {'won_total': 0, 'lost_total': 0} for f in leads_fields}
+            for tid in frequency_team_ids
+        }
+        result[-1] = {
+            f: {'won_total': 0, 'lost_total': 0} for f in leads_fields
+        }
 
         for frequency in frequencies:
             field = frequency.variable
             value = frequency.value    # siempre texto
 
             # una etiqueta con muestra pequeña pesaría demasiado
-            if field == 'tag_id' and (frequency.won_count + frequency.lost_count) < 50:
+            if (
+                field == 'tag_id'
+                and (frequency.won_count + frequency.lost_count) < 50
+            ):
                 continue
 
             if frequency.team_id_id:
@@ -2573,10 +2997,11 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             result[-1][field]['lost_total'] += frequency.lost_count
 
         for team_id in result:
-            (result[team_id]['team_won'],
-             result[team_id]['team_lost'],
-             result[team_id]['team_total']) = cls._pls_get_won_lost_total_count(
-                result[team_id])
+            (
+                result[team_id]['team_won'],
+                result[team_id]['team_lost'],
+                result[team_id]['team_total'],
+            ) = cls._pls_get_won_lost_total_count(result[team_id])
 
         save_team_id = None
         p_won, p_lost = 1, 1
@@ -2591,7 +3016,11 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
                 lead_probabilities[lead_id] = 100
                 continue
 
-            lead_team_id = lead_values['team_id'] if lead_values['team_id'] in result else -1
+            lead_team_id = (
+                lead_values['team_id']
+                if lead_values['team_id'] in result
+                else -1
+            )
             if lead_team_id != save_team_id:
                 save_team_id = lead_team_id
                 team_won = result[save_team_id]['team_won']
@@ -2607,11 +3036,21 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             s_lead_won, s_lead_lost = p_won, p_lost
             for field, value in lead_values['values']:
                 field_result = result.get(save_team_id, {}).get(field)
-                value_result = field_result.get(str(value)) if field_result else False
+                value_result = (
+                    field_result.get(str(value)) if field_result else False
+                )
                 if not value_result:
                     continue
-                total_won = team_won if field == 'stage_id' else field_result['won_total']
-                total_lost = team_lost if field == 'stage_id' else field_result['lost_total']
+                total_won = (
+                    team_won
+                    if field == 'stage_id'
+                    else field_result['won_total']
+                )
+                total_lost = (
+                    team_lost
+                    if field == 'stage_id'
+                    else field_result['lost_total']
+                )
                 if not total_won or not total_lost:
                     continue
                 p_field_value_won = value_result['won'] / total_won
@@ -2653,10 +3092,16 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         leads = list(leads)
         if not leads:
             return
-        new_frequencies, existing_frequencies = cls._pls_prepare_update_frequency_table(
-            leads, target_state=from_state or to_state)
+        new_frequencies, existing_frequencies = (
+            cls._pls_prepare_update_frequency_table(
+                leads, target_state=from_state or to_state
+            )
+        )
         cls._pls_update_frequency_table(
-            new_frequencies, 1 if to_state else -1, existing_frequencies_by_team=existing_frequencies)
+            new_frequencies,
+            1 if to_state else -1,
+            existing_frequencies_by_team=existing_frequencies,
+        )
 
     # PLS: One shot rebuild
     # ---------------------------------
@@ -2681,13 +3126,18 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         new_frequencies, _unused = cls._pls_prepare_update_frequency_table(
             cls.objects.none(), rebuild=True)
         cls._pls_update_frequency_table(new_frequencies, 1)
-        _logger.info("Predictive Lead Scoring : crm.lead.scoring.frequency table rebuilt")
+        _logger.info(
+            (
+                'Predictive Lead Scoring : crm.lead.scoring.frequency table '
+                'rebuilt')
+        )
 
     @classmethod
     def _update_automated_probabilities(cls):
         """≙ ``_update_automated_probabilities`` (:2422-2496).
 
-        Recalcula la probabilidad automática de todas las activas (ni ganadas ni
+        Recalcula la probabilidad automática de todas las activas (ni ganadas
+        ni
         perdidas). Va **por lotes** y cada lote en su transacción, para no
         bloquear la tabla minutos enteros: si hay concurrencia, entra en cola
         en vez de tumbar la escritura.
@@ -2708,10 +3158,13 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         lead_probabilities = {}
         for i in range(0, total, PLS_COMPUTE_BATCH_STEP):
             batch = leads_to_update[i:i + PLS_COMPUTE_BATCH_STEP]
-            partial_probabilities, _unused = cls._pls_get_naive_bayes_probabilities(
-                batch, batch_mode=True)
+            partial_probabilities, _unused = (
+                cls._pls_get_naive_bayes_probabilities(batch, batch_mode=True)
+            )
             lead_probabilities.update(partial_probabilities)
-        _logger.info("Predictive Lead Scoring : New automated probabilities computed")
+        _logger.info(
+            "Predictive Lead Scoring : New automated probabilities computed"
+        )
 
         # 3. agrupar por probabilidad, para reducir viajes al servidor
         probability_leads = defaultdict(list)
@@ -2726,15 +3179,23 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
                 transactions += 1
                 try:
                     qs = cls.objects.filter(pk__in=list(batch_ids))
-                    qs.filter(Q(probability=models.F('automated_probability'))
-                              | Q(probability__isnull=True)).update(
-                        automated_probability=probability, probability=probability)
+                    qs.filter(
+                        Q(probability=models.F('automated_probability'))
+                        | Q(probability__isnull=True)
+                    ).update(
+                        automated_probability=probability,
+                        probability=probability,
+                    )
                     qs.exclude(Q(probability=models.F('automated_probability'))
                                | Q(probability__isnull=True)).update(
                         automated_probability=probability)
                 except Exception as e:
                     _logger.warning(
-                        "Predictive Lead Scoring : update transaction failed. Error: %s", e)
+                        (
+                            'Predictive Lead Scoring : update transaction '
+                            'failed. Error: %s'),
+                        e,
+                    )
                     failed += 1
 
         _logger.info(
@@ -2776,10 +3237,14 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
                 and lead.create_date.date() >= pls_start_date]
             if not pls_leads:
                 return {}, {}
-            team_ids = [lead.team_id_id for lead in pls_leads if lead.team_id_id] + [0]
+            team_ids = [
+                lead.team_id_id for lead in pls_leads if lead.team_id_id
+            ] + [0]
             criterion = Q(pk__in=[lead.pk for lead in pls_leads])
 
-        leads_values_dict = cls._pls_get_lead_pls_values(pls_leads, criterion=criterion)
+        leads_values_dict = cls._pls_get_lead_pls_values(
+            pls_leads, criterion=criterion
+        )
 
         # repartir los valores por equipo
         leads_frequency_values_by_team = {tid: [] for tid in team_ids}
@@ -2799,10 +3264,17 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
                     lead_probability = value
                 if field == 'tag_id':
                     leads_frequency_values_by_team[team_id].append(
-                        {field: value, 'count': 1, 'probability': lead_probability})
+                        {
+                            field: value,
+                            'count': 1,
+                            'probability': lead_probability,
+                        }
+                    )
                 else:
                     lead_frequency_values[field] = value
-            leads_frequency_values_by_team[team_id].append(lead_frequency_values)
+            leads_frequency_values_by_team[team_id].append(
+                lead_frequency_values
+            )
         leads_pls_fields = sorted(leads_pls_fields)
 
         new_frequencies_by_team = {}
@@ -2813,7 +3285,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
 
         existing_frequencies_by_team = {}
         if not rebuild:
-            own_team_ids = [lead.team_id_id for lead in pls_leads if lead.team_id_id]
+            own_team_ids = [
+                lead.team_id_id for lead in pls_leads if lead.team_id_id
+            ]
             for frequency in CrmLeadScoringFrequency.objects.filter(
                 Q(variable__in=leads_pls_fields)
                 & (Q(team_id__in=own_team_ids) | Q(team_id__isnull=True))
@@ -2822,7 +3296,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
                 if team_id not in existing_frequencies_by_team:
                     existing_frequencies_by_team[team_id] = {
                         f: {} for f in leads_pls_fields}
-                existing_frequencies_by_team[team_id][frequency.variable][frequency.value] = {
+                existing_frequencies_by_team[team_id][frequency.variable][
+                    frequency.value
+                ] = {
                     'frequency_id': frequency.pk,
                     'won': frequency.won_count,
                     'lost': frequency.lost_count,
@@ -2842,12 +3318,20 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
 
         for team_id, new_frequencies in new_frequencies_by_team.items():
             for field, value in new_frequencies.items():
-                current_frequencies = existing_frequencies_by_team.get(team_id, {})
+                current_frequencies = existing_frequencies_by_team.get(
+                    team_id, {}
+                )
                 for param, result in value.items():
-                    current_sequence = current_frequencies.get(field, {}).get(param, {})
+                    current_sequence = current_frequencies.get(field, {}).get(
+                        param, {}
+                    )
                     if current_sequence:
-                        new_won = current_sequence['won'] + (result['won'] * step)
-                        new_lost = current_sequence['lost'] + (result['lost'] * step)
+                        new_won = current_sequence['won'] + (
+                            result['won'] * step
+                        )
+                        new_lost = current_sequence['lost'] + (
+                            result['lost'] * step
+                        )
                         # la frecuencia nunca baja de cero
                         values_to_update[current_sequence['frequency_id']] = {
                             'won_count': new_won if new_won > 0 else 0.1,
@@ -2865,7 +3349,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
                     ))
 
         for frequency_id, values in values_to_update.items():
-            CrmLeadScoringFrequency.objects.filter(pk=frequency_id).update(**values)
+            CrmLeadScoringFrequency.objects.filter(pk=frequency_id).update(
+                **values
+            )
         if values_to_create:
             CrmLeadScoringFrequency.objects.bulk_create(values_to_create)
 
@@ -2876,7 +3362,8 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     def _pls_get_safe_start_date(cls):
         """≙ ``_pls_get_safe_start_date`` (:2635-2644).
 
-        El parámetro de configuración no admite un campo Date, así que se lee la
+        El parámetro de configuración no admite un campo Date, así que se lee
+        la
         cadena y se valida que sea una fecha antes de usarla en la consulta —
         que es lo que la protege de una inyección.
         """
@@ -2906,12 +3393,15 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     def _pls_get_won_lost_total_count(cls, team_results):
         """≙ ``_pls_get_won_lost_total_count`` (:2658-2673).
 
-        La primera etapa basta para conocer el total: las ganadas son iguales en
+        La primera etapa basta para conocer el total: las ganadas son iguales
+        en
         todas las etapas, y la primera siempre se incrementa en las perdidas.
         """
         first_stage = CrmStage.objects.filter(team_ids__isnull=True).order_by(
             'sequence', 'pk').first()
-        if first_stage is None or str(first_stage.pk) not in team_results.get('stage_id', {}):
+        if first_stage is None or str(first_stage.pk) not in team_results.get(
+            'stage_id', {}
+        ):
             return 0, 0, 0
         stage_result = team_results['stage_id'][str(first_stage.pk)]
         return stage_result['won'], stage_result['lost'], \
@@ -2921,7 +3411,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
     # ----------------------------------
 
     @classmethod
-    def _pls_prepare_frequencies(cls, lead_values, leads_pls_fields, target_state=None):
+    def _pls_prepare_frequencies(
+        cls, lead_values, leads_pls_fields, target_state=None
+    ):
         """≙ ``_pls_prepare_frequencies`` (:2675-2716).
 
         ``target_state`` se usa para las que están **cambiando** a ganada o
@@ -2940,15 +3432,28 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
                 won_count = values['count'] if target_state == 'won' else 0
                 lost_count = values['count'] if target_state == 'lost' else 0
             else:
-                won_count = values['count'] if values.get('probability', 0) == 100 else 0
-                lost_count = values['count'] if values.get('probability', 1) == 0 else 0
+                won_count = (
+                    values['count']
+                    if values.get('probability', 0) == 100
+                    else 0
+                )
+                lost_count = (
+                    values['count'] if values.get('probability', 1) == 0 else 0
+                )
 
             if 'tag_id' in values:
                 frequencies = cls._pls_increment_frequency_dict(
-                    frequencies, 'tag_id', values['tag_id'], won_count, lost_count)
+                    frequencies,
+                    'tag_id',
+                    values['tag_id'],
+                    won_count,
+                    lost_count,
+                )
                 continue
 
-            other_fields = [f for f in pls_fields if f != 'tag_id']   # ya tratado arriba
+            other_fields = [
+                f for f in pls_fields if f != 'tag_id'
+            ]  # ya tratado arriba
             for field in other_fields:
                 if field not in values:
                     continue
@@ -2960,18 +3465,22 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
                         stages_to_increment = [s['pk'] for s in stages]
                     else:           # perdida: sólo la actual y las anteriores
                         current_sequence = stage_sequences.get(value, 0)
-                        stages_to_increment = [s['pk'] for s in stages
-                                         if s['sequence'] <= current_sequence]
+                        stages_to_increment = [
+                            s['pk'] for s in stages
+                            if s['sequence'] <= current_sequence]
                     for stage_id in stages_to_increment:
                         frequencies = cls._pls_increment_frequency_dict(
-                            frequencies, field, stage_id, won_count, lost_count)
+                            frequencies, field, stage_id, won_count, lost_count
+                        )
                 else:
                     frequencies = cls._pls_increment_frequency_dict(
                         frequencies, field, value, won_count, lost_count)
         return frequencies
 
     @classmethod
-    def _pls_increment_frequency_dict(cls, frequencies, field, value, won, lost):
+    def _pls_increment_frequency_dict(
+        cls, frequencies, field, value, won, lost
+    ):
         """≙ ``_pls_increment_frequency_dict`` (:2718-2726)."""
         value = str(value)   # siempre se comparan cadenas
         if value not in frequencies[field]:
@@ -3005,12 +3514,14 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         if use_tags:
             pls_fields.remove('tag_ids')
 
-        columns = [f if not cls._is_relational(f) else f'{f}_id' for f in pls_fields]
+        columns = [
+            f if not cls._is_relational(f) else f'{f}_id' for f in pls_fields
+        ]
 
         if criterion is not None:
             rows = list(cls.objects.filter(criterion)
-                         .order_by('team_id', '-pk')
-                         .values('pk', 'probability', *columns))
+                        .order_by('team_id', '-pk')
+                        .values('pk', 'probability', *columns))
             for fila in rows:
                 lead_values = []
                 for field, columna in zip(pls_fields + ['probability'],
@@ -3031,7 +3542,9 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
                     tag_ids__isnull=False
                 ).values_list('pk', 'tag_ids'):
                     if tag_id and lead_id in leads_values_dict:
-                        leads_values_dict[lead_id]['values'].append(('tag_id', tag_id))
+                        leads_values_dict[lead_id]['values'].append(
+                            ('tag_id', tag_id)
+                        )
             return leads_values_dict
 
         for lead in leads:
@@ -3096,12 +3609,20 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
             elif self._is_relational(field):
                 related_record = getattr(self, field, None)
                 sorted_scores_with_name.append(
-                    (score, field, str(related_record) if related_record else '', False))
+                    (
+                        score,
+                        field,
+                        str(related_record) if related_record else '',
+                        False,
+                    )
+                )
             else:
-                sorted_scores_with_name.append((score, field, str(value), False))
+                sorted_scores_with_name.append(
+                    (score, field, str(value), False)
+                )
 
-        # la automática pudo cambiar desde el último cálculo; se alinea para que
-        # el globo y el registro no muestren cifras distintas
+        # la automática pudo cambiar desde el último cálculo; se alinea para
+        # que el globo y el registro no muestren cifras distintas
         self.automated_probability = tooltip_data['probability']
         if self.is_automated_probability:
             self.probability = tooltip_data['probability']
@@ -3121,12 +3642,14 @@ class CrmLead(MailThread, MailActivityMixin, UtmMixin, FormatAddressMixin,
         return {
             'low_3_data': [
                 {'field': e[1], 'value': e[2], 'color': e[3]}
-                for e in sorted_scores_with_name[:3] if round(e[0], 2) < 0.50
+                for e in sorted_scores_with_name[:3]
+                if round(e[0], 2) < 0.50
             ],
             'probability': tooltip_data['probability'],
             'team_name': self.team_id.name if self.team_id_id else '',
             'top_3_data': [
                 {'field': e[1], 'value': e[2], 'color': e[3]}
-                for e in sorted_scores_with_name[::-1][:3] if round(e[0], 2) > 0.50
+                for e in sorted_scores_with_name[::-1][:3]
+                if round(e[0], 2) > 0.50
             ],
         }

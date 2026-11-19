@@ -2930,6 +2930,9 @@ class FormatAddressMixin:
 
     _name = 'format.address.mixin'
     _description = 'Address Format'
+    #: ≙ ``class FormatAddressMixin(models.AbstractModel)``
+    #: (``odoo19c: odoo/addons/base/models/res_partner.py:61``): sin tabla.
+    _abstract = True
 
     #: ≙ ``ADDRESS_FIELDS + ('state_code', 'state_name')`` de la fuente
     #: (``:71``). Se toma de ``res_country.ADDRESS_FORMAT_KEYS``, que ya porta

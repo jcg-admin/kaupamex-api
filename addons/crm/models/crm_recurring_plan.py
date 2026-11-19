@@ -11,7 +11,7 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class CrmRecurringPlan(TimeStampedModel):
+class CrmRecurringPlan(models.BaseModel, TimeStampedModel):
     """``crm.recurring.plan`` — plan de ingreso recurrente."""
 
     _name = 'crm.recurring.plan'
