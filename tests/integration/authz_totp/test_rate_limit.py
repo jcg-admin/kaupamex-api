@@ -69,7 +69,6 @@ import base64
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.core import mail as django_mail
 from django.core.management import call_command
 from django.utils import timezone
 
@@ -92,6 +91,7 @@ from addons.authz_totp_mail.models.res_users import (
     _get_totp_mail_code,
     _send_totp_mail_code,
 )
+from tests.mocks.mail_server import sent_mails
 
 User = get_user_model()
 
@@ -242,27 +242,29 @@ class TestMailCode:
     """≙ el freno de ``:183`` y la purga doble de ``:149-150``."""
 
     @pytest.fixture
-    def mail_user(self, db):
+    def mail_user(self, db, mock_smtplib_connection):
         seed_totp_mail()
         user = User.objects.create_user(
             login='freno.correo@kaupamex.mx',
             password=PASSWORD,
             name='Usuario Con Freno De Correo',
         )
-        django_mail.outbox.clear()
+        mock_smtplib_connection.emails.clear()
         return user
 
-    def test_the_sixth_send_is_denied_by_the_limiter(self, mail_user):
+    def test_the_sixth_send_is_denied_by_the_limiter(
+        self, mail_user, mock_smtplib_connection
+    ):
         """CONTROL — el envío tiene su propia cuota, y se agota."""
         for _ in range(LIMIT_SEND_EMAIL):
             _send_totp_mail_code(mail_user)
-        assert len(django_mail.outbox) == LIMIT_SEND_EMAIL
+        assert len(sent_mails(mock_smtplib_connection)) == LIMIT_SEND_EMAIL
 
         with pytest.raises(AccessDenied) as excinfo:
             _send_totp_mail_code(mail_user)
         assert str(excinfo.value) == RATE_LIMIT_DESCRIPTIONS['send_email']
         # Y el sexto correo NO salió: el freno va antes del despacho.
-        assert len(django_mail.outbox) == LIMIT_SEND_EMAIL
+        assert len(sent_mails(mock_smtplib_connection)) == LIMIT_SEND_EMAIL
 
     def test_a_correct_code_purges_both_counters(self, mail_user):
         """La fuente purga los DOS al acertar, no sólo el que gastó."""

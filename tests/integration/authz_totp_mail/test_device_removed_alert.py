@@ -60,7 +60,6 @@ from datetime import timedelta
 import pytest
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.core import mail as django_mail
 from django.utils import timezone
 
 from addons.authz_totp.models.auth_totp import (
@@ -70,6 +69,7 @@ from addons.authz_totp.models.auth_totp import (
 )
 from addons.authz_totp_mail.data import seed as seed_totp_mail
 from orm.environments import sudo, user_scope
+from tests.mocks.mail_server import sent_mails
 
 User = get_user_model()
 
@@ -79,10 +79,24 @@ DEVICE_REMOVED_SUBJECT = 'Security Update: Device Removed'
 PASSWORD = 'DispositivoRetirado123!'
 
 
+#: La captura SMTP de la prueba en curso, para los ayudantes de este módulo.
+#: ≙ la bandeja global que ``django.core.mail.outbox`` era; la fija el fixture
+#: de abajo con ``mock_smtplib_connection``.
+_SMTP = {}
+
+
+@pytest.fixture(autouse=True)
+def _smtp_capture(mock_smtplib_connection):
+    _SMTP['case'] = mock_smtplib_connection
+    yield
+    _SMTP.clear()
+
+
 def _device_alerts():
     """Los correos de la bandeja que son este aviso, y sólo ésos."""
     return [
-        m for m in django_mail.outbox if m.subject == DEVICE_REMOVED_SUBJECT
+        m for m in sent_mails(_SMTP['case'])
+        if m.subject == DEVICE_REMOVED_SUBJECT
     ]
 
 
@@ -103,7 +117,7 @@ def _add_device(user, name):
 def owner(db):
     seed_totp_mail()
     user = _make_user('retiro.dispositivo@kaupamex.mx', 'Titular')
-    django_mail.outbox.clear()
+    _SMTP['case'].emails.clear()
     return user
 
 
@@ -111,14 +125,14 @@ def test_removing_one_device_alerts_its_owner(
     owner, django_capture_on_commit_callbacks
 ):
     device = _add_device(owner, 'Firefox on Linux')
-    django_mail.outbox.clear()
+    _SMTP['case'].emails.clear()
 
     with django_capture_on_commit_callbacks(execute=True):
         device.delete()
 
     avisos = _device_alerts()
     assert len(avisos) == 1, f'se esperaba un aviso, hubo {len(avisos)}'
-    assert avisos[0].to == [owner.login]
+    assert avisos[0].smtp_to_list == [owner.login]
     assert 'Firefox on Linux' in avisos[0].body
 
 
@@ -128,7 +142,7 @@ def test_revoking_all_devices_sends_one_mail_with_every_name(
     nombres = ['Chrome on Windows', 'Safari on Macos', 'Firefox on Linux']
     for n in nombres:
         _add_device(owner, n)
-    django_mail.outbox.clear()
+    _SMTP['case'].emails.clear()
 
     with django_capture_on_commit_callbacks(execute=True):
         assert revoke_all_devices(owner) == 3
@@ -147,12 +161,12 @@ def test_each_owner_gets_only_their_own_devices(
     vecino = _make_user('vecino.dispositivo@kaupamex.mx', 'Vecino')
     _add_device(owner, 'Chrome on Windows')
     _add_device(vecino, 'Safari on Macos')
-    django_mail.outbox.clear()
+    _SMTP['case'].emails.clear()
 
     with django_capture_on_commit_callbacks(execute=True):
         AuthTotpDevice.objects.all().delete()
 
-    avisos = {m.to[0]: m.body for m in _device_alerts()}
+    avisos = {m.smtp_to_list[0]: m.body for m in _device_alerts()}
     assert set(avisos) == {owner.login, vecino.login}
     assert 'Chrome on Windows' in avisos[owner.login]
     assert 'Safari on Macos' not in avisos[owner.login]
@@ -165,7 +179,7 @@ def test_a_rolled_back_removal_does_not_alert(owner):
     # que leerlo después mediría una fila inexistente y el control no
     # discriminaría entre "revirtió" y "el pk se perdió".
     device_pk = device.pk
-    django_mail.outbox.clear()
+    _SMTP['case'].emails.clear()
 
     class _Abortar(Exception):
         pass
@@ -187,7 +201,7 @@ def test_deleting_the_owner_does_not_try_to_mail_them(
     owner, django_capture_on_commit_callbacks
 ):
     _add_device(owner, 'Chrome on Windows')
-    django_mail.outbox.clear()
+    _SMTP['case'].emails.clear()
 
     with django_capture_on_commit_callbacks(execute=True):
         owner.delete()
@@ -207,7 +221,7 @@ def test_a_rollback_does_not_poison_the_next_removal(
     con el acumulador limpio. Sólo la secuencia discrimina.
     """
     revertido = _add_device(owner, 'Safari on Macos')
-    django_mail.outbox.clear()
+    _SMTP['case'].emails.clear()
 
     class _Abortar(Exception):
         pass

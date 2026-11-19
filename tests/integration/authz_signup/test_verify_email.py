@@ -19,7 +19,6 @@ control del buzón, el mismo nivel de confianza que el reset.
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.core import mail as django_mail
 
 from exceptions import UserError
 
@@ -27,6 +26,7 @@ from addons.authz_signup.data import seed as seed_signup
 from addons.authz_signup.models import res_users as su
 from addons.authz_signup.models.signup_request import SignupRequest
 from addons.base.models.res_partner import ResPartner
+from tests.mocks.mail_server import sent_mails
 
 User = get_user_model()
 
@@ -58,13 +58,16 @@ def unverified_user(seeded, db):
 
 
 class TestSendVerificationEmail:
-    def test_send_enqueues_mail_and_marks_request(self, unverified_user):
-        django_mail.outbox.clear()
+    def test_send_enqueues_mail_and_marks_request(
+        self, unverified_user, mock_smtplib_connection
+    ):
+        mock_smtplib_connection.emails.clear()
         token = su.send_verification_email(unverified_user)
 
         assert token
-        assert len(django_mail.outbox) == 1
-        assert unverified_user.login in django_mail.outbox[0].to
+        assert len(sent_mails(mock_smtplib_connection)) == 1
+        assert (unverified_user.login
+                in sent_mails(mock_smtplib_connection)[0].smtp_to_list)
         request = SignupRequest.objects.get(partner=unverified_user.partner)
         assert request.signup_type == SignupRequest.TYPE_VERIFY
 
@@ -142,10 +145,10 @@ class TestVerifyEmailEndpoint:
         assert response.data['codigo_error'] == 'VERIFY_PAYLOAD_REQUIRED'
 
     def test_resend_does_not_leak_account_existence(
-        self, api_client, unverified_user
+        self, api_client, unverified_user, mock_smtplib_connection
     ):
         """Misma respuesta exista o no la cuenta — sin enumeración."""
-        django_mail.outbox.clear()
+        mock_smtplib_connection.emails.clear()
         known = api_client.post(
             VERIFY_URL, {'login': unverified_user.login}, format='json'
         )
@@ -155,4 +158,4 @@ class TestVerifyEmailEndpoint:
 
         assert known.status_code == unknown.status_code == 200
         # El correo sólo sale para la cuenta real.
-        assert len(django_mail.outbox) == 1
+        assert len(sent_mails(mock_smtplib_connection)) == 1

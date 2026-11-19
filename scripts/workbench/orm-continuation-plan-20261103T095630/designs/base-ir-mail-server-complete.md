@@ -526,3 +526,29 @@ una función nueva que arma el mensaje con `_build_email__` y lo envía con
 reencola el cuerpo HTML cuando lo hay, en vez del texto plano. Pruebas:
 `tests/integration/mail/test_transactional_notifications.py` y las otras siete
 que leen `outbox`.
+
+### Ejecución del paso 3d-2 (ítem `base-ir-mail-server-dispatch-0397`, 2026-11-19)
+
+- `dispatch_email` envía con `_send_mail`, que arma el mensaje con
+  `_build_email__` (con `html_message`, cuerpo HTML y `message` como su
+  alternativa en texto plano) y lo envía con `send_email` como superusuario.
+  Si el envío falla, se reencola el cuerpo HTML cuando lo hay.
+- Con esto ningún código de producción usa `django.core.mail`. Medido con
+  `grep -rnE "django\.core\.mail|from django\.core import (.*\b)?mail\b"
+  src addons --include=*.py`: sólo quedan menciones en prosa.
+- `EMAIL_BACKEND` de pruebas (`locmem`) se retira de
+  `config/settings/testing.py`. El de `development.py`, `production.py` y
+  `options.py` también queda sin consumidor; retirarlo toca la configuración
+  de despliegue y se registra como pendiente, no se hace de rebote aquí.
+  `addons/helpdesk/tests_uc_not_08.py` lo sobreescribe en un caso, pero está
+  fuera de `testpaths` y no lee `outbox`.
+- Ocho archivos de pruebas más pasan de `outbox` y de `mailoutbox` a
+  `mock_smtplib_connection` y `sent_mails`. En los dos de avisos de 2FA, los
+  ayudantes sin parámetros leen la captura de un fixture `autouse`, como antes
+  leían la bandeja global.
+- Prosa corregida: los docstrings de `ir_mail_server.py`,
+  `base/models/__init__.py` y `email_executor.py` ya no dicen que el
+  transporte sea `django.core.mail`.
+
+Control: con `dispatch_email` aún en Django, las pruebas migradas fallan
+(23 de 167).

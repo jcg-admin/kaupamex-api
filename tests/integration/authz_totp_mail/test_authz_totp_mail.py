@@ -5,12 +5,11 @@ por ``_get_totp_mail_code`` verifica contra ``verify_totp_mail_code`` (ida y
 vuelta del TOTP con timestep 3600), la invitación omite a quienes ya tienen
 2FA activo, y la política ``authz_totp.policy`` decide quién queda obligado.
 El transporte de correo corre síncrono en testing (DISPATCH_EMAIL_SYNC) y se
-asserta sobre ``mail.outbox``.
+asserta sobre ``sent_mails(mock_smtplib_connection)``.
 """
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.core import mail as django_mail
 from django.core.management import call_command
 
 from exceptions import AccessDenied
@@ -30,6 +29,7 @@ from addons.authz_totp_mail.models.res_users import (
     verify_totp_mail_code,
 )
 from addons.base.models import SystemParameter
+from tests.mocks.mail_server import sent_mails
 
 User = get_user_model()
 
@@ -62,18 +62,21 @@ class TestTotpMailCode:
         with pytest.raises(AccessDenied):
             verify_totp_mail_code(user, code)
 
-    def test_endpoint_send_y_verify(self, api_client, user):
+    def test_endpoint_send_y_verify(
+        self, api_client, user, mock_smtplib_connection
+    ):
         # account.security viaja en los roles sembrados (DEC-ENF-01): el
         # usuario necesita el rol comprador del bootstrap real.
         call_command('seed_authz')
         assign_buyer_role(user)
         invalidate_capabilities(user.id)
         api_client.force_authenticate(user)
-        assert len(django_mail.outbox) == 0
+        assert len(sent_mails(mock_smtplib_connection)) == 0
         resp = api_client.post(SEND_URL)
         assert resp.status_code == 202, getattr(resp, 'data', resp)
-        assert len(django_mail.outbox) == 1
-        assert django_mail.outbox[0].to == [user.login]
+        assert len(sent_mails(mock_smtplib_connection)) == 1
+        assert (sent_mails(mock_smtplib_connection)[0].smtp_to_list
+                == [user.login])
 
         code, _ = _get_totp_mail_code(user)
         resp = api_client.post(VERIFY_URL, {'code': code}, format='json')
@@ -122,7 +125,9 @@ class TestPolicy:
 
 class TestInvite:
 
-    def test_invita_solo_a_quienes_no_tienen_2fa(self, api_client, user, db):
+    def test_invita_solo_a_quienes_no_tienen_2fa(
+        self, api_client, user, db, mock_smtplib_connection
+    ):
         call_command('seed_authz')
         admin = User.objects.create_user(
             login='admin-invite@kaupamex.mx', password='x'
@@ -139,9 +144,9 @@ class TestInvite:
         )
         # El create anterior dispara la notificación "2FA Activated" (la
         # señal de este addon) — se limpia para asertar solo la invitación.
-        assert len(django_mail.outbox) == 1
-        assert 'Activated' in django_mail.outbox[0].subject
-        django_mail.outbox.clear()
+        assert len(sent_mails(mock_smtplib_connection)) == 1
+        assert 'Activated' in sent_mails(mock_smtplib_connection)[0].subject
+        mock_smtplib_connection.emails.clear()
 
         api_client.force_authenticate(admin)
         resp = api_client.post(
@@ -153,8 +158,9 @@ class TestInvite:
         )
         assert resp.status_code == 200, resp.data
         assert len(resp.data['invited']) == 1
-        assert len(django_mail.outbox) == 1
-        assert django_mail.outbox[0].to == [user.login]
+        assert len(sent_mails(mock_smtplib_connection)) == 1
+        assert (sent_mails(mock_smtplib_connection)[0].smtp_to_list
+                == [user.login])
 
     def test_sin_capacidad_403(self, api_client, user, db):
         call_command('seed_authz')

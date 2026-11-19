@@ -48,7 +48,6 @@ import base64
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.core import mail as django_mail
 from django.utils import timezone
 
 from addons.authz_totp.models.auth_totp import TRUSTED_DEVICE_COOKIE
@@ -56,6 +55,7 @@ from addons.authz_totp.models.totp import TIMESTEP, hotp
 from addons.authz_totp.services import begin_setup, confirm_setup
 from addons.authz_totp_mail.data import seed as seed_totp_mail
 from addons.authz_totp_mail.models.res_users import NEW_CONNECTION_SUBJECT
+from tests.mocks.mail_server import sent_mails
 
 User = get_user_model()
 
@@ -74,6 +74,19 @@ def _current_code(secret, offset=0):
     return f'{hotp(key, counter):06d}'
 
 
+#: La captura SMTP de la prueba en curso, para los ayudantes de este módulo.
+#: ≙ la bandeja global que ``django.core.mail.outbox`` era; la fija el fixture
+#: de abajo con ``mock_smtplib_connection``.
+_SMTP = {}
+
+
+@pytest.fixture(autouse=True)
+def _smtp_capture(mock_smtplib_connection):
+    _SMTP['case'] = mock_smtplib_connection
+    yield
+    _SMTP.clear()
+
+
 def _with_totp(login, name):
     """Crea un usuario con 2FA de app confirmado y devuelve ``(user, secret)``.
 
@@ -88,14 +101,15 @@ def _with_totp(login, name):
     assert confirm_setup(
         user, _current_code(secret, offset=-1)
     ), 'el alta de 2FA falló'
-    django_mail.outbox.clear()
+    _SMTP['case'].emails.clear()
     return user, secret
 
 
 def _new_connection_alerts():
     """Los correos de la bandeja que son el aviso de conexión, y sólo ésos."""
     return [
-        m for m in django_mail.outbox if m.subject == NEW_CONNECTION_SUBJECT
+        m for m in sent_mails(_SMTP['case'])
+        if m.subject == NEW_CONNECTION_SUBJECT
     ]
 
 
@@ -123,7 +137,7 @@ def _remembered_cookie(api_client, user):
     )
     key = r.cookies[TRUSTED_DEVICE_COOKIE].value
     api_client.logout()
-    django_mail.outbox.clear()
+    _SMTP['case'].emails.clear()
     return key
 
 
@@ -150,7 +164,7 @@ class TestNewConnectionAlert:
         assert len(alerts) == 1
         # El correo es el `login`: este árbol no declara un campo `email`
         # aparte, igual que en `_send_totp_mail_code` y en `../signals.py`.
-        assert alerts[0].to == [totp_user.login]
+        assert alerts[0].smtp_to_list == [totp_user.login]
 
     def test_remembered_cookie_silences_the_alert(self, api_client, totp_user):
         """
@@ -183,7 +197,7 @@ class TestNewConnectionAlert:
 
         alerts = _new_connection_alerts()
         assert len(alerts) == 1
-        assert alerts[0].to == [intruder.login]
+        assert alerts[0].smtp_to_list == [intruder.login]
 
     def test_without_mfa_there_is_no_alert(self, api_client, db):
         """≙ *"Not enabled -> no alert"* — la tercera guarda de la fuente."""

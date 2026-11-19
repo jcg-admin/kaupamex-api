@@ -12,7 +12,6 @@ from datetime import timedelta
 
 import pytest
 from django.contrib.auth import get_user_model
-from django.core import mail as django_mail
 from django.utils import timezone
 
 from exceptions import UserError
@@ -23,6 +22,7 @@ from addons.authz_signup.models import res_users as su
 from addons.authz_signup.models.signup_request import SignupRequest
 from addons.base.models import SystemParameter
 from addons.base.models.res_partner import ResPartner
+from tests.mocks.mail_server import sent_mails
 
 User = get_user_model()
 
@@ -163,25 +163,28 @@ class TestSignupFlow:
 class TestResetPassword:
     """≙ ``reset_password`` / ``_action_reset_password``."""
 
-    def test_reset_manda_correo(self, seeded, api_client, db):
+    def test_reset_manda_correo(
+        self, seeded, api_client, db, mock_smtplib_connection
+    ):
         User.objects.create_user(login='reset@kaupamex.mx', password='old')
-        assert len(django_mail.outbox) == 0
+        assert len(sent_mails(mock_smtplib_connection)) == 0
         resp = api_client.post(
             RESET_URL, {'login': 'reset@kaupamex.mx'}, format='json'
         )
         assert resp.status_code == 202
-        assert len(django_mail.outbox) == 1
-        assert django_mail.outbox[0].to == ['reset@kaupamex.mx']
+        assert len(sent_mails(mock_smtplib_connection)) == 1
+        assert (sent_mails(mock_smtplib_connection)[0].smtp_to_list
+                == ['reset@kaupamex.mx'])
 
     def test_reset_login_desconocido_202_sin_correo(
-        self, seeded, api_client, db
+        self, seeded, api_client, db, mock_smtplib_connection
     ):
         # No revela si la cuenta existe (enumeración de usuarios).
         resp = api_client.post(
             RESET_URL, {'login': 'noexiste@kaupamex.mx'}, format='json'
         )
         assert resp.status_code == 202
-        assert len(django_mail.outbox) == 0
+        assert len(sent_mails(mock_smtplib_connection)) == 0
 
 
 class TestSignupRetrievePartner:

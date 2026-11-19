@@ -26,9 +26,9 @@ from unittest.mock import patch
 import pytest
 from addons.mass_mailing import services as mm
 from addons.mass_mailing.models import MailingSubscription
-from django.core import mail, signing
+from django.core import signing
 
-from tests.mocks.mail_server import parsed_message
+from tests.mocks.mail_server import parsed_message, sent_mails
 
 pytestmark = pytest.mark.integration
 
@@ -302,7 +302,9 @@ class TestAdminCreateCampaign:
         )
         assert res.status_code == 403
 
-    def test_admin_creates_and_sends_campaign(self, admin_client, db):
+    def test_admin_creates_and_sends_campaign(
+        self, admin_client, db, mock_smtplib_connection
+    ):
         _make_subscriber('uno@example.com', status='CONFIRMED')
         _make_subscriber('dos@example.com', status='CONFIRMED')
         _make_subscriber('pendiente@example.com', status='PENDING')
@@ -330,9 +332,9 @@ class TestAdminCreateCampaign:
 
         # Outbox contiene un envio con dos destinatarios.
         targets = []
-        for m in mail.outbox:
+        for m in sent_mails(mock_smtplib_connection):
             if m.subject == 'Promo de mayo':
-                targets.extend(m.to)
+                targets.extend(m.smtp_to_list)
         assert 'uno@example.com' in targets
         assert 'dos@example.com' in targets
         assert 'pendiente@example.com' not in targets

@@ -27,6 +27,7 @@ from addons.auto_backup.models import db_backup as db_backup_model
 from addons.base.models import SystemParameter
 from orm.registry import clear_cache
 from addons.base.models.ir_cron import IrCron
+from tests.mocks.mail_server import sent_mails
 
 pytestmark = pytest.mark.integration
 
@@ -59,7 +60,8 @@ def _clear_param_cache():
 @pytest.fixture
 def config(db, tmp_path):
     """Una configuración de respaldo apuntando a un directorio temporal."""
-    return DbBackup.objects.create(name='kaupamex_core_qa', folder=str(tmp_path))
+    return DbBackup.objects.create(
+        name='kaupamex_core_qa', folder=str(tmp_path))
 
 
 class TestBackupEndpoints:
@@ -85,7 +87,8 @@ class TestBackupEndpoints:
         r = admin_client.get(LIST_URL)
         assert r.status_code == 200
         body = r.json()
-        rows = body['results'] if isinstance(body, dict) and 'results' in body else body
+        rows = (body['results']
+                if isinstance(body, dict) and 'results' in body else body)
         assert len(rows) == 1
         assert rows[0]['status'] == DbBackupDetails.STATUS_OK
 
@@ -110,7 +113,8 @@ class TestTriggerRunsTheCron:
         DEC-AB-01. Lo que el cliente recibe para descargar es ``url``.
         """
         with mock.patch.object(DbBackup, '_take_dump') as dump:
-            dump.side_effect = lambda db_name, stream, model, backup_format='zip': (
+            dump.side_effect = (
+                lambda db_name, stream, model, backup_format='zip':
                 stream.write(b'dump'))
             r = admin_client.post(TRIGGER_URL)
 
@@ -137,7 +141,8 @@ class TestTriggerRunsTheCron:
         disparó, y sólo ``action_run_cron`` pone ``MANUAL_RUN``.
         """
         with mock.patch.object(DbBackup, '_take_dump') as dump:
-            dump.side_effect = lambda db_name, stream, model, backup_format='zip': (
+            dump.side_effect = (
+                lambda db_name, stream, model, backup_format='zip':
                 stream.write(b'dump'))
             DbBackup.schedule_backup()
 
@@ -182,23 +187,31 @@ class TestBackupFailAlert:
     se sobreescribe con ``set_param``, no con el fixture ``settings``.
     """
 
-    def test_notifies_the_configured_address(self, db, mailoutbox):
+    def test_notifies_the_configured_address(
+        self, db, mock_smtplib_connection
+    ):
         SystemParameter.set_param('backup.alert_email', 'ops@kaupamex.com')
         db_backup_model.notify_backup_failed('kaupamex_core_qa', 'boom')
-        assert len(mailoutbox) == 1
-        assert mailoutbox[0].to == ['ops@kaupamex.com']
-        assert 'kaupamex_core_qa' in mailoutbox[0].subject
+        assert len(sent_mails(mock_smtplib_connection)) == 1
+        assert (sent_mails(mock_smtplib_connection)[0].smtp_to_list
+                == ['ops@kaupamex.com'])
+        assert ('kaupamex_core_qa'
+                in sent_mails(mock_smtplib_connection)[0].subject)
 
-    def test_without_a_recipient_it_neither_sends_nor_breaks(self, db, mailoutbox):
+    def test_without_a_recipient_it_neither_sends_nor_breaks(
+        self, db, mock_smtplib_connection
+    ):
         # 'backup.alert_email' está en _DEFAULT_PARAMETERS -> protegida
         # contra borrado (H-CFG-IMPL-01); no se puede simular "ausente" con
         # delete. Un valor vacío activa el quirk ``or default`` (H-CFG-IMPL-03)
         # y get_param cae al default explícito ('') que pasa el modelo.
         SystemParameter.set_param('backup.alert_email', '')
         db_backup_model.notify_backup_failed('kaupamex_core_qa', 'boom')
-        assert len(mailoutbox) == 0
+        assert len(sent_mails(mock_smtplib_connection)) == 0
 
-    def test_uses_the_value_seeded_by_the_migration(self, db, mailoutbox):
+    def test_uses_the_value_seeded_by_the_migration(
+        self, db, mock_smtplib_connection
+    ):
         # Sin set_param explícito: debe leer el valor sembrado por la
         # migración de datos, no un default local ni el viejo
         # ``settings.BACKUP_ALERT_EMAIL``. Reseed idempotente (== la
@@ -206,21 +219,24 @@ class TestBackupFailAlert:
         # no haya hecho flush de la fila sembrada.
         SystemParameter.seed()
         db_backup_model.notify_backup_failed('kaupamex_core_qa', 'boom')
-        assert len(mailoutbox) == 1
+        assert len(sent_mails(mock_smtplib_connection)) == 1
         seeded = SystemParameter.get_param('backup.alert_email')
         assert seeded is not None
-        assert mailoutbox[0].to == [seeded]
+        assert sent_mails(mock_smtplib_connection)[0].smtp_to_list == [seeded]
 
 
 class TestBackupDownloadConfinement:
-    """El confinamiento de ``BackupDownloadView`` — :ref:`h-api-766`, tarea #639.
+    """El confinamiento de ``BackupDownloadView``.
+
+    :ref:`h-api-766`, tarea #639.
 
     **La fuente sirve cualquier archivo del disco.** Verbatim
     (``odoo18c: app_auto_backup/controllers/main.py:16-22``):
 
     .. code-block:: python
 
-       @http.route("/dbbackup/download/<path:file_path>", type="http", auth="user")
+       @http.route("/dbbackup/download/<path:file_path>", type="http",
+                   auth="user")
        def download_backupfile(self, file_path, **kw):
            if not request.env.user.has_group('base.group_system'):
                raise UserError(_('File not found for user.'))
@@ -319,7 +335,8 @@ class TestBackupDownloadConfinement:
         """
         link = tree['folder'] / 'inocente.zip'
         os.symlink(str(tree['secret']), str(link))
-        assert os.path.isfile(link)          # el enlace resuelve a un archivo real
+        # el enlace resuelve a un archivo real
+        assert os.path.isfile(link)
         r = admin_client.get(download_url(link))
         assert r.status_code == 404
         assert r.json()['codigo_error'] == 'BACKUP_FILE_NOT_FOUND'

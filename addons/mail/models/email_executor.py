@@ -1,10 +1,11 @@
 """
 addons/mail/models/email_executor.py
 
-Dispatcher asincrono para envio de emails — addon ``mail`` (fiel a Odoo, DEC-11).
+Dispatcher asincrono para envio de emails — addon ``mail`` (fiel a Odoo,
+DEC-11).
 Es el equivalente de ``mail.mail.process_email_queue`` de Odoo: envio async de
-correo con cola de reintento, sin broker externo. El transporte SMTP se apoya en
-la config de Django (``EMAIL_*``), analogo a ``ir.mail_server`` de ``addons/base``.
+correo con cola de reintento, sin broker externo. El transporte es
+``ir.mail_server.send_email``, el único camino de salida de la fuente.
 
 Alt 1 — ThreadPoolExecutor: envia el email en un hilo del pool, retornando
 control inmediato al llamador HTTP. Elimina el bloqueo de 100-2000ms por
@@ -22,7 +23,8 @@ import logging
 from concurrent.futures import ThreadPoolExecutor
 
 from django.conf import settings as _settings
-from django.core.mail import send_mail as _send_mail
+
+from orm.environments import SUPERUSER_ID, Environment
 
 from .mail_mail import MailMail
 from .mail_notification import MailNotification
@@ -30,6 +32,32 @@ from .mail_notification import MailNotification
 logger = logging.getLogger(__name__)
 
 _pool = ThreadPoolExecutor(max_workers=4)
+
+
+def _send_mail(subject, message, from_email, recipient_list,
+               html_message=None):
+    """Envía por ``ir.mail_server.send_email``, el único camino de salida.
+
+    ≙ ``mail.mail._send`` (``odoo19c: addons/mail/models/mail_mail.py:
+    763-870``): el mensaje lo arma ``_build_email__`` y sale por
+    ``send_email``. Con ``html_message`` el cuerpo es HTML y ``message`` su
+    alternativa en texto plano, que es lo que ``send_mail`` de Django armaba
+    como ``multipart/alternative``. Se obtiene el modelo como superusuario
+    porque un hilo del pool arranca sin entorno.
+    """
+    IrMailServer = Environment(uid=SUPERUSER_ID)['ir.mail_server']
+    if isinstance(recipient_list, str):
+        recipient_list = [recipient_list]
+    if html_message:
+        built = IrMailServer._build_email__(
+            email_from=from_email, email_to=list(recipient_list),
+            subject=subject, body=html_message, subtype='html',
+            body_alternative=message, subtype_alternative='plain')
+    else:
+        built = IrMailServer._build_email__(
+            email_from=from_email, email_to=list(recipient_list),
+            subject=subject, body=message)
+    return IrMailServer.send_email(built)
 
 
 def dispatch_email(subject, message, from_email, recipient_list, *,
@@ -53,18 +81,22 @@ def dispatch_email(subject, message, from_email, recipient_list, *,
     los llamadores actuales).
     """
     kwargs.pop('fail_silently', None)
+    # Lo que se reencola si el envío falla: el cuerpo HTML cuando lo hay,
+    # porque la cola de mail.mail lo envía como HTML.
+    queued_body = kwargs.get('html_message') or message
     if getattr(_settings, 'DISPATCH_EMAIL_SYNC', False):
         try:
             _send_mail(subject, message, from_email, recipient_list, **kwargs)
-        except Exception as exc:  # noqa: BLE001 — se registra y persiste, no se traga
-            _finalize_failure(exc, subject, message, from_email, recipient_list,
-                              notification)
+        except Exception as exc:  # se registra y persiste, no se traga
+            _finalize_failure(exc, subject, queued_body, from_email,
+                              recipient_list, notification)
         else:
             _mark_notification_sent(notification)
         return None
-    future = _pool.submit(_send_mail, subject, message, from_email, recipient_list, **kwargs)
+    future = _pool.submit(_send_mail, subject, message, from_email,
+                          recipient_list, **kwargs)
     future.add_done_callback(
-        lambda f: _finalize_dispatch(f, subject, message, from_email,
+        lambda f: _finalize_dispatch(f, subject, queued_body, from_email,
                                      recipient_list, notification)
     )
     return future
@@ -89,8 +121,9 @@ def _finalize_failure(exc, subject, message, from_email, recipient_list,
             to = ','.join(str(r) for r in recipient_list)
         else:
             to = str(recipient_list)
-        # Reencola en mail.mail como outgoing para que el cron send_pending_emails
-        # lo reintente. Conserva el error del thread pool en failure_reason (fiel
+        # Reencola en mail.mail como outgoing para que el cron
+        # send_pending_emails lo reintente. Conserva el error del thread pool
+        # en failure_reason (fiel
         # a Odoo). No cuenta como attempt: el conteo lo lleva el cron.
         task = MailMail.enqueue(
             to=to[:500],
@@ -113,7 +146,8 @@ def _mark_notification_sent(notification):
 
 
 def _mark_notification_failed(notification, task, exc):
-    """Marca la entrega como excepcion y la cruza con el ``mail.mail`` reencolado."""
+    """Marca la entrega como excepcion y la cruza con el ``mail.mail``
+    reencolado."""
     if notification is None:
         return
     notification.notification_status = MailNotification.STATUS_EXCEPTION

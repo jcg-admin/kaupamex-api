@@ -3,9 +3,9 @@
     "/home/user/kaupamex-api/.venv/bin/python3",
     "/home/user/kaupamex-api/scripts/check_python_style_increment.py",
     "--base",
-    "abdb8ebfeb662a7835ca2e546ba701fea165359d",
+    "c5ebd3836c063952504095ec6286a115820a51a8",
     "--index-tree",
-    "3dd34e0df2241ee5663ae9b6af80b380a9bb6a2b",
+    "632ffbe3e8be8b4f2011416176d7dd4394e4a0c2",
     "--qualify-checkers",
     "--report",
     "/home/user/kaupamex-api/scripts/evidence/ci-local-fail-fast-20261022T004947/outputs/pre-commit-admission.json"
@@ -19,13 +19,13 @@
   "integration": "NOT_EVALUATED",
   "acceptance": "NOT_EVALUATED",
   "activation": "EXPLICIT_INCREMENT_EVALUATION",
-  "base": "abdb8ebfeb662a7835ca2e546ba701fea165359d",
+  "base": "c5ebd3836c063952504095ec6286a115820a51a8",
   "candidate": {
-    "index_tree": "3dd34e0df2241ee5663ae9b6af80b380a9bb6a2b",
-    "head": "abdb8ebfeb662a7835ca2e546ba701fea165359d"
+    "index_tree": "632ffbe3e8be8b4f2011416176d7dd4394e4a0c2",
+    "head": "c5ebd3836c063952504095ec6286a115820a51a8"
   },
   "verifiers": {
-    "/home/user/kaupamex-api/scripts/check_python_style_increment.py": "33fcd7d40a59acebfaf0e4b54894b1a9b07591bb0197b866761d3393e78eeaf4",
+    "/home/user/kaupamex-api/scripts/check_python_style_increment.py": "9d1cf3a3e90883d36fda4128bea9bf92322f993d6d3e290492a5217da74e8237",
     "/home/user/kaupamex-api/scripts/check_no_lazy_imports.py": "278a21b0fcd8fc17b1103c09e7437f116767173b84168fb1991c98dad9fed223",
     "/home/user/kaupamex-api/.venv/lib/python3.13/site-packages/pycodestyle.py": "a14c299bb9f2251f7327fce593e7986b3bbb472e07b5d6b8ce3f2a0750325c00"
   },

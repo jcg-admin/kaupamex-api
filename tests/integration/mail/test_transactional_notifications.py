@@ -2,7 +2,7 @@
 Tests — Notificaciones transaccionales (UC-NOT-01..05)
 
 Verifica que notify_* crea Notification in-app y despacha email.
-EMAIL_BACKEND=locmem captura emails sin servidor SMTP.
+El correo se captura con ``mock_smtplib_connection`` (≙ ``MockSmtplibCase``).
 
 transaction.on_commit se parchea para llamar callbacks inmediatamente:
 el fixture db envuelve cada test en una transaccion que se revierte
@@ -12,8 +12,6 @@ el fixture db envuelve cada test en una transaccion que se revierte
 import pytest
 from decimal import Decimal
 from unittest.mock import patch
-from django.test import override_settings
-from django.core import mail
 
 from addons.mail.models import Notification
 from addons.mail.models.notification_service import (
@@ -23,12 +21,9 @@ from addons.mail.models.notification_service import (
     notify_return_processed,
     notify_refund_processed,
 )
+from tests.mocks.mail_server import sent_mails
 
 pytestmark = pytest.mark.integration
-
-LOCMEM_SETTINGS = {
-    'EMAIL_BACKEND': 'django.core.mail.backends.locmem.EmailBackend',
-}
 
 _ON_COMMIT_PATH = (
     'addons.mail.models.notification_service.transaction.on_commit'
@@ -68,7 +63,6 @@ def order_stub(db, user):
 
 
 class TestNotifyOrderCreated:
-    @override_settings(**LOCMEM_SETTINGS)
     def test_creates_notification_in_app(self, db, user, order_stub):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             notify_order_created(order_stub, user, Decimal('580.00'))
@@ -77,25 +71,28 @@ class TestNotifyOrderCreated:
             subject__icontains='PY-TEST-0001',
         ).exists()
 
-    @override_settings(**LOCMEM_SETTINGS)
-    def test_despacha_email(self, db, user, order_stub):
+    def test_despacha_email(
+        self, db, user, order_stub, mock_smtplib_connection
+    ):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             notify_order_created(order_stub, user, Decimal('580.00'))
-        assert len(mail.outbox) == 1
-        assert 'PY-TEST-0001' in mail.outbox[0].subject
+        assert len(sent_mails(mock_smtplib_connection)) == 1
+        assert 'PY-TEST-0001' in sent_mails(mock_smtplib_connection)[0].subject
 
-    @override_settings(**LOCMEM_SETTINGS)
-    def test_no_crea_nada_si_user_es_none(self, db, order_stub):
+    def test_no_crea_nada_si_user_es_none(
+        self, db, order_stub, mock_smtplib_connection
+    ):
         order_stub.user = None
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             notify_order_created(order_stub, None, Decimal('580.00'))
         assert not Notification.objects.filter(
             subject__icontains='PY-TEST-0001'
         ).exists()
-        assert len(mail.outbox) == 0
+        assert len(sent_mails(mock_smtplib_connection)) == 0
 
-    @override_settings(**LOCMEM_SETTINGS)
-    def test_partner_sin_email_cae_al_login(self, db, user, order_stub):
+    def test_partner_sin_email_cae_al_login(
+        self, db, user, order_stub, mock_smtplib_connection
+    ):
         # ``ResUsers.email`` es el del partner, sin respaldo, como en la
         # referencia (``res_users.py:253``). El respaldo al login es la regla
         # de destino del envío (``notification_service._delivery_address``):
@@ -108,15 +105,15 @@ class TestNotifyOrderCreated:
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             notify_order_created(order_stub, user, Decimal('580.00'))
         assert Notification.objects.filter(user=user).exists()
-        assert len(mail.outbox) == 1
-        assert mail.outbox[0].to == [user.login]
+        assert len(sent_mails(mock_smtplib_connection)) == 1
+        assert (sent_mails(mock_smtplib_connection)[0].smtp_to_list
+                == [user.login])
 
 
 # ─── UC-NOT-02 ────────
 
 
 class TestNotifyOrderStatusChanged:
-    @override_settings(**LOCMEM_SETTINGS)
     @pytest.mark.parametrize(
         'status',
         [
@@ -135,27 +132,31 @@ class TestNotifyOrderStatusChanged:
             notify_order_status_changed(order_stub, status)
         assert Notification.objects.filter(user=user).exists()
 
-    @override_settings(**LOCMEM_SETTINGS)
-    def test_despacha_email_shipped(self, db, user, order_stub):
+    def test_despacha_email_shipped(
+        self, db, user, order_stub, mock_smtplib_connection
+    ):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             notify_order_status_changed(order_stub, 'SHIPPED')
-        assert len(mail.outbox) == 1
-        assert 'enviado' in mail.outbox[0].subject.lower()
+        assert len(sent_mails(mock_smtplib_connection)) == 1
+        assert ('enviado'
+                in sent_mails(mock_smtplib_connection)[0].subject.lower())
 
-    @override_settings(**LOCMEM_SETTINGS)
-    def test_no_notifica_estado_no_relevante(self, db, user, order_stub):
+    def test_no_notifica_estado_no_relevante(
+        self, db, user, order_stub, mock_smtplib_connection
+    ):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             notify_order_status_changed(order_stub, 'PENDING')
         assert not Notification.objects.filter(user=user).exists()
-        assert len(mail.outbox) == 0
+        assert len(sent_mails(mock_smtplib_connection)) == 0
 
 
 # ─── UC-NOT-03 ────────
 
 
 class TestNotifyShippingUpdated:
-    @override_settings(**LOCMEM_SETTINGS)
-    def test_creates_notification_and_email(self, db, user, order_stub):
+    def test_creates_notification_and_email(
+        self, db, user, order_stub, mock_smtplib_connection
+    ):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             notify_shipping_updated(
                 order_stub,
@@ -164,35 +165,36 @@ class TestNotifyShippingUpdated:
                 event_description='Paquete en camino.',
             )
         assert Notification.objects.filter(user=user).exists()
-        assert len(mail.outbox) == 1
-        assert 'envio' in mail.outbox[0].subject.lower()
+        assert len(sent_mails(mock_smtplib_connection)) == 1
+        assert ('envio'
+                in sent_mails(mock_smtplib_connection)[0].subject.lower())
 
 
 # ─── UC-NOT-04 ────────
 
 
 class TestNotifyReturnProcessed:
-    @override_settings(**LOCMEM_SETTINGS)
     @pytest.mark.parametrize('status', ['APPROVED', 'REJECTED'])
     def test_creates_notification_and_email(
-        self, db, user, order_stub, status
+        self, db, user, order_stub, status, mock_smtplib_connection
     ):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             notify_return_processed(
                 order_stub, user, status, reason='Producto dañado'
             )
         assert Notification.objects.filter(user=user).exists()
-        assert len(mail.outbox) == 1
+        assert len(sent_mails(mock_smtplib_connection)) == 1
 
 
 # ─── UC-NOT-05 ────────
 
 
 class TestNotifyRefundProcessed:
-    @override_settings(**LOCMEM_SETTINGS)
-    def test_creates_notification_and_email(self, db, user, order_stub):
+    def test_creates_notification_and_email(
+        self, db, user, order_stub, mock_smtplib_connection
+    ):
         with patch(_ON_COMMIT_PATH, side_effect=lambda f: f()):
             notify_refund_processed(order_stub, user, Decimal('580.00'))
         assert Notification.objects.filter(user=user).exists()
-        assert len(mail.outbox) == 1
-        assert '580' in mail.outbox[0].body
+        assert len(sent_mails(mock_smtplib_connection)) == 1
+        assert '580' in sent_mails(mock_smtplib_connection)[0].body

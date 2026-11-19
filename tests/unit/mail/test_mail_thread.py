@@ -11,7 +11,6 @@ import datetime
 
 import pytest
 from addons.sale.models import SaleOrder
-from django.core import mail as django_mail
 
 from addons.crm.models import CrmLead
 from addons.mail.models import email_executor
@@ -33,6 +32,7 @@ from addons.sms.models import SmsSms
 from addons.sms.services import mark_sms_error, mark_sms_sent, send_thread_sms
 from addons.helpdesk.models import SupportTicket
 from tests.factories.user_factory import UserFactory
+from tests.mocks.mail_server import sent_mails
 
 
 @pytest.fixture
@@ -458,8 +458,10 @@ class TestMailThreadEmailChannel:
     hilo, crea una ``mail.notification`` de canal email y despacha el correo
     enlazando esa fila — el nexo fiel entrega ↔ correo saliente de Odoo."""
 
-    def test_send_thread_email_delivers_and_records(self, ticket, user):
-        django_mail.outbox = []
+    def test_send_thread_email_delivers_and_records(
+        self, ticket, user, mock_smtplib_connection
+    ):
+        mock_smtplib_connection.emails.clear()
         notif = email_executor.send_thread_email(
             ticket,
             user,
@@ -467,8 +469,9 @@ class TestMailThreadEmailChannel:
             body='Tu ticket avanzo',
         )
         # correo realmente enviado (DISPATCH_EMAIL_SYNC en testing)
-        assert len(django_mail.outbox) == 1
-        assert user.email in django_mail.outbox[0].to
+        assert len(sent_mails(mock_smtplib_connection)) == 1
+        assert (user.email
+                in sent_mails(mock_smtplib_connection)[0].smtp_to_list)
         # notificacion de canal email, estado sent, sin mail.mail (exito)
         assert notif.notification_type == MailNotification.TYPE_EMAIL
         assert notif.notification_status == MailNotification.STATUS_SENT
@@ -500,8 +503,10 @@ class TestMailThreadEmailChannel:
         assert notif.mail_mail_id is not None
         assert 'smtp down' in notif.failure_reason
 
-    def test_dispatch_email_notification_param_marks_sent(self, ticket, user):
-        django_mail.outbox = []
+    def test_dispatch_email_notification_param_marks_sent(
+        self, ticket, user, mock_smtplib_connection
+    ):
+        mock_smtplib_connection.emails.clear()
         msg = ticket.message_post(body='hola', author=user, notify=False)
         n = MailNotification.objects.create(
             message=msg,

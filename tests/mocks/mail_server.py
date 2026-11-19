@@ -15,6 +15,7 @@ import email
 import email.policy
 import inspect
 from contextlib import contextmanager
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from addons.base.models.ir_mail_server import IrMailServer
@@ -124,3 +125,24 @@ def parsed_message(entry):
     """
     return email.message_from_string(
         entry['message'], policy=email.policy.default)
+
+
+def sent_mails(case):
+    """Lo capturado por ``case``, con asunto y cuerpo ya decodificados.
+
+    Cada elemento lleva ``smtp_to_list`` y ``smtp_from`` del sobre —las claves
+    de ``emails``— más ``subject`` y ``body`` del mensaje, que la fuente lee
+    en sus pruebas del ``message`` guardado. El cuerpo es la parte de texto
+    plano, o la HTML si no hay otra.
+    """
+    mails = []
+    for entry in case.emails:
+        message = parsed_message(entry)
+        part = message.get_body(preferencelist=('plain', 'html'))
+        mails.append(SimpleNamespace(
+            smtp_to_list=entry['smtp_to_list'],
+            smtp_from=entry['smtp_from'],
+            subject=message['Subject'],
+            body=part.get_content() if part is not None else '',
+        ))
+    return mails

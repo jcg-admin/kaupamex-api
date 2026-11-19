@@ -5,14 +5,13 @@ Adaptación de ``odoo/addons/base/models/ir_mail_server.py``
 SMTP, con su prioridad y —lo que de verdad importa— su ``from_filter``: la
 lista de direcciones o dominios para los que ese servidor puede enviar.
 
-Qué añade sobre el transporte que este árbol ya tiene
-====================================================
+Qué añade sobre la configuración global
+=======================================
 
-El envío ya existe: ``addons/mail/models/email_executor.py`` despacha por
-``django.core.mail.send_mail`` sobre la config global ``EMAIL_*``
-(``config/settings/development.py:22-28``, ``production.py:104-111``), y su
-propio docstring dice que eso es *"análogo a ``ir.mail_server`` de
-``addons/base``"*. Lo es en el transporte, no en el modelo.
+Todo el correo saliente pasa por ``send_email`` de este modelo: la cola de
+``mail.mail``, ``dispatch_email`` de ``addons/mail/models/email_executor.py``
+y la confirmación de la newsletter. La configuración global ``EMAIL_*`` la
+leen los lectores de ``tools.config`` cuando no hay servidor declarado.
 
 La diferencia es que ``EMAIL_*`` describe **un** servidor. Este archivo aporta
 lo que esa config no puede expresar:
@@ -70,14 +69,10 @@ pasan antes y después.
 Qué NO se porta, con su medición
 ================================
 
-- **Lo que falta del transporte**: que los tres remitentes que hoy usan
-  ``django.core.mail`` pasen por ``send_email`` (paso 3d de
-  ``designs/base-ir-mail-server-complete.md``), para que quede un solo
-  camino de salida, como en la fuente. El mensaje, la conexión, el envío y
-  la prueba de conexión ya están portados (pasos 3a a 3c), con los tres
-  parches globales que la fuente aplica al importar (``:68-98``). La
-  superficie del modelo que aún diverge —``smtp_authentication_info``,
-  ``_check_smtp_ssl_files`` y ``_onchange_encryption``— es el paso 3e.
+- **La superficie del modelo que aún diverge** —``smtp_authentication_info``,
+  ``_check_smtp_ssl_files`` y ``_onchange_encryption``—: es el paso 3e de
+  ``designs/base-ir-mail-server-complete.md``. El transporte está portado
+  entero (pasos 3a a 3d) y es el único camino de salida, como en la fuente.
 - **Las ramas de versión antigua de los imports** (``:36-56``): la carga de
   PEM con ``OpenSSL.crypto`` para pyOpenSSL < 24.3.0 y
   ``urllib3.packages.ssl_match_hostname`` para urllib3 <= 1.25. Con los

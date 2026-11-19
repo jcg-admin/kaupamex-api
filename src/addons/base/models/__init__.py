@@ -15,9 +15,11 @@ que los agrupe por naturaleza.
   (propiedades de usuario cuyo esquema no cuelga de un padre).
 - ``properties_base_definition.py`` → ``PropertiesBaseDefinition`` (ese
   esquema; FK **real** a ``ir.model.fields``).
-- ``ir_exports.py`` → ``IrExports`` + ``IrExportsLine`` (exportaciones guardadas).
+- ``ir_exports.py`` → ``IrExports`` + ``IrExportsLine`` (exportaciones
+  guardadas).
 - ``report_layout.py`` → ``ReportLayout`` (diseños de documento impreso).
-- ``res_groups_privilege.py`` → ``ResGroupsPrivilege`` (agrupa grupos en el form).
+- ``res_groups_privilege.py`` → ``ResGroupsPrivilege`` (agrupa grupos en el
+  form).
 - ``res_company.py`` → ``ResCompany`` (entidad legal con sucursales; NO es
   ``company.Company``, el tenant L1).
 - ``res_groups.py`` → ``ResGroups`` (grupos con implicación transitiva y
@@ -40,16 +42,18 @@ que los agrupe por naturaleza.
   ``IrModelFieldsSelection``, ``IrModelConstraint``, ``IrModelRelation``,
   ``IrModelAccess``, ``IrModelData``).
 - ``ir_mail_server.py`` → ``IrMailServer`` (registro de servidores SMTP
-  salientes con prioridad y enrutado por remitente; el transporte sigue siendo
-  ``django.core.mail`` vía ``addons/mail``).
+  salientes con prioridad y enrutado por remitente, y ``send_email``, el único
+  camino de salida del correo).
 - ``res_config.py`` → ``ResConfig`` + ``ResConfigSettings`` (motor de
   configuración por convención de nombre de campo; abstractos, sin tabla).
-- ``ir_template_expressions.py`` → ``IrTemplateExpressions`` + ``MALICIOUS_SCHEMES`` + ``keep_query``
+- ``ir_template_expressions.py`` → ``IrTemplateExpressions`` +
+  ``MALICIOUS_SCHEMES`` + ``keep_query``
   (vocabulario y primitivas de QWeb; el compilador NO se porta — este árbol
   renderiza en el cliente).
 - ``ir_field_converters.py`` → los conversores ``ir.qweb.field.*`` (cómo se
   escribe un valor para que lo lea una persona; valen sin QWeb).
-- ``ir_ui_view.py`` → ``IrUiView`` + ``IrUiViewCustom`` + ``ResetViewArchWizard``
+- ``ir_ui_view.py`` → ``IrUiView`` + ``IrUiViewCustom`` +
+  ``ResetViewArchWizard``
   (registro de vistas y reglas de herencia; el combinador de XML no se porta).
 - ``ir_http.py`` → ``IrHttp`` + ``slugify`` (utilidades de URL; el enrutado
   y el despacho los hace Django, y la autenticación ya está decidida).
@@ -64,17 +68,22 @@ que los agrupe por naturaleza.
 - ``ir_profile.py`` → ``IrProfile`` + ``BaseEnableProfilingWizard``
   (resultados de perfilado; sin el visor speedscope).
 
-- ``ir_config_parameter.py`` → ``SystemParameter`` (config L2 global, key/value).
+- ``ir_config_parameter.py`` → ``SystemParameter`` (config L2 global,
+  key/value).
 - ``ir_logging.py`` → ``IrLogging`` (log técnico ``ir.logging``, DEC-08).
-- ``ir_attachment.py`` → ``IrAttachment`` (adjuntos archivo/URL ``ir.attachment``).
+- ``ir_attachment.py`` → ``IrAttachment`` (adjuntos archivo/URL
+  ``ir.attachment``).
 - ``ir_cron.py`` → ``IrCron`` (registro de horario + runner ``ir.cron``;
   ejecutado por el subcomando ``cron``).
-- ``ir_default.py`` → ``IrDefault`` (valores por defecto de campo ``ir.default``).
-- ``ir_filters.py`` → ``IrFilters`` (filtros de búsqueda guardados ``ir.filters``).
+- ``ir_default.py`` → ``IrDefault`` (valores por defecto de campo
+  ``ir.default``).
+- ``ir_filters.py`` → ``IrFilters`` (filtros de búsqueda guardados
+  ``ir.filters``).
 - ``ir_ui_menu.py`` → ``IrUiMenu`` (árbol de navegación ``ir.ui.menu``, podado
   por capacidad; vive en ``base`` igual que en la referencia).
 - ``res_currency.py`` → ``ResCurrency`` (moneda ISO 4217).
-- ``res_country.py`` → ``ResCountry`` + ``ResCountryState`` (geografía política).
+- ``res_country.py`` → ``ResCountry`` + ``ResCountryState`` (geografía
+  política).
 - ``res_partner.py`` → ``ResPartner`` (el party: persona, empresa o dirección).
 - ``res_users.py`` → ``ResUsers`` (credencial; delega identidad al partner).
 - ``res_config.py`` → ``ResConfigSettings`` (el formulario de ajustes; su

@@ -129,11 +129,10 @@ LOGGING = {
     'root': {'handlers': ['null']},
 }
 
-# Email — locmem para tests (django.core.mail.outbox)
-EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 FRONTEND_URL = "http://localhost:3001"
 # dispatch_email usa ThreadPoolExecutor; en tests debe ser sincrono para
-# que mail.outbox este poblado cuando el test asserta (race condition).
+# que la captura de ``mock_smtplib_connection`` este poblada cuando el test
+# asserta (race condition).
 DISPATCH_EMAIL_SYNC = True
 
 # Conexion no persistente en tests: cada test cierra la suya. Evita que una
