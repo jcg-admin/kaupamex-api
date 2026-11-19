@@ -40,3 +40,7 @@ class MailConfig(AppConfig):
         importlib.import_module(
             f'{self.name}.models.ir_mail_server'
         ).apply_mail_server_extensions()
+        # ≙ ``mail/models/res_users.py``: el servidor saliente personal.
+        importlib.import_module(
+            f'{self.name}.models.res_users'
+        ).apply_mail_user_extensions()

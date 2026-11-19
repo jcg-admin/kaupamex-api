@@ -337,8 +337,8 @@ class IrMailServer(models.BaseModel, TimeStampedModel):
         'Authentication Info', compute='_compute_smtp_authentication_info')
     smtp_user = fields.Char(
         max_length=255,
+        null=True,
         blank=True,
-        default='',
         verbose_name='Usuario',
         help_text=(
             'SECRETO. La referencia lo restringe a nivel de campo con '
@@ -348,8 +348,8 @@ class IrMailServer(models.BaseModel, TimeStampedModel):
     )
     smtp_pass = fields.Char(
         max_length=255,
+        null=True,
         blank=True,
-        default='',
         verbose_name='Contraseña',
         help_text=(
             'SECRETO. Mismo criterio que smtp_user: nunca en un serializer.'
