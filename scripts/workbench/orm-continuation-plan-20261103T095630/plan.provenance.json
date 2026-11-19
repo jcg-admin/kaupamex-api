@@ -1256,6 +1256,13 @@
         "basemodel-adoption-mail-activity-0397"
       ],
       "writtenAt": "2026-11-19T19:30:59Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-crm-0397"
+      ],
+      "writtenAt": "2026-11-19T20:35:16Z"
     }
   ]
 }
