@@ -697,3 +697,26 @@ Lo que 5-1 no puede cerrar, con su bloqueo medido y su sucesor:
 necesitan `mail.template.mail_server_id`, que llega con la adopción de
 `mail.template` (ítem 3 del inventario, campos relacionales). Se declaran en
 el archivo con su condición de cierre, no se omiten.
+
+**5-1 se parte en dos ítems** por su radio:
+
+- **5-1a** (`mail-ir-mail-server-extension-0397`): `addons/mail/models/
+  ir_mail_server.py`, nuevo, con `apply_mail_server_extensions()` llamado desde
+  `MailConfig.ready()` (patrón de `addons/mail/models/res_company.py`). Porta
+  de `odoo19c: addons/mail/models/ir_mail_server.py:10-106`: `_email_field`,
+  `owner_user_id`, `owner_limit_time`, `owner_limit_count`, la restricción
+  `_unique_owner_user_id` (por `add_meta_constraint` desde `luego`, con el
+  nombre de la fuente `ir_mail_server_unique_owner_user_id`), y como
+  `overrides` `_get_default_bounce_address`, `_get_default_from_address`,
+  `_get_test_email_from`, `_filter_mail_servers_fallback` y
+  `_find_mail_server_allowed_domain`; `_get_personal_mail_servers_limit` es
+  nuevo (`metodos`). Columnas en la migración `base/0123`.
+  Pendiente declarado en el archivo: `mail_template_ids` y la rama de
+  plantillas de `_active_usages_compute` (bloqueo: `mail.template.
+  mail_server_id`, ítem 3 de la adopción de `mail.template`), y la
+  sobreescritura de `_check_forced_mail_server` (ítem 5-1b).
+  Prueba: `tests/unit/mail/test_mail_ir_mail_server.py`.
+- **5-1b**: el ítem A de `res.users` (`odoo19c: addons/mail/models/
+  res_users.py:50-68,130-149,165-167,545-660`) y la sobreescritura de
+  `_check_forced_mail_server` (`:90-99`), que lee
+  `owner_user_id.outgoing_mail_server_id`.
