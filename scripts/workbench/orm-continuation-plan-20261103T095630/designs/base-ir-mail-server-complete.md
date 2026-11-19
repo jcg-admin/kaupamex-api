@@ -795,3 +795,14 @@ el archivo con su condición de cierre, no se omiten.
   fuente. Lee los servidores personales (`owner_user_id`) que trajo 5-1a, con
   `_match_from_filter` de `base`. Prueba:
   `tests/unit/mail/test_mail_alias_domain_personal_servers.py`.
+- **5-1d** (`mail-alias-domain-first-creation-0397`): el arranque de
+  `create` de `mail.alias.domain` (`odoo19c:
+  addons/mail/models/mail_alias_domain.py:152-163`): al crear el primer
+  dominio se asigna a toda empresa —archivada o no— y a todo alias sin
+  dominio. La prosa del módulo lo declaraba divergencia en un
+  `seed_first_domain()` que no existe en el árbol; no había porte. Lo hace
+  `_assign_first_domain`, llamado por `save` de
+  `addons/mail/models/mail_alias_domain.py` al crear, en la misma
+  transacción; cada alias se guarda para recalcular `alias_full_name`, el
+  `compute` almacenado de la fuente. Prueba:
+  `tests/unit/mail/test_mail_alias_domain_first_creation.py`.
