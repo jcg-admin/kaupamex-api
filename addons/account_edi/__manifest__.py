@@ -13,13 +13,20 @@
     # addon. La referencia declara sólo `['account']`; aquí es lo mismo —
     # `base` llega transitivamente vía `account`.
     'depends': [
-        'account',  # AccountMove, AccountJournal, AccountMoveSend, IrAttachment
+        # AccountMove, AccountJournal, AccountMoveSend, IrAttachment
+        'account',
     ],
     # Licencia de la fuente de la que se adapta este addon, tal como su
     # manifest la declara (DEC-KX-03 punto 1): `account_edi` en Odoo
     # Community es LGPL-3.
     'license': 'LGPL-3',
     'application': False,
+    # Seguridad de la fuente
+    # (``odoo19c: addons/account_edi/__manifest__.py:17``): copia fiel del CSV.
+    # Las vistas y el cron de la fuente no se cargan aquí.
+    'data': [
+        'security/ir.model.access.csv',
+    ],
     'installable': True,
     'auto_install': False,
 }

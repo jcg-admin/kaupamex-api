@@ -282,7 +282,7 @@ def _create_edi_documents_after_post(self):
     (``ir_cron_edi_network._trigger()``) queda bloqueado (no sembrado, ver
     ``account_edi_format.py``).
     """
-    for edi_format in self.journal.edi_format_ids.all():
+    for edi_format in self.journal.edi_format_ids:
         applicability = edi_format._get_move_applicability(self)
         if not applicability:
             continue

@@ -107,7 +107,7 @@ def compute_edi_format_ids(journal):
         if edi_format._is_compatible_with_journal(journal)
         and (
             edi_format._is_enabled_by_default_on_journal(journal)
-            or journal.edi_format_ids.filter(pk=edi_format.pk).exists()
+            or edi_format.id in journal.edi_format_ids.ids
         )
     ]
 
@@ -117,10 +117,11 @@ def compute_edi_format_ids(journal):
             state__in=('to_cancel', 'to_send'),
         ).values_list('edi_format_id', flat=True)
     )
-    protected = journal.edi_format_ids.filter(pk__in=protected_ids)
+    protected = journal.edi_format_ids.filtered(
+        lambda edi_format: edi_format.id in protected_ids)
 
-    ids = {f.pk for f in enabled} | set(protected.values_list('pk', flat=True))
-    journal.edi_format_ids.set(ids)
+    ids = {f.pk for f in enabled} | set(protected.ids)
+    journal.write({'edi_format_ids': [fields.Command.set(sorted(ids))]})
 
 
 @receiver(

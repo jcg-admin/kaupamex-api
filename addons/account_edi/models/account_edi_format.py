@@ -90,7 +90,7 @@ import models
 from django.utils.html import escape as html_escape
 
 
-class AccountEdiFormat(models.RecordLoaderMixin, models.Model):
+class AccountEdiFormat(models.BaseModel):
     """``account.edi.format`` — un formato de facturación electrónica.
 
     Fila vacía de comportamiento hasta que un ``l10n_*_edi`` concreto

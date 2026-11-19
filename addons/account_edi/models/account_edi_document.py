@@ -140,7 +140,7 @@ def lock_for_update(queryset):
         ) from error
 
 
-class AccountEdiDocument(models.RecordLoaderMixin, models.Model):
+class AccountEdiDocument(models.BaseModel):
     """``account.edi.document`` — el estado de un formato EDI para un asiento.
 
     Una fila = "este ``move`` necesita procesarse en este ``edi_format``".
