@@ -108,6 +108,7 @@ from addons.resource.models.resource_calendar import ResourceCalendar
 from exceptions import UserError, ValidationError
 from orm import domains
 from orm.environments import env, get_current_uid, get_current_user, sudo
+from orm.registry import Registry, origin_alias
 from tools import safe_eval as safe_eval_tools
 from tools.safe_eval import safe_eval
 
@@ -866,21 +867,35 @@ class BaseAutomation(models.BaseModel, MailThread, MailActivityMixin,
 
     @classmethod
     def _register_hook(cls):
-        """≙ ``_register_hook`` (``base_automation.py:1040-1060``): fija, en
-        el registro de la base activa, qué modelos tienen reglas de escritura.
+        """≙ ``_register_hook`` (``base_automation.py:1040-1060``): deja sin
+        saberse, en el registro de la base activa, qué modelos tienen reglas
+        de escritura.
 
         La fuente parchea ``_compute_field_value`` en esos modelos al cargar
-        el registro; aquí el envoltorio es único (``models/signals.py``) y lee
-        este conjunto, de modo que un modelo sin reglas recalcula sin
-        consultar la base. Divergencia de momento: el registro de este árbol
-        no siempre tiene base detrás (``Registry.new`` de las pruebas), así
-        que el conjunto nace sin saberse (``None``) y lo llena el primer
-        receptor de señal que ya consulta las reglas, o
-        :meth:`_update_registry`. Mientras no se sepa, ningún recálculo
-        dispara: el mismo estado de la fuente antes de su
-        ``_register_hook``. Vive en la familia ``default`` de cachés del
-        registro, así que vaciarla lo devuelve a «no se sabe».
+        el registro, leyendo las reglas con el cursor de la carga. Aquí el
+        envoltorio es único (``models/signals.py``) y lee un conjunto de
+        nombres, de modo que un modelo sin reglas recalcula sin consultar la
+        base. Divergencia de momento: el registro de este árbol no siempre
+        tiene base detrás, y un registro sin conexión declarada llama a los
+        ganchos con el entorno de quien lo pidió (``Registry.new``). Por eso
+        el gancho no consulta: vacía el conjunto, y lo llena
+        :meth:`_load_write_models` desde el primer receptor de señal, que ya
+        consulta las reglas. Mientras no se sepa, ningún recálculo dispara:
+        el mismo estado de la fuente antes de su ``_register_hook``.
+
+        El registro se busca sin construirlo: pedir ``environment.registry``
+        crearía, y cargaría contra la base, un registro que nadie pidió.
         """
+        registry = Registry.registries.get(origin_alias(env().db_alias))
+        if registry is not None:
+            registry._caches['default'].pop(cls.WRITE_MODELS_CACHE_KEY, None)
+
+    @classmethod
+    def _load_write_models(cls):
+        """Fija el conjunto que :meth:`_register_hook` deja sin saberse: los
+        modelos con reglas de escritura activas, en el registro y la base del
+        entorno activo. Vive en la familia ``default`` de cachés del
+        registro, así que vaciarla lo devuelve a «no se sabe»."""
         environment = env()
         environment.registry._caches['default'][cls.WRITE_MODELS_CACHE_KEY] = (
             frozenset(
@@ -904,7 +919,7 @@ class BaseAutomation(models.BaseModel, MailThread, MailActivityMixin,
         registry = env().registry
         if registry.ready:
             registry.clear_cache()
-            type(self)._register_hook()
+            type(self)._load_write_models()
 
     def _check_action_server_model(self):
         """≙ ``_check_action_server_model`` (constrains model_id,

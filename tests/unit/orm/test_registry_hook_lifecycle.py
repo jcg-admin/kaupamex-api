@@ -13,9 +13,9 @@ de ``ready`` en el momento de cada una.
 El volcado que sigue a cada instalación (``env.flush_all()``,
 ``loading.py:595`` y ``registry.py:503``) se mide por su llamada.
 
-*Ciega a:* lo que un gancho concreto escriba, que no existe todavía en este
-árbol; y a los modelos de Django que no derivan de ``BaseModel``, que no
-tienen ganchos.
+*Ciega a:* lo que un gancho concreto escriba (``base.automation``, el único
+que hoy redefine uno, lo prueba su propia suite); y a los modelos de Django
+que no derivan de ``BaseModel``, que no tienen ganchos.
 """
 import pytest
 
@@ -25,6 +25,12 @@ from orm.registry import Registry
 from tests.conftest import preserved_registries
 
 NAME = 'hooks'
+
+
+def _all_subclasses(cls):
+    for subclass in cls.__subclasses__():
+        yield subclass
+        yield from _all_subclasses(subclass)
 
 
 @pytest.fixture
@@ -39,9 +45,17 @@ def calls(monkeypatch):
                          registry.ready if registry else None))
         return hook
 
-    monkeypatch.setattr(BaseModel, '_register_hook', recorder('register'))
-    monkeypatch.setattr(BaseModel, '_unregister_hook',
-                        recorder('unregister'))
+    # ``BaseModel`` y cada modelo que redefine un gancho sin ``super()``
+    # (``base.automation``, como en la fuente): el registro se mide por
+    # modelo, no por la implementación que lo atiende
+    owners = [BaseModel] + [
+        model for model in _all_subclasses(BaseModel)
+        if '_register_hook' in vars(model)
+        or '_unregister_hook' in vars(model)]
+    for owner in owners:
+        monkeypatch.setattr(owner, '_register_hook', recorder('register'))
+        monkeypatch.setattr(owner, '_unregister_hook',
+                            recorder('unregister'))
     monkeypatch.setattr(Environment, 'flush_all',
                         lambda self: seen.append(('flush', None, True, None)))
     with preserved_registries():

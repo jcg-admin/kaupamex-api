@@ -122,10 +122,11 @@ def _capture_old_values(sender, instance, **kwargs):
 
 def _know_watched_models():
     """Llena el conjunto de modelos con reglas de escritura del registro de
-    la base activa si aún no se sabe (``BaseAutomation._register_hook``)."""
+    la base activa si aún no se sabe
+    (``BaseAutomation._load_write_models``)."""
     cache = env().registry._caches['default']
     if BaseAutomation.WRITE_MODELS_CACHE_KEY not in cache:
-        BaseAutomation._register_hook()
+        BaseAutomation._load_write_models()
 
 
 @receiver(post_save, dispatch_uid='base_automation.dispatch_create_write')
