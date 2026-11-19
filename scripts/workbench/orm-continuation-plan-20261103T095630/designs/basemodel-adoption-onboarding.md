@@ -57,3 +57,39 @@ por modelo (todos sin permiso, `base.group_user` sin permiso y
 `tests/unit/onboarding/test_onboarding_basemodel_acl.py`: los cuatro modelos
 son `BaseModel` con los atributos de la fuente; las filas de ACL son las del
 CSV; un usuario interno no lee un paso y el administrador sí.
+
+## Los consumidores, medidos al cambiar la base
+
+Con `BaseModel`, el acceso a una relación devuelve un recordset y no un
+gestor de Django: `.all()`, `.filter()`, `.count()`, `.exists()` y `.set()`
+dejan de existir sobre él, como en la fuente, que usa `filtered`, `len`, la
+verdad del recordset, `unlink` y `write` con `Command`. Medido con la suite
+del addon: 21 de 26 pruebas caían. Se pasan al API de recordset, sin cambiar
+la conducta, estos métodos:
+
+- `onboarding.onboarding`: `is_per_company` (≙ `_compute_is_per_company`,
+  `odoo19c: addons/onboarding/models/onboarding_onboarding.py:45-54`),
+  `get_current_progress` (≙ `_compute_current_progress`, `:56-69`),
+  `set_steps` (la porción de `write`, `:71-77`), `action_refresh_progress_ids`
+  (`:92-102`), `_create_progress` (`:113-123`) y `_prepare_rendering_values`
+  (`:125-136`), más la extensión `_prepare_rendering_values` de `account`;
+- `onboarding.onboarding.step`: `check_step_on_onboarding_has_action`
+  (`odoo19c: addons/onboarding/models/onboarding_onboarding_step.py:65-72`),
+  `link_onboarding` (la porción de `write`, `:74-92`),
+  `_compute_current_progress` (`:47-63`) y `_create_progress_steps`
+  (`:113-133`);
+- `onboarding.progress`: `onboarding_state` (≙ `_compute_onboarding_state`,
+  `odoo19c: addons/onboarding/models/onboarding_progress.py:30-39`),
+  `recompute_progress_step_ids` (`:41-44`) y `get_and_update_onboarding_state`
+  (`:53-78`).
+
+Las pruebas de la fuente corren como superusuario (`TransactionCase`); las de
+`tests/unit/onboarding/test_onboarding.py` pasan a hacerlo con un entorno de
+`SUPERUSER_ID`, porque la ACL sólo da permisos a `base.group_system`.
+
+## Fuera de esta unidad
+
+La forma de la fuente de esos métodos —campos calculados en lugar de
+propiedades, y `write` en lugar de `set_steps`/`link_onboarding`— es la unidad
+sucesora `onboarding-methods-0397`, bajo TASK-API-0397, junto a
+`onboarding-fk-names-0397`.
