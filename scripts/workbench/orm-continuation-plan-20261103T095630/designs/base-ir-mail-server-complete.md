@@ -668,3 +668,32 @@ de `.env.example` corregida (decía que las pruebas usaban `locmem`). Gate:
 configuración de producción en un subproceso con las tres variables fijadas.
 Control: sin la línea de `EMAIL_FROM_FILTER` en `production.py`, la prueba
 falla.
+
+### Paso 5, revisado con los inventarios (2026-11-19)
+
+Dos investigaciones paralelas de sólo lectura midieron las dependencias; sus
+informes quedan en el banco (`designs/inventory-mail-template.md`,
+`designs/inventory-mail-res-users.md`). Lo verificado aquí antes de usarlos:
+
+- `ResUsers` no está sobre `BaseModel` (`src/addons/base/models/
+  res_users.py:471`); `mail` la extiende con `extend_model('base',
+  'ResUsers', ...)` desde `ready()`, como ya hace `hr`
+  (`addons/hr/models/res_users.py:21-36`).
+- `extend_model(..., overrides=...)` entrega el `super()` en la mano y
+  conserva el descriptor `classmethod` (`src/orm/method_chain.py:241-330`),
+  que es lo que necesitan `_get_default_bounce_address`,
+  `_filter_mail_servers_fallback` y `_find_mail_server_allowed_domain`.
+
+**Ítem 5-1** (`mail-ir-mail-server-owner-0397`): la extensión de `ir.mail_server`
+de `mail` (`odoo19c: addons/mail/models/ir_mail_server.py:10-106`) junto con el
+grupo de `res.users` que la cierra (`odoo19c: addons/mail/models/res_users.py:
+50-66,131-148` — `outgoing_mail_server_id`, `outgoing_mail_server_type`,
+`has_external_mail_server` y su cómputo), porque cada mitad lee de la otra:
+`_check_forced_mail_server` usa `owner_user_id.outgoing_mail_server_id` y el
+cómputo de `res.users` busca por `owner_user_id`.
+
+Lo que 5-1 no puede cerrar, con su bloqueo medido y su sucesor:
+`mail_template_ids` y la rama de plantillas de `_active_usages_compute`
+necesitan `mail.template.mail_server_id`, que llega con la adopción de
+`mail.template` (ítem 3 del inventario, campos relacionales). Se declaran en
+el archivo con su condición de cierre, no se omiten.
