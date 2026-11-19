@@ -531,7 +531,8 @@
   "mail-company-extension-0397",
   "base-ir-mail-server-underscore-0397",
   "base-ir-mail-server-basemodel-0397",
-  "base-ir-mail-server-message-0397"
+  "base-ir-mail-server-message-0397",
+  "base-ir-mail-server-config-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
