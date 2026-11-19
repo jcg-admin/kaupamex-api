@@ -114,3 +114,29 @@ precede a la primera fallida en su worker. Sucesor bajo TASK-API-0485.
 El guardián se lleva a la forma de la fuente (excepción y texto), y los otros
 tres se portan, con sus consumidores medidos en `_find_mail_server` y en
 `send_email`, que llega en el paso 3.
+
+### Decisión del paso 2 (ítem `base-ir-mail-server-basemodel-0397`)
+
+El guardián de archivado no estaba conectado a nada: `check_can_archive` y
+`check_can_archive_many` sólo los llamaba la prueba. En la fuente vive en el
+`write` del modelo (`odoo19c: odoo/addons/base/models/ir_mail_server.py:231-264`),
+y `IrMailServer` no tenía `write` porque no es `BaseModel`. Por eso el paso
+adopta el modelo:
+
+- `IrMailServer(models.BaseModel, TimeStampedModel)` con la cabecera de la
+  fuente (`odoo19c: odoo/addons/base/models/ir_mail_server.py:142-145`):
+  `_name = 'ir.mail_server'`, `_description = 'Mail Server'`,
+  `_order = 'sequence, id'` y `_allow_sudo_commands = False`;
+- la fila `access_ir_mail_server` (`group_system`, 1,1,1,1) del CSV de
+  `base`, derivada con `probes/derive_base_acl.py` y sembrada por una
+  migración, como `0095_seed_attachment_acl`;
+- `write`, con el guardián tal cual: `UserError`, los dos mensajes de la
+  fuente (uno o varios servidores) y el encabezado «(Dedicated Outgoing Mail
+  Server)» sólo con varios. `check_can_archive(_many)` se retiran: eran su
+  porte bajo otro nombre;
+- `_check_forced_mail_server` (`:546-548`), `_get_default_bounce_address`
+  (`:646-654`, el `email_from` de arranque, que aquí es
+  `settings.DEFAULT_FROM_EMAIL` como en `_get_default_from_address`) y
+  `_find_mail_server_allowed_domain` (`:870-873`, `Domain.TRUE`).
+
+RED en `tests/unit/base/test_ir_mail_server_basemodel.py`.
