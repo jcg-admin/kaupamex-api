@@ -57,6 +57,10 @@ dependencies = [
     # odoo19c: setup/odoo-wsgi.example.py (odoo-tools@622ddc2a).
     "gunicorn>=23.0.0",
     "lxml>=6.1.1",
+    # Saneo de HTML de tools/mail.py: la referencia importa
+    # lxml.html.clean (odoo19c: odoo/tools/mail.py:21-29), que desde
+    # lxml 5.2 es el paquete aparte lxml_html_clean.
+    "lxml-html-clean>=0.4.6",
     # Aritmetica de calendario para el cargador de datos XML: el contexto de
     # evaluacion de `tools/convert.py` expone `relativedelta` a las expresiones
     # de un archivo de datos, tal cual la referencia
