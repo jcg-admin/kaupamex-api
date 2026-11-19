@@ -76,11 +76,6 @@
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
-   "id": "analytic-model-headers-0121",
-   "task": "TASK-API-0121",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
-  },
-  {
    "id": "account-unported-models-0121",
    "task": "TASK-API-0121",
    "reason": "conflicts with a unit in flight or ahead in the frontier"
@@ -495,6 +490,7 @@
   "purchase-product-0397",
   "account-copy-data-business-fields-0397",
   "account-model-headers-0121",
+  "analytic-model-headers-0121",
   "account-security-0121",
   "product-model-headers-0122",
   "purchase-line-amounts-0122",
