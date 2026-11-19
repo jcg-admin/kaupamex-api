@@ -55,8 +55,10 @@ Unidad hija `basemodel-adoption-purchase-requisition-0397` del paraguas
 6. D-5 se cierra en esta unidad, porque la regla
    `purchase_requisition_line_comp_rule` la necesita: cargar el XML falló con
    *«Campo inválido purchase_requisition.PurchaseRequisitionLine.company_id»*
-   mientras la empresa de la línea era una `property`. `company` de la línea
-   es ahora `fields.Many2one(related='requisition.company', store=True)`
+   mientras la empresa de la línea era una `property`. La línea declara ahora
+   `company_id = fields.Many2one(related='requisition.company', store=True,
+   db_column='company_id')`, en la forma C de ADR-029 que exige
+   `scripts/check_fk_naming.py` a toda FK nueva (F2 de `76917813`)
    (≙ `odoo19c: addons/purchase_requisition/models/purchase_requisition.py:181`),
    con la migración `0006_purchaserequisitionline_company`, que rellena las
    filas existentes con la empresa de su acuerdo.
