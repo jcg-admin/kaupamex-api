@@ -173,3 +173,60 @@ en español, y la fuente las declara en inglés (`:147-155`). Sus
 consumidores en la fuente son `send_email` y `_prepare_email_message__`, así
 que se llevan a la forma de la fuente en el paso 3, que es cuando tienen
 consumidor. Sucesor: el paso 3 de este diseño, bajo TASK-API-0397.
+
+## Paso 3: el transporte (borrador)
+
+### La prosa heredada, validada
+
+| Afirmación del docstring del puerto | Medido | Veredicto |
+|---|---|---|
+| «Todo el transporte (…) no se porta: aquí el transporte es `django.core.mail`. Duplicarlo daría dos caminos de salida» | la regla del objetivo prohíbe declarar divergencia en lugar de portar; `IrMailServer` no tiene consumidores de envío (medido en el paso 2) | **no es un cierre válido**: es una divergencia declarada sobre un contrato que la fuente sí tiene |
+| «`_verify_check_hostname_callback` (pyOpenSSL) pertenece al conector, que no se porta» | `pyOpenSSL` 26.2.0 y `urllib3.contrib.pyopenssl` se importan en `.venv` | la dependencia existe; el bloqueo no está medido |
+| «`groups='base.group_system'` en los cuatro campos de credenciales (…) actúa en el serializer» | la restricción de campo de la fuente es del ORM; con `BaseModel` adoptado, el control de grupo por campo es del recordset | se mide en el paso 3: si el ORM ya aplica `groups=` a la lectura, se declara en el campo |
+
+### Alcance
+
+Por familias, cada una con su RED y su anulación:
+
+1. **Mensaje**: `_build_email__`, `_prepare_email_message__`,
+   `_alter_message__`, `_prepare_smtp_to_list`, más las constantes de error
+   en el inglés de la fuente.
+2. **Conexión**: `_connect__`, `_smtp_login__`, `_check_smtp_ssl_files`,
+   `_verify_check_hostname_callback`, `_disable_send`.
+3. **Envío y prueba**: `send_email`, `test_smtp_connection`,
+   `action_retrieve_max_email_size`, `_get_test_email_to`,
+   `_onchange_encryption`.
+4. **Los parches de import** (`_print_debug`, `WriteToLogger`,
+   `IdentificationFieldsNoFoldPolicy`): la fuente los aplica al importar
+   `ir_mail_server`, y aquí se portan igual en el mismo módulo.
+
+Y después `django.core.mail` deja de ser un segundo camino: quien envíe
+correo pasa por `send_email`, como en la fuente.
+
+### Un solo camino de salida, como en la fuente (corrección del ejecutor, 2026-11-19)
+
+«Duplicarlo daría dos caminos de salida» no es razón para no portar: el
+remedio es el de la fuente, donde **el único** camino de salida es
+`ir.mail_server.send_email`. `mail.mail._send` lo llama
+(`odoo19c: addons/mail/models/mail_mail.py:861`).
+
+Consumidores de `django.core.mail` medidos con
+`grep -rnE "django\.core\.mail|send_mail\(" src addons`:
+
+- `addons/mail/models/mail_mail.py:59,429` (`send_mail`);
+- `addons/mail/models/email_executor.py:25,58` (`send_mail`);
+- `addons/website_mass_mailing/controllers/subscribe.py:10,34`
+  (`mail.send_mail`).
+
+Cada uno pasa a `IrMailServer.send_email`, en una unidad propia después del
+porte del transporte.
+
+**Modo de prueba.** En la fuente `send_email` no envía cuando `_disable_send()`
+es verdadero (`odoo19c: odoo/addons/base/models/ir_mail_server.py:389-392`,
+`modules.module.current_test or cls.pool._init`), y las pruebas capturan el
+mensaje parcheando `send_email` (`MockEmail`,
+`odoo19c: addons/mail/tests/common.py:51`). Aquí las pruebas leen
+`django.core.mail.outbox`: 11 archivos y 60 lecturas
+(`grep -rhoE "mail\.outbox" tests`). Al pasar los consumidores a
+`send_email`, esas pruebas pasan a la captura de la fuente, con su fixture
+portado.
