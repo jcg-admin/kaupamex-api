@@ -22,6 +22,25 @@ UI (`dompurify`) —la misma decisión que `fields_textual.Html` ya declara—»
 Desde `html-field-sanitize-0397` el campo `Html` sanea, así que la premisa
 de esa divergencia es falsa y la rama se porta.
 
+## El defecto que la prueba destapó: la asignación guardaba la lista
+
+`message.attributes = [definiciones]` dejaba en el atributo de instancia la
+lista cruda, y `save()` lee la columna de ese atributo: la base recibía la
+lista y `read()` fallaba con `Wrong type`. `write()` sí la convertía. En la
+fuente la asignación llega a `records.write({name: value})` (`Field.__set__`,
+`odoo19c: odoo/orm/fields.py:1807-1841`), que guarda la forma de caché.
+
+`FieldDescriptor.__set__` (`src/orm/fields.py`) excluía a `Properties` y
+`PropertiesDefinition` de la conversión de `JSONField` por su contrato de
+caché propio. Se les da su rama: el atributo recibe
+`field.convert_to_cache(copia, instance)` —la lista reducida a `{nombre:
+valor}`, con las `_html` saneadas— y `field.write` sigue recibiendo el valor
+tal cual, que es lo que lleva `definition_changed` hasta el contenedor.
+
+Funciones que cambian: `__set__` de `FieldDescriptor`, `convert_to_cache` de
+`Properties`, `_validate_properties_definition` de `PropertiesDefinition` y el
+docstring de `get_prep_value`, cuya prosa citaba la divergencia retirada.
+
 ## Pruebas
 
 Porte de `test_properties_field_html` (`odoo19c:
