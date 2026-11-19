@@ -96,11 +96,6 @@
    "reason": "conflicts with a unit in flight or ahead in the frontier"
   },
   {
-   "id": "product-model-headers-0122",
-   "task": "TASK-API-0122",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
-  },
-  {
    "id": "purchase-line-checks-0122",
    "task": "TASK-API-0122",
    "reason": "waits for purchase-line-lifecycle-0122"
@@ -501,6 +496,7 @@
   "account-copy-data-business-fields-0397",
   "account-model-headers-0121",
   "account-security-0121",
+  "product-model-headers-0122",
   "purchase-line-amounts-0122",
   "purchase-line-related-0122",
   "purchase-line-qty-invoiced-0122",
