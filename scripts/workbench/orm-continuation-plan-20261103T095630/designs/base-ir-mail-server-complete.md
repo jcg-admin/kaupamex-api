@@ -140,3 +140,35 @@ adopta el modelo:
   `_find_mail_server_allowed_domain` (`:870-873`, `Domain.TRUE`).
 
 RED en `tests/unit/base/test_ir_mail_server_basemodel.py`.
+
+### Ejecución del paso 2 (2026-11-19)
+
+- `IrMailServer` deriva de `BaseModel` con la cabecera de la fuente. Lleva
+  `write` con el guardián, `_check_forced_mail_server`,
+  `_get_default_bounce_address` y `_find_mail_server_allowed_domain`.
+  `check_can_archive(_many)` se retiraron, porque su único consumidor era la
+  prueba.
+- `_ACCESS` se volvió a derivar con `probes/derive_base_acl.py`: 94 filas,
+  iguales en conjunto y en orden al literal. Entran cinco: `ir_mail_server`
+  (`odoo19c: odoo/addons/base/security/ir.model.access.csv:119-119`) y cuatro
+  de modelos que ya tenían `_name` sin que nadie hubiera vuelto a derivar la
+  lista: `ir_exports group_system`, `ir_exports_line group_system` y las dos
+  de `res_groups_privilege`. La migración `0122_seed_derived_acl` las siembra
+  en las bases existentes con `seed_base_acl`, que es idempotente. Su prueba
+  es `test_the_system_group_has_the_source_acl` en
+  `tests/unit/base/test_ir_mail_server_basemodel.py`.
+- Pruebas en `tests/unit/base/test_ir_mail_server_basemodel.py`: 8.
+
+Anulaciones, cada una medida por separado:
+
+| Se retira | Caen |
+|---|---|
+| `write` | las dos del guardián (uno y varios servidores) |
+| la guarda de `_check_forced_mail_server` | sólo `test_an_archived_server_cannot_be_forced` |
+
+**Lo que el paso no cierra.** Las constantes `NO_VALID_RECIPIENT`,
+`NO_FOUND_FROM`, `NO_FOUND_SMTP_FROM` y `NO_VALID_FROM` llevan texto propio
+en español, y la fuente las declara en inglés (`:147-155`). Sus
+consumidores en la fuente son `send_email` y `_prepare_email_message__`, así
+que se llevan a la forma de la fuente en el paso 3, que es cuando tienen
+consumidor. Sucesor: el paso 3 de este diseño, bajo TASK-API-0397.
