@@ -517,3 +517,12 @@ la prueba de captura.
   `parsed_message(...)`.
 - Después, `EMAIL_BACKEND` de pruebas (`config/settings/testing.py:133`) queda
   sin consumidor y se retira.
+
+Funciones que cambia el paso 3d-2, en `addons/mail/models/email_executor.py`:
+`dispatch_email` deja de llamar a `send_mail` de Django y llama a `_send_mail`,
+una función nueva que arma el mensaje con `_build_email__` y lo envía con
+`send_email`, como `mail.mail._send` de la fuente
+(`odoo19c: addons/mail/models/mail_mail.py:763-870`). `_finalize_failure`
+reencola el cuerpo HTML cuando lo hay, en vez del texto plano. Pruebas:
+`tests/integration/mail/test_transactional_notifications.py` y las otras siete
+que leen `outbox`.
