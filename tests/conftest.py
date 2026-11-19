@@ -73,6 +73,7 @@ from orm.environments import _discard_connection_transaction, get_transaction
 from orm.environments import Environment
 from orm.registry import Registry, clear_cache
 from tests.cursor_support import TestCursor
+from tests.mocks.mail_server import MockSmtplibCase
 from pytest_django.plugin import blocking_manager_key
 
 # ─── Pruebas que dependen del árbol de referencia ───────────────────────────
@@ -709,3 +710,16 @@ def registries_preserved():
     que no lo importan."""
     with preserved_registries():
         yield
+
+
+@pytest.fixture
+def mock_smtplib_connection():
+    """El correo de la prueba, capturado al nivel de ``smtplib``.
+
+    ≙ ``MockSmtplibCase.mock_smtplib_connection``
+    (``odoo19c: odoo/addons/base/tests/common.py:383-451``). Devuelve el
+    caso; ``.emails`` lista lo que ``send_email`` entregó a la sesión.
+    """
+    case = MockSmtplibCase()
+    with case.mock_smtplib_connection():
+        yield case

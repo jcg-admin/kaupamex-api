@@ -28,6 +28,8 @@ from addons.mass_mailing import services as mm
 from addons.mass_mailing.models import MailingSubscription
 from django.core import mail, signing
 
+from tests.mocks.mail_server import parsed_message
+
 pytestmark = pytest.mark.integration
 
 SUBSCRIBE_URL = '/api/v2/newsletter/subscriptions/'
@@ -147,16 +149,17 @@ class TestConfirmSubscription:
         res = api_client.post(CONFIRM_URL, {'token': token}, format='json')
         assert res.status_code == 400
 
-    def test_confirm_subscribe_sends_confirmation_email(self, api_client, db):
-        mail.outbox.clear()
+    def test_confirm_subscribe_sends_confirmation_email(
+        self, api_client, db, mock_smtplib_connection
+    ):
         res = api_client.post(
             SUBSCRIBE_URL, {'email': 'newemail@example.com'}, format='json'
         )
         assert res.status_code == 201
-        # Give thread pool a moment to deliver
-        time.sleep(0.1)
-        subjects = [m.subject for m in mail.outbox]
+        sent = mock_smtplib_connection.emails
+        subjects = [parsed_message(entry)['Subject'] for entry in sent]
         assert any('Confirma' in s for s in subjects)
+        assert sent[-1]['smtp_to_list'] == ['newemail@example.com']
 
 
 # ─── DELETE /newsletter/subscriptions/ ───────────────────────────────────

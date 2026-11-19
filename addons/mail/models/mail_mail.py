@@ -56,7 +56,6 @@ Fidelidad y adaptaciones (documentadas, principio-rector Clausula 2):
 import logging
 from datetime import timedelta
 
-from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -64,6 +63,7 @@ from django.utils import timezone
 import fields
 import models
 from addons.base.models import TimeStampedModel
+from orm.environments import SUPERUSER_ID, Environment
 from addons.mail.models.mail_message import MailMessage
 
 logger = logging.getLogger(__name__)
@@ -426,13 +426,18 @@ class MailMail(TimeStampedModel):
                 e.strip() for e in mail.email_to.split(',') if e.strip()
             ]
             try:
-                send_mail(
+                # ≙ ``mail.mail._send`` (``odoo19c: addons/mail/models/
+                # mail_mail.py``): el mensaje lo construye ``ir.mail_server``
+                # y sale por ``send_email``, el único camino de salida.
+                IrMailServer = Environment(uid=SUPERUSER_ID)['ir.mail_server']
+                message = IrMailServer._build_email__(
+                    email_from=mail.email_from,
+                    email_to=recipient_list,
                     subject=mail.subject,
-                    message=mail.body_html,
-                    from_email=mail.email_from or None,
-                    recipient_list=recipient_list,
-                    fail_silently=False,
+                    body=mail.body_html,
+                    subtype='html',
                 )
+                IrMailServer.send_email(message)
             except Exception as exc:
                 logger.error(
                     'process_email_queue: mail pk=%s attempt=%s error=%s',

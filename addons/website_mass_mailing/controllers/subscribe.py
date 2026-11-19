@@ -6,8 +6,11 @@ PENDING/CONFIRMED/UNSUBSCRIBED se deriva de la máquina por-lista; el salt
 ``newsletter-confirm`` se conserva (enlaces ya enviados / datos migrados).
 """
 
+import logging
+import smtplib
+
 from django.conf import settings
-from django.core import mail, signing
+from django.core import signing
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.permissions import AllowAny
@@ -16,9 +19,14 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from addons.base.models import CompanySetting
+from addons.base.models.ir_mail_server import MailDeliveryException
 from addons.mass_mailing import services as mm
 
+from orm.environments import SUPERUSER_ID, Environment
+
 from .serializers import SubscribeSerializer
+
+_logger = logging.getLogger(__name__)
 
 # Buzón de newsletter — L3 per-empresa (SOL-090 slice 3, CompanySetting). La
 # constante es el fallback **neutral** (nivel Kaupamex, no Kaupamex) que
@@ -31,16 +39,24 @@ def _send_confirmation_email(email: str, token: str) -> None:
     """Send double opt-in confirmation email."""
     frontend = getattr(settings, 'FRONTEND_URL', 'http://localhost:3001')
     confirm_url = f'{frontend}/confirmar-newsletter/{token}/'
-    mail.send_mail(
-        subject='Confirma tu suscripción al Newsletter',
-        message=f'Haz click para confirmar: {confirm_url}',
-        from_email=CompanySetting.get_setting(
+    IrMailServer = Environment(uid=SUPERUSER_ID)['ir.mail_server']
+    message = IrMailServer._build_email__(
+        email_from=CompanySetting.get_setting(
             'newsletter.from_email',
             NEWSLETTER_FROM_EMAIL_DEFAULT,
         ),
-        recipient_list=[email],
-        fail_silently=True,
+        email_to=[email],
+        subject='Confirma tu suscripción al Newsletter',
+        body=f'Haz click para confirmar: {confirm_url}',
     )
+    try:
+        IrMailServer.send_email(message)
+    except (MailDeliveryException, smtplib.SMTPException, OSError):
+        # silent OK because el alta no depende de la confirmación: es lo que
+        # hacía ``fail_silently=True``, que traga ``SMTPException`` y
+        # ``OSError``; el fallo queda en el log
+        _logger.warning('No se envió la confirmación a %s', email,
+                        exc_info=True)
 
 
 class NewsletterSubscribeView(APIView):

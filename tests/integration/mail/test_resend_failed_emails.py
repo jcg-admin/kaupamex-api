@@ -13,10 +13,10 @@ el
 mismo método —``MailMail.process_email_queue``— y de paso cubren que la
 envoltura de CLI no se desconecte.
 
-Por eso ``send_mail`` se parchea en ``addons.mail.models.mail_mail``: ahí vive
-ahora la costura de envío. Parchearlo en el módulo del comando dejó de
-funcionar cuando la lógica bajó al modelo, que es la señal correcta — el test
-apuntaba a la implementación, no al contrato.
+El envío sale por ``ir.mail_server.send_email``, el único camino de salida de
+la fuente, así que el correo se captura con el fixture
+``mock_smtplib_connection`` (≙ ``MockSmtplibCase``) y el fallo se simula
+haciendo fallar ``send_email``.
 
 Implementacion:
   src/addons/mail/models/mail_mail.py :: MailMail.process_email_queue
@@ -26,10 +26,10 @@ Implementacion:
 import pytest
 from datetime import timedelta
 
-from django.core import mail
 from django.core.management import call_command
 from django.utils import timezone
 
+from addons.base.models.ir_mail_server import IrMailServer
 from addons.mail.models import MailMail
 
 pytestmark = pytest.mark.integration
@@ -41,8 +41,7 @@ def _run():
 
 class TestSendPendingEmails:
 
-    def test_envia_pendiente_y_marca_sent(self, db):
-        mail.outbox = []
+    def test_envia_pendiente_y_marca_sent(self, db, mock_smtplib_connection):
         m = MailMail.enqueue(
             to='dest@kaupamex.mx',
             subject='Confirmacion de orden',
@@ -52,14 +51,13 @@ class TestSendPendingEmails:
         m.refresh_from_db()
         assert m.state == MailMail.STATE_SENT
         assert m.attempts == 1
-        assert len(mail.outbox) == 1
-        assert mail.outbox[0].to == ['dest@kaupamex.mx']
+        [sent] = mock_smtplib_connection.emails
+        assert sent['smtp_to_list'] == ['dest@kaupamex.mx']
 
-    def test_no_procesa_tarea_futura(self, db):
+    def test_no_procesa_tarea_futura(self, db, mock_smtplib_connection):
         """
         scheduled_date en el futuro => no se toca (backoff aun pendiente).
         """
-        mail.outbox = []
         m = MailMail.enqueue(
             to='futuro@kaupamex.mx',
             subject='S',
@@ -70,14 +68,13 @@ class TestSendPendingEmails:
         m.refresh_from_db()
         assert m.state == MailMail.STATE_OUTGOING
         assert m.attempts == 0
-        assert len(mail.outbox) == 0
+        assert mock_smtplib_connection.emails == []
 
-    def test_fallo_de_envio_marca_retrying_con_backoff(self, db, settings):
+    def test_fallo_de_envio_marca_retrying_con_backoff(self, db):
         """
-        Si send_mail lanza, el correo sigue outgoing y reprograma
+        Si send_email lanza, el correo sigue outgoing y reprograma
         scheduled_date.
         """
-        settings.EMAIL_BACKEND = 'django.core.mail.backends.dummy.EmailBackend'
         m = MailMail.enqueue(
             to='falla@kaupamex.mx',
             subject='S',
@@ -90,10 +87,7 @@ class TestSendPendingEmails:
             def _boom(*a, **k):
                 raise RuntimeError('SMTP down')
 
-            mp.setattr(
-                'addons.mail.models.mail_mail.send_mail',
-                _boom,
-            )
+            mp.setattr(IrMailServer, 'send_email', _boom)
             _run()
         m.refresh_from_db()
         assert m.state == MailMail.STATE_OUTGOING
@@ -119,18 +113,14 @@ class TestSendPendingEmails:
             def _boom(*a, **k):
                 raise RuntimeError('SMTP down')
 
-            mp.setattr(
-                'addons.mail.models.mail_mail.send_mail',
-                _boom,
-            )
+            mp.setattr(IrMailServer, 'send_email', _boom)
             _run()
         m.refresh_from_db()
         # attempts pasa de 1 a 2 == max_attempts => exception.
         assert m.attempts == 2
         assert m.state == MailMail.STATE_EXCEPTION
 
-    def test_no_reintenta_tarea_ya_enviada(self, db):
-        mail.outbox = []
+    def test_no_reintenta_tarea_ya_enviada(self, db, mock_smtplib_connection):
         m = MailMail.enqueue(
             to='ya@kaupamex.mx',
             subject='S',
@@ -140,4 +130,4 @@ class TestSendPendingEmails:
         _run()
         m.refresh_from_db()
         assert m.state == MailMail.STATE_SENT
-        assert len(mail.outbox) == 0
+        assert mock_smtplib_connection.emails == []
