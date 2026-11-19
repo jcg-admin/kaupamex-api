@@ -649,3 +649,22 @@ suelto sería un porte parcial; lo correcto es la adopción completa de
 Orden: 5a, la adopción de `mail.template` (partida en ítems al medirla); 5b, la extensión de `res.users`
 de `mail`, que por su tamaño se parte en ítems al medirla; 5c, la extensión
 de `ir.mail_server`.
+
+## Paso 3f: la configuración SMTP de despliegue (ítem `base-ir-mail-server-options-0397`)
+
+Pendiente que dejó el paso 3d-2, medido con `git grep -n EMAIL_BACKEND -- src`:
+`EMAIL_BACKEND` sigue en `development.py:23`, `production.py:114`,
+`options.py:169-171` y `src/.env.example:88`, y ya no lo lee nadie. Al
+revés, los lectores de `tools.config` leen `EMAIL_FROM_FILTER`,
+`EMAIL_SSL_CERTFILE` y `EMAIL_SSL_KEYFILE`
+(`odoo19c: odoo/tools/config.py:352,364,366`), que ningún despliegue puede
+fijar porque el registro de opciones no los declara.
+
+Cambio: se retira `EMAIL_BACKEND` de los cuatro sitios y se registran las
+tres opciones en `options.py`, `production.py` y `.env.example`, con la prosa
+de `.env.example` corregida (decía que las pruebas usaban `locmem`). Gate:
+`scripts/check_options_registry.py`. Prueba:
+`tests/unit/config/test_production_smtp_options.py`, que importa la
+configuración de producción en un subproceso con las tres variables fijadas.
+Control: sin la línea de `EMAIL_FROM_FILTER` en `production.py`, la prueba
+falla.
