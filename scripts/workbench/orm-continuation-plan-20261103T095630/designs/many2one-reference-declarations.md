@@ -28,6 +28,16 @@ mueve la columna ni genera migración. Lo que cambia es el tipo del campo
 (`type = 'many2one_reference'`, `ttype` en `ir.model.fields`), `model_field`
 y la conversión de un registro a su id en `convert_to_cache`.
 
+## La prosa heredada que esta unidad corrige
+
+Los `help_text` de `ir.attachment`, `mail.message`, `mail.activity` y
+`mail.followers` decían «Integer plano» o «el ORM shim no tiene un tipo
+Many2oneReference fiel»; las dos afirmaciones dejan de ser ciertas. El texto
+de ayuda está en el estado de migración, así que su corrección lleva las
+migraciones `0125_irattachment_res_id_help_text` (base) y
+`0013_res_id_help_text` (mail), que sólo cambian ese texto: ni la columna ni
+su tipo se mueven.
+
 ## Fuera de esta unidad
 
 `_update_inverses` y `_record_ids_per_res_model` (`:89-118`) siguen sin
