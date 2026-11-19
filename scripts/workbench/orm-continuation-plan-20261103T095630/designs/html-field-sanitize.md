@@ -21,13 +21,46 @@ pruebas, y `sanitize_overridable=True` en `hr_job`, `product_template`,
 `product_public_category`, `forum_forum`, `survey_survey` y
 `gamification_karma_rank`.
 
+Y cuatro atajos estáticos (`:699-702`): `escape = markup_escape`,
+`is_empty = is_html_empty`, `to_plaintext = html2plaintext`,
+`from_plaintext = plaintext2html`, más `type = 'html'` y
+`_column_type = ('text', 'text')` (`:562-563`).
+
+Obligaciones del inventario que cierra, con su clave
+(`src/orm/fields_textual.py::Html.<símbolo>`, TASK de alcance
+TASK-API-0485): la clase, los diez atributos, `_get_attrs`, `_convert`,
+`convert_to_column`, `convert_to_cache`, las doce propiedades `_related_*`
+y `_description_*`, los cuatro atajos, `type` y `_column_type`.
+
+## Las declaraciones del árbol que llevan opciones en la fuente
+
+Medido con un recorrido AST de nuestras 37 declaraciones `fields.Html`
+contra su contraparte (fuera `translate`, que es TASK-GEN-0060):
+
+| Campo | Opciones de la fuente |
+|---|---|
+| `website.Website.custom_code_head`, `custom_code_footer` | `sanitize=False` |
+| `website.Website.robots_txt` | `sanitize=False` |
+| `digest.DigestTip.tip_description` | `sanitize=False` |
+| `mail.MailMessage.body`, `mail.MailActivity.note` | `sanitize_style=True` |
+| `mail.MailTemplate.body_html` | `sanitize='email_outgoing'` |
+| `mass_mailing.MailingMailing.body_html` | `sanitize='email_outgoing'` (`odoo19c: addons/mass_mailing/models/mailing.py:115-117`) |
+| `hr.HrJob.description` | `sanitize_attributes=False` |
+| `base.ServerActionHistoryWizard.code_diff` | `sanitize_tags=False` |
+
+Sin ellas, el saneo por defecto cambiaría la conducta de esos campos
+respecto a la fuente; van en la misma unidad que el mecanismo.
+
 ## Dónde engancha aquí
 
-Nuestras dos rutas de escritura llaman a `Field.pre_save`: `Model.save()` y
-el volcado de `BaseModel` (`_persist_columns`, `src/orm/models.py:5443`,
-*"el valor de cada columna lo da `Field.pre_save(row, False)`"*). Por eso el
-saneo de `_convert` va en `Html.pre_save`, que tiene el registro y puede leer
-el valor original de la base para la rama `sanitize_overridable`.
+`BaseModel.write` convierte cada valor con `field.convert_to_cache(value,
+self, validate)` (`src/orm/models.py:9951`), igual que la fuente; por eso
+`Html.convert_to_cache` y `Html.convert_to_column` llaman a `_convert`, con los
+nombres y el cuerpo de la fuente. Un modelo de Django que no es `BaseModel`
+escribe con `Model.save()`, que no pasa por `convert_to_cache`, así que
+`Html.pre_save` también llama a `_convert` (el saneo es idempotente: lo
+prueba la fuente en `test_basic_sanitizer`). Para el registro y el usuario,
+`_convert` usa `env()` cuando la fila no lleva `env`.
 
 - `Html.__init__` acepta los diez atributos de la fuente con sus defaults y
   aplica el atajo `email_outgoing` de `_get_attrs`.
@@ -37,9 +70,6 @@ el valor original de la base para la rama `sanitize_overridable`.
 
 ## Fuera de esta unidad, con su sucesor
 
-- `convert_to_cache` (sanear al asignar, antes de escribir): nuestro
-  descriptor de Django no tiene ese punto; el valor se sanea al guardar. Se
-  declara en el docstring de `Html`.
 - `translate=True` → `html_translate`: depende de TASK-GEN-0060.
 - `convert_to_record`/`convert_to_read` → `Markup`: lectura del campo; unidad
   sucesora `html-field-markup-0397`.
