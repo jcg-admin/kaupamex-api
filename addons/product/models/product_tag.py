@@ -47,6 +47,12 @@ DEFAULT_TAG_COLOR = '#3C3C3C'
 class ProductTag(ImageMixin, TimeStampedModel):
     """``product.tag`` — una etiqueta aplicable a fichas o a variantes."""
 
+    #: ≙ la cabecera de la fuente
+    #: (``odoo19c: addons/product/models/product_tag.py:8-10``).
+    _name = 'product.tag'
+    _description = 'Product Tag'
+    _order = 'sequence, id'
+
     name = fields.Char(max_length=255, unique=True, verbose_name='Nombre')
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
     color = fields.Char(

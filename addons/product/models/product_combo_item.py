@@ -76,6 +76,12 @@ TYPE_COMBO = 'combo'
 class ProductComboItem(TimeStampedModel):
     """``product.combo.item`` — una opción ofrecida dentro de una elección."""
 
+    #: ≙ la cabecera de la fuente
+    #: (``odoo19c: addons/product/models/product_combo_item.py:8-10``).
+    _name = 'product.combo.item'
+    _description = "Product Combo Item"
+    _check_company_auto = True
+
     combo = fields.Many2one(
         ProductCombo,
         null=False, on_delete=models.CASCADE,

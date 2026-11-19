@@ -40,6 +40,12 @@ from addons.uom.models.uom_uom import Uom
 class ProductUom(TimeStampedModel):
     """``product.uom`` — variante + unidad adicional, con su código propio."""
 
+    #: ≙ la cabecera de la fuente
+    #: (``odoo19c: addons/product/models/product_uom.py:9-11``).
+    _name = 'product.uom'
+    _description = 'Link between products and their UoMs'
+    _rec_name = 'barcode'
+
     uom = fields.Many2one(
         Uom,
         null=False, on_delete=models.CASCADE,

@@ -96,6 +96,12 @@ from addons.product.models.product_template import ProductTemplate
 class ProductCombo(TimeStampedModel):
     """``product.combo`` — una elección dentro de un producto combo."""
 
+    #: ≙ la cabecera de la fuente
+    #: (``odoo19c: addons/product/models/product_combo.py:8-10``).
+    _name = 'product.combo'
+    _description = "Product Combo"
+    _order = 'sequence, id'
+
     name = fields.Char(max_length=255, verbose_name='Nombre de la elección')
     sequence = fields.Integer(
         default=10,

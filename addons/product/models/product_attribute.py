@@ -17,6 +17,12 @@ from addons.base.models import TimeStampedModel
 class ProductAttribute(TimeStampedModel):
     """``product.attribute`` — atributo reutilizable entre productos."""
 
+    #: ≙ la cabecera de la fuente
+    #: (``odoo19c: addons/product/models/product_attribute.py:8-12``).
+    _name = 'product.attribute'
+    _description = "Product Attribute"
+    _order = 'sequence, id'
+
     CREATE_ALWAYS = 'always'
     CREATE_DYNAMIC = 'dynamic'
     CREATE_NO_VARIANT = 'no_variant'
