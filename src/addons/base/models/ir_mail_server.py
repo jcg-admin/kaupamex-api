@@ -111,9 +111,13 @@ clase del ``_name``, así que ese guion bajo no transporta información y sí
 rompe PEP 8. Se porta como ``IrMailServer``.
 """
 
+import datetime
+import email.policy
 import logging
 import re
-from email.utils import formataddr
+from email.message import EmailMessage
+from email.parser import BytesParser
+from email.utils import formataddr, make_msgid
 
 import fields
 import models
@@ -128,7 +132,13 @@ from tools.mail import (
     email_domain_extract,
     email_domain_normalize,
     email_normalize,
+    email_normalize_all,
+    email_split_and_format,
+    encapsulate_email,
+    generate_tracking_message_id,
+    html2plaintext,
 )
+from tools.misc import unique
 from tools.translate import _
 
 _logger = logging.getLogger(__name__)
@@ -211,23 +221,18 @@ class IrMailServer(models.BaseModel, TimeStampedModel):
     _order = 'sequence, id'
     _allow_sudo_commands = False
 
-    #: Mensajes de la fuente, en extenso para que se exporten como términos.
-    NO_VALID_RECIPIENT = (
-        'Debe especificarse al menos un destinatario válido para el correo '
-        'saliente (Para/CC/CCO).'
-    )
+    #: Mensajes de la fuente, verbatim (``odoo19c: :147-154``).
+    NO_VALID_RECIPIENT = ("At least one valid recipient address should be "
+                          "specified for outgoing emails (To/Cc/Bcc)")
     NO_FOUND_FROM = (
-        'Debe indicar un remitente explícito o configurar el remitente por '
-        'defecto de la plataforma.'
-    )
-    NO_FOUND_SMTP_FROM = (
-        'La cabecera Return-Path o From es obligatoria en todo correo'
-        ' saliente.'
-    )
-    NO_VALID_FROM = (
-        'Dirección Return-Path o From malformada: debe contener un correo '
-        'ASCII válido.'
-    )
+        "You must either provide a sender address explicitly or configure "
+        "using the combination of `mail.catchall.domain` and "
+        "`mail.default.from` ICPs, in the server configuration file or with "
+        "the --email-from startup parameter.")
+    NO_FOUND_SMTP_FROM = ("The Return-Path or From header is required for "
+                          "any outbound email")
+    NO_VALID_FROM = ("Malformed 'Return-Path' or 'From' address. It should "
+                     "contain one valid plain ASCII email")
 
     name = fields.Char(max_length=255, db_index=True, verbose_name='Nombre')
     from_filter = fields.Char(
@@ -663,3 +668,171 @@ class IrMailServer(models.BaseModel, TimeStampedModel):
         Todos los servidores: es el punto que ``mail`` acota a los públicos.
         """
         return Domain.TRUE
+
+    def _build_email__(self, email_from, email_to, subject, body,
+                       email_cc=None, email_bcc=None, reply_to=False,
+                       attachments=None, message_id=None, references=None,
+                       object_id=False, subtype='plain', headers=None,
+                       body_alternative=None, subtype_alternative='plain'):
+        """≙ ``_build_email__`` (``odoo19c: :562-644``): el mensaje RFC 2822.
+
+        Un cuerpo ``html`` sin alternativa explícita sale como
+        ``multipart/alternative`` con su versión en texto plano. Cada adjunto
+        es ``(nombre, contenido, mime)``; un ``message/rfc822`` se adjunta
+        como mensaje.
+        """
+        email_from = (email_from
+                      or self.env.context.get('domain_notifications_email')
+                      or self._get_default_from_address())
+        assert email_from, self.NO_FOUND_FROM
+
+        headers = headers or {}
+        email_cc = email_cc or []
+        email_bcc = email_bcc or []
+
+        msg = EmailMessage(policy=email.policy.SMTP)
+        if not message_id:
+            if object_id:
+                message_id = generate_tracking_message_id(object_id)
+            else:
+                message_id = make_msgid()
+        msg['Message-Id'] = message_id
+        if references:
+            msg['references'] = references
+        msg['Subject'] = subject
+        msg['From'] = email_from
+        del msg['Reply-To']
+        msg['Reply-To'] = reply_to or email_from
+        msg['To'] = email_to
+        if email_cc:
+            msg['Cc'] = email_cc
+        if email_bcc:
+            msg['Bcc'] = email_bcc
+        msg['Date'] = datetime.datetime.now(datetime.UTC).replace(tzinfo=None)
+        for key, value in headers.items():
+            msg[key] = value
+
+        email_body = body or ''
+        if subtype == 'html' and not body_alternative:
+            msg['MIME-Version'] = '1.0'
+            msg.add_alternative(html2plaintext(email_body), subtype='plain',
+                                charset='utf-8')
+            msg.add_alternative(email_body, subtype=subtype, charset='utf-8')
+        elif body_alternative:
+            msg['MIME-Version'] = '1.0'
+            msg.add_alternative(body_alternative, subtype=subtype_alternative,
+                                charset='utf-8')
+            msg.add_alternative(email_body, subtype=subtype, charset='utf-8')
+        else:
+            msg.set_content(email_body, subtype=subtype, charset='utf-8')
+
+        if attachments:
+            for (fname, fcontent, mime) in attachments:
+                maintype, subtype = (mime.split('/') if mime and '/' in mime
+                                     else ('application', 'octet-stream'))
+                if maintype == 'message' and subtype == 'rfc822':
+                    msg.add_attachment(BytesParser().parsebytes(fcontent),
+                                       filename=fname)
+                else:
+                    msg.add_attachment(fcontent, maintype, subtype,
+                                       filename=fname)
+        return msg
+
+    def _prepare_email_message__(self, message, smtp_session):
+        """≙ ``_prepare_email_message__`` (``odoo19c: :679-733``).
+
+        Devuelve ``(smtp_from, smtp_to_list, message)``. El remitente del
+        sobre es la dirección de rebote cuando el filtro del servidor la
+        admite, y sólo ASCII.
+        """
+        bounce_address = (self.env.context.get('domain_bounce_address')
+                          or message['Return-Path']
+                          or self._get_default_bounce_address()
+                          or message['From'])
+
+        smtp_from = message['From'] or bounce_address
+        assert smtp_from, self.NO_FOUND_SMTP_FROM
+
+        smtp_to_list = self._prepare_smtp_to_list(message, smtp_session)
+        assert smtp_to_list, self.NO_VALID_RECIPIENT
+
+        from_filter = getattr(smtp_session, 'from_filter', False)
+        smtp_from = getattr(smtp_session, 'smtp_from', False) or smtp_from
+        notifications_email = email_normalize(
+            self.env.context.get('domain_notifications_email')
+            or self._get_default_from_address()
+        )
+        if (notifications_email
+                and email_normalize(smtp_from) == notifications_email
+                and email_normalize(message['From']) != notifications_email):
+            smtp_from = encapsulate_email(message['From'],
+                                          notifications_email)
+
+        self._alter_message__(message, smtp_from, smtp_to_list)
+
+        if self._match_from_filter(bounce_address, from_filter):
+            smtp_from = bounce_address
+
+        smtp_from_rfc2822 = extract_rfc2822_addresses(smtp_from)
+        if not smtp_from_rfc2822:
+            raise AssertionError(
+                self.NO_VALID_FROM,
+                f"Malformed 'Return-Path' or 'From' address: {smtp_from} - "
+                "It should contain one valid plain ASCII email"
+            )
+        smtp_from = smtp_from_rfc2822[-1]
+
+        return smtp_from, smtp_to_list, message
+
+    def _alter_message__(self, message, smtp_from, smtp_to_list):
+        """≙ ``_alter_message__`` (``odoo19c: :735-762``).
+
+        ``X-Forge-To`` sustituye el ``To``; ``X-Msg-To-Add`` le añade
+        destinatarios que no cambian el envío SMTP. El ``From`` pasa a ser
+        el del sobre, y salen ``Bcc`` y las cabeceras de control.
+        """
+        if x_forge_to := message['X-Forge-To']:
+            message.replace_header('To', x_forge_to)
+        elif x_msg_add_to := message['X-Msg-To-Add']:
+            to = message['To'] or ''
+            to_normalized = email_normalize_all(to)
+            message.replace_header(
+                'To', ', '.join([
+                    to,
+                    ', '.join(
+                        address
+                        for address in email_split_and_format(x_msg_add_to)
+                        if email_normalize(address, strict=False)
+                        not in to_normalized
+                    ),
+                ]))
+
+        if message['From'] != smtp_from:
+            message.replace_header('From', smtp_from)
+
+        del message['Bcc']
+        del message['X-Forge-To']
+        del message['X-Msg-To-Add']
+        del message['X-Msg-To-Consolidate']
+
+    def _prepare_smtp_to_list(self, message, smtp_session):
+        """≙ ``_prepare_smtp_to_list`` (``odoo19c: :764-797``).
+
+        To, Cc y Bcc, sin repetir dentro de cada cabecera. El contexto puede
+        restringir la lista (``send_validated_to``) o excluir direcciones
+        (``send_smtp_skip_to``).
+        """
+        email_to = message['To']
+        email_cc = message['Cc']
+        email_bcc = message['Bcc']
+        validated_to = self.env.context.get('send_validated_to') or []
+        skip_to_lst = self.env.context.get('send_smtp_skip_to') or []
+        return [
+            address
+            for base in [email_to, email_cc, email_bcc]
+            for address in unique(extract_rfc2822_addresses(base))
+            if (
+                address and (not validated_to or address in validated_to)
+                and email_normalize(address, strict=False) not in skip_to_lst
+            )
+        ]
