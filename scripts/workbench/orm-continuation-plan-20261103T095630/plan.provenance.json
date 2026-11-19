@@ -1270,6 +1270,13 @@
         "basemodel-adoption-mass-mailing-0397"
       ],
       "writtenAt": "2026-11-19T21:17:16Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-model-headers-2-0122"
+      ],
+      "writtenAt": "2026-11-19T23:47:06Z"
     }
   ]
 }

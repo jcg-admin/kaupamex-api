@@ -176,3 +176,4 @@ f2-95178258	full-batch	95178258	-	0	14198	0	0	8	-	14198 passed, 66 skipped, 8 xf
 f2-a9a02608	full-batch	a9a02608	-	0	14217	0	0	8	-	14217 passed, 66 skipped, 8 xfailed, exit 0	verde	basemodel-adoption-mass-mailing-0397	f2-a9a02608.log:65ec1f0a7880f432799b2c475bd6ed70098769a7a19b1b9b869b7a813494b91b
 f2-a9b09365	full-batch	a9b09365	-	0	14225	0	0	8	-	14225 passed, 66 skipped, 8 xfailed, exit 0	verde	product-model-headers-0122	f2-a9b09365.log:36c35ca46d57495321e84e9c10acc7dff1982416ea36a9f64dfad46d38c6bd88
 f2-1e7c3151	full-batch	1e7c3151	-	0	14235	0	0	8	-	14235 passed, 66 skipped, 8 xfailed, exit 0	verde	analytic-model-headers-0121	f2-1e7c3151.log:7883392a8d1579ee61b1b49d972e6a8c1863a7ac62f638302dda30dee63a7411
+f2-b4212e50	full-batch	b4212e50	-	0	14245	0	0	8	-	14245 passed, 66 skipped, 8 xfailed, exit 0	verde	product-model-headers-2-0122	f2-b4212e50.log:9a767a10dd9db4854902e5fa477323744e3b01fdcffc67a0f1dc16bb788f0ef4
