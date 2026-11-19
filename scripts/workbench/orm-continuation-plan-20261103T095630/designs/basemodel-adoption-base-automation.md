@@ -53,6 +53,26 @@ Unidad hija `basemodel-adoption-base-automation-0397` del paraguas
    consulta se compara por identidad y daría «cambiado» en cada lectura.
 6. `test_basemodel_reach.py`: `base_automation` sale de `PENDING`.
 
+## Corrección tras el F2 de `b124b7a0`
+
+Con `BaseModel`, `_call_hooks` (`src/orm/registry.py`) alcanza el
+`_register_hook` de `base.automation`, que hasta entonces nunca corría. El
+gancho consultaba las reglas, y `Registry.new` también llama a los ganchos de
+un registro sin conexión declarada, con el entorno de quien lo pidió: la
+consulta caía sobre otra base (F2: `test_registry_class.py`, sin acceso a la
+base). Cambios:
+
+7. `_register_hook` no consulta: vacía el conjunto de modelos con reglas de
+   escritura del registro activo, buscado sin construirlo. La consulta pasa a
+   `_load_write_models`, que llama el primer receptor de señal
+   (`_know_watched_models` de `models/signals.py`) y `_update_registry`.
+   Es la divergencia de momento que el docstring ya declaraba: el conjunto
+   nace sin saberse y lo llena la primera escritura.
+8. `tests/unit/orm/test_registry_hook_lifecycle.py` registra también los
+   ganchos de los modelos que los redefinen sin `super()`, como
+   `base.automation` en la fuente
+   (`odoo19c: addons/base_automation/models/base_automation.py:846`).
+
 ## Pruebas
 
 `tests/unit/base_automation/test_base_automation_basemodel_acl.py`: el modelo
