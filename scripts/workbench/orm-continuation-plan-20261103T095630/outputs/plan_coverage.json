@@ -554,7 +554,8 @@
   "basemodel-adoption-fleet-0397",
   "basemodel-adoption-mail-activity-0397",
   "basemodel-adoption-crm-0397",
-  "basemodel-adoption-mass-mailing-0397"
+  "basemodel-adoption-mass-mailing-0397",
+  "product-model-headers-2-0122"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
