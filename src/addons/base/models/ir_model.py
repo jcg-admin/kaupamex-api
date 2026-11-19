@@ -2965,8 +2965,8 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
     criterio que ``ir_attachment.res_id`` ya usa en este árbol. Hasta
     TASK-API-0485 ``fields.Many2oneReference`` era un alias de
     ``GenericForeignKey``, que exigía un FK ``content_type``; hoy es la clase
-    de la fuente, y declararlo aquí queda como sucesor sin migración de
-    columna, porque la columna ya es el entero.
+    de la fuente y ``res_id`` la declara, sin migración de columna, porque la
+    columna ya es el entero.
     """
 
     _name = 'ir.model.data'
@@ -2980,7 +2980,8 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
     model = fields.Char(max_length=255, verbose_name='Nombre del modelo')
     module = fields.Char(
         max_length=255, blank=True, default='', verbose_name='Módulo')
-    res_id = fields.Integer(
+    res_id = fields.Many2oneReference(
+        model_field='model',
         null=True, blank=True, verbose_name='ID del registro',
         help_text='ID del registro destino. Ver el docstring de la clase '
                   'sobre por qué no es un GenericForeignKey.')

@@ -56,10 +56,11 @@ class MailActivity(TimeStampedModel):
             ' res_model).'
         ),
     )
-    res_id = fields.Integer(
+    res_id = fields.Many2oneReference(
+        model_field='res_model',
         null=True,
         blank=True,
-        help_text='ID del registro (Odoo res_id, Integer plano).',
+        help_text='ID del registro (Odoo res_id).',
     )
     activity_type = fields.Many2one(
         'mail.MailActivityType',

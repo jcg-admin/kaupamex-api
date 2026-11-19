@@ -418,9 +418,10 @@ class BaseAutomation(MailThread, MailActivityMixin, TimeStampedModel):
         max_length=255, blank=True, default='',
         verbose_name='Modelo de referencia',
     )
-    # ≙ Many2oneReference de la referencia — id plano, sin FK real (mismo
-    # criterio que IrAttachment.res_id; ver docstring del módulo).
-    trg_field_ref = fields.Integer(
+    # ≙ Many2oneReference de la referencia: id sin FK real, con el modelo
+    # en ``trg_field_ref_model_name``.
+    trg_field_ref = fields.Many2oneReference(
+        model_field='trg_field_ref_model_name',
         null=True, blank=True, verbose_name='Referencia disparadora',
     )
     trg_date_id = fields.Many2one(

@@ -87,10 +87,11 @@ class MailMessage(TimeStampedModel):
             '(Odoo model). NO es una FK — vinculo plano igual que Odoo.'
         ),
     )
-    res_id = fields.Integer(
+    res_id = fields.Many2oneReference(
+        model_field='model',
         null=True,
         blank=True,
-        help_text='ID del registro referenciado (Odoo res_id, Integer plano).',
+        help_text='ID del registro referenciado (Odoo res_id).',
     )
     parent = fields.Many2one(
         'mail.MailMessage',

@@ -126,15 +126,11 @@ class IrAttachment(BaseModel):
             'Campo binary del modelo referenciado, si aplica (Odoo res_field).'
         ),
     )
-    res_id = fields.Integer(
+    res_id = fields.Many2oneReference(
+        model_field='res_model',
         null=True,
         blank=True,
-        help_text=(
-            'ID del registro referenciado (Odoo res_id / Many2oneReference '
-            'simplificado a Integer plano — el ORM shim del proyecto no '
-            'tiene un tipo Many2oneReference fiel; Odoo tampoco lo trata '
-            'como FK real).'
-        ),
+        help_text='ID del registro referenciado (Odoo res_id).',
     )
     type = fields.Selection(
         max_length=8,

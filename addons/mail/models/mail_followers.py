@@ -35,10 +35,11 @@ class MailFollowers(TimeStampedModel):
             ' res_model).'
         ),
     )
-    res_id = fields.Integer(
+    res_id = fields.Many2oneReference(
+        model_field='res_model',
         null=True,
         blank=True,
-        help_text='ID del registro seguido (Odoo res_id, Integer plano).',
+        help_text='ID del registro seguido (Odoo res_id).',
     )
     partner = fields.Many2one(
         settings.AUTH_USER_MODEL,
