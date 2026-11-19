@@ -120,6 +120,16 @@ COMPUTE_PRICE_CHOICES = [
 class ProductPricelistItem(TimeStampedModel):
     """``product.pricelist.item`` — una regla dentro de una tarifa."""
 
+    #: ≙ la cabecera de la fuente
+    #: (``odoo19c: addons/product/models/product_pricelist_item.py:9-12``).
+    #: ``_check_company_auto = True`` (``:12``) queda fuera hasta que el modelo
+    #: declare ``company_id``, que la fuente calcula y almacena de la tarifa o
+    #: de la plantilla (``:31`` y ``:173``): sin él, la verificación no tiene
+    #: contra qué comparar. Sucesor ``product-fk-names-0122``.
+    _name = 'product.pricelist.item'
+    _description = "Pricelist Rule"
+    _order = "applied_on, min_quantity desc, categ_id desc, id desc"
+
     pricelist = fields.Many2one(
         ProductPricelist,
         on_delete=models.CASCADE, null=True, blank=True,
@@ -137,12 +147,13 @@ class ProductPricelistItem(TimeStampedModel):
             'del módulo.'
         ),
     )
-    categ = fields.Many2one(
+    categ_id = fields.Many2one(
         ProductCategory,
         on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name='pricelist_item_ids',
+        db_column='categ_id',
         verbose_name='Categoría',
     )
     product_tmpl = fields.Many2one(
@@ -235,7 +246,7 @@ class ProductPricelistItem(TimeStampedModel):
 
     class Meta:
         db_table = 'product_pricelist_item'
-        ordering = ['applied_on', '-min_quantity', '-categ', '-id']
+        ordering = ['applied_on', '-min_quantity', '-categ_id', '-id']
         verbose_name = 'Regla de tarifa'
         verbose_name_plural = 'Reglas de tarifa'
 
@@ -305,9 +316,9 @@ class ProductPricelistItem(TimeStampedModel):
             # Una regla de categoría alcanza a toda la rama, no sólo al nodo:
             # la ruta materializada de ``product.category`` lo resuelve sin
             # subir la cadena.
-            if categ is None or self.categ is None:
+            if categ is None or self.categ_id is None:
                 return False
-            return categ.parent_path.startswith(self.categ.parent_path)
+            return categ.parent_path.startswith(self.categ_id.parent_path)
         return False
 
     # === CÁLCULO ==========================================================

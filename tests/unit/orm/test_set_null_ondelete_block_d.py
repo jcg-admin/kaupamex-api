@@ -68,7 +68,7 @@ def test_deleting_a_sequence_keeps_the_action_that_used_it():
 def test_deleting_a_variant_keeps_its_vendor_price():
     template, variant = _variant('Producto D')
     price = ProductSupplierinfo.objects.create(
-        partner=ResPartner.objects.create(name='Proveedor D'),
+        partner_id=ResPartner.objects.create(name='Proveedor D'),
         product_tmpl=template, product=variant)
     _delete(variant)
     price.refresh_from_db()

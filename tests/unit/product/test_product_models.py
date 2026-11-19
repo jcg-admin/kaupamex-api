@@ -392,7 +392,7 @@ class TestSelectSeller:
 
     def _tariff(self, tmpl, partner, **kwargs):
         return ProductSupplierinfo.objects.create(
-            partner=partner, product_tmpl=tmpl, **kwargs
+            partner_id=partner, product_tmpl=tmpl, **kwargs
         )
 
     def _variant(self, name='Eleke'):

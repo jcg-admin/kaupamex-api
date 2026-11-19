@@ -503,12 +503,12 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
         """≙ ``_prepare_supplier_info`` (``odoo19c: :670-680``).
 
         Las claves son los nombres de ``product.supplierinfo`` en este
-        árbol (``partner``, ``currency``): el modelo es de Django y sus FK
-        no llevan el sufijo ``_id``.
+        árbol: ``partner_id`` como en la fuente, y ``currency``, una FK que
+        aún no lleva el sufijo ``_id``.
         """
         sellers = list(line.product_id.product_tmpl.seller_ids.all())
         return {
-            'partner': partner,
+            'partner_id': partner,
             'sequence': (max(seller.sequence for seller in sellers) + 1
                          if sellers else 1),
             'min_qty': 1.0,
@@ -536,7 +536,7 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
                 continue
             template = product.product_tmpl
             sellers = list(template.seller_ids.all())
-            seller_partners = {seller.partner_id for seller in sellers}
+            seller_partners = {seller.partner_id_id for seller in sellers}
             if seller_partners & {partner.pk, vendor.pk} or len(sellers) > 10:
                 continue
             price = line.price_unit

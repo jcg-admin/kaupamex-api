@@ -130,11 +130,19 @@ class ProductSupplierinfo(TimeStampedModel):
     archivos que la esperaban.
     """
 
-    partner = fields.Many2one(
+    #: ≙ la cabecera de la fuente, verbatim
+    #: (``odoo19c: addons/product/models/product_supplierinfo.py:8-11``).
+    _name = 'product.supplierinfo'
+    _description = "Supplier Pricelist"
+    _order = 'sequence, min_qty DESC, price, id'
+    _rec_name = 'partner_id'
+
+    partner_id = fields.Many2one(
         ResPartner,
         null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='supplierinfo_ids',
+        db_column='partner_id',
         verbose_name='Proveedor',
         help_text=(
             'Odoo partner_id. Es el nombre por el que se muestra la '
@@ -283,7 +291,7 @@ class ProductSupplierinfo(TimeStampedModel):
         verbose_name_plural = 'Tarifas de proveedor'
 
     def __str__(self):
-        return str(self.partner)
+        return str(self.partner_id)
 
     # === INVARIANTES ======================================================
 
@@ -413,7 +421,7 @@ class ProductSupplierinfo(TimeStampedModel):
             seller
             for seller in sellers
             if (not seller.company_id or seller.company_id == company_pk)
-            and getattr(seller.partner, 'active', True)
+            and getattr(seller.partner_id, 'active', True)
             and (not seller.product_id or seller.product_id == product_pk)
         ]
 

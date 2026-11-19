@@ -590,7 +590,7 @@ def _compute_effective_vendor_id(self):
     que se elegiría por defecto.
     """
     supplier = self.supplier if self.supplier_id else self._get_default_supplier()
-    return supplier.partner if supplier is not None else None
+    return supplier.partner_id if supplier is not None else None
 
 
 def effective_vendor_id(self):

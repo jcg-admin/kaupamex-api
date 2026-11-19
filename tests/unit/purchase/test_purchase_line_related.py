@@ -156,7 +156,7 @@ def test_the_allowed_units_add_the_vendor_unit(order):
                              relative_uom_id=unit)
     product = make_product(name='Insumo R3', uom=unit)
     ProductSupplierinfo.objects.create(
-        partner=order.partner_id, product_tmpl=product.product_tmpl,
+        partner_id=order.partner_id, product_tmpl=product.product_tmpl,
         price=1, product_uom=box)
     line = _line(order, product_id=product.pk)
     assert set(line.allowed_uom_ids) == {unit, box}

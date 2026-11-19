@@ -424,7 +424,7 @@ class ProductProduct(TimeStampedModel):
         if not partner_id:
             return code
         for seller in self.product_tmpl.seller_ids.all():
-            if seller.partner_id != partner_id:
+            if seller.partner_id_id != partner_id:
                 continue
             if seller.product_id and seller.product_id != self.pk:
                 continue  # tarifa específica de otra variante
@@ -443,7 +443,7 @@ class ProductProduct(TimeStampedModel):
         """
         partner_id = getattr(partner, 'pk', partner)
         for seller in self.product_tmpl.seller_ids.all():
-            if seller.partner_id != partner_id:
+            if seller.partner_id_id != partner_id:
                 continue
             name = seller.product_name or self.default_code or self.name
             code = self.code_for(partner)
@@ -549,7 +549,8 @@ class ProductProduct(TimeStampedModel):
                 and seller.product_uom != self.uom
             ):
                 continue
-            if partner_pk and seller.partner_id not in (partner_pk, parent_pk):
+            if partner_pk and seller.partner_id_id not in (partner_pk,
+                                                           parent_pk):
                 continue
             if (
                 quantity is not None
@@ -626,7 +627,7 @@ class ProductProduct(TimeStampedModel):
         )
         res = []
         for seller in sellers:
-            if not res or res[0].partner_id == seller.partner_id:
+            if not res or res[0].partner_id_id == seller.partner_id_id:
                 res.append(seller)
         return sorted(res, key=sort_function)[:1] if res else []
 

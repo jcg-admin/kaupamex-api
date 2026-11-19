@@ -38,7 +38,7 @@ def _tariff(**kwargs):
     template = ProductTemplate.objects.create(name='Eleke')
     partner = ResPartner.objects.create(name='Proveedor')
     return ProductSupplierinfo.objects.create(
-        partner=partner, product_tmpl=template, min_qty=3,
+        partner_id=partner, product_tmpl=template, min_qty=3,
         price=Decimal('1234.5'), **kwargs)
 
 

@@ -532,7 +532,7 @@ def _compute_display_name(self):
                            else None)
     uom = self.product_uom.name if self.product_uom_id else ''
     label = (
-        f'{self.partner.display_name if self.partner_id else ""} '
+        f'{self.partner_id.display_name if self.partner_id_id else ""} '
         f'({self.min_qty} {uom} - {price_str})'
     )
     self.display_name = label
