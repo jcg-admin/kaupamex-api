@@ -48,3 +48,31 @@ prerrequisito de `pav-unlink-guard-0122`: la rama de archivo de
    unidad: es otro campo sobre la misma tabla con dominio, y Django expresa
    una tabla con un solo campo; su forma (propiedad filtrada) queda para la
    tarea de PTAV.
+
+## Resultado medido
+
+`makemigrations` propuso `RemoveField` + `AddField`, y su `sqlmigrate` era
+`DROP TABLE "product_variant_combination" CASCADE` seguido de un
+`CREATE TABLE`: borraba todas las combinaciones de variantes. Se reescribió
+`0041_variant_combination_source_relation` como `RenameField` +
+`AlterField`; su `sqlmigrate` sólo renombra las dos columnas
+(`productproduct_id` → `product_product_id`,
+`producttemplateattributevalue_id` → `product_template_attribute_value_id`)
+y recrea sus FK. `makemigrations --check` no detecta diferencias.
+
+## Símbolos que cambian
+
+- `ProductProduct.product_template_attribute_value_ids`
+  (`odoo19c: addons/product/models/product_product.py:49`), con su inversa
+  `ProductTemplateAttributeValue.ptav_product_variant_ids`
+  (`odoo19c: addons/product/models/product_template_attribute_value.py:55-57`);
+- `ProductProduct.price_extra`, `ProductProduct.refresh_combination_indices`,
+  `ProductProduct._compute_display_name` (cadena de `@api.depends`) y los
+  lectores de `addons/product/services.py` y
+  `addons/purchase/models/purchase_order_line.py`: leen el nombre de la
+  fuente; la conducta no cambia;
+- la migración `0041_variant_combination_source_relation`.
+
+Pruebas: `tests/unit/product/test_variant_combination_source_relation.py`.
+Control de anulación: devolver `related_name='product_variant_ids'` hace
+caer exactamente la prueba de la inversa (1 failed, 1 passed).
