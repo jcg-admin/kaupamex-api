@@ -59,3 +59,60 @@ archivos de prueba.
 Nombre y columna de los dos campos; la inversa `product_template_value_ids`
 en la línea; `name` se resuelve por el valor de atributo; la migración
 conserva las filas (comprobado con `sqlmigrate`: `RENAME COLUMN`).
+
+## Lo que destapó el renombre: la política de borrado del valor
+
+Con los nombres nuevos, el censo encuentra la contraparte de los dos
+enlaces (antes, `sin contraparte en la fuente`). La fuente declara
+`ondelete='cascade'` en los dos; el puerto tiene `CASCADE` en la línea y
+`PROTECT` en el valor. Aplicando la regla de
+`probes/fk_reference_ondelete.py` a esas dos filas (no se regeneró el censo
+entero, que arrastraría deriva de otras filas):
+
+- `attribute_line_id`: atributo `restrict` ≠ `cascade`, política
+  `CASCADE` = `cascade` → `divergencia de atributo`;
+- `product_attribute_value_id`: atributo y política (`PROTECT` →
+  `restrict`) ≠ `cascade` → `divergencia de atributo y de política`.
+
+`test_delete_policy_contract.py` sólo mide la dirección destructiva
+(fuente `set null`/`restrict` contra Django `CASCADE`), así que su población
+no cambia.
+
+**`PROTECT` se conserva en esta unidad, con sucesor.** En la fuente el
+`cascade` va protegido por `product.attribute.value`:
+`_unlink_except_used_on_product` (`odoo19c: addons/product/models/
+product_attribute_value.py:127-130`) rehúsa borrar un valor usado en
+productos, y `unlink` (`:132-145`) archiva en vez de borrar los valores que
+sólo usan variantes archivadas. Ninguna de las dos está portada: pasar a
+`CASCADE` sin ellas borraría las opciones de los productos que usan el
+valor. Sucesor: `pav-unlink-guard-0122`, que porta los dos métodos y
+entonces cambia la política a `CASCADE`.
+
+## Migración: dos archivos
+
+`makemigrations` no reconoce el renombre (cambian también `db_column` y
+`related_name`) y propone `RemoveField` + `AddField`, que perdería las filas.
+`0038_ptav_rename_fields` está escrita a mano: retira la restricción única y
+renombra los dos campos. `0039_ptav_source_columns` la genera Django sin
+preguntas: fija `db_column`, el `related_name` y las opciones, y recrea la
+restricción. `sqlmigrate` de las dos sólo emite `RENAME COLUMN` (más las FK
+y la restricción sobre las columnas renombradas); ninguna fila se toca.
+`makemigrations --check` no detecta diferencias.
+
+## Símbolos que cambian
+
+- `ProductTemplateAttributeValue.attribute_line_id`,
+  `ProductTemplateAttributeValue.product_attribute_value_id`
+  (`odoo19c: addons/product/models/product_template_attribute_value.py:27-33`);
+- `ProductTemplateAttributeValue.name` (`related`),
+  `ProductTemplateAttributeValue.__str__`, `Meta.ordering` (sigue ordenando
+  por el orden de los modelos relacionados, como el `_order` de la fuente
+  sobre un many2one) y la `UniqueConstraint`;
+- `ProductProduct._compute_display_name` (cadena de `@api.depends`);
+- `sync_template_values` y los lectores de `product_template_value_ids` en
+  `addons/product/services.py`;
+- las migraciones `0038_ptav_rename_fields` y `0039_ptav_source_columns`.
+
+Pruebas: `tests/unit/product/test_ptav_source_names.py`. Control de
+anulación: devolver `related_name='template_values'` hace caer exactamente
+la prueba de la inversa (1 failed, 4 passed).
