@@ -48,7 +48,7 @@ def variant(db):
     template = ProductTemplate.objects.create(
         name='Camisa', list_price=Decimal('100.00')
     )
-    return ProductProduct.objects.create(product_tmpl=template)
+    return ProductProduct.objects.create(product_tmpl_id=template)
 
 
 class TestUnderscoreContract:
@@ -158,7 +158,8 @@ class TestDefaultProductId:
     def test_from_a_template_with_a_single_variant(self, variant):
         # odoo19c :35-37
         result = StockPutawayRule._default_product_id(
-            active_model='product.template', active_id=variant.product_tmpl_id
+            active_model='product.template',
+            active_id=variant.product_tmpl_id_id
         )
         assert result == variant
 

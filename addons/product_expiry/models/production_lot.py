@@ -124,7 +124,7 @@ def product_expiry_alert(self):
     'name',
     'expiration_date',
     'alert_date',
-    'product.product_tmpl.use_expiration_date',
+    'product.product_tmpl_id.use_expiration_date',
 )
 @api.depends_context('formatted_display_name')
 def _compute_display_name(self):

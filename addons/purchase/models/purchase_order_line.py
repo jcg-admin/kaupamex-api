@@ -246,7 +246,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
     #: no con un campo (``product/models/product_product.py:5-40``), así que
     #: la cadena nombra el eslabón de la delegación.
     product_type = fields.Selection(
-        related='product_id.product_tmpl.type', readonly=True)
+        related='product_id.product_tmpl_id.type', readonly=True)
     state = fields.Selection(related='order_id.state', store=False)
     currency_id = fields.Many2one(
         related='order_id.currency_id', string='Currency', related_name='+')
@@ -394,10 +394,10 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                 continue
             seller_uoms = [
                 seller.product_uom_id
-                for seller in product.product_tmpl.seller_ids.all()
+                for seller in product.product_tmpl_id.seller_ids.all()
                 if seller.product_uom_id and seller.product_id_id in {
                     None, product.pk}]
-            units = [product.uom, *product.product_tmpl.uom_ids.all(),
+            units = [product.uom, *product.product_tmpl_id.uom_ids.all(),
                      *seller_uoms]
             line.allowed_uom_ids = list(dict.fromkeys(
                 unit for unit in units if unit))
@@ -454,7 +454,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                 base_line['tax_details']['total_included_currency'])
             line.price_tax = line.price_total - line.price_subtotal
 
-    @api.depends('product_id', 'product_id.product_tmpl.type')
+    @api.depends('product_id', 'product_id.product_tmpl_id.type')
     def _compute_qty_received_method(self):
         """≙ ``odoo19c: :218-224``."""
         for line in self:
@@ -830,7 +830,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
             if not seller:
                 partner = line.order_id.partner_id
                 unavailable_seller = [
-                    info for info in product.product_tmpl.seller_ids.all()
+                    info for info in product.product_tmpl_id.seller_ids.all()
                     if partner is not None
                     and info.partner_id_id == partner.pk]
                 if (not unavailable_seller and line.price_unit
@@ -852,7 +852,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                 # ``cost_currency_id`` es aquí la propiedad ``cost_currency``
                 # de la plantilla.
                 line._reset_price_unit(
-                    product.product_tmpl.cost_currency._convert(
+                    product.product_tmpl_id.cost_currency._convert(
                         price_unit, line.currency_id, line.company_id,
                         line.date_order or timezone.localdate(), False))
             else:
@@ -887,7 +887,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                 or timezone.localdate())
         partner = self.order_id.partner_id
         seller_min_qty = sorted(
-            (info for info in self.product_id.product_tmpl.seller_ids.all()
+            (info for info in self.product_id.product_tmpl_id.seller_ids.all()
              if partner is not None and info.partner_id_id == partner.pk
              and (not info.product_id
                   or info.product_id_id == self.product_id.pk)

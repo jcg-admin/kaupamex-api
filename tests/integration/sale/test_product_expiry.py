@@ -54,7 +54,7 @@ def _product(expiration=30, use=20, removal=25, alert=15, tracked=True):
         default_code=f'EXP-{n:04d}',
         price=Decimal('100.00'),
     )
-    plantilla = producto.product_tmpl
+    plantilla = producto.product_tmpl_id
     plantilla.tracking = 'lot' if tracked else 'none'
     plantilla.use_expiration_date = tracked
     plantilla.expiration_time = expiration
@@ -92,7 +92,7 @@ def test_untracked_product_cannot_use_expiration_dates(db):
     ≙ ``ProductTemplate.write`` — sin trazabilidad no hay lote que fechar.
     """
     producto = _product()
-    plantilla = producto.product_tmpl
+    plantilla = producto.product_tmpl_id
     plantilla.tracking = 'none'
     plantilla.use_expiration_date = True
     plantilla.save()
@@ -318,7 +318,7 @@ def test_disabling_template_expiry_invalidates_the_cached_lot_label(db):
     )
     with context_scope(formatted_display_name=True):
         assert lot.display_name == 'DISABLED\t--Expired--'
-        template = lot.product.product_tmpl
+        template = lot.product.product_tmpl_id
         template.use_expiration_date = False
         template.save(update_fields=['use_expiration_date'])
         assert lot.display_name == 'DISABLED'

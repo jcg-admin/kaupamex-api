@@ -104,6 +104,6 @@ class ProductTag(ImageMixin, TimeStampedModel):
         alcanzada por las dos vías aparece una sola vez.
         """
         from_templates = ProductProduct.objects.filter(
-            product_tmpl__in=self.product_templates.all()
+            product_tmpl_id__in=self.product_templates.all()
         )
         return (from_templates | self.product_variants.all()).distinct()

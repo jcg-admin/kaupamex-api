@@ -57,7 +57,7 @@ def variant(db):
         name='Camisa', list_price=Decimal('100.00')
     )
     return ProductProduct.objects.create(
-        product_tmpl=tmpl, default_code='CAM-M'
+        product_tmpl_id=tmpl, default_code='CAM-M'
     )
 
 
@@ -79,7 +79,7 @@ def _move(variant, source, destination, company, **extra):
         location=source,
         location_dest=destination,
         company=company,
-        product_uom=variant.product_tmpl.uom,
+        product_uom=variant.product_tmpl_id.uom,
         product_uom_qty=Decimal('5'),
     )
     values.update(extra)
@@ -183,7 +183,7 @@ def test_write_refuses_uom_change_on_a_done_move(
         state=StockMove.STATE_DONE,
     )
     with pytest.raises(UserError):
-        move.write({'product_uom': variant.product_tmpl.uom})
+        move.write({'product_uom': variant.product_tmpl_id.uom})
 
 
 def test_write_allows_uom_change_when_conversion_is_skipped(
@@ -197,9 +197,9 @@ def test_write_allows_uom_change_when_conversion_is_skipped(
         state=StockMove.STATE_DONE,
     )
     move.write(
-        {'product_uom': variant.product_tmpl.uom}, skip_uom_conversion=True
+        {'product_uom': variant.product_tmpl_id.uom}, skip_uom_conversion=True
     )
-    assert move.product_uom_id == variant.product_tmpl.uom_id
+    assert move.product_uom_id == variant.product_tmpl_id.uom_id
 
 
 # -- 3. unlink ---------------------------------------------------------------

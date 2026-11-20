@@ -7,7 +7,7 @@ product-template-company-id.md``.
 *Métrica:* el nombre y la columna del campo, la delegación en la variante,
 la moneda de coste y el lote nuevo de una línea de movimiento, que leen la
 compañía del producto por nombre.
-*Ciega a:* ``ProductTemplate.uom`` y ``ProductProduct.product_tmpl``, que el
+*Ciega a:* ``ProductTemplate.uom`` y ``ProductProduct.product_tmpl_id``, que el
 diseño declara con su sucesor.
 """
 import pytest
@@ -28,7 +28,7 @@ def company():
 def variant(company):
     template = ProductTemplate.objects.create(name='Plantilla ptco',
                                               company_id=company)
-    return ProductProduct.objects.create(product_tmpl=template)
+    return ProductProduct.objects.create(product_tmpl_id=template)
 
 
 def test_company_id_keeps_the_source_name_and_column():
@@ -42,7 +42,7 @@ def test_the_variant_delegates_company_id_to_its_template(variant, company):
 
 def test_the_cost_currency_is_the_one_of_the_product_company(
         variant, company):
-    assert variant.product_tmpl.cost_currency == company.currency
+    assert variant.product_tmpl_id.cost_currency == company.currency
 
 
 def test_a_new_lot_takes_the_company_of_the_product(variant, company):

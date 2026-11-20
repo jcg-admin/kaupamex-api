@@ -43,8 +43,8 @@ def test_the_ref_formats_the_date_for_the_language(environment):
     income = AccountAccount.objects.create(
         code='401', name='Ventas', account_type='income', company=company)
     product = make_product(name='Eleke devengo')
-    product.product_tmpl.property_account_income = income
-    product.product_tmpl.save()
+    product.product_tmpl_id.property_account_income = income
+    product.product_tmpl_id.save()
     order = SaleOrder.objects.create(company=company)
     SaleOrderLine.objects.create(order=order, product=product,
                                  product_uom_qty=Decimal('1'),

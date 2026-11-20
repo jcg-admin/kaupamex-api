@@ -48,7 +48,7 @@ def _attribute(name, values):
 
 def _line(product, attr, values, sequence=10):
     line = ProductTemplateAttributeLine.objects.create(
-        product_tmpl=product.product_tmpl,
+        product_tmpl_id=product.product_tmpl_id,
         attribute_id=attr,
         sequence=sequence,
     )
@@ -84,10 +84,10 @@ def test_cartesian_combinations(db):
     product = _product()
     _line(product, color, colors, sequence=1)
     _line(product, size, sizes, sequence=2)
-    combos = pa_services.combinations(product.product_tmpl)
+    combos = pa_services.combinations(product.product_tmpl_id)
     # 2 colores × 3 tallas = 6 combinaciones.
     assert len(combos) == 6
-    assert pa_services.combination_count(product.product_tmpl) == 6
+    assert pa_services.combination_count(product.product_tmpl_id) == 6
     # Cada combinación tiene un PTAV por eje (2).
     assert all(len(c) == 2 for c in combos)
 
@@ -108,10 +108,10 @@ def test_combination_price_adds_price_extra(db):
     )
     # Precio de la combinación S = 100 ; combinación L = 150.
     assert pa_services.combination_price(
-        product.product_tmpl, [ptav_s]
+        product.product_tmpl_id, [ptav_s]
     ) == Decimal('100.00')
     assert pa_services.combination_price(
-        product.product_tmpl, [ptav_l]
+        product.product_tmpl_id, [ptav_l]
     ) == Decimal('150.00')
 
 
@@ -138,14 +138,14 @@ def test_multi_axis_price_sums_extras(db):
     )
     # Combinación Dorado+XL = 200 + 30 + 40 = 270.
     assert pa_services.combination_price(
-        product.product_tmpl, [gold_ptav, xl_ptav]
+        product.product_tmpl_id, [gold_ptav, xl_ptav]
     ) == Decimal('270.00')
 
 
 def test_no_lines_yields_single_empty_combination(db):
     product = _product()
-    assert pa_services.combinations(product.product_tmpl) == [()]
-    assert pa_services.combination_count(product.product_tmpl) == 0
-    assert pa_services.combination_price(product.product_tmpl, ()) == Decimal(
-        '100.00'
-    )
+    assert pa_services.combinations(product.product_tmpl_id) == [()]
+    assert pa_services.combination_count(product.product_tmpl_id) == 0
+    assert pa_services.combination_price(
+        product.product_tmpl_id, ()
+    ) == Decimal('100.00')

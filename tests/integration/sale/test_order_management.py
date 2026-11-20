@@ -230,8 +230,8 @@ class TestDetailOrder:
         """BR-005: el precio del item es el del checkout, no el actual."""
         order = _create_full_order(user, prod_ord)
         # Cambiar precio del producto (ficha — ``list_price`` delega ahí).
-        prod_ord.product_tmpl.list_price = Decimal('9999.00')
-        prod_ord.product_tmpl.save()
+        prod_ord.product_tmpl_id.list_price = Decimal('9999.00')
+        prod_ord.product_tmpl_id.save()
 
         res = auth_client.get(_detail_url(order.name))
         item = res.json()['items'][0]

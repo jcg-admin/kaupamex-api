@@ -163,8 +163,8 @@ class TestWishlist:
         """
         auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
         # El precio vive en la ficha (lst_price = list_price + extra).
-        prod_s14.product_tmpl.list_price = Decimal('600.00')
-        prod_s14.product_tmpl.save()
+        prod_s14.product_tmpl_id.list_price = Decimal('600.00')
+        prod_s14.product_tmpl_id.save()
         item = auth_client.get(WISH_URL).json()['results'][0]
         assert item['price_dropped'] is True
         assert item['price_drop_percent'] == 20  # (1 - 600/750) * 100 = 20%
@@ -172,8 +172,8 @@ class TestWishlist:
     def test_price_increase_not_a_drop(self, auth_client, prod_s14, db):
         """precio subio → price_dropped False, current_price actualizado."""
         auth_client.post(WISH_URL, {'product_id': prod_s14.pk}, format='json')
-        prod_s14.product_tmpl.list_price = Decimal('900.00')
-        prod_s14.product_tmpl.save()
+        prod_s14.product_tmpl_id.list_price = Decimal('900.00')
+        prod_s14.product_tmpl_id.save()
         item = auth_client.get(WISH_URL).json()['results'][0]
         assert item['current_price'] == '900.00'
         assert item['price_dropped'] is False

@@ -272,7 +272,7 @@ class TestProductCodeRefFields:
         template = ProductTemplate.objects.create(
             name='Servicio', company_id=company
         )
-        product = ProductProduct.objects.create(product_tmpl=template)
+        product = ProductProduct.objects.create(product_tmpl_id=template)
         line = AccountAnalyticLine.objects.create(
             name='con producto', company=company, product=product
         )

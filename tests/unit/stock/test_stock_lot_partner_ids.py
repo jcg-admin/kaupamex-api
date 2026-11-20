@@ -65,7 +65,7 @@ def variant(db, unit):
         name='Motor', list_price=Decimal('900.00'), uom=unit, tracking='serial'
     )
     return ProductProduct.objects.create(
-        product_tmpl=tmpl, default_code='MOT-1'
+        product_tmpl_id=tmpl, default_code='MOT-1'
     )
 
 
@@ -97,7 +97,7 @@ def make_delivery(db, source, destination, company, variant, outgoing_type):
             location=source,
             location_dest=destination,
             company=company,
-            product_uom=variant.product_tmpl.uom,
+            product_uom=variant.product_tmpl_id.uom,
             product_uom_qty=quantity,
             picking=picking,
             state=StockMove.STATE_DONE,
@@ -106,7 +106,7 @@ def make_delivery(db, source, destination, company, variant, outgoing_type):
             move=move,
             picking=picking,
             product=variant,
-            product_uom=variant.product_tmpl.uom,
+            product_uom=variant.product_tmpl_id.uom,
             location=source,
             location_dest=destination,
             company=company,

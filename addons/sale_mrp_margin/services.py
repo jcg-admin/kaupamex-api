@@ -49,7 +49,7 @@ def bom_unit_cost(product) -> Decimal | None:
                 active=True,
                 type=MrpBom.TYPE_PHANTOM,
                 product__isnull=True,
-                product_tmpl=product.product_tmpl,
+                product_tmpl_id=product.product_tmpl_id,
             )
             .order_by('sequence', 'id')
             .first()

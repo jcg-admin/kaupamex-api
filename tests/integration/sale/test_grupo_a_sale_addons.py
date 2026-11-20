@@ -57,15 +57,15 @@ class TestSaleService:
     def test_is_service_deriva_del_tipo_del_producto(self, orden):
         linea = orden.order_line.first()
         assert is_service(linea) is False
-        linea.product.product_tmpl.type = TYPE_SERVICE
-        linea.product.product_tmpl.save(update_fields=['type'])
+        linea.product.product_tmpl_id.type = TYPE_SERVICE
+        linea.product.product_tmpl_id.save(update_fields=['type'])
         linea.refresh_from_db()
         assert is_service(linea) is True
 
     def test_el_dominio_filtra_por_tipo_y_estado(self, orden):
         linea = orden.order_line.first()
-        linea.product.product_tmpl.type = TYPE_SERVICE
-        linea.product.product_tmpl.save(update_fields=['type'])
+        linea.product.product_tmpl_id.type = TYPE_SERVICE
+        linea.product.product_tmpl_id.save(update_fields=['type'])
         # check_state=False: entra sin importar el estado de la orden.
         assert linea in service_lines(
             SaleOrderLine.objects.all(), check_state=False
@@ -134,7 +134,7 @@ class TestSaleStockProductExpiry:
 
     def test_el_related_lee_la_config_del_producto(self, orden):
         linea = orden.order_line.first()
-        plantilla = linea.product.product_tmpl
+        plantilla = linea.product.product_tmpl_id
         plantilla.tracking = 'lot'
         plantilla.use_expiration_date = True
         plantilla.save()
@@ -149,7 +149,7 @@ class TestSaleMrpMargin:
         bom = MrpBom.objects.create(
             type=MrpBom.TYPE_PHANTOM,
             product=kit,
-            product_tmpl=kit.product_tmpl,
+            product_tmpl_id=kit.product_tmpl_id,
             product_qty=Decimal('1.00'),
         )
         comp_a = make_product(

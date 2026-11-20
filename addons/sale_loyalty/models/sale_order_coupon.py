@@ -59,7 +59,7 @@ def ensure_reward_product() -> Product:
         active=True,
     )
     return Product.objects.create(
-        product_tmpl=tmpl,
+        product_tmpl_id=tmpl,
         default_code=REWARD_SKU,
         active=True,
     )

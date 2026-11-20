@@ -88,27 +88,27 @@ def _add_if_absent(model, name, field):
 
 def use_expiration_date(self):
     """≙ ``product.product.use_expiration_date`` — delegado al template."""
-    return self.product_tmpl.use_expiration_date
+    return self.product_tmpl_id.use_expiration_date
 
 
 def expiration_time(self):
     """≙ ``product.product.expiration_time`` — delegado al template."""
-    return self.product_tmpl.expiration_time
+    return self.product_tmpl_id.expiration_time
 
 
 def use_time(self):
     """≙ ``product.product.use_time`` — delegado al template."""
-    return self.product_tmpl.use_time
+    return self.product_tmpl_id.use_time
 
 
 def removal_time(self):
     """≙ ``product.product.removal_time`` — delegado al template."""
-    return self.product_tmpl.removal_time
+    return self.product_tmpl_id.removal_time
 
 
 def alert_time(self):
     """≙ ``product.product.alert_time`` — delegado al template."""
-    return self.product_tmpl.alert_time
+    return self.product_tmpl_id.alert_time
 
 
 @receiver(pre_save, sender=ProductTemplate,

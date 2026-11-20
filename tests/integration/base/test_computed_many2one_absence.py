@@ -88,10 +88,12 @@ def test_raw_computed_id_change_invalidates_the_cached_relation(company):
 
 
 def test_stored_required_relation_keeps_its_django_constraint():
-    record = ProductProduct(product_tmpl=None)
+    record = ProductProduct(product_tmpl_id=None)
 
-    with pytest.raises(ProductProduct.product_tmpl.RelatedObjectDoesNotExist):
-        _ = record.product_tmpl
+    with pytest.raises(
+        ProductProduct.product_tmpl_id.RelatedObjectDoesNotExist
+    ):
+        _ = record.product_tmpl_id
 
 
 def test_wrong_comodel_assignment_is_not_suppressed(company):

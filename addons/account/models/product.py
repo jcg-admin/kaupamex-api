@@ -196,7 +196,7 @@ def _get_variant_product_accounts(self):
     La variante delega en su plantilla: la cuenta contable es del producto,
     no de la combinación de atributos.
     """
-    return _get_product_accounts(self.product_tmpl)
+    return _get_product_accounts(self.product_tmpl_id)
 
 
 def _add_if_absent(model, name, field):

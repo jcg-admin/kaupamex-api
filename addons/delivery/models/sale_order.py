@@ -69,7 +69,7 @@ def ensure_generic_service_product():
         active=True,
     )
     return ProductProduct.objects.create(
-        product_tmpl=tmpl,
+        product_tmpl_id=tmpl,
         default_code=GENERIC_SERVICE_SKU,
         active=True,
     )

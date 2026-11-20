@@ -261,8 +261,8 @@ def test_a_done_move_is_not_pending(tree):
 def test_a_service_carries_no_stock(tree):
     """≙ el ``filtered(lambda p: p.type != 'service')`` de ``:152``."""
     service = make_product(name='Installation')
-    service.product_tmpl.type = 'service'
-    service.product_tmpl.save()
+    service.product_tmpl_id.type = 'service'
+    service.product_tmpl_id.save()
     _quant(service, tree['stock'], 42)
 
     values = ProductProduct._compute_quantities(
@@ -454,7 +454,7 @@ def test_get_total_routes_unions_product_and_category_routes(db):
     from_template = StockRoute.objects.create(name='From the template')
     from_grandparent.categ_ids.add(parent_categ)
     from_own_categ.categ_ids.add(child_categ)
-    from_template.product_ids.add(product.product_tmpl)
+    from_template.product_ids.add(product.product_tmpl_id)
 
     assert set(product.get_total_routes().values_list('pk', flat=True)) == {
         from_grandparent.pk,

@@ -22,7 +22,7 @@ pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 def variant():
     template = ProductTemplate.objects.create(name='Camiseta')
     return ProductProduct.objects.create(
-        product_tmpl=template, default_code='SKU'
+        product_tmpl_id=template, default_code='SKU'
     )
 
 
@@ -36,7 +36,7 @@ def values(variant):
         attribute_id=attribute, name='Azul'
     )
     line = ProductTemplateAttributeLine.objects.create(
-        product_tmpl=variant.product_tmpl,
+        product_tmpl_id=variant.product_tmpl_id,
         attribute_id=attribute,
     )
     line.value_ids.set([red, blue])
@@ -66,7 +66,7 @@ def test_product_compute_preserves_direct_return_and_assigns(variant):
 def test_template_name_change_invalidates_variant_label(variant):
     with transaction_scope():
         assert variant.display_name == 'Camiseta'
-        template = variant.product_tmpl
+        template = variant.product_tmpl_id
         template.name = 'Playera'
         template.save(update_fields=['name'])
         assert variant.display_name == 'Playera'
@@ -115,8 +115,9 @@ def test_reverse_remove_and_clear_invalidate_previous_owners(variant, values):
     # Inactiva: dos variantes ACTIVAS de una ficha con la misma combinación
     # las prohíbe ``_combination_unique`` (``odoo19c: product_product.py:121``,
     # ``WHERE active IS TRUE``); lo que se mide aquí no depende de ``active``.
-    other = ProductProduct.objects.create(product_tmpl=variant.product_tmpl,
-                                          active=False)
+    other = ProductProduct.objects.create(
+        product_tmpl_id=variant.product_tmpl_id, active=False
+    )
     other.product_template_attribute_values.add(red_value)
     with transaction_scope():
         assert variant.display_name == other.display_name == 'Camiseta (Rojo)'
@@ -142,8 +143,9 @@ def test_unrelated_cached_variant_is_not_recomputed(
     # Inactiva: dos variantes ACTIVAS de una ficha con la misma combinación
     # las prohíbe ``_combination_unique`` (``odoo19c: product_product.py:121``,
     # ``WHERE active IS TRUE``); lo que se mide aquí no depende de ``active``.
-    other = ProductProduct.objects.create(product_tmpl=variant.product_tmpl,
-                                          active=False)
+    other = ProductProduct.objects.create(
+        product_tmpl_id=variant.product_tmpl_id, active=False
+    )
     original = ProductProduct._compute_display_name
     computed = []
 

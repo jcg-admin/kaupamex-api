@@ -131,7 +131,7 @@ def test_a_related_ending_on_a_django_many2many():
                                                 name='Azul')
     variant = make_product(name='Camiseta NewId')
     line = ProductTemplateAttributeLine.objects.create(
-        product_tmpl=variant.product_tmpl, attribute_id=attribute)
+        product_tmpl_id=variant.product_tmpl_id, attribute_id=attribute)
     line.value_ids.set([red, blue])
     values = [ProductTemplateAttributeValue.objects.create(
         line=line, attribute_value=value) for value in (red, blue)]

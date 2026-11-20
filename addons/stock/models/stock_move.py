@@ -672,9 +672,9 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         return self.product.categ_id if self.product_id else None
 
     @property
-    def product_tmpl(self):
+    def product_tmpl_id(self):
         """Plantilla del producto (≙ ``product_tmpl_id``, related)."""
-        return self.product.product_tmpl if self.product_id else None
+        return self.product.product_tmpl_id if self.product_id else None
 
     @property
     def location_usage(self):
@@ -718,7 +718,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         if not self.product_id:
             return apps.get_model('uom', 'Uom').objects.none()
         Uom = apps.get_model('uom', 'Uom')
-        tmpl = self.product.product_tmpl
+        tmpl = self.product.product_tmpl_id
         ids = {tmpl.uom_id} if tmpl.uom_id else set()   # FK sin traer la fila
         ids |= set(tmpl.uom_ids.values_list('pk', flat=True))
         ids |= set(tmpl.seller_ids.exclude(product_uom_id__isnull=True)

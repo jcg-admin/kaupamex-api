@@ -75,7 +75,7 @@ def variant(db):
         name='Camisa', list_price=Decimal('100.00')
     )
     return ProductProduct.objects.create(
-        product_tmpl=tmpl, default_code='CAM-685'
+        product_tmpl_id=tmpl, default_code='CAM-685'
     )
 
 
@@ -93,7 +93,7 @@ def _move(picking, variant, source, destination, company, **extra):
         location=source,
         location_dest=destination,
         company=company,
-        product_uom=variant.product_tmpl.uom,
+        product_uom=variant.product_tmpl_id.uom,
         product_uom_qty=Decimal('5'),
     )
     values.update(extra)
@@ -191,7 +191,7 @@ def test_has_tracking_true_when_any_move_product_is_tracked(
         name='Serie', list_price=Decimal('10'), tracking='serial'
     )
     serializado = ProductProduct.objects.create(
-        product_tmpl=tmpl, default_code='SER-685'
+        product_tmpl_id=tmpl, default_code='SER-685'
     )
     picking = StockPicking.objects.create(
         picking_type=picking_type, company=company
@@ -868,7 +868,7 @@ def test_onchange_location_id_warns_when_chained_reservation_breaks(
         location=other_branch,
         location_dest=destination,
         company=company,
-        product_uom=variant.product_tmpl.uom,
+        product_uom=variant.product_tmpl_id.uom,
         quantity=Decimal('1'),
     )
 

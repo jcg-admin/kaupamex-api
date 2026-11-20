@@ -31,7 +31,9 @@ def is_service(line) -> bool:
     (``store=True`` + columna pre-creada); aquí se lee del producto.
     """
     template = (
-        getattr(line.product, 'product_tmpl', None) if line.product else None
+        getattr(line.product, 'product_tmpl_id', None)
+        if line.product
+        else None
     )
     return bool(template) and template.type == TYPE_SERVICE
 
@@ -51,7 +53,7 @@ def service_lines(queryset, check_state=True):
     El filtro por tipo de producto va en SQL (join a la plantilla); el resto
     del contrato es idéntico al dominio de la fuente.
     """
-    queryset = queryset.filter(product__product_tmpl__type=TYPE_SERVICE)
+    queryset = queryset.filter(product__product_tmpl_id__type=TYPE_SERVICE)
     if check_state:
         queryset = queryset.filter(order__state='sale')
     return queryset

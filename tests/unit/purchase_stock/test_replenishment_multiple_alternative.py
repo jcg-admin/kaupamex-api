@@ -105,7 +105,7 @@ def _uom(name):
 def _tariff(product, partner, uom, **kwargs):
     return ProductSupplierinfo.objects.create(
         partner_id=partner,
-        product_tmpl_id=product.product_tmpl,
+        product_tmpl_id=product.product_tmpl_id,
         product_uom_id=uom,
         **kwargs,
     )

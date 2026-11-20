@@ -30,8 +30,9 @@ class ProductTemplateAttributeLine(TimeStampedModel):
     _description = "Product Template Attribute Line"
     _order = 'sequence, attribute_id, id'
 
-    product_tmpl = fields.Many2one(
+    product_tmpl_id = fields.Many2one(
         'product.ProductTemplate',
+        db_column='product_tmpl_id',
         null=False, on_delete=models.CASCADE,
         related_name='attribute_lines',
         help_text='Plantilla de producto (Odoo product_tmpl_id).',
@@ -58,7 +59,7 @@ class ProductTemplateAttributeLine(TimeStampedModel):
         ordering = ['sequence', 'id']
         constraints = [
             models.UniqueConstraint(
-                fields=['product_tmpl', 'attribute_id'],
+                fields=['product_tmpl_id', 'attribute_id'],
                 name='unique_template_attribute',
             ),
         ]
@@ -66,4 +67,4 @@ class ProductTemplateAttributeLine(TimeStampedModel):
         verbose_name_plural = 'Líneas de atributo de producto'
 
     def __str__(self) -> str:
-        return f'{self.product_tmpl} / {self.attribute_id}'
+        return f'{self.product_tmpl_id} / {self.attribute_id}'

@@ -40,7 +40,7 @@ def variant(db):
         name='Camisa', list_price=Decimal('100.00')
     )
     return ProductProduct.objects.create(
-        product_tmpl=tmpl, default_code='CAM-M'
+        product_tmpl_id=tmpl, default_code='CAM-M'
     )
 
 

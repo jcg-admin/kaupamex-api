@@ -322,7 +322,7 @@ class ProductSupplierinfo(TimeStampedModel):
         if (
             self.product_id_id
             and self.product_tmpl_id_id
-            and self.product_id.product_tmpl_id != self.product_tmpl_id_id
+            and self.product_id.product_tmpl_id_id != self.product_tmpl_id_id
         ):
             raise ValidationError(
                 'La variante no pertenece a la plantilla de esta tarifa.'
@@ -351,7 +351,7 @@ class ProductSupplierinfo(TimeStampedModel):
           por el que el campo existe.
         """
         if self.product_id_id and self.product_tmpl_id_id is None:
-            self.product_tmpl_id = self.product_id.product_tmpl
+            self.product_tmpl_id = self.product_id.product_tmpl_id
         if self.product_uom_id_id is None:
             source = self.product_id or self.product_tmpl_id
             self.product_uom_id = getattr(source, 'uom', None)

@@ -169,7 +169,7 @@ class AccountAccruedOrdersWizard(TransientModel):
         ``get_product_accounts``. La resolución es la de la **plantilla**
         (``product.product_tmpl_id.get_product_accounts``): las cuentas viven
         en ``product.template`` y una variante no las expone."""
-        accounts = get_product_accounts(product.product_tmpl)
+        accounts = get_product_accounts(product.product_tmpl_id)
         if is_purchase:
             return accounts['expense']
         return accounts['income']

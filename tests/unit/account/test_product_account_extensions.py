@@ -179,7 +179,7 @@ class TestResolutionOfAccount:
         plantilla = ProductTemplate.objects.create(
             name='Eleke', categ_id=categoria, property_account_income=ingreso
         )
-        variante = ProductProduct.objects.create(product_tmpl=plantilla)
+        variante = ProductProduct.objects.create(product_tmpl_id=plantilla)
 
         assert variante._get_product_accounts()['income'] == ingreso
 

@@ -25,7 +25,7 @@ def location():
 def variant():
     template = ProductTemplate.objects.create(
         name='Tornillo', list_price=Decimal('1.00'))
-    return ProductProduct.objects.create(product_tmpl=template)
+    return ProductProduct.objects.create(product_tmpl_id=template)
 
 
 def _refuses_and_keeps(record, quant):

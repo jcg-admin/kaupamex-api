@@ -69,7 +69,7 @@ def variant(db):
     tmpl = ProductTemplate.objects.create(
         name='Producto 266', list_price=Decimal('10.00')
     )
-    return ProductProduct.objects.create(product_tmpl=tmpl)
+    return ProductProduct.objects.create(product_tmpl_id=tmpl)
 
 
 def _rate(currency, day, value, company=None):

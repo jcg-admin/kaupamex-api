@@ -85,7 +85,7 @@ class TestSembradoDelProductoDeServicio:
         ``sale_ok=False`` en la ficha ≙ ``sale_ok=False`` de la semilla Odoo.
         """
         producto = metodo.ensure_service_product()
-        assert producto.product_tmpl.sale_ok is False
+        assert producto.product_tmpl_id.sale_ok is False
         assert producto.active is True
 
 

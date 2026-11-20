@@ -80,7 +80,7 @@ def serial_variant(db, unit):
         name='Motor', list_price=Decimal('900.00'), uom=unit, tracking='serial'
     )
     return ProductProduct.objects.create(
-        product_tmpl=tmpl, default_code='MOT-1'
+        product_tmpl_id=tmpl, default_code='MOT-1'
     )
 
 
@@ -91,7 +91,7 @@ def plain_variant(db, unit):
         name='Camisa', list_price=Decimal('100.00'), uom=unit, tracking='none'
     )
     return ProductProduct.objects.create(
-        product_tmpl=tmpl, default_code='CAM-M'
+        product_tmpl_id=tmpl, default_code='CAM-M'
     )
 
 
@@ -119,7 +119,7 @@ def make_move(db, source, destination, company, serial_variant):
             location=source,
             location_dest=destination,
             company=company,
-            product_uom=product.product_tmpl.uom,
+            product_uom=product.product_tmpl_id.uom,
             product_uom_qty=Decimal('3'),
             state=StockMove.STATE_CONFIRMED,
             date=timezone.now(),
@@ -600,8 +600,8 @@ def test_a_lot_tracked_product_splits_the_quantity_across_lots(
     plain_variant, destination, company, unit
 ):
     """``:1141-1149`` — con seguimiento por lote, la demanda se reparte."""
-    plain_variant.product_tmpl.tracking = 'lot'
-    plain_variant.product_tmpl.save()
+    plain_variant.product_tmpl_id.tracking = 'lot'
+    plain_variant.product_tmpl_id.save()
 
     salida = StockMove.action_generate_lot_line_vals(
         {

@@ -62,7 +62,7 @@ def test_deleting_an_employee_in_a_work_entry_filter_is_refused(user):
 def test_deleting_a_production_with_workorders_is_refused():
     template = ProductTemplate.objects.create(name='Mesa',
                                               list_price=Decimal('1.00'))
-    product = ProductProduct.objects.create(product_tmpl=template)
+    product = ProductProduct.objects.create(product_tmpl_id=template)
     production = MrpProduction.objects.create(product=product,
                                               product_qty=Decimal('1'))
     workorder = MrpWorkorder.objects.create(

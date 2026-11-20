@@ -27,7 +27,7 @@ def test_the_variant_delegates_categ_id_to_its_template():
     category = ProductCategory.objects.create(name='Cat ptc')
     template = ProductTemplate.objects.create(name='Plantilla ptc',
                                               categ_id=category)
-    variant = ProductProduct.objects.create(product_tmpl=template)
+    variant = ProductProduct.objects.create(product_tmpl_id=template)
     assert variant.categ_id == category
 
 

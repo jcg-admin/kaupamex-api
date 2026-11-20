@@ -37,7 +37,7 @@ CORRECTED = {
     'base.ResCountryState.country', 'base_address_extended.ResCity.country_id',
     'base.IrActionsTodo.action',
     # designs/product-lot-bom-restrict-ondelete.md
-    'stock.StockLot.product', 'mrp.MrpBom.product_tmpl',
+    'stock.StockLot.product', 'mrp.MrpBom.product_tmpl_id',
     # designs/hr-workorder-restrict-ondelete.md
     'hr_work_entry.HrWorkEntry.employee', 'hr_work_entry.HrWorkEntry.version',
     'hr_work_entry.HrUserWorkEntryEmployee.employee',

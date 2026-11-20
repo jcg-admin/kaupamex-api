@@ -70,7 +70,7 @@ class WishlistView(CapabilityRequiredMixin, APIView):
         # ``stock.quant``, así que el filtro se evalúa en Python.
         qs = (WishlistItem.objects
               .filter(user=request.user)
-              .select_related('product__product_tmpl__categ_id'))
+              .select_related('product__product_tmpl_id__categ_id'))
 
         avail_filter = request.query_params.get('availability')
         if avail_filter:
@@ -232,19 +232,19 @@ class WishlistAggregateView(CapabilityRequiredMixin, APIView):
         # una propiedad delegada, no una columna consultable.
         rows = (
             WishlistItem.objects
-            .values('product_id', 'product__product_tmpl__name')
+            .values('product_id', 'product__product_tmpl_id__name')
             .annotate(
                 times_wishlisted=Count('id'),
                 distinct_users=Count('user', distinct=True),
             )
-            .order_by('-times_wishlisted', 'product__product_tmpl__name')
+            .order_by('-times_wishlisted', 'product__product_tmpl_id__name')
         )
         data = [
             {
-                'product_id':       r['product_id'],
-                'name':             r['product__product_tmpl__name'],
+                'product_id': r['product_id'],
+                'name': r['product__product_tmpl_id__name'],
                 'times_wishlisted': r['times_wishlisted'],
-                'distinct_users':   r['distinct_users'],
+                'distinct_users': r['distinct_users'],
             }
             for r in rows
         ]

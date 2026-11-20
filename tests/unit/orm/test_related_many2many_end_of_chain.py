@@ -26,6 +26,6 @@ def test_the_end_of_the_chain_reads_the_queryset_of_a_many2many():
 
 def test_a_scalar_at_the_end_of_the_chain_is_read_as_is():
     product = make_product(name='Variante related escalar')
-    field = type(product.product_tmpl)._meta.get_field('name')
-    assert _end_of_chain(product.product_tmpl, field) == (
-        product.product_tmpl.name)
+    field = type(product.product_tmpl_id)._meta.get_field('name')
+    assert _end_of_chain(product.product_tmpl_id, field) == (
+        product.product_tmpl_id.name)

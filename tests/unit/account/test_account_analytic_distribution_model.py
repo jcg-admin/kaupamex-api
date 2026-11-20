@@ -204,7 +204,7 @@ class TestProductAndProductCategFields:
         template = ProductTemplate.objects.create(
             name='Widget', company_id=company
         )
-        product = ProductProduct.objects.create(product_tmpl=template)
+        product = ProductProduct.objects.create(product_tmpl_id=template)
         record = AccountAnalyticDistributionModel.objects.create(
             company=company, product=product
         )

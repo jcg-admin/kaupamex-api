@@ -131,13 +131,14 @@ class ProductProduct(TimeStampedModel):
     #: cableado.
     _inherit = ['mail.thread', 'mail.activity.mixin']
     #: ≙ ``_order`` (``:21``). ``name`` es de la ficha, así que
-    #: ``Meta.ordering`` ordena por ``product_tmpl__name``.
+    #: ``Meta.ordering`` ordena por ``product_tmpl_id__name``.
     _order = 'default_code, name, id'
     #: ≙ ``_check_company_domain`` (``:22``).
     _check_company_domain = classmethod(models.check_company_domain_parent_of)
 
-    product_tmpl = fields.Many2one(
+    product_tmpl_id = fields.Many2one(
         ProductTemplate,
+        db_column='product_tmpl_id',
         null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='product_variant_ids',
@@ -213,7 +214,7 @@ class ProductProduct(TimeStampedModel):
 
     class Meta:
         db_table = 'product_product'
-        ordering = ['default_code', 'product_tmpl__name', 'id']
+        ordering = ['default_code', 'product_tmpl_id__name', 'id']
         # ≙ ``_is_favorite_index`` (``:124``) **no** se declara: la variante no
         # tiene ``is_favorite`` propio (la fuente lo guarda en las dos
         # tablas); el índice vive en ``product_template``.
@@ -233,7 +234,7 @@ class ProductProduct(TimeStampedModel):
             # combinación activa por ficha. En PostgreSQL una restricción
             # única parcial ES un índice único parcial.
             models.UniqueConstraint(
-                fields=['product_tmpl', 'combination_indices'],
+                fields=['product_tmpl_id', 'combination_indices'],
                 condition=models.Q(active=True),
                 name='product_product_combination_unique',
             ),
@@ -253,29 +254,29 @@ class ProductProduct(TimeStampedModel):
     @property
     def name(self):
         """El nombre de la ficha (delegado por ``_inherits``)."""
-        return self.product_tmpl.name
+        return self.product_tmpl_id.name
 
     @property
     def categ_id(self):
         """La categoría de la ficha (``categ_id`` delegado por
         ``_inherits``)."""
-        return self.product_tmpl.categ_id
+        return self.product_tmpl_id.categ_id
 
     @property
     def uom(self):
         """La unidad de medida de la ficha."""
-        return self.product_tmpl.uom
+        return self.product_tmpl_id.uom
 
     @property
     def type(self):
         """El tipo de producto de la ficha."""
-        return self.product_tmpl.type
+        return self.product_tmpl_id.type
 
     @property
     def company_id(self):
         """La compañía de la ficha (``company_id`` delegado por
         ``_inherits``)."""
-        return self.product_tmpl.company_id
+        return self.product_tmpl_id.company_id
 
     @property
     def product_document_ids(self):
@@ -302,7 +303,7 @@ class ProductProduct(TimeStampedModel):
         variante la alcanza por ``_inherits`` (``product_product.py:19``);
         aquí la delegación es explícita. Ver H-API-191.
         """
-        return self.product_tmpl.sale_ok
+        return self.product_tmpl_id.sale_ok
 
     @property
     def currency(self):
@@ -311,7 +312,7 @@ class ProductProduct(TimeStampedModel):
         La lee ``ProductComboItem.currency``, que en la referencia es
         ``related='product_id.currency_id'``.
         """
-        return getattr(self.product_tmpl, 'currency', None)
+        return getattr(self.product_tmpl_id, 'currency', None)
 
     @property
     def list_price(self):
@@ -321,7 +322,7 @@ class ProductProduct(TimeStampedModel):
         conservan los dos nombres de la referencia porque distinguen
         exactamente eso.
         """
-        return self.product_tmpl.list_price
+        return self.product_tmpl_id.list_price
 
     @property
     def is_product_variant(self):
@@ -355,7 +356,7 @@ class ProductProduct(TimeStampedModel):
         return self.combination_indices
 
     @api.depends(
-        'product_tmpl.name',
+        'product_tmpl_id.name',
         'product_template_attribute_values',
         'product_template_attribute_values.attribute_value.name',
         'product_template_attribute_values.price_extra',
@@ -371,7 +372,7 @@ class ProductProduct(TimeStampedModel):
         ``is_distinguishing``: el modelo actual no lo declara. Los contextos
         de proveedor y presentación pertenecen a su reconciliación de negocio.
         """
-        base = self.product_tmpl.name
+        base = self.product_tmpl_id.name
         parts = [
             str(value)
             for value in self.product_template_attribute_values.all()
@@ -425,7 +426,7 @@ class ProductProduct(TimeStampedModel):
         partner_id = getattr(partner, 'pk', partner)
         if not partner_id:
             return code
-        for seller in self.product_tmpl.seller_ids.all():
+        for seller in self.product_tmpl_id.seller_ids.all():
             if seller.partner_id_id != partner_id:
                 continue
             if seller.product_id and seller.product_id_id != self.pk:
@@ -444,7 +445,7 @@ class ProductProduct(TimeStampedModel):
         vacía del formato.
         """
         partner_id = getattr(partner, 'pk', partner)
-        for seller in self.product_tmpl.seller_ids.all():
+        for seller in self.product_tmpl_id.seller_ids.all():
             if seller.partner_id_id != partner_id:
                 continue
             name = seller.product_name or self.default_code or self.name
@@ -481,7 +482,7 @@ class ProductProduct(TimeStampedModel):
         """
         ProductSupplierinfo = apps.get_model('product', 'ProductSupplierinfo')
         sellers = ProductSupplierinfo._get_filtered_supplier(
-            self.product_tmpl.seller_ids.all(),
+            self.product_tmpl_id.seller_ids.all(),
             company if company is not None else self.company_id,
             self,
             params,

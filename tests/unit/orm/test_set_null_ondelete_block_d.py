@@ -41,9 +41,9 @@ def _delete(row):
 
 def _variant(name):
     template = ProductTemplate.objects.create(name=name)
-    variant = ProductProduct.objects.filter(product_tmpl=template).first()
+    variant = ProductProduct.objects.filter(product_tmpl_id=template).first()
     return template, variant or ProductProduct.objects.create(
-        product_tmpl=template)
+        product_tmpl_id=template)
 
 
 def test_deleting_a_report_keeps_its_columns():
@@ -77,7 +77,7 @@ def test_deleting_a_variant_keeps_its_vendor_price():
 
 def test_deleting_a_variant_keeps_its_bill_of_materials():
     template, variant = _variant('Producto BoM D')
-    bom = MrpBom.objects.create(product_tmpl=template, product=variant)
+    bom = MrpBom.objects.create(product_tmpl_id=template, product=variant)
     _delete(variant)
     bom.refresh_from_db()
     assert bom.product_id is None

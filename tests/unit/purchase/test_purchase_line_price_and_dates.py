@@ -72,7 +72,7 @@ def _line(order, product, **values):
 def _seller(vendor, product, **values):
     values.setdefault('price', Decimal('7'))
     return ProductSupplierinfo.objects.create(
-        partner_id=vendor, product_tmpl_id=product.product_tmpl, **values)
+        partner_id=vendor, product_tmpl_id=product.product_tmpl_id, **values)
 
 
 def test_the_seller_price_and_discount_fill_a_new_line(company, vendor, unit):
@@ -152,7 +152,7 @@ def test_compute_tax_id_maps_supplier_taxes_through_the_position(
         name='IVA compra P5', amount=16, type_tax_use='purchase',
         company=company)
     product = _product(unit, name='Insumo impuesto P5')
-    product.product_tmpl.supplier_taxes.set([tax])
+    product.product_tmpl_id.supplier_taxes.set([tax])
     order = _order(company, vendor)
     line = _line(order, product, price_unit=Decimal('1'))
     line._compute_tax_id()

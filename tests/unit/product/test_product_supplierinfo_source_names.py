@@ -40,7 +40,7 @@ def partner():
 def test_the_filter_keeps_rows_of_the_company_or_of_none(template, partner):
     own = ResCompany.objects.create(code='psi-src-a', name='Propia')
     other = ResCompany.objects.create(code='psi-src-b', name='Ajena')
-    variant = ProductProduct.objects.create(product_tmpl=template)
+    variant = ProductProduct.objects.create(product_tmpl_id=template)
     shared = ProductSupplierinfo.objects.create(
         partner_id=partner, product_tmpl_id=template)
     mine = ProductSupplierinfo.objects.create(
@@ -53,9 +53,9 @@ def test_the_filter_keeps_rows_of_the_company_or_of_none(template, partner):
 
 
 def test_the_filter_drops_rows_of_another_variant(template, partner):
-    variant = ProductProduct.objects.create(product_tmpl=template)
+    variant = ProductProduct.objects.create(product_tmpl_id=template)
     other = ProductProduct.objects.create(
-        product_tmpl=ProductTemplate.objects.create(name='Otro psi-src'))
+        product_tmpl_id=ProductTemplate.objects.create(name='Otro psi-src'))
     general = ProductSupplierinfo.objects.create(
         partner_id=partner, product_tmpl_id=template)
     specific = ProductSupplierinfo.objects.create(
@@ -68,7 +68,7 @@ def test_the_filter_drops_rows_of_another_variant(template, partner):
 
 
 def test_save_derives_the_template_and_seeds_the_unit(template, partner):
-    variant = ProductProduct.objects.create(product_tmpl=template)
+    variant = ProductProduct.objects.create(product_tmpl_id=template)
     info = ProductSupplierinfo.objects.create(
         partner_id=partner, product_id=variant)
     assert info.product_tmpl_id == template

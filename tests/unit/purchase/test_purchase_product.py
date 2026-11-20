@@ -96,16 +96,16 @@ def test_in_the_product_unit_the_quantity_is_copied():
 
 def test_a_service_is_billed_on_ordered_quantities():
     product = _product('Servicio PP', type='service')
-    assert product.product_tmpl.purchase_method == 'purchase'
+    assert product.product_tmpl_id.purchase_method == 'purchase'
 
 
 def test_a_good_is_billed_on_received_quantities():
     product = _product('Bien PP', type='consu')
-    assert product.product_tmpl.purchase_method == 'receive'
+    assert product.product_tmpl_id.purchase_method == 'receive'
 
 
 def test_changing_the_type_recomputes_the_policy():
-    template = _product('Cambio PP', type='consu').product_tmpl
+    template = _product('Cambio PP', type='consu').product_tmpl_id
     template.write({'type': 'service'})
     assert template.purchase_method == 'purchase'
 
@@ -124,7 +124,7 @@ def test_the_variant_sums_the_approved_lines_of_the_last_year():
 def test_the_template_sums_its_variants():
     product = _product('Plantilla PP')
     _order(product, qty=7)
-    assert product.product_tmpl.purchased_product_qty == 7
+    assert product.product_tmpl_id.purchased_product_qty == 7
 
 
 # --- is_in_purchase_order (product.py:64-67,84-105) -----------------------
@@ -193,13 +193,13 @@ def test_the_order_company_filters_the_sellers():
     ).ProductSupplierinfo
     mine = seller_model.objects.create(
         partner_id=ResPartner.objects.create(name='Mío PP'),
-        product_tmpl_id=product.product_tmpl, company_id=order.company_id,
+        product_tmpl_id=product.product_tmpl_id, company_id=order.company_id,
         price=1)
     seller_model.objects.create(
         partner_id=ResPartner.objects.create(name='Ajeno PP'),
-        product_tmpl_id=product.product_tmpl, company_id=other, price=1)
+        product_tmpl_id=product.product_tmpl_id, company_id=other, price=1)
     sellers = seller_model._get_filtered_supplier(
-        product.product_tmpl.seller_ids.all(), other, product,
+        product.product_tmpl_id.seller_ids.all(), other, product,
         {'order_id': order})
     assert [seller.pk for seller in sellers] == [mine.pk]
 
@@ -229,7 +229,7 @@ def _user(*xmlids):
 
 
 def test_the_bill_line_shows_the_product_warning_with_the_group():
-    template = _product('Avisado PP').product_tmpl
+    template = _product('Avisado PP').product_tmpl_id
     template.write({'purchase_line_warn_msg': 'Revisar lote'})
     line = _bill_line(template.product_variant_ids.first())
     user = _user('purchase.group_warning_purchase')
@@ -238,7 +238,7 @@ def test_the_bill_line_shows_the_product_warning_with_the_group():
 
 
 def test_without_the_group_the_warning_is_empty():
-    template = _product('Sin aviso PP').product_tmpl
+    template = _product('Sin aviso PP').product_tmpl_id
     template.write({'purchase_line_warn_msg': 'Revisar lote'})
     line = _bill_line(template.product_variant_ids.first())
     user = _user()
@@ -275,7 +275,7 @@ def test_migration_0016_fills_the_existing_lines():
 
 
 def test_migration_0022_fills_the_existing_templates():
-    template = _product('Servicio MIG', type='service').product_tmpl
+    template = _product('Servicio MIG', type='service').product_tmpl_id
     get_transaction().flush()
     type(template).objects.filter(pk=template.pk).update(
         purchase_method='receive')

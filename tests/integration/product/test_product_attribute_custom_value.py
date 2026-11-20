@@ -47,7 +47,7 @@ def attribute_value():
     )
     template = ProductTemplate.objects.create(name='Placa conmemorativa')
     line = ProductTemplateAttributeLine.objects.create(
-        product_tmpl=template, attribute_id=attribute, sequence=10
+        product_tmpl_id=template, attribute_id=attribute, sequence=10
     )
     line.value_ids.set([value])
     return ProductTemplateAttributeValue.objects.create(

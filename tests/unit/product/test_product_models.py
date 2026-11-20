@@ -190,7 +190,7 @@ class TestProductTemplateComboInvariants:
         tmpl = ProductTemplate.objects.create(name='Menú', type=TYPE_COMBO)
         color = ProductAttribute.objects.create(name='Color')
         ProductTemplateAttributeLine.objects.create(
-            product_tmpl=tmpl, attribute_id=color
+            product_tmpl_id=tmpl, attribute_id=color
         )
         with pytest.raises(ValidationError):
             tmpl.check_combo_has_no_attributes()
@@ -199,7 +199,7 @@ class TestProductTemplateComboInvariants:
         tmpl = ProductTemplate.objects.create(name='Eleke')
         color = ProductAttribute.objects.create(name='Color')
         ProductTemplateAttributeLine.objects.create(
-            product_tmpl=tmpl, attribute_id=color
+            product_tmpl_id=tmpl, attribute_id=color
         )
         tmpl.check_combo_has_no_attributes()  # no debe levantar
 
@@ -214,7 +214,7 @@ class TestProductTemplateComboInvariants:
         )
         bebida_tmpl = ProductTemplate.objects.create(name='Refresco')
         bebida_variant = ProductProduct.objects.create(
-            product_tmpl=bebida_tmpl
+            product_tmpl_id=bebida_tmpl
         )
         combo = ProductCombo.objects.create(name='Bebida')
         ProductComboItem.objects.create(combo=combo, product=bebida_variant)
@@ -229,7 +229,7 @@ class TestProductTemplateComboInvariants:
             name='Refresco agotado', sale_ok=False
         )
         bebida_variant = ProductProduct.objects.create(
-            product_tmpl=bebida_tmpl
+            product_tmpl_id=bebida_tmpl
         )
         combo = ProductCombo.objects.create(name='Bebida')
         ProductComboItem.objects.create(combo=combo, product=bebida_variant)
@@ -248,25 +248,25 @@ class TestProductProduct:
     def test_delega_nombre_categoria_y_uom_de_la_ficha(self):
         cat = ProductCategory.objects.create(name='Collares')
         tmpl = ProductTemplate.objects.create(name='Eleke', categ_id=cat)
-        variante = ProductProduct.objects.create(product_tmpl=tmpl)
+        variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
         assert variante.name == 'Eleke'
         assert variante.categ_id == cat
 
     def test_is_product_variant_verdadero_en_la_variante(self):
         tmpl = ProductTemplate.objects.create(name='Eleke')
-        variante = ProductProduct.objects.create(product_tmpl=tmpl)
+        variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
         assert variante.is_product_variant is True
 
     def test_str_usa_default_code_cuando_existe(self):
         tmpl = ProductTemplate.objects.create(name='Eleke')
         variante = ProductProduct.objects.create(
-            product_tmpl=tmpl, default_code='ELK-001'
+            product_tmpl_id=tmpl, default_code='ELK-001'
         )
         assert str(variante) == '[ELK-001] Eleke'
 
     def test_str_sin_default_code_usa_display_name(self):
         tmpl = ProductTemplate.objects.create(name='Eleke')
-        variante = ProductProduct.objects.create(product_tmpl=tmpl)
+        variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
         assert str(variante) == 'Eleke'
 
     def test_build_combination_indices_ordena_los_ids(self):
@@ -282,13 +282,13 @@ class TestProductProduct:
         )
         tmpl = ProductTemplate.objects.create(name='Eleke')
         line = ProductTemplateAttributeLine.objects.create(
-            product_tmpl=tmpl, attribute_id=color
+            product_tmpl_id=tmpl, attribute_id=color
         )
         line.value_ids.set([rojo])
         ptav = ProductTemplateAttributeValue.objects.create(
             line=line, attribute_value=rojo
         )
-        variante = ProductProduct.objects.create(product_tmpl=tmpl)
+        variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
         variante.product_template_attribute_values.set([ptav])
         variante.refresh_combination_indices()
         assert variante.combination_indices == str(ptav.pk)
@@ -302,13 +302,13 @@ class TestProductProduct:
             name='Eleke', list_price=Decimal('100.00')
         )
         line = ProductTemplateAttributeLine.objects.create(
-            product_tmpl=tmpl, attribute_id=color
+            product_tmpl_id=tmpl, attribute_id=color
         )
         line.value_ids.set([dorado])
         ptav = ProductTemplateAttributeValue.objects.create(
             line=line, attribute_value=dorado, price_extra=Decimal('30.00')
         )
-        variante = ProductProduct.objects.create(product_tmpl=tmpl)
+        variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
         variante.product_template_attribute_values.set([ptav])
         assert variante.list_price == Decimal('100.00')
         assert variante.price_extra == Decimal('30.00')
@@ -326,13 +326,13 @@ class TestProductProduct:
         )
         tmpl = ProductTemplate.objects.create(name='Eleke')
         line = ProductTemplateAttributeLine.objects.create(
-            product_tmpl=tmpl, attribute_id=color
+            product_tmpl_id=tmpl, attribute_id=color
         )
         line.value_ids.set([rojo])
         ptav = ProductTemplateAttributeValue.objects.create(
             line=line, attribute_value=rojo
         )
-        variante = ProductProduct.objects.create(product_tmpl=tmpl)
+        variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
         variante.product_template_attribute_values.set([ptav])
         assert variante.display_name == 'Eleke (Rojo)'
 
@@ -341,7 +341,7 @@ class TestProductProduct:
         apunta a product.product); lo que se prohíbe es tener atributos,
         y esa regla vive en ProductTemplate, no aquí."""
         tmpl = ProductTemplate.objects.create(name='Menú', type=TYPE_COMBO)
-        variante = ProductProduct.objects.create(product_tmpl=tmpl)
+        variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
         variante.clean()  # no debe levantar
 
 
@@ -399,7 +399,7 @@ class TestSelectSeller:
 
     def _variant(self, name='Eleke'):
         tmpl = ProductTemplate.objects.create(name=name)
-        return tmpl, ProductProduct.objects.create(product_tmpl=tmpl)
+        return tmpl, ProductProduct.objects.create(product_tmpl_id=tmpl)
 
     def test_prepare_sellers_orders_by_the_reference_key(self):
         """``(sequence, -min_qty, price, id)`` — la secuencia manda, y a
@@ -423,7 +423,9 @@ class TestSelectSeller:
         # combinación las prohíbe ``_combination_unique`` (``odoo19c:
         # product_product.py:121``, ``WHERE active IS TRUE``); lo que se
         # mide aquí no depende de ``active``.
-        other = ProductProduct.objects.create(product_tmpl=tmpl, active=False)
+        other = ProductProduct.objects.create(
+            product_tmpl_id=tmpl, active=False
+        )
         supplier = ResPartner.objects.create(name='Proveedor')
         from_template = self._tariff(tmpl, supplier)
         self._tariff(tmpl, supplier, product_id=other)

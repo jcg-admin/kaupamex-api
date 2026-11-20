@@ -31,7 +31,7 @@ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 def _variant(name='Eleke', standard_price=Decimal('1.00')):
     tmpl = ProductTemplate.objects.create(name=name)
     return ProductProduct.objects.create(
-        product_tmpl=tmpl, standard_price=standard_price
+        product_tmpl_id=tmpl, standard_price=standard_price
     )
 
 
@@ -71,7 +71,7 @@ class TestSuggestEstimatedPrice:
         """
         variant = _variant(standard_price=Decimal('999.00'))
         supplier = ResPartner.objects.create(name='Proveedor')
-        _tariff(variant.product_tmpl, supplier, price=Decimal('1.00'))
+        _tariff(variant.product_tmpl_id, supplier, price=Decimal('1.00'))
         with _suggesting(variant, 0):
             assert variant.suggest_estimated_price == 0.0
         with _suggesting(variant, -5):
@@ -85,7 +85,7 @@ class TestSuggestEstimatedPrice:
         variant = _variant(standard_price=Decimal('999.00'))
         supplier = ResPartner.objects.create(name='Proveedor')
         _tariff(
-            variant.product_tmpl, supplier, min_qty=1, price=Decimal('7.00')
+            variant.product_tmpl_id, supplier, min_qty=1, price=Decimal('7.00')
         )
         with _suggesting(variant, 3):
             assert variant.suggest_estimated_price == Decimal('7.00') * 3
@@ -100,10 +100,16 @@ class TestSuggestEstimatedPrice:
         variant = _variant(standard_price=Decimal('999.00'))
         supplier = ResPartner.objects.create(name='Proveedor')
         _tariff(
-            variant.product_tmpl, supplier, min_qty=50, price=Decimal('4.00')
+            variant.product_tmpl_id,
+            supplier,
+            min_qty=50,
+            price=Decimal('4.00'),
         )
         _tariff(
-            variant.product_tmpl, supplier, min_qty=100, price=Decimal('2.00')
+            variant.product_tmpl_id,
+            supplier,
+            min_qty=100,
+            price=Decimal('2.00'),
         )
         with _suggesting(variant, 3):
             # Control: la primera llamada de la cascada no encuentra nada —

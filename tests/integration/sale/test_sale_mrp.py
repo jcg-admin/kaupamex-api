@@ -35,7 +35,7 @@ def test_bom_and_lines(db):
     leg = _product('Pata', 'PAT-001')
     top = _product('Tablero', 'TAB-001')
     bom = MrpBom.objects.create(
-        product_tmpl=table.product_tmpl,
+        product_tmpl_id=table.product_tmpl_id,
         product=table,
         product_qty=Decimal('1'),
     )
@@ -55,7 +55,7 @@ def test_bom_and_lines(db):
 def test_generate_production_from_sale_line(db):
     table = _product('Mesa', 'MSA-003')
     bom = MrpBom.objects.create(
-        product_tmpl=table.product_tmpl,
+        product_tmpl_id=table.product_tmpl_id,
         product=table,
         product_qty=Decimal('1'),
     )
@@ -78,7 +78,7 @@ def test_explode_kit_phantom_bom(db):
     penc = _product('Lápiz', 'LAP-001')
     note = _product('Cuaderno', 'CUA-001')
     bom = MrpBom.objects.create(
-        product_tmpl=kit.product_tmpl,
+        product_tmpl_id=kit.product_tmpl_id,
         product=kit,
         type=MrpBom.TYPE_PHANTOM,
         product_qty=Decimal('1'),

@@ -156,7 +156,7 @@ class PurchaseRequisitionCreateAlternative(TransientModel):
         """
         product = order_line.product
         product_tmpl_id = (
-            product.product_tmpl_id if product is not None else None
+            product.product_tmpl_id_id if product is not None else None
         )
         has_product_description = product_tmpl_id in set(
             product_tmpl_ids_with_description or ()

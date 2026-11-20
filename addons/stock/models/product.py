@@ -144,7 +144,7 @@ def tracking(self):
     ``api: addons/product/models/product_product.py``: la variante expone por
     property lo que el template declara como columna.
     """
-    return self.product_tmpl.tracking
+    return self.product_tmpl_id.tracking
 
 
 def lot_sequence(self):
@@ -154,7 +154,7 @@ def lot_sequence(self):
     property lo que el template declara como columna. Lo consume
     ``stock.lot._compute_name``.
     """
-    return self.product_tmpl.lot_sequence
+    return self.product_tmpl_id.lot_sequence
 
 
 def is_storable(self):
@@ -163,7 +163,7 @@ def is_storable(self):
     Mismo idioma que ``tracking``: la variante expone por property lo que el
     template declara como columna.
     """
-    return self.product_tmpl.is_storable
+    return self.product_tmpl_id.is_storable
 
 
 def compute_is_storable(self):
@@ -210,7 +210,7 @@ def _get_description(self, picking_type):
     """
     if getattr(picking_type, 'code', None) == 'outgoing':
         return self.display_name
-    description = getattr(self.product_tmpl, 'description', None)
+    description = getattr(self.product_tmpl_id, 'description', None)
     return html2plaintext(description) if not is_html_empty(description) \
         else self.display_name
 
@@ -221,7 +221,7 @@ def _get_picking_description(self, picking_type):
     La descripción **específica de la operación**: recepción, entrega o
     interna. Sin tipo de operación no hay descripción que elegir.
     """
-    tmpl = self.product_tmpl
+    tmpl = self.product_tmpl_id
     return {
         'incoming': tmpl.description_pickingin,
         'outgoing': tmpl.description_pickingout,
@@ -350,7 +350,7 @@ def check_factor_not_in_use(self):
         raise UserError(message)
     if StockMoveLine.objects.filter(open_moves, product_uom=self).exists():
         raise UserError(message)
-    if StockQuant.objects.filter(product__product_tmpl__uom=self).exclude(
+    if StockQuant.objects.filter(product__product_tmpl_id__uom=self).exclude(
             quantity=0).exists():
         raise UserError(message)
 
@@ -649,7 +649,7 @@ def _compute_quantities_dict(cls, products, lot=None, owner=None, package=None,
                               (moves_out_past, q_move_out_done)):
             for move in (StockMove.objects
                          .filter(query, state='done', date__gt=cutoff)
-                         .select_related('product__product_tmpl__uom',
+                         .select_related('product__product_tmpl_id__uom',
                                          'product_uom')):
                 bucket[move.product_id] += _in_product_uom(move)
 
@@ -841,19 +841,19 @@ def nbr_moves_out(self):
 
 def show_on_hand_qty_status_button(self):
     """≙ ``_compute_show_qty_status_button`` (``odoo19c: :117-121``)."""
-    template = self.product_tmpl
+    template = self.product_tmpl_id
     return bool(template and getattr(template, 'is_storable', False))
 
 
 def show_forecasted_qty_status_button(self):
     """≙ el segundo campo del mismo compute (``odoo19c: :117-121``)."""
-    template = self.product_tmpl
+    template = self.product_tmpl_id
     return bool(template and getattr(template, 'is_storable', False))
 
 
 def show_qty_update_button(self):
     """≙ ``_compute_show_qty_update_button`` (``odoo19c: :123-126``)."""
-    template = self.product_tmpl
+    template = self.product_tmpl_id
     return bool(template and _should_open_product_quants(template))
 
 
@@ -1150,7 +1150,7 @@ def product_route_ids(self):
     lee a través de la delegación. Mismo idioma que ``categ``/``uom``/``type``
     en ``api: addons/product/models/product_product.py``.
     """
-    return self.product_tmpl.route_ids
+    return self.product_tmpl_id.route_ids
 
 
 def get_total_routes(self):

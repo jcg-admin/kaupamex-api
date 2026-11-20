@@ -48,7 +48,7 @@ def _attribute(name, values):
 
 def _line(product_tmpl, attr, values, sequence=10):
     line = ProductTemplateAttributeLine.objects.create(
-        product_tmpl=product_tmpl, attribute_id=attr, sequence=sequence
+        product_tmpl_id=product_tmpl, attribute_id=attr, sequence=sequence
     )
     line.value_ids.set(values)
     return line
@@ -166,7 +166,7 @@ class TestSupplierinfoCodeFor:
     def test_sin_tarifa_del_proveedor_devuelve_la_referencia_interna(self, db):
         tmpl = ProductTemplate.objects.create(name='Eleke')
         variante = ProductProduct.objects.create(
-            product_tmpl=tmpl, default_code='ELK-001'
+            product_tmpl_id=tmpl, default_code='ELK-001'
         )
         comprador = ResPartner.objects.create(name='Comprador de prueba')
         assert variante.code_for(comprador) == 'ELK-001'
@@ -177,7 +177,7 @@ class TestSupplierinfoCodeFor:
         primera coincidencia, sigue hasta encontrar la de la variante."""
         tmpl = ProductTemplate.objects.create(name='Eleke')
         variante = ProductProduct.objects.create(
-            product_tmpl=tmpl, default_code='ELK-001'
+            product_tmpl_id=tmpl, default_code='ELK-001'
         )
         proveedor = ResPartner.objects.create(name='Proveedor de prueba')
         ProductSupplierinfo.objects.create(

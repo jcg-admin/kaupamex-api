@@ -31,7 +31,7 @@ def test_the_class_attributes_the_source_declares():
 def test_the_order_follows_the_template_name():
     """``name`` es de la ficha: ordenar por él es ordenar por la ficha."""
     assert ProductProduct._meta.ordering == [
-        'default_code', 'product_tmpl__name', 'id']
+        'default_code', 'product_tmpl_id__name', 'id']
 
 
 @pytest.mark.django_db
@@ -42,7 +42,7 @@ def test_the_environment_resolves_the_model_by_its_name():
 
 @pytest.mark.django_db
 def test_the_delegation_is_wired_on_the_template_key():
-    field = ProductProduct._meta.get_field('product_tmpl')
+    field = ProductProduct._meta.get_field('product_tmpl_id')
     assert getattr(field, 'delegate', False) is True
     # Lo que la ficha tiene y la variante no define, se delega.
     assert 'sequence' in ProductProduct._inherits_fields

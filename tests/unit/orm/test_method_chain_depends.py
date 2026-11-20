@@ -152,4 +152,4 @@ def test_the_base_reached_by_mro_and_by_the_chain_counts_once():
     field = stock_lot._meta.get_field('display_name')
     assert list(registry.field_depends[field]) == [
         'name', 'expiration_date', 'alert_date',
-        'product.product_tmpl.use_expiration_date', 'name']
+        'product.product_tmpl_id.use_expiration_date', 'name']

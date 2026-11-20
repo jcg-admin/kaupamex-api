@@ -284,7 +284,7 @@ product.template	addons/account/models/product.py:53	company_dependent	product.P
 product.template	addons/account/models/product.py:57	company_dependent	product.ProductTemplate	property_account_expense	set null	PROTECT	a	True	dependiente de empresa en la fuente (sin FK)
 product.template.attribute.value	-	-	product.ProductTemplateAttributeValue	line	restrict	CASCADE	a	True	sin contraparte en la fuente
 product.template.attribute.value	-	-	product.ProductTemplateAttributeValue	attribute_value	restrict	PROTECT	a	True	sin contraparte en la fuente
-product.product	addons/product/models/product_product.py:42	cascade	product.ProductProduct	product_tmpl	restrict	CASCADE	a	True	divergencia de atributo
+product.product	addons/product/models/product_product.py:42	cascade	product.ProductProduct	product_tmpl_id	restrict	CASCADE	a	True	divergencia de atributo
 product.combo	addons/product/models/product_combo.py:14	set null (defecto)	product.ProductCombo	company	set null	CASCADE	a	True	divergencia de política
 product.combo.item	addons/product/models/product_combo_item.py:13	cascade	product.ProductComboItem	combo	restrict	CASCADE	a	True	divergencia de atributo
 product.combo.item	addons/product/models/product_combo_item.py:14	restrict	product.ProductComboItem	product	restrict	PROTECT	a	True	coherente
@@ -307,7 +307,7 @@ product.uom	addons/product/models/product_uom.py:13	cascade	product.ProductUom	u
 product.uom	addons/product/models/product_uom.py:14	cascade	product.ProductUom	product	restrict	CASCADE	a	True	divergencia de atributo
 product.uom	addons/product/models/product_uom.py:16	set null (defecto)	product.ProductUom	company	set null	CASCADE	a	True	divergencia de política
 product.attribute.value	addons/product/models/product_attribute_value.py:21	cascade	product.ProductAttributeValue	attribute	restrict	CASCADE	a	True	divergencia de atributo
-product.template.attribute.line	addons/product/models/product_template_attribute_line.py:19	cascade	product.ProductTemplateAttributeLine	product_tmpl	restrict	CASCADE	a	True	divergencia de atributo
+product.template.attribute.line	addons/product/models/product_template_attribute_line.py:19	cascade	product.ProductTemplateAttributeLine	product_tmpl_id	restrict	CASCADE	a	True	divergencia de atributo
 product.template.attribute.line	addons/product/models/product_template_attribute_line.py:26	restrict	product.ProductTemplateAttributeLine	attribute	restrict	PROTECT	a	True	coherente
 product.attribute.custom.value	addons/product/models/product_attribute_custom_value.py:12	restrict	product.ProductAttributeCustomValue	custom_product_template_attribute_value_id	restrict	PROTECT	a	True	coherente
 account.analytic.plan	addons/analytic/models/analytic_plan.py:29	cascade	analytic.AccountAnalyticPlan	parent	set null	CASCADE	a	True	divergencia de atributo
@@ -850,7 +850,7 @@ account_edi_proxy_client.user	addons/account_edi_proxy_client/models/account_edi
 mail.thread	-	-	helpdesk.SupportTicket	user	-	CASCADE	a	True	sin contraparte en la fuente
 -	-	-	helpdesk.SupportTicketReply	ticket	-	CASCADE	a	True	sin contraparte en la fuente
 -	-	-	helpdesk.SupportTicketReply	author	-	SET_NULL	a	True	sin contraparte en la fuente
-mrp.bom	addons/mrp/models/mrp_bom.py:31	restrict (defecto)	mrp.MrpBom	product_tmpl	restrict	CASCADE	a	True	divergencia de política
+mrp.bom	addons/mrp/models/mrp_bom.py:31	restrict (defecto)	mrp.MrpBom	product_tmpl_id	restrict	CASCADE	a	True	divergencia de política
 mrp.bom	addons/mrp/models/mrp_bom.py:35	set null (defecto)	mrp.MrpBom	product	set null	CASCADE	a	True	divergencia de política
 mrp.bom.line	addons/mrp/models/mrp_bom.py:706	cascade	mrp.MrpBomLine	bom	restrict	CASCADE	a	True	divergencia de atributo
 mrp.bom.line	addons/mrp/models/mrp_bom.py:693	restrict (defecto)	mrp.MrpBomLine	product	restrict	PROTECT	a	True	coherente

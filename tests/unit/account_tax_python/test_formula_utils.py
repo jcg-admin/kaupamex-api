@@ -115,12 +115,13 @@ def test_ast_transformer_normalizes(
 
 # -- test_invalid_formula (odoo19c: :141-168) --------------------------------
 # ``product.product_tmpl_id`` de la referencia (campo relacional en Odoo) se
-# adapta a ``product.product_tmpl`` — el nombre real del FK en este árbol
-# (``ProductProduct.product_tmpl``, ver ``product/models/product_product.py``).
-# Sigue siendo relacional: la razón del rechazo no cambia.
+# adapta a ``product.product_tmpl_id`` — el nombre real del FK en este árbol
+# (``ProductProduct.product_tmpl_id``, ver
+# ``product/models/product_product.py``). Sigue siendo relacional: la razón del
+# rechazo no cambia.
 
 INVALID_FORMULAS = [
-    'product.product_tmpl',  # sin campos relacionales
+    'product.product_tmpl_id',  # sin campos relacionales
     'product.sudo()',  # no hay control de acceso que simular
     'tuple(1, 2, 3)',  # sólo min/max, ninguna otra llamada
     'set(1, 2, 3)',

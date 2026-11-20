@@ -27,7 +27,7 @@ def _template(name):
 
 
 def test_deleting_a_product_with_a_lot_is_refused():
-    variant = ProductProduct.objects.create(product_tmpl=_template('Serie'))
+    variant = ProductProduct.objects.create(product_tmpl_id=_template('Serie'))
     lot = StockLot.objects.create(name='LOT-P', product=variant)
     with pytest.raises(ProtectedError):
         ProductProduct.objects.filter(pk=variant.pk).delete()
@@ -36,7 +36,7 @@ def test_deleting_a_product_with_a_lot_is_refused():
 
 def test_deleting_a_template_with_a_bom_is_refused():
     template = _template('Ensamble')
-    bom = MrpBom.objects.create(product_tmpl=template)
+    bom = MrpBom.objects.create(product_tmpl_id=template)
     with pytest.raises(ProtectedError):
         ProductTemplate.objects.filter(pk=template.pk).delete()
     assert MrpBom.objects.filter(pk=bom.pk).exists()

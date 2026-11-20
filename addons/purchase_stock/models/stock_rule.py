@@ -238,7 +238,7 @@ def _sellers_of(product):
     """
     if product is None or product.product_tmpl_id is None:
         return []
-    return list(product.product_tmpl.seller_ids.all())
+    return list(product.product_tmpl_id.seller_ids.all())
 
 
 # --- stock.rule ------------------------------------------------------------

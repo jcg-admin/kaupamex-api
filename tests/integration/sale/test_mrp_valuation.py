@@ -34,7 +34,7 @@ def _product(price='100.00'):
 
 def _bom(product, **kwargs):
     return MrpBom.objects.create(
-        product_tmpl=product.product_tmpl, product=product, **kwargs
+        product_tmpl_id=product.product_tmpl_id, product=product, **kwargs
     )
 
 

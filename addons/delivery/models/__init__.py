@@ -344,7 +344,7 @@ class ShippingMethod(TimeStampedModel):
                 list_price=self.cost, sale_ok=False, active=True,
             )
             variant = ProductProduct.objects.create(
-                product_tmpl=tmpl, default_code=sku, active=True,
+                product_tmpl_id=tmpl, default_code=sku, active=True,
             )
         self.product = variant
         self.save(update_fields=['product', 'write_date'])

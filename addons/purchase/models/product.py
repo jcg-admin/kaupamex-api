@@ -80,7 +80,7 @@ def _compute_template_purchased_product_qty(self):
     archivadas, así que se leen por ``_base_manager``.
     """
     variants = apps.get_model('product', 'ProductProduct')._base_manager \
-        .filter(product_tmpl=self)
+        .filter(product_tmpl_id=self)
     total = sum(variant.purchased_product_qty for variant in variants)
     self.purchased_product_qty = (
         self.uom.round(total) if self.uom else total)
@@ -144,7 +144,7 @@ def _update_uom(self, previous, to_uom_id):
         ['id:recordset'],
     ):
         uom, product = _group_record(uom), _group_record(product)
-        template_uom = product.product_tmpl.uom
+        template_uom = product.product_tmpl_id.uom
         if uom != template_uom:
             raise UserError(_(
                 'As other units of measure (ex : %(problem_uom)s) '
@@ -192,7 +192,7 @@ def _compute_purchase_line_warn_msg(self):
         'purchase.group_warning_purchase')
     product = self.product_id
     self.purchase_line_warn_msg = (
-        product.product_tmpl.purchase_line_warn_msg or ''
+        product.product_tmpl_id.purchase_line_warn_msg or ''
         if has_group and product else '')
 
 

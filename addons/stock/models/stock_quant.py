@@ -495,7 +495,7 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         se queda en las plantillas, que es la mitad que sí se puede expresar.
         """
         if product_tmpl_ids:
-            return Q(product_tmpl__in=product_tmpl_ids)
+            return Q(product_tmpl_id__in=product_tmpl_ids)
         return Q()
 
     # ------------------------------------------------------------------ #
@@ -503,9 +503,10 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
     # ------------------------------------------------------------------ #
 
     @property
-    def product_tmpl(self):
+    def product_tmpl_id(self):
         """≙ ``product_tmpl_id`` (related a ``product_id``, ``:49-51``)."""
-        return self.product.product_tmpl if self.product is not None else None
+        return (self.product.product_tmpl_id
+                if self.product is not None else None)
 
     @property
     def product_uom(self):
@@ -515,7 +516,7 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
     @property
     def is_favorite(self):
         """≙ ``is_favorite`` (related a ``product_tmpl_id``, ``:55``)."""
-        plantilla = self.product_tmpl
+        plantilla = self.product_tmpl_id
         return bool(plantilla is not None and plantilla.is_favorite)
 
     @property
@@ -553,7 +554,7 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
     @property
     def product_categ(self):
         """≙ ``product_categ_id`` (related a ``product_tmpl_id.categ_id``, ``:94``)."""
-        plantilla = self.product_tmpl
+        plantilla = self.product_tmpl_id
         return plantilla.categ_id if plantilla is not None else None
 
     # ------------------------------------------------------------------ #

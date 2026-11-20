@@ -32,7 +32,7 @@ def variant(db):
     template = ProductTemplate.objects.create(
         name='Camisa', list_price=Decimal('100.00')
     )
-    return ProductProduct.objects.create(product_tmpl=template)
+    return ProductProduct.objects.create(product_tmpl_id=template)
 
 
 @pytest.fixture

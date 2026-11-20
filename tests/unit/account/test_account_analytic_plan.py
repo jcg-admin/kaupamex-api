@@ -192,7 +192,7 @@ class TestGetScoreWrappedWithAccountPrefixAndProductCateg:
             product_categ=categ)
         template = ProductTemplate.objects.create(
             name='Hora de consultoría', company_id=company, categ_id=categ)
-        product = ProductProduct.objects.create(product_tmpl=template)
+        product = ProductProduct.objects.create(product_tmpl_id=template)
         assert applicability._get_score(
             company_id=company.pk, product=product.pk) == 1.5
 

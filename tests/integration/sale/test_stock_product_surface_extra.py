@@ -136,8 +136,8 @@ def test_the_counters_ignore_what_is_older_than_a_year(db, active_company):
 def test_the_status_buttons_follow_is_storable(db):
     """≙ ``_compute_show_qty_status_button`` — delegan en el template."""
     storable = make_product(name='Storable')
-    storable.product_tmpl.is_storable = True
-    storable.product_tmpl.save()
+    storable.product_tmpl_id.is_storable = True
+    storable.product_tmpl_id.save()
 
     assert storable.show_on_hand_qty_status_button is True
     assert storable.show_forecasted_qty_status_button is True
@@ -147,8 +147,8 @@ def test_the_status_buttons_follow_is_storable(db):
 def test_a_product_without_stock_hides_the_buttons(db):
     """Sin existencias que ajustar el botón no tiene destino."""
     service = make_product(name='Not storable')
-    service.product_tmpl.is_storable = False
-    service.product_tmpl.save()
+    service.product_tmpl_id.is_storable = False
+    service.product_tmpl_id.save()
 
     assert service.show_on_hand_qty_status_button is False
     assert service.show_qty_update_button is False
@@ -288,9 +288,9 @@ def test_the_tracking_warning_needs_stock_on_hand(db, active_company):
     empresa activada que el resto del motor.
     """
     product = make_product(name='Tracked with stock')
-    product.product_tmpl.tracking = 'lot'
-    product.product_tmpl.is_storable = True
-    product.product_tmpl.save()
+    product.product_tmpl_id.tracking = 'lot'
+    product.product_tmpl_id.is_storable = True
+    product.product_tmpl_id.save()
     view = _location('WH', StockLocation.USAGE_VIEW)
     stock = _location('WH/Stock', parent=view)
     _warehouse_for(active_company, view, stock)
@@ -304,6 +304,6 @@ def test_the_tracking_warning_needs_stock_on_hand(db, active_company):
 
 def test_without_stock_the_tracking_warning_stays_silent(db):
     product = make_product(name='Tracked, empty')
-    product.product_tmpl.tracking = 'lot'
-    product.product_tmpl.save()
+    product.product_tmpl_id.tracking = 'lot'
+    product.product_tmpl_id.save()
     assert product._onchange_tracking() is None

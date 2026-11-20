@@ -85,7 +85,7 @@ def variant(db, uom):
         uom=uom,
     )
     return ProductProduct.objects.create(
-        product_tmpl=tmpl, default_code='CAM-521P'
+        product_tmpl_id=tmpl, default_code='CAM-521P'
     )
 
 
@@ -381,7 +381,7 @@ class TestShowCheckAvailability:
             location=source,
             location_dest=destination,
             company=company,
-            product_uom=variant.product_tmpl.uom,
+            product_uom=variant.product_tmpl_id.uom,
             product_uom_qty=Decimal('5'),
             state='confirmed',
         )
@@ -465,7 +465,7 @@ class TestShowAllocation:
             location=source,
             location_dest=stock,
             company=company,
-            product_uom=variant.product_tmpl.uom,
+            product_uom=variant.product_tmpl_id.uom,
             product_uom_qty=Decimal('5'),
             state='assigned',
         )
@@ -483,7 +483,7 @@ class TestShowAllocation:
             location=stock,
             location_dest=destination,
             company=company,
-            product_uom=variant.product_tmpl.uom,
+            product_uom=variant.product_tmpl_id.uom,
             product_uom_qty=Decimal('3'),
             state='confirmed',
         )
@@ -524,7 +524,7 @@ class TestShowAllocation:
             location=source,
             location_dest=stock,
             company=company,
-            product_uom=variant.product_tmpl.uom,
+            product_uom=variant.product_tmpl_id.uom,
             product_uom_qty=Decimal('5'),
             state='assigned',
         )

@@ -99,7 +99,7 @@ def make_product(
     if volume is not None:
         variant_kwargs['volume'] = volume
     variant = ProductProduct.objects.create(
-        product_tmpl=tmpl,
+        product_tmpl_id=tmpl,
         default_code=default_code,
         active=active,
         barcode=barcode,

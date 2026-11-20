@@ -287,7 +287,6 @@ addons/mass_mailing/models/mailing_subscription.py::MailingSubscription.mailing_
 addons/mass_mailing/models/mailing_trace.py::MailingTrace.contact
 addons/mass_mailing/models/mailing_trace.py::MailingTrace.mailing
 addons/mrp/models/mrp_bom.py::MrpBom.product
-addons/mrp/models/mrp_bom.py::MrpBom.product_tmpl
 addons/mrp/models/mrp_bom.py::MrpBomLine.bom
 addons/mrp/models/mrp_bom.py::MrpBomLine.product
 addons/mrp/models/mrp_production.py::MrpProduction.bom
@@ -320,9 +319,7 @@ addons/product/models/product_combo_item.py::ProductComboItem.combo
 addons/product/models/product_combo_item.py::ProductComboItem.company
 addons/product/models/product_combo_item.py::ProductComboItem.product
 addons/product/models/product_document.py::ProductDocument.ir_attachment
-addons/product/models/product_product.py::ProductProduct.product_tmpl
 addons/product/models/product_template.py::ProductTemplate.uom
-addons/product/models/product_template_attribute_line.py::ProductTemplateAttributeLine.product_tmpl
 addons/product/models/product_template_attribute_value.py::ProductTemplateAttributeValue.attribute_value
 addons/product/models/product_template_attribute_value.py::ProductTemplateAttributeValue.line
 addons/product/models/product_uom.py::ProductUom.company

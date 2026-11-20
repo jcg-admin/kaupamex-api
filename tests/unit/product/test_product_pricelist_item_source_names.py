@@ -30,7 +30,7 @@ def test_the_field_keeps_the_source_name_and_column(name):
 @pytest.fixture
 def variant():
     template = ProductTemplate.objects.create(name='Regla pli-src')
-    return ProductProduct.objects.create(product_tmpl=template)
+    return ProductProduct.objects.create(product_tmpl_id=template)
 
 
 @pytest.fixture
@@ -40,7 +40,7 @@ def pricelist():
 
 def test_a_variant_rule_matches_its_variant_only(variant, pricelist):
     other = ProductProduct.objects.create(
-        product_tmpl=ProductTemplate.objects.create(name='Otra pli-src'))
+        product_tmpl_id=ProductTemplate.objects.create(name='Otra pli-src'))
     rule = ProductPricelistItem.objects.create(
         pricelist_id=pricelist, applied_on=APPLIED_VARIANT,
         product_id=variant)
@@ -52,7 +52,7 @@ def test_a_product_rule_matches_the_variants_of_its_template(
         variant, pricelist):
     rule = ProductPricelistItem.objects.create(
         pricelist_id=pricelist, applied_on=APPLIED_PRODUCT,
-        product_tmpl_id=variant.product_tmpl)
+        product_tmpl_id=variant.product_tmpl_id)
     assert rule.matches(variant)
 
 

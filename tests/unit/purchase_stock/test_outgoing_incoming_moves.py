@@ -51,7 +51,7 @@ def variant(db):
     tmpl = ProductTemplate.objects.create(
         name='Eleke', list_price=Decimal('10.00')
     )
-    return ProductProduct.objects.create(product_tmpl=tmpl)
+    return ProductProduct.objects.create(product_tmpl_id=tmpl)
 
 
 @pytest.fixture
@@ -71,7 +71,7 @@ def _move(line, variant, company, origin, destination, **extra):
         location=origin,
         location_dest=destination,
         company=company,
-        product_uom=variant.product_tmpl.uom,
+        product_uom=variant.product_tmpl_id.uom,
         product_uom_qty=Decimal('1'),
         purchase_line=line,
     )
@@ -191,6 +191,6 @@ def test_a_move_of_another_product_counts_for_neither(
     other_tmpl = ProductTemplate.objects.create(
         name='Otro', list_price=Decimal('1.00')
     )
-    other = ProductProduct.objects.create(product_tmpl=other_tmpl)
+    other = ProductProduct.objects.create(product_tmpl_id=other_tmpl)
     _move(line, other, company, supplier_location, stock_location)
     assert line._get_outgoing_incoming_moves() == ([], [])

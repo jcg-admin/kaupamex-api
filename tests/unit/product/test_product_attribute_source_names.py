@@ -51,7 +51,7 @@ def test_a_line_carries_its_attribute_and_values():
     red = ProductAttributeValue.objects.create(attribute_id=color, name='Rojo')
     template = ProductTemplate.objects.create(name='Playera')
     line = ProductTemplateAttributeLine.objects.create(
-        product_tmpl=template, attribute_id=color)
+        product_tmpl_id=template, attribute_id=color)
     line.value_ids.set([red])
     assert line.attribute_id == color
     assert list(line.value_ids.all()) == [red]

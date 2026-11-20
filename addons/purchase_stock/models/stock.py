@@ -611,7 +611,7 @@ def vendor_ids(self):
     """
     if self.product_id is None:
         return apps.get_model('product', 'ProductSupplierinfo').objects.none()
-    return self.product.product_tmpl.seller_ids.all()
+    return self.product.product_tmpl_id.seller_ids.all()
 
 
 def _inverse_route_id(self):
@@ -635,7 +635,7 @@ def _get_default_route(self):
     """
     if self.product_id is None:
         return None
-    if not self.product.product_tmpl.seller_ids.exists():
+    if not self.product.product_tmpl_id.seller_ids.exists():
         return None
     buy_route_ids = set(_buy_rules().values_list('route', flat=True))
     for rule_rec in self.rule_ids:

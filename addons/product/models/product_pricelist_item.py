@@ -316,7 +316,7 @@ class ProductPricelistItem(TimeStampedModel):
         if self.applied_on == APPLIED_VARIANT:
             return getattr(product, 'pk', None) == self.product_id_id
         if self.applied_on == APPLIED_PRODUCT:
-            tmpl = getattr(product, 'product_tmpl_id', None) or getattr(
+            tmpl = getattr(product, 'product_tmpl_id_id', None) or getattr(
                 product, 'pk', None
             )
             return tmpl == self.product_tmpl_id_id

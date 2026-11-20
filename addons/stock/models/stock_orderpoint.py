@@ -434,12 +434,14 @@ class StockWarehouseOrderpoint(TimeStampedModel):
     # ------------------------------------------------------------------ #
 
     @property
-    def product_tmpl(self):
+    def product_tmpl_id(self):
         """
         ≙ ``product_tmpl_id`` (``odoo19c: :45``) — related a ``product_id``.
         """
         return (
-            self.product.product_tmpl if self.product_id is not None else None
+            self.product.product_tmpl_id
+            if self.product_id is not None
+            else None
         )
 
     @property
@@ -1719,7 +1721,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
             for orderpoint, mensaje in exceptions:
                 if orderpoint is None or orderpoint.product is None:
                     continue
-                plantilla = orderpoint.product.product_tmpl
+                plantilla = orderpoint.product.product_tmpl_id
                 programar = getattr(plantilla, 'activity_schedule', None)
                 if programar is None:
                     continue
@@ -1743,7 +1745,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         """
         product_model = apps.get_model('product', 'ProductProduct')
         return product_model.objects.filter(
-            product_tmpl__is_storable=True,
+            product_tmpl_id__is_storable=True,
             stock_move_ids__isnull=False,
         ).distinct()
 

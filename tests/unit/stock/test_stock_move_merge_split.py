@@ -82,7 +82,7 @@ def variant(db, unit):
         name='Camisa', list_price=Decimal('100.00'), uom=unit
     )
     return ProductProduct.objects.create(
-        product_tmpl=tmpl, default_code='CAM-M'
+        product_tmpl_id=tmpl, default_code='CAM-M'
     )
 
 
@@ -118,7 +118,7 @@ def make_move(db, variant, source, destination, company):
             location=source,
             location_dest=destination,
             company=company,
-            product_uom=variant.product_tmpl.uom,
+            product_uom=variant.product_tmpl_id.uom,
             product_uom_qty=Decimal('5'),
             state=StockMove.STATE_CONFIRMED,
             date=timezone.now(),
