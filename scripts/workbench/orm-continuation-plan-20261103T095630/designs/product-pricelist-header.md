@@ -26,9 +26,18 @@ Unidad `product-pricelist-header-0122` (TASK-API-0122), parte del sucesor
    `column2` de la fuente (`Many2manyField`). Precedente de la migración que
    renombra tabla y columnas conservando filas:
    `base/0114_res_partner_category_partner_ids`.
-4. Consumidores: `SaleOrder._compute_has_active_pricelist`
-   (`addons/sale/models/sale_order.py`, `Q(company__isnull=True)` →
-   `company_id__isnull`) y las pruebas que crean con `company=`.
+4. Consumidores: `SaleOrder._compute_has_active_pricelist` y
+   `pricelist_domain` (`addons/sale/models/sale_order.py`). `pricelist_domain`
+   era un alias de `payment_term_domain`, que sigue filtrando por `company`
+   porque el plazo de pago aún no se renombra; pasa a ser una función propia
+   sobre `company_id` (`odoo19c: addons/sale/models/sale_order.py:189`). Las
+   pruebas crean con `company_id=`; el contrato de borrado
+   (`tests/unit/orm/test_delete_policy_contract.py`) y el baseline de
+   `check_fk_naming` nombran el campo nuevo.
+5. La migración que genera Django para el Many2many es `RemoveField` +
+   `AddField`, que borra la tabla y sus filas (`sqlmigrate` medido: `DROP
+   TABLE`). Se reescribe como `RenameField` + `AlterField`, y `sqlmigrate`
+   da entonces dos `RENAME TO` y dos `RENAME COLUMN`.
 
 Búsqueda: `grep` de `pricelist*.currency|company|country_groups`,
 `pricelist*__...`, `ProductPricelist.objects.*(` y `country_groups` en
@@ -41,7 +50,7 @@ inverso de `res.country.group.country_ids`) y no cambia.
   `_order` (`odoo19c: addons/product/models/product_pricelist.py:10`);
 - `ProductPricelist.currency_id`, `ProductPricelist.company_id`,
   `ProductPricelist.country_group_ids`;
-- `_compute_has_active_pricelist`;
+- `_compute_has_active_pricelist`, `pricelist_domain`;
 - la migración de `product` que renombra los tres.
 
 ## Fuera de esta unidad, con su sucesor
@@ -60,4 +69,7 @@ inverso de `res.country.group.country_ids`) y no cambia.
 
 `tests/unit/product/test_product_pricelist_header.py`: la cabecera verbatim;
 los tres nombres con sus columnas, la tabla y las columnas del Many2many; un
-grupo de países asignado sobrevive en la tabla de la fuente.
+grupo de países asignado sobrevive en la tabla de la fuente;
+`pricelist_domain` admite la tarifa propia y la compartida, no la ajena.
+Control de anulación: devolver `pricelist_domain` a `company` hace caer
+exactamente esa prueba (1 failed, 5 passed).
