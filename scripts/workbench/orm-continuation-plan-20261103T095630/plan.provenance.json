@@ -1277,6 +1277,13 @@
         "product-model-headers-2-0122"
       ],
       "writtenAt": "2026-11-19T23:47:06Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-attribute-fk-names-0122"
+      ],
+      "writtenAt": "2026-11-20T00:28:57Z"
     }
   ]
 }
