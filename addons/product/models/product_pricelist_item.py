@@ -321,7 +321,7 @@ class ProductPricelistItem(TimeStampedModel):
             )
             return tmpl == self.product_tmpl_id_id
         if self.applied_on == APPLIED_CATEGORY:
-            categ = getattr(product, 'categ', None)
+            categ = getattr(product, 'categ_id', None)
             # Una regla de categoría alcanza a toda la rama, no sólo al nodo:
             # la ruta materializada de ``product.category`` lo resuelve sin
             # subir la cadena.

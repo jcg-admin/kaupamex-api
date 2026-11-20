@@ -186,7 +186,7 @@ def _account_prefix_categ_bonus(self, **kwargs):
             else None
         )
         product_categ = (
-            getattr(product, 'categ', None) if product is not None else None
+            getattr(product, 'categ_id', None) if product is not None else None
         )
         if (
             product_categ is not None

@@ -181,8 +181,11 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         default='no',
         verbose_name='Crear al confirmar el pedido',
     )
-    categ = fields.Many2one(
+    #: ≙ ``categ_id`` (``odoo19c: addons/product/models/
+    #: product_template.py:81``) en forma C.
+    categ_id = fields.Many2one(
         ProductCategory,
+        db_column='categ_id',
         on_delete=models.PROTECT,
         null=True,
         blank=True,
@@ -493,7 +496,8 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         por propiedad porque el vocabulario mapea ``Properties`` a
         ``JSONField``, que no lleva esa indirección.
         """
-        return getattr(self.categ, 'product_properties_definition', None) or []
+        return getattr(
+            self.categ_id, 'product_properties_definition', None) or []
 
     # -- unidad de peso / longitud / volumen leída del parámetro de sistema --
     #

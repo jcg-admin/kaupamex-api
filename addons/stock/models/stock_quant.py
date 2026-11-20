@@ -554,7 +554,7 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
     def product_categ(self):
         """≙ ``product_categ_id`` (related a ``product_tmpl_id.categ_id``, ``:94``)."""
         plantilla = self.product_tmpl
-        return plantilla.categ if plantilla is not None else None
+        return plantilla.categ_id if plantilla is not None else None
 
     # ------------------------------------------------------------------ #
     # Los `compute` no almacenados — properties (D-1)                      #
@@ -1252,7 +1252,7 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         La categoría del producto manda; si no declara estrategia, se sube por
         la cadena de ubicaciones hasta encontrar una. El default es ``fifo``.
         """
-        categoria = getattr(product, 'categ', None)
+        categoria = getattr(product, 'categ_id', None)
         estrategia = getattr(categoria, 'removal_strategy', None)
         if estrategia is not None:
             return estrategia.method

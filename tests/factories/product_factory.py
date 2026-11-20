@@ -88,7 +88,7 @@ def make_product(
         name=name,
         list_price=Decimal(price),
         active=active,
-        categ=categ,
+        categ_id=categ,
         **tmpl_kwargs,
     )
     variant_kwargs = {}

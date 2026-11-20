@@ -143,7 +143,7 @@ def _get_category_account(self, field_name):
     que la tenga, que es lo que permite configurar una vez arriba y heredar
     hacia abajo.
     """
-    categ = self.categ
+    categ = self.categ_id
     while categ is not None:
         cuenta = getattr(categ, field_name, None)
         if cuenta is not None:

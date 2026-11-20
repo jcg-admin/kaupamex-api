@@ -70,7 +70,7 @@ class WishlistView(CapabilityRequiredMixin, APIView):
         # ``stock.quant``, así que el filtro se evalúa en Python.
         qs = (WishlistItem.objects
               .filter(user=request.user)
-              .select_related('product__product_tmpl__categ'))
+              .select_related('product__product_tmpl__categ_id'))
 
         avail_filter = request.query_params.get('availability')
         if avail_filter:

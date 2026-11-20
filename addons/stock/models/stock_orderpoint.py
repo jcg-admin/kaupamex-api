@@ -448,7 +448,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         ≙ ``product_category_id`` (``:52``) — related a
         ``product_id.categ_id``.
         """
-        return self.product.categ if self.product_id is not None else None
+        return self.product.categ_id if self.product_id is not None else None
 
     @property
     def product_uom(self):
@@ -1185,7 +1185,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         # iterable — hay que pedirle el queryset con ``.all()``.
         propias = set(_related_pks(self.product, 'route_ids'))
         propias |= set(
-            _related_pks(getattr(self.product, 'categ', None), 'route_ids')
+            _related_pks(getattr(self.product, 'categ_id', None), 'route_ids')
         )
         candidatas = rule_model.objects.filter(
             Q(route__product_selectable=True)

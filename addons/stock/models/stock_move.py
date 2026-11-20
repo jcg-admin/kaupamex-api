@@ -669,7 +669,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
     @property
     def product_category(self):
         """Categoría del producto (≙ ``product_category_id``, related)."""
-        return self.product.categ if self.product_id else None
+        return self.product.categ_id if self.product_id else None
 
     @property
     def product_tmpl(self):

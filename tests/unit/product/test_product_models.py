@@ -93,7 +93,7 @@ class TestProductCategory:
 
     def test_product_count_cuenta_los_de_la_categoria(self):
         cat = ProductCategory.objects.create(name='Collares')
-        ProductTemplate.objects.create(name='Eleke', categ=cat)
+        ProductTemplate.objects.create(name='Eleke', categ_id=cat)
         assert cat.product_count == 1
 
     def test_product_count_cuenta_toda_la_rama(self):
@@ -102,8 +102,8 @@ class TestProductCategory:
         """
         padre = ProductCategory.objects.create(name='Joyería')
         hija = ProductCategory.objects.create(name='Collares', parent_id=padre)
-        ProductTemplate.objects.create(name='Eleke', categ=hija)
-        ProductTemplate.objects.create(name='Ide', categ=padre)
+        ProductTemplate.objects.create(name='Eleke', categ_id=hija)
+        ProductTemplate.objects.create(name='Ide', categ_id=padre)
         assert padre.product_count == 2
         assert hija.product_count == 1
 
@@ -247,10 +247,10 @@ class TestProductProduct:
 
     def test_delega_nombre_categoria_y_uom_de_la_ficha(self):
         cat = ProductCategory.objects.create(name='Collares')
-        tmpl = ProductTemplate.objects.create(name='Eleke', categ=cat)
+        tmpl = ProductTemplate.objects.create(name='Eleke', categ_id=cat)
         variante = ProductProduct.objects.create(product_tmpl=tmpl)
         assert variante.name == 'Eleke'
-        assert variante.categ == cat
+        assert variante.categ_id == cat
 
     def test_is_product_variant_verdadero_en_la_variante(self):
         tmpl = ProductTemplate.objects.create(name='Eleke')

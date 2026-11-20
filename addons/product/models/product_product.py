@@ -256,9 +256,10 @@ class ProductProduct(TimeStampedModel):
         return self.product_tmpl.name
 
     @property
-    def categ(self):
-        """La categoría de la ficha."""
-        return self.product_tmpl.categ
+    def categ_id(self):
+        """La categoría de la ficha (``categ_id`` delegado por
+        ``_inherits``)."""
+        return self.product_tmpl.categ_id
 
     @property
     def uom(self):

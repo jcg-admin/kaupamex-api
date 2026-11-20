@@ -139,7 +139,7 @@ def test_removal_strategy_is_read_by_the_consumer_that_already_existed(db):
     """El campo tenía consumidor antes de existir: ``_get_removal_strategy``.
 
     ``StockQuant._get_removal_strategy`` (``odoo19c: stock_quant.py:618-628``)
-    lee ``product.categ.removal_strategy`` y cae a ``fifo`` cuando no hay.
+    lee ``product.categ_id.removal_strategy`` y cae a ``fifo`` cuando no hay.
     """
     strategy = ProductRemoval.objects.create(name='LIFO', method='lifo')
     category = ProductCategory.objects.create(

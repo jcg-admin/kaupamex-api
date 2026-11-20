@@ -119,7 +119,7 @@ class TestResolutionOfAccount:
             name='Collares', property_account_income_categ=otra
         )
         producto = ProductTemplate.objects.create(
-            name='Eleke', categ=categoria, property_account_income=ingreso
+            name='Eleke', categ_id=categoria, property_account_income=ingreso
         )
 
         assert producto._get_product_accounts()['income'] == ingreso
@@ -132,7 +132,7 @@ class TestResolutionOfAccount:
             property_account_expense_categ=gasto,
         )
         producto = ProductTemplate.objects.create(
-            name='Eleke', categ=categoria
+            name='Eleke', categ_id=categoria
         )
 
         cuentas_resueltas = producto._get_product_accounts()
@@ -152,7 +152,7 @@ class TestResolutionOfAccount:
         madre = ProductCategory.objects.create(
             name='Collares', parent_id=abuela)
         hija = ProductCategory.objects.create(name='Elekes', parent_id=madre)
-        producto = ProductTemplate.objects.create(name='Eleke', categ=hija)
+        producto = ProductTemplate.objects.create(name='Eleke', categ_id=hija)
 
         assert producto._get_product_accounts()['income'] == ingreso
 
@@ -165,7 +165,7 @@ class TestResolutionOfAccount:
         """
         categoria = ProductCategory.objects.create(name='Collares')
         producto = ProductTemplate.objects.create(
-            name='Eleke', categ=categoria
+            name='Eleke', categ_id=categoria
         )
 
         assert producto._get_product_accounts() == {
@@ -177,7 +177,7 @@ class TestResolutionOfAccount:
         ingreso, _ = cuentas
         categoria = ProductCategory.objects.create(name='Collares')
         plantilla = ProductTemplate.objects.create(
-            name='Eleke', categ=categoria, property_account_income=ingreso
+            name='Eleke', categ_id=categoria, property_account_income=ingreso
         )
         variante = ProductProduct.objects.create(product_tmpl=plantilla)
 
@@ -207,7 +207,7 @@ class TestPositionFiscal:
 
         categoria = ProductCategory.objects.create(name='Collares')
         producto = ProductTemplate.objects.create(
-            name='Eleke', categ=categoria, property_account_income=ingreso
+            name='Eleke', categ_id=categoria, property_account_income=ingreso
         )
 
         assert producto.get_product_accounts()['income'] == ingreso
@@ -235,7 +235,7 @@ class TestImpuestosYEtiquetas:
         )
         categoria = ProductCategory.objects.create(name='Collares')
         producto = ProductTemplate.objects.create(
-            name='Eleke', categ=categoria
+            name='Eleke', categ_id=categoria
         )
 
         producto.taxes.add(iva_venta)
@@ -254,7 +254,7 @@ class TestImpuestosYEtiquetas:
         """
         categoria = ProductCategory.objects.create(name='Collares')
         producto = ProductTemplate.objects.create(
-            name='Eleke', categ=categoria
+            name='Eleke', categ_id=categoria
         )
 
         assert producto.taxes.count() == 0
@@ -266,7 +266,7 @@ class TestImpuestosYEtiquetas:
         )
         categoria = ProductCategory.objects.create(name='Collares')
         producto = ProductTemplate.objects.create(
-            name='Eleke', categ=categoria
+            name='Eleke', categ_id=categoria
         )
 
         producto.account_tags.add(etiqueta)
@@ -284,7 +284,7 @@ class TestProtect:
         ingreso, _ = cuentas
         categoria = ProductCategory.objects.create(name='Collares')
         ProductTemplate.objects.create(
-            name='Eleke', categ=categoria, property_account_income=ingreso
+            name='Eleke', categ_id=categoria, property_account_income=ingreso
         )
 
         with pytest.raises(ProtectedError):

@@ -490,7 +490,8 @@ class StockMoveLine(TimeStampedModel):
     def product_category_name(self):
         """≙ ``product_category_name`` (``related='product_id.categ_id.complete_name'``, ``:36``)."""
         producto = self.product
-        categoria = getattr(producto, 'categ', None) if producto is not None else None
+        categoria = (getattr(producto, 'categ_id', None)
+                     if producto is not None else None)
         return getattr(categoria, 'complete_name', '')
 
     @property

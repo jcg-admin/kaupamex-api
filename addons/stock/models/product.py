@@ -283,7 +283,8 @@ def _search_total_route_ids(cls, routes):
     return cls.objects.filter(pk__in=matching)
 
 
-def _search_filter_for_stock_putaway_rule(cls, active_model=None, active_id=None):
+def _search_filter_for_stock_putaway_rule(cls, active_model=None,
+                                          active_id=None):
     """≙ ``_search_filter_for_stock_putaway_rule`` (``odoo19c: :1330-1338``).
 
     El pseudo-campo ``filter_for_stock_putaway_rule`` no se almacena: existe
@@ -300,7 +301,8 @@ def _search_filter_for_stock_putaway_rule(cls, active_model=None, active_id=None
     record = apps.get_model('product', model_name).objects.filter(pk=active_id).first()
     if record is None:
         return cls.objects.all()
-    category = record.categ if model_name == 'ProductProduct' else record.categ
+    category = (record.categ_id if model_name == 'ProductProduct'
+                else record.categ_id)
     return cls.objects.filter(pk=category.pk) if category else cls.objects.none()
 
 
@@ -950,7 +952,7 @@ def filter_has_routes(cls, products):
         if product.route_ids.exists():
             salida.append(product)
             continue
-        categoria = getattr(product, 'categ', None)
+        categoria = getattr(product, 'categ_id', None)
         if categoria is not None and categoria.total_route_ids.exists():
             salida.append(product)
     return salida
@@ -1159,7 +1161,7 @@ def get_total_routes(self):
     """
     StockRoute = apps.get_model('stock', 'StockRoute')
     ids = set(self.route_ids.values_list('pk', flat=True))
-    category = self.categ
+    category = self.categ_id
     if category is not None:
         ids |= set(category.total_route_ids.values_list('pk', flat=True))
     return StockRoute.objects.filter(pk__in=ids)

@@ -209,4 +209,4 @@ class ProductCategory(TimeStampedModel):
         branch = type(self).objects.filter(
             parent_path__startswith=self.parent_path
         )
-        return template_model.objects.filter(categ__in=branch).count()
+        return template_model.objects.filter(categ_id__in=branch).count()

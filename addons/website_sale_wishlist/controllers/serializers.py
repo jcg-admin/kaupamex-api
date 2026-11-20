@@ -115,7 +115,7 @@ class WishlistItemSerializer(ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.STR)
     def get_category_name(self, obj):
-        categ = obj.product.categ
+        categ = obj.product.categ_id
         return categ.name if categ else None
 
     @extend_schema_field(OpenApiTypes.STR)

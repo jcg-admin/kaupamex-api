@@ -1430,8 +1430,9 @@ class StockRule(TimeStampedModel):
             packaging_routes = packaging_uom_id.package_type.route_ids.all()
             valid_route_ids |= {r.pk for r in packaging_routes}
         valid_route_ids |= {r.pk for r in product_id.route_ids.all()}
-        if product_id.categ is not None:
-            valid_route_ids |= {r.pk for r in product_id.categ.total_route_ids}
+        if product_id.categ_id is not None:
+            valid_route_ids |= {
+                r.pk for r in product_id.categ_id.total_route_ids}
         if warehouse_ids:
             filter_function = partial(
                 cls._filter_warehouse_routes, product_id, warehouse_ids
@@ -1509,8 +1510,8 @@ class StockRule(TimeStampedModel):
             res = first_by_route(packaging_uom_id.package_type.route_ids.all())
         if not res:
             product_routes = list(product_id.route_ids.all())
-            if product_id.categ is not None:
-                product_routes += list(product_id.categ.total_route_ids)
+            if product_id.categ_id is not None:
+                product_routes += list(product_id.categ_id.total_route_ids)
             res = first_by_route(product_routes)
         if not res and warehouse_id is not None and warehouse_id:
             res = first_by_route(warehouse_id.route_ids.all())
@@ -1595,8 +1596,8 @@ class StockRule(TimeStampedModel):
                 )
             if not res:
                 routes = list(product_id.route_ids.all())
-                if product_id.categ is not None:
-                    routes += list(product_id.categ.total_route_ids)
+                if product_id.categ_id is not None:
+                    routes += list(product_id.categ_id.total_route_ids)
                 res = extract_rule(
                     rule_dict, routes, warehouse_id, location_dest_id
                 )

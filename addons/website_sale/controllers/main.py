@@ -97,7 +97,7 @@ def _published_products():
     return (
         ProductTemplate.objects
         .filter(is_published=True, sale_ok=True, active=True)
-        .select_related('categ', 'uom')
+        .select_related('categ_id', 'uom')
     )
 
 
@@ -169,7 +169,7 @@ class ProductListView(ListAPIView):
             node = ProductCategory.objects.filter(pk=int(category)).first()
             if node is not None and node.parent_path:
                 queryset = queryset.filter(
-                    categ__parent_path__startswith=node.parent_path)
+                    categ_id__parent_path__startswith=node.parent_path)
             else:
                 queryset = queryset.filter(categ_id=int(category))
 
