@@ -1389,6 +1389,13 @@
         "many2many-column2-ondelete-0122"
       ],
       "writtenAt": "2026-11-20T13:12:57Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-security-data-0397"
+      ],
+      "writtenAt": "2026-11-20T14:08:38Z"
     }
   ]
 }
