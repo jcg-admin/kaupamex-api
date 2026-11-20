@@ -662,3 +662,4 @@
 {"utc": "2026-11-20T14:09:53Z", "epoch": 1795183793.207, "kind": "accepted", "item": "product-security-data-0397", "commitExit": 0, "commit": "e9921b7b"}
 {"utc": "2026-11-20T15:30:05Z", "epoch": 1795188605.789, "kind": "attempt", "item": "product-attribute-value-complete-0122", "attempt": 0, "model": "conversational-session", "outcome": "success", "source": "preexisting", "verifyExit": 0, "commit": "ffea5657", "verifyTail": ["    warnings.warn(", "-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html", "186 passed, 2 warnings in 48.66s"]}
 {"utc": "2026-11-20T15:30:05Z", "epoch": 1795188605.79, "kind": "accepted", "item": "product-attribute-value-complete-0122", "commitExit": 0, "commit": "ffea5657"}
+{"utc": "2026-11-20T15:35:56Z", "epoch": 1795188956.532, "kind": "hard_block", "item": "gate-preflight-migrate-through-default-0485", "reason": "sin obligaciones"}
