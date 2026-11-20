@@ -202,7 +202,7 @@ class TestGetApplicableModelsFiltersByAccountPrefix:
 class TestProductAndProductCategFields:
     def test_product_can_be_set_and_read_back(self, company):
         template = ProductTemplate.objects.create(
-            name='Widget', company=company
+            name='Widget', company_id=company
         )
         product = ProductProduct.objects.create(product_tmpl=template)
         record = AccountAnalyticDistributionModel.objects.create(

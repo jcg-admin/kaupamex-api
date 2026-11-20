@@ -277,7 +277,7 @@ product.category	addons/stock/models/product.py:1284	set null (defecto)	product.
 product.category	addons/account/models/product.py:17	company_dependent	product.ProductCategory	property_account_income_categ	set null	PROTECT	a	True	dependiente de empresa en la fuente (sin FK)
 product.category	addons/account/models/product.py:24	company_dependent	product.ProductCategory	property_account_expense_categ	set null	PROTECT	a	True	dependiente de empresa en la fuente (sin FK)
 product.template	addons/product/models/product_template.py:81	set null (defecto)	product.ProductTemplate	categ_id	set null	PROTECT	a	True	divergencia de política
-product.template	addons/product/models/product_template.py:124	set null (defecto)	product.ProductTemplate	company	set null	CASCADE	a	True	divergencia de política
+product.template	addons/product/models/product_template.py:124	set null (defecto)	product.ProductTemplate	company_id	set null	CASCADE	a	True	divergencia de política
 product.template	addons/product/models/product_template.py:118	restrict (defecto)	product.ProductTemplate	uom	set null	PROTECT	a	True	divergencia de atributo
 product.template	addons/stock/models/product.py:849	set null (defecto)	product.ProductTemplate	lot_sequence	set null	SET_NULL	a	True	coherente
 product.template	addons/account/models/product.py:53	company_dependent	product.ProductTemplate	property_account_income	set null	PROTECT	a	True	dependiente de empresa en la fuente (sin FK)

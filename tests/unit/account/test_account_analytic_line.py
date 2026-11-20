@@ -270,7 +270,7 @@ class TestAnalyticProfitability:
 class TestProductCodeRefFields:
     def test_product_can_be_set_and_read_back(self, company):
         template = ProductTemplate.objects.create(
-            name='Servicio', company=company
+            name='Servicio', company_id=company
         )
         product = ProductProduct.objects.create(product_tmpl=template)
         line = AccountAnalyticLine.objects.create(

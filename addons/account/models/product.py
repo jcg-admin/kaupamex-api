@@ -224,7 +224,7 @@ def _inherit_company_default_taxes(sender, instance, created, **kwargs):
     """
     if not created:
         return
-    company = instance.company
+    company = instance.company_id
     if company is None:
         return
     for field_name, default_attr in (

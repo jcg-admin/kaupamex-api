@@ -321,7 +321,6 @@ addons/product/models/product_combo_item.py::ProductComboItem.company
 addons/product/models/product_combo_item.py::ProductComboItem.product
 addons/product/models/product_document.py::ProductDocument.ir_attachment
 addons/product/models/product_product.py::ProductProduct.product_tmpl
-addons/product/models/product_template.py::ProductTemplate.company
 addons/product/models/product_template.py::ProductTemplate.uom
 addons/product/models/product_template_attribute_line.py::ProductTemplateAttributeLine.product_tmpl
 addons/product/models/product_template_attribute_value.py::ProductTemplateAttributeValue.attribute_value

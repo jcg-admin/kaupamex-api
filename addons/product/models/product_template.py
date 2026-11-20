@@ -194,8 +194,11 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         verbose_name='Categoría de producto',
         help_text='Odoo categ_id. FK real: product.category ya está portado.',
     )
-    company = fields.Many2one(
+    #: ≙ ``company_id`` (``odoo19c: addons/product/models/
+    #: product_template.py:124``) en forma C.
+    company_id = fields.Many2one(
         ResCompany,
+        db_column='company_id',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -394,7 +397,7 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         compañía principal: ``template.company_id.sudo().currency_id.id or
         main_company.currency_id.id``.
         """
-        company = self.company or ResCompany.get_main_company()
+        company = self.company_id or ResCompany.get_main_company()
         return getattr(company, 'currency', None)
 
     @property
@@ -406,8 +409,8 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         producto o, sin compañía, la de la empresa **activa**
         (``@api.depends_context('company')``), no la principal.
         """
-        if self.company is not None:
-            return self.company.currency
+        if self.company_id is not None:
+            return self.company_id.currency
         company = env().company
         return company.currency if company is not None else None
 

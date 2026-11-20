@@ -1610,7 +1610,7 @@ class StockMoveLine(TimeStampedModel):
         línea pertenece a ella o a una hija — si no, queda global.
         """
         vals = {'name': self.lot_name, 'product_id': self.product_id}
-        product_company = getattr(self.product, 'company', None)
+        product_company = getattr(self.product, 'company_id', None)
         if product_company is not None:
             hijas = {product_company.pk}
             hijas.update(getattr(product_company, 'all_child_ids', []) or [])

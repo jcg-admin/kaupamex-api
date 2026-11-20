@@ -191,7 +191,7 @@ class TestGetScoreWrappedWithAccountPrefixAndProductCateg:
             business_domain='general', applicability='optional', company=company,
             product_categ=categ)
         template = ProductTemplate.objects.create(
-            name='Hora de consultoría', company=company, categ_id=categ)
+            name='Hora de consultoría', company_id=company, categ_id=categ)
         product = ProductProduct.objects.create(product_tmpl=template)
         assert applicability._get_score(
             company_id=company.pk, product=product.pk) == 1.5

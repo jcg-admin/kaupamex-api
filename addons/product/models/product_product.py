@@ -272,9 +272,10 @@ class ProductProduct(TimeStampedModel):
         return self.product_tmpl.type
 
     @property
-    def company(self):
-        """La compañía de la ficha."""
-        return self.product_tmpl.company
+    def company_id(self):
+        """La compañía de la ficha (``company_id`` delegado por
+        ``_inherits``)."""
+        return self.product_tmpl.company_id
 
     @property
     def product_document_ids(self):
@@ -481,7 +482,7 @@ class ProductProduct(TimeStampedModel):
         ProductSupplierinfo = apps.get_model('product', 'ProductSupplierinfo')
         sellers = ProductSupplierinfo._get_filtered_supplier(
             self.product_tmpl.seller_ids.all(),
-            company if company is not None else self.company,
+            company if company is not None else self.company_id,
             self,
             params,
         )
@@ -601,7 +602,7 @@ class ProductProduct(TimeStampedModel):
         if ordered_by != 'price_discounted':
             sort_key = (ordered_by, 'price_discounted', 'sequence', 'pk')
 
-        owner = company if company is not None else self.company
+        owner = company if company is not None else self.company_id
         owner_currency = getattr(owner, 'currency', None)
         moment = date or fields.Date.context_today(self)
 

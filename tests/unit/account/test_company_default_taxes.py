@@ -70,7 +70,8 @@ class TestProductInheritsCompanyTax:
         company.account_sale_tax = sale_tax
         company.save(update_fields=['account_sale_tax'])
 
-        product = ProductTemplate.objects.create(name='Eleke', company=company)
+        product = ProductTemplate.objects.create(
+            name='Eleke', company_id=company)
 
         assert list(product.taxes.all()) == [sale_tax]
 
@@ -82,7 +83,8 @@ class TestProductInheritsCompanyTax:
         #141 no se puede cerrar antes que #145: reapuntar ``price_tax`` aquí
         daría cero.
         """
-        product = ProductTemplate.objects.create(name='Eleke', company=company)
+        product = ProductTemplate.objects.create(
+            name='Eleke', company_id=company)
         assert list(product.taxes.all()) == []
 
     def test_does_not_override_declared_taxes(self, company, sale_tax):
@@ -99,7 +101,8 @@ class TestProductInheritsCompanyTax:
         company.account_sale_tax = sale_tax
         company.save(update_fields=['account_sale_tax'])
 
-        product = ProductTemplate.objects.create(name='Eleke', company=company)
+        product = ProductTemplate.objects.create(
+            name='Eleke', company_id=company)
         product.taxes.set([other_tax])
         product.save()
         product.refresh_from_db()
@@ -115,7 +118,8 @@ class TestProductInheritsCompanyTax:
         """
         company.account_sale_tax = sale_tax
         company.save(update_fields=['account_sale_tax'])
-        product = ProductTemplate.objects.create(name='Eleke', company=company)
+        product = ProductTemplate.objects.create(
+            name='Eleke', company_id=company)
         assert list(product.taxes.all()) == [sale_tax]
 
         product.taxes.clear()

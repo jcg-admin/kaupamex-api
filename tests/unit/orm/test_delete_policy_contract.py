@@ -85,7 +85,7 @@ CORRECTED = {
     'product.ProductSupplierinfo.company_id',
     'product.ProductSupplierinfo.product_id',
     'product.ProductSupplierinfo.purchase_requisition_line',
-    'product.ProductTemplate.company',
+    'product.ProductTemplate.company_id',
     'product.ProductUom.company',
     'sales_team.CrmTeam.company_id',
     'stock.StockLocation.company',

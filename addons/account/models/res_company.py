@@ -525,7 +525,10 @@ def record_fiscal_country_codes(self):
     self.env.companies``. Un producto de una empresa concreta muestra el país
     fiscal de **esa** empresa, no el de las activadas.
     """
-    company_id = getattr(self, 'company_id', None)
+    # ``company_id`` es el registro en un modelo en forma C (la plantilla) y
+    # el attname entero en uno que aún no lo está (el plazo de pago).
+    company = getattr(self, 'company_id', None)
+    company_id = getattr(company, 'pk', company)
     return get_fiscal_country_codes([company_id] if company_id else None)
 
 
@@ -558,10 +561,20 @@ def _compute_record_fiscal_country_codes(self):
     self.fiscal_country_codes = record_fiscal_country_codes(self)
 
 
+@api.depends('company_id')
+@api.depends_context('company', 'allowed_company_ids')
+def _compute_template_fiscal_country_codes(self):
+    """La misma precedencia sobre ``product.template``, cuya compañía se
+    llama ``company_id`` como en la fuente
+    (``odoo19c: account/models/product.py:100-105``)."""
+    self.fiscal_country_codes = record_fiscal_country_codes(self)
+
+
 @api.depends('country.code')
 @api.depends_context('company', 'allowed_company_ids')
 def _compute_partner_fiscal_country_codes(self):
-    """Asigna los países activos y el país propio sin cambiar la deduplicación."""
+    """Asigna los países activos y el país propio sin cambiar la
+    deduplicación."""
     self.fiscal_country_codes = partner_fiscal_country_codes(self)
 
 
@@ -700,13 +713,16 @@ def apply_account_extensions():
     # — el defecto de sitio que :ref:`h-api-578` registra.
     _add_if_absent(ResCompany, 'tax_calculation_rounding_method',
                    fields.Selection(
-        max_length=20, choices=TAX_CALCULATION_ROUNDING_METHODS,
-        default='round_globally',
-        verbose_name='Método de redondeo del cálculo de impuestos',
-        help_text='Si el impuesto se redondea una vez por impuesto sobre la '
-                  'base agregada, o línea por línea (Odoo '
-                  'tax_calculation_rounding_method).',
-    ))
+                       max_length=20,
+                       choices=TAX_CALCULATION_ROUNDING_METHODS,
+                       default='round_globally',
+                       verbose_name=(
+                           'Método de redondeo del cálculo de impuestos'),
+                       help_text=(
+                           'Si el impuesto se redondea una vez por impuesto '
+                           'sobre la base agregada, o línea por línea (Odoo '
+                           'tax_calculation_rounding_method).'),
+                   ))
     _add_if_absent(ResCompany, 'account_use_credit_limit', fields.Boolean(
         default=False, verbose_name='Límite de crédito en ventas',
         help_text='Habilita el uso del límite de crédito en los contactos '
@@ -741,7 +757,8 @@ def apply_account_extensions():
     # ``opening_move_posted`` desde ``account_opening_move_id``; sin los dos
     # campos el asistente no tenia a que apuntar.
     _add_if_absent(ResCompany, 'account_opening_move', fields.Many2one(
-        'account.AccountMove', on_delete=dj_models.SET_NULL, null=True, blank=True,
+        'account.AccountMove', on_delete=dj_models.SET_NULL, null=True,
+        blank=True,
         related_name='opening_for_companies',
         verbose_name='Opening Journal Entry',
         help_text='Asiento con el saldo inicial de todas las cuentas de esta '
@@ -768,7 +785,8 @@ def apply_account_extensions():
         ResCompany.force_restrictive_audit_trail = property(
             _compute_force_restrictive_audit_trail)
     if not hasattr(ResCompany, '_check_audit_trail_restriction'):
-        ResCompany._check_audit_trail_restriction = _check_audit_trail_restriction
+        ResCompany._check_audit_trail_restriction = (
+            _check_audit_trail_restriction)
 
     # El mecanismo que le da sentido a los cinco candados — cierra los
     # computados que ``account_lock_exception.py`` declaraba pendientes.
@@ -821,7 +839,7 @@ def apply_account_extensions():
             ))
     for model, compute in (
         (Uom, _compute_session_fiscal_country_codes),
-        (ProductTemplate, _compute_record_fiscal_country_codes),
+        (ProductTemplate, _compute_template_fiscal_country_codes),
         (AccountPaymentTerm, _compute_record_fiscal_country_codes),
         (ResPartner, _compute_partner_fiscal_country_codes),
     ):
@@ -866,14 +884,15 @@ def load_chart_for_new_company(sender, instance, created, **kwargs):
     **Por qué se lee el padre y no ``instance.parent_ids``.** La referencia usa
     ``parent_ids[0]`` y difiere la carga a ``cr.precommit`` — no por capricho:
     ese cálculo necesita el estado del registro ya asentado. Aquí ocurre lo
-    mismo por otra vía: ``ResCompany.save()`` calcula ``parent_path`` **después**
-    del ``INSERT`` (``res_company.py:581-586``), así que en el instante del
-    ``post_save`` la ruta materializada todavía está vacía y ``parent_ids``
-    devuelve sólo la propia empresa. Leer ``instance.parent`` —una FK, escrita
-    ya— y pedirle a él su raíz evita depender de un valor que aún no existe.
+    mismo por otra vía: ``ResCompany.save()`` calcula ``parent_path``
+    **después** del ``INSERT`` (``res_company.py:581-586``), así que en el
+    instante del ``post_save`` la ruta materializada todavía está vacía y
+    ``parent_ids`` devuelve sólo la propia empresa. Leer ``instance.parent``
+    —una FK, escrita ya— y pedirle a él su raíz evita depender de un valor que
+    aún no existe.
 
-    Una empresa **raíz** (``parent is None``) no entra por aquí, igual que en la
-    referencia: su plan lo elige quien la aprovisiona (allá,
+    Una empresa **raíz** (``parent is None``) no entra por aquí, igual que en
+    la referencia: su plan lo elige quien la aprovisiona (allá,
     ``res_config_settings.py:223``). Esa mitad es la tarea #156.
 
     ``dispatch_uid`` porque ``ready()`` puede correr dos veces con el
