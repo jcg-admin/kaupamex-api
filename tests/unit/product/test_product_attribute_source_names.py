@@ -55,4 +55,4 @@ def test_a_line_carries_its_attribute_and_values():
     line.value_ids.set([red])
     assert line.attribute_id == color
     assert list(line.value_ids.all()) == [red]
-    assert str(red) == 'Color: Rojo'
+    assert red.display_name == 'Color: Rojo'

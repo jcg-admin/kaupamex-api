@@ -1227,6 +1227,10 @@ crm/models/crm_lead_scoring_frequency.py::CrmLeadScoringFrequencyField::_get_def
 # color— y por tanto el mismo impedimento del serializador de migraciones.
 sales_team/models/crm_tag.py::CrmTag::_get_default_color
 #
+# Tercera entrada, `product.attribute.value`: mismo simbolo, mismo rango y el
+# mismo `default=` en `color` (`odoo19c: product_attribute_value.py:16-17,42`).
+product/models/product_attribute_value.py::ProductAttributeValue::_get_default_color
+#
 # ---- 13. `create` de `certificate` — DIVERGENCIA DE MECANISMO -----------
 #
 # Su gancho de alta; en Django es `save()` con `_state.adding`. Mismo motivo,

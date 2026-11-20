@@ -57,6 +57,12 @@ def _user(login, company, *groups):
 
 
 @pytest.fixture
+def superuser_env():
+    """Estas pruebas miden la ACL: no corren como superusuario."""
+    yield None
+
+
+@pytest.fixture
 def company():
     return ResCompany.objects.create(code='psec-a', name='Empresa psec')
 

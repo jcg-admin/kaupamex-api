@@ -119,19 +119,23 @@ class TestProductCategory:
 
 class TestProductAttribute:
 
-    def test_value_str_incluye_el_atributo(self):
+    def test_value_display_name_includes_the_attribute(self):
+        # ≙ ``_compute_display_name`` (``odoo19c: product_attribute_value.py:
+        # 62-73``): la fuente no declara ``__str__``.
         color = ProductAttribute.objects.create(name='Color')
         rojo = ProductAttributeValue.objects.create(
             attribute_id=color, name='Rojo'
         )
-        assert str(rojo) == 'Color: Rojo'
+        assert rojo.display_name == 'Color: Rojo'
 
-    def test_unique_attribute_value_name(self):
+    def test_the_source_declares_no_value_name_uniqueness(self):
+        # La ``UniqueConstraint(attribute_id, name)`` era invención: ni
+        # ``odoo19c:`` ni ``odoo18c:`` la declaran.
         color = ProductAttribute.objects.create(name='Color')
         ProductAttributeValue.objects.create(attribute_id=color, name='Rojo')
-        with pytest.raises(Exception):
-            ProductAttributeValue.objects.create(
-                attribute_id=color, name='Rojo')
+        ProductAttributeValue.objects.create(attribute_id=color, name='Rojo')
+        assert ProductAttributeValue.objects.filter(
+            attribute_id=color, name='Rojo').count() == 2
 
     def test_mismo_nombre_en_otro_atributo_no_choca(self):
         color = ProductAttribute.objects.create(name='Color')

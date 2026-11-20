@@ -54,15 +54,13 @@ class ProductTemplateAttributeValue(TimeStampedModel):
         related_name='product_template_value_ids',
         help_text='Línea (Odoo attribute_line_id).',
     )
-    #: La fuente declara ``ondelete='cascade'`` (``:27-30``) y la protege con
-    #: ``_unlink_except_used_on_product`` de ``product.attribute.value``, que
-    #: no está portado: sin esa guarda, ``CASCADE`` borraría las opciones de
-    #: los productos que usan el valor. ``PROTECT`` queda hasta portarla
-    #: (sucesor ``pav-unlink-guard-0122``).
+    #: ≙ ``ondelete='cascade'`` (``:27-30``). La guarda que impide borrar un
+    #: valor en uso es ``_unlink_except_used_on_product`` de
+    #: ``product.attribute.value``; sin uso, el valor arrastra sus opciones.
     product_attribute_value_id = fields.Many2one(
         'product.ProductAttributeValue',
         db_column='product_attribute_value_id',
-        null=False, on_delete=models.PROTECT,
+        null=False, on_delete=models.CASCADE,
         related_name='template_values',
         help_text='Valor del atributo (Odoo product_attribute_value_id).',
     )

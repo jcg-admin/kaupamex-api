@@ -3283,7 +3283,6 @@ tests/unit/product/test_product_models.py::test_service_con_volumen_es_invalido
 tests/unit/product/test_product_models.py::test_service_sin_peso_ni_volumen_es_valido
 tests/unit/product/test_product_models.py::test_str_sin_default_code_usa_display_name
 tests/unit/product/test_product_models.py::test_str_usa_default_code_cuando_existe
-tests/unit/product/test_product_models.py::test_value_str_incluye_el_atributo
 tests/unit/product/test_product_models.py::variante
 tests/unit/purchase/test_purchase_order_currency_header.py::mxn
 tests/unit/purchase_requisition/test_get_tender_best_lines_currency.py::mxn
