@@ -288,7 +288,7 @@ class TestProductProduct:
         )
         line.value_ids.set([rojo])
         ptav = ProductTemplateAttributeValue.objects.create(
-            line=line, attribute_value=rojo
+            attribute_line_id=line, product_attribute_value_id=rojo
         )
         variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
         variante.product_template_attribute_values.set([ptav])
@@ -308,7 +308,8 @@ class TestProductProduct:
         )
         line.value_ids.set([dorado])
         ptav = ProductTemplateAttributeValue.objects.create(
-            line=line, attribute_value=dorado, price_extra=Decimal('30.00')
+            attribute_line_id=line, product_attribute_value_id=dorado,
+            price_extra=Decimal('30.00'),
         )
         variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
         variante.product_template_attribute_values.set([ptav])
@@ -332,7 +333,7 @@ class TestProductProduct:
         )
         line.value_ids.set([rojo])
         ptav = ProductTemplateAttributeValue.objects.create(
-            line=line, attribute_value=rojo
+            attribute_line_id=line, product_attribute_value_id=rojo
         )
         variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
         variante.product_template_attribute_values.set([ptav])

@@ -72,10 +72,10 @@ def test_sync_creates_template_values(db):
     product = _product()
     line = _line(product, color, [red, blue])
     pa_services.sync_template_values(line)
-    assert line.template_values.count() == 2
+    assert line.product_template_value_ids.count() == 2
     # Idempotente: no duplica.
     pa_services.sync_template_values(line)
-    assert line.template_values.count() == 2
+    assert line.product_template_value_ids.count() == 2
 
 
 def test_cartesian_combinations(db):
@@ -99,12 +99,12 @@ def test_combination_price_adds_price_extra(db):
     pa_services.sync_template_values(line)
     # XL cuesta +50; S y M sin extra.
     ptav_l = ProductTemplateAttributeValue.objects.get(
-        line=line, attribute_value=l
+        attribute_line_id=line, product_attribute_value_id=l
     )
     ptav_l.price_extra = Decimal('50.00')
     ptav_l.save(update_fields=['price_extra', 'write_date'])
     ptav_s = ProductTemplateAttributeValue.objects.get(
-        line=line, attribute_value=s
+        attribute_line_id=line, product_attribute_value_id=s
     )
     # Precio de la combinación S = 100 ; combinación L = 150.
     assert pa_services.combination_price(
@@ -125,16 +125,16 @@ def test_multi_axis_price_sums_extras(db):
     pa_services.sync_template_values(ls)
     # Dorado +30 ; XL +40.
     ProductTemplateAttributeValue.objects.filter(
-        line=lc, attribute_value=gold
+        attribute_line_id=lc, product_attribute_value_id=gold
     ).update(price_extra=Decimal('30.00'))
     ProductTemplateAttributeValue.objects.filter(
-        line=ls, attribute_value=xl
+        attribute_line_id=ls, product_attribute_value_id=xl
     ).update(price_extra=Decimal('40.00'))
     gold_ptav = ProductTemplateAttributeValue.objects.get(
-        line=lc, attribute_value=gold
+        attribute_line_id=lc, product_attribute_value_id=gold
     )
     xl_ptav = ProductTemplateAttributeValue.objects.get(
-        line=ls, attribute_value=xl
+        attribute_line_id=ls, product_attribute_value_id=xl
     )
     # Combinación Dorado+XL = 200 + 30 + 40 = 270.
     assert pa_services.combination_price(

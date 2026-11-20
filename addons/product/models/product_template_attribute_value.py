@@ -13,20 +13,19 @@ Cobertura contra ``odoo19c`` (porte parcial declarado)
 =======================================================
 
 Portados: ``name`` (``related`` al valor del atributo, ``:24``, TASK-API-0482),
-``price_extra`` y los dos enlaces, cuyo nombre aquí es ``line`` y
-``attribute_value`` (la fuente dice ``attribute_line_id`` y
-``product_attribute_value_id``); los atributos de clase ``_name``,
-``_description`` y ``_order``. Pendientes, con sucesor **TASK-API-0493**: doce
-métodos (``_check_valid_values``, ``_compute_display_name``,
-``_filter_single_value_lines``, ``_get_combination_name``,
-``_get_default_color``, ``_ids2str``, ``_is_from_single_value_line``,
-``_only_active``, ``_without_no_variant_attributes``, ``create``, ``unlink``,
-``write``), once campos (``ptav_active``, ``color``, ``display_type``,
-``exclude_for``, ``html_color``, ``image``, ``is_custom``, ``currency_id``,
-``product_tmpl_id``, ``attribute_id``, ``ptav_product_variant_ids``) y la
-restricción ``_attribute_value_unique``, que aquí se llama
-``unique_template_attribute_value``.
-"""
+``price_extra`` y los dos enlaces con el nombre de la fuente,
+``attribute_line_id`` y ``product_attribute_value_id``; los atributos de clase
+``_name``, ``_description`` y ``_order``. Pendientes, con sucesor
+**TASK-API-0493**: doce métodos (``_check_valid_values``,
+``_compute_display_name``, ``_filter_single_value_lines``,
+``_get_combination_name``, ``_get_default_color``, ``_ids2str``,
+``_is_from_single_value_line``, ``_only_active``,
+``_without_no_variant_attributes``, ``create``, ``unlink``, ``write``), once
+campos (``ptav_active``, ``color``, ``display_type``, ``exclude_for``,
+``html_color``, ``image``, ``is_custom``, ``currency_id``, ``product_tmpl_id``,
+``attribute_id``, ``ptav_product_variant_ids``) y la restricción
+``_attribute_value_unique``, que aquí se llama
+``unique_template_attribute_value``. """
 
 from decimal import Decimal
 
@@ -47,15 +46,22 @@ class ProductTemplateAttributeValue(TimeStampedModel):
 
     #: ≙ ``name`` (``odoo19c: :24``): sin columna, leído del valor del
     #: atributo.
-    name = fields.Char('Value', related='attribute_value.name')
-    line = fields.Many2one(
+    name = fields.Char('Value', related='product_attribute_value_id.name')
+    attribute_line_id = fields.Many2one(
         'product.ProductTemplateAttributeLine',
+        db_column='attribute_line_id',
         null=False, on_delete=models.CASCADE,
-        related_name='template_values',
+        related_name='product_template_value_ids',
         help_text='Línea (Odoo attribute_line_id).',
     )
-    attribute_value = fields.Many2one(
+    #: La fuente declara ``ondelete='cascade'`` (``:27-30``) y la protege con
+    #: ``_unlink_except_used_on_product`` de ``product.attribute.value``, que
+    #: no está portado: sin esa guarda, ``CASCADE`` borraría las opciones de
+    #: los productos que usan el valor. ``PROTECT`` queda hasta portarla
+    #: (sucesor ``pav-unlink-guard-0122``).
+    product_attribute_value_id = fields.Many2one(
         'product.ProductAttributeValue',
+        db_column='product_attribute_value_id',
         null=False, on_delete=models.PROTECT,
         related_name='template_values',
         help_text='Valor del atributo (Odoo product_attribute_value_id).',
@@ -69,10 +75,10 @@ class ProductTemplateAttributeValue(TimeStampedModel):
 
     class Meta:
         db_table = 'product_template_attribute_value'
-        ordering = ['line', 'attribute_value', 'id']
+        ordering = ['attribute_line_id', 'product_attribute_value_id', 'id']
         constraints = [
             models.UniqueConstraint(
-                fields=['line', 'attribute_value'],
+                fields=['attribute_line_id', 'product_attribute_value_id'],
                 name='unique_template_attribute_value',
             ),
         ]
@@ -81,4 +87,4 @@ class ProductTemplateAttributeValue(TimeStampedModel):
 
     def __str__(self) -> str:
         extra = f' (+{self.price_extra})' if self.price_extra else ''
-        return f'{self.attribute_value.name}{extra}'
+        return f'{self.product_attribute_value_id.name}{extra}'

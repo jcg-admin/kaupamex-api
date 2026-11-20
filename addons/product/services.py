@@ -27,8 +27,8 @@ def sync_template_values(line):
     for value in line.value_ids.all():
         ptav, was_created = (
             ProductTemplateAttributeValue.objects.get_or_create(
-                line=line,
-                attribute_value=value,
+                attribute_line_id=line,
+                product_attribute_value_id=value,
             )
         )
         if was_created:
@@ -55,10 +55,10 @@ def combinations(template):
     lines = list(template.attribute_lines.order_by('sequence', 'id'))
     per_line = []
     for line in lines:
-        ptavs = list(line.template_values.order_by('id'))
+        ptavs = list(line.product_template_value_ids.order_by('id'))
         if not ptavs:
             sync_template_values(line)
-            ptavs = list(line.template_values.order_by('id'))
+            ptavs = list(line.product_template_value_ids.order_by('id'))
         if ptavs:
             per_line.append(ptavs)
     if not per_line:
@@ -93,7 +93,7 @@ def combination_count(template) -> int:
     count = 1
     has_line = False
     for line in template.attribute_lines.all():
-        n = line.template_values.count() or line.value_ids.count()
+        n = line.product_template_value_ids.count() or line.value_ids.count()
         if n:
             has_line = True
             count *= n

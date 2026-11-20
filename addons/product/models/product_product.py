@@ -358,7 +358,7 @@ class ProductProduct(TimeStampedModel):
     @api.depends(
         'product_tmpl_id.name',
         'product_template_attribute_values',
-        'product_template_attribute_values.attribute_value.name',
+        'product_template_attribute_values.product_attribute_value_id.name',
         'product_template_attribute_values.price_extra',
     )
     def _compute_display_name(self):

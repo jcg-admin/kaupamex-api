@@ -282,8 +282,8 @@ product.template	addons/product/models/product_template.py:118	restrict (defecto
 product.template	addons/stock/models/product.py:849	set null (defecto)	product.ProductTemplate	lot_sequence	set null	SET_NULL	a	True	coherente
 product.template	addons/account/models/product.py:53	company_dependent	product.ProductTemplate	property_account_income	set null	PROTECT	a	True	dependiente de empresa en la fuente (sin FK)
 product.template	addons/account/models/product.py:57	company_dependent	product.ProductTemplate	property_account_expense	set null	PROTECT	a	True	dependiente de empresa en la fuente (sin FK)
-product.template.attribute.value	-	-	product.ProductTemplateAttributeValue	line	restrict	CASCADE	a	True	sin contraparte en la fuente
-product.template.attribute.value	-	-	product.ProductTemplateAttributeValue	attribute_value	restrict	PROTECT	a	True	sin contraparte en la fuente
+product.template.attribute.value	addons/product/models/product_template_attribute_value.py:31	cascade	product.ProductTemplateAttributeValue	attribute_line_id	restrict	CASCADE	a	True	divergencia de atributo
+product.template.attribute.value	addons/product/models/product_template_attribute_value.py:27	cascade	product.ProductTemplateAttributeValue	product_attribute_value_id	restrict	PROTECT	a	True	divergencia de atributo y de política
 product.product	addons/product/models/product_product.py:42	cascade	product.ProductProduct	product_tmpl_id	restrict	CASCADE	a	True	divergencia de atributo
 product.combo	addons/product/models/product_combo.py:14	set null (defecto)	product.ProductCombo	company_id	set null	CASCADE	a	True	divergencia de política
 product.combo.item	addons/product/models/product_combo_item.py:13	cascade	product.ProductComboItem	combo_id	restrict	CASCADE	a	True	divergencia de atributo

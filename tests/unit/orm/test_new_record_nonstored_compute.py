@@ -134,7 +134,8 @@ def test_a_related_ending_on_a_django_many2many():
         product_tmpl_id=variant.product_tmpl_id, attribute_id=attribute)
     line.value_ids.set([red, blue])
     values = [ProductTemplateAttributeValue.objects.create(
-        line=line, attribute_value=value) for value in (red, blue)]
+        attribute_line_id=line, product_attribute_value_id=value)
+        for value in (red, blue)]
     variant.product_template_attribute_values.set(values)
     record = env()['purchase.order.line'].new({'product_id': variant.pk})
     read = record.product_template_attribute_value_ids

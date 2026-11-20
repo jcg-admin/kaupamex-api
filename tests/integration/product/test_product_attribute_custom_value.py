@@ -51,7 +51,7 @@ def attribute_value():
     )
     line.value_ids.set([value])
     return ProductTemplateAttributeValue.objects.create(
-        line=line, attribute_value=value
+        attribute_line_id=line, product_attribute_value_id=value
     )
 
 
@@ -135,8 +135,8 @@ class TestTheTemplateValueReadsItsName:
 
     def test_a_renamed_attribute_value_is_seen_on_the_next_read(
             self, attribute_value):
-        attribute_value.attribute_value.name = 'Grabado a mano'
-        attribute_value.attribute_value.save()
+        attribute_value.product_attribute_value_id.name = 'Grabado a mano'
+        attribute_value.product_attribute_value_id.save()
         again = ProductTemplateAttributeValue.objects.get(
             pk=attribute_value.pk)
         assert again.name == 'Grabado a mano'
