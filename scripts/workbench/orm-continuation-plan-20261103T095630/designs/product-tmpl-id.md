@@ -55,6 +55,31 @@ puntos de lectura.
 - `ProductSupplierinfo.clean`;
 - las migraciones `0033_product_tmpl_id` y `0008_product_tmpl_id`.
 
+## Lectores del reemplazo mecánico
+
+Símbolos cuyo cuerpo sólo cambia `product_tmpl` por `product_tmpl_id` (lectura,
+`select_related` o lookup), agrupados por archivo:
+
+- `addons/account/models/product.py`: `_get_variant_product_accounts`;
+- `addons/delivery/models/__init__.py`: `ShippingMethod.ensure_service_product`;
+- `addons/delivery/models/sale_order.py`: `ensure_generic_service_product`;
+- `addons/product/models/product_product.py`: `ProductProduct.list_price`, `ProductProduct.sale_ok`;
+- `addons/product/models/product_tag.py`: `ProductTag.product_ids`;
+- `addons/product_expiry/models/product_product.py`: `alert_time`, `expiration_time`, `removal_time`, `use_expiration_date`, `use_time`;
+- `addons/purchase/models/product.py`: `_compute_template_purchased_product_qty`, `_update_uom`;
+- `addons/purchase_stock/models/stock.py`: `vendor_ids`;
+- `addons/purchase_stock/models/stock_rule.py`: `_sellers_of`;
+- `addons/sale_loyalty/models/sale_order_coupon.py`: `ensure_reward_product`;
+- `addons/sale_service/models/sale_order_line.py`: `is_service`, `service_lines`;
+- `addons/stock/models/product.py`: `_compute_quantities_dict`, `_get_description`, `_get_picking_description`, `check_factor_not_in_use`, `is_storable`, `lot_sequence`, `product_route_ids`, `show_forecasted_qty_status_button`, `show_on_hand_qty_status_button`, `show_qty_update_button`;
+- `addons/stock/models/stock_orderpoint.py`: `StockWarehouseOrderpoint._get_orderpoint_products`, `StockWarehouseOrderpoint._procure_orderpoint_confirm`;
+- `addons/stock/models/stock_quant.py`: `StockQuant._domain_product_id`, `StockQuant.is_favorite`.
+
+De ellos, tres lookups estaban escritos en medio de una cadena
+(`product__product_tmpl__uom`, `check_factor_not_in_use` y dos más en
+`website_sale_wishlist` y `sale_service`) y el primer reemplazo no los vio:
+la batería entera los encontró como `FieldError`.
+
 ## Fuera de esta unidad, con su sucesor
 
 - `ProductTemplate.uom` y los demás de `combo`, `uom`, `document` y
