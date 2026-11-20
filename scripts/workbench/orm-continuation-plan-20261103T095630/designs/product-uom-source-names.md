@@ -19,7 +19,13 @@ empresa activa.
 ## Cambios
 
 1. `ProductUom.product` → `ProductUom.product_id` y `ProductUom.company` →
-   `ProductUom.company_id`, en forma C. Migración `no-op` en `sqlmigrate`.
+   `ProductUom.company_id`, en forma C. Migración
+   `0035_product_uom_source_names`. `makemigrations` propuso `company` como
+   `RemoveField` + `AddField` (el default nuevo hace distinta la
+   definición), que borraría la empresa de cada fila; se reescribió como
+   `AlterField` + `RenameField` (precedente `base/0114`). Su SQL sólo
+   recrea la restricción FK sobre la misma columna `company_id`; los datos
+   no se tocan.
 2. `company_id` toma `default=_default_company`, que devuelve
    `env().company` (o nada sin empresa en contexto), con la forma de
    `_default_currency` de `product_supplierinfo.py`.
