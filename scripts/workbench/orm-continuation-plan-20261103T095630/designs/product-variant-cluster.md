@@ -91,3 +91,29 @@ Re-medido sobre los 16 directorios que fallaban: **143 failed, 20 errors,
 | `FieldError: name` sobre `product.product` | 14 | un `filter(name=…)` de Django sobre un campo que llega por `_inherits`: pasa a `search([('name', …)])` o al campo del padre |
 | API de manager restante (`.all`, `.order_by`, `.count`, `.clear`, `.add` sobre `taxes_id`) | ~25 | igual que el resto: API de recordset |
 | `KeyError` / `IndexError` / carrito vacío | ~37 | por clasificar; varios son la respuesta de una vista que falló por los permisos |
+
+## Etapa 1, avance (2026-11-20 17:20Z)
+
+Parche `outputs/cluster-wip/stage1-wip-5.patch` (sobre `4dc72aaa`). Tras
+cuatro re-mediciones sobre los archivos que fallaban: 19 fallos en la
+cuarta, ya corregidos en el árbol los de API de manager (`taxes`,
+`product_variant_ids`, `ptav_product_variant_ids`), la orden por
+`_inherits` (`designs/order-by-inherited-field.md`), las pruebas de slug
+sobre registros reales y el `sudo()` de registro de
+`_add_supplier_to_product` (`odoo19c: purchase_order.py:708`).
+
+Medido además: el entorno de superusuario por directorio **sí** se filtra a
+una prueba que mide la ACL con usuarios explícitos
+(`test_purchase_security_data.py` daba acceso total); esas pruebas lo
+redefinen, como `test_product_security.py`.
+
+Lo que queda y no es de pruebas:
+
+- la API de carrito y lista de deseos responde `403`: el comprador lee
+  `product.product` sin fila de ACL. La fuente se la da con la seguridad de
+  `website_sale` (público y portal leen el catálogo publicado). Sucesor
+  previo a cerrar la etapa: `website-sale-security-data-0397`.
+- pruebas cuya premisa era el modelo de Django (`isinstance(..., QuerySet)`,
+  `env['product.product'] is ProductProduct`): pasan a la forma de la fuente.
+- tres casos por clasificar: el informe (`report_template._render_text`),
+  líneas de factura de compra (2 en lugar de 1) y `precision_rounding` 0.

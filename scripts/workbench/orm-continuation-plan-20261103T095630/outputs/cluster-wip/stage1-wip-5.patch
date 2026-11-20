@@ -1,0 +1,1295 @@
+diff --git a/addons/account/models/product.py b/addons/account/models/product.py
+index d0a266b9..6ef5938b 100644
+--- a/addons/account/models/product.py
++++ b/addons/account/models/product.py
+@@ -117,6 +117,7 @@ from addons.product.models import (
+     ProductProduct,
+     ProductTemplate,
+ )
++from orm.commands import Command
+ 
+ 
+ def _property_account(help_text):
+@@ -232,11 +233,11 @@ def _inherit_company_default_taxes(sender, instance, created, **kwargs):
+         ('supplier_taxes', 'account_purchase_tax'),
+     ):
+         relation = getattr(instance, field_name, None)
+-        if relation is None or relation.exists():
++        if relation is None or relation:
+             continue
+         tax = getattr(company, default_attr, None)
+         if tax is not None:
+-            relation.add(tax)
++            instance.write({field_name: [Command.link(tax.id)]})
+ 
+ 
+ def apply_account_extensions():
+diff --git a/addons/product/models/product_attribute_value.py b/addons/product/models/product_attribute_value.py
+index ccd438ae..17e906bc 100644
+--- a/addons/product/models/product_attribute_value.py
++++ b/addons/product/models/product_attribute_value.py
+@@ -13,15 +13,6 @@ recordset.
+ Divergencia declarada: ``name`` no lleva ``translate=True``; el
+ almacenamiento jsonb de los campos traducibles es TASK-GEN-0060.
+ 
+-Divergencia de mecanismo declarada: los tres comodelos que los métodos
+-recorren —``product.template.attribute.line``,
+-``product.template.attribute.value`` y ``product.product``— aún derivan de
+-``TimeStampedModel``, así que ``env[...]`` devuelve su clase de Django y sus
+-filas se leen por su manager (el dominio de la fuente, compilado con
+-``orm.domains.to_q``). La lógica y el orden de cada método son los de la
+-fuente; el sucesor que los lleva a ``BaseModel`` es
+-``basemodel-adoption-product-chain-0397``.
+-
+ Diseño: ``scripts/workbench/orm-continuation-plan-20261103T095630/designs/
+ product-attribute-value-complete.md``.
+ """
+@@ -33,7 +24,6 @@ import fields
+ import models
+ from addons.base.models import TimeStampedModel
+ from exceptions import UserError
+-from orm.domains import to_q
+ from tools.translate import _
+ 
+ 
+@@ -135,30 +125,25 @@ class ProductAttributeValue(models.BaseModel, TimeStampedModel):
+     @api.depends('pav_attribute_line_ids')
+     def _compute_is_used_on_products(self):
+         for pav in self:
+-            pav.is_used_on_products = pav.pav_attribute_line_ids.filter(
+-                product_tmpl_id__active=True).exists()
++            pav.is_used_on_products = bool(
++                pav.pav_attribute_line_ids.filtered('product_tmpl_id.active'))
+ 
+     @api.depends('default_extra_price')
+     def _compute_default_extra_price_changed(self):
+-        templates = self.env['product.template']
+-        company_domain = templates._check_company_domain(self.env.companies)
+-        # `sudo` required to know which products we lack access to: the
+-        # manager of a Django model reads without the ACL. The PTAV
+-        # ``product_tmpl_id`` of the source is a stored related of its line,
+-        # not yet ported (successor of ``ptav-source-names.md``); until then
+-        # the template is reached through ``attribute_line_id``.
+-        ptavs_by_pav = {}
+-        allowed_templates = templates.objects.filter(
+-            to_q(company_domain, model=templates))
+-        values = self.env['product.template.attribute.value'].objects
+-        for ptav in values.filter(
+-                product_attribute_value_id__in=self.ids,
+-                attribute_line_id__product_tmpl_id__in=allowed_templates,
+-        ).only('price_extra', 'product_attribute_value_id'):
+-            ptavs_by_pav.setdefault(
+-                ptav.product_attribute_value_id_id, []).append(ptav)
++        company_domain = self.env['product.template']._check_company_domain(
++            self.env.companies)
++        # `sudo` required to know which products we lack access to
++        ptavs_by_pav = self.env['product.template.attribute.value'].sudo(
++        ).search_fetch([
++            ('product_attribute_value_id', 'in', self.ids),
++            # ``product_tmpl_id`` de PTAV es un related almacenado de su
++            # línea aún sin portar (``ptav-complete-0122``): se llega a la
++            # plantilla por la línea.
++            ('attribute_line_id.product_tmpl_id', 'any', company_domain),
++        ], ['price_extra', 'product_attribute_value_id']).grouped(
++            'product_attribute_value_id')
+         for pav in self:
+-            ptavs = ptavs_by_pav.get(pav.id, [])
++            ptavs = ptavs_by_pav.get(pav, [])
+             pav.default_extra_price_changed = (
+                 pav.default_extra_price != pav._origin.default_extra_price
+                 or any(pav.default_extra_price != ptav.price_extra
+@@ -177,7 +162,9 @@ class ProductAttributeValue(models.BaseModel, TimeStampedModel):
+                         " %(value)s because it is used on the following"
+                         " products: %(products)s",
+                         value=pav.display_name,
+-                        products=", ".join(pav._used_template_names()),
++                        products=", ".join(
++                            pav.pav_attribute_line_ids.product_tmpl_id.mapped(
++                                'display_name')),
+                     ))
+ 
+         invalidate = 'sequence' in vals and any(
+@@ -196,22 +183,12 @@ class ProductAttributeValue(models.BaseModel, TimeStampedModel):
+                 "You cannot delete the value %(value)s because it is used on"
+                 " the following products:\n%(products)s\n",
+                 value=pav.display_name,
+-                products=", ".join(pav._used_template_names()),
++                products=", ".join(
++                    pav.pav_attribute_line_ids.product_tmpl_id.mapped(
++                        'display_name')),
+             )
+         return False
+ 
+-    def _used_template_names(self):
+-        """``pav_attribute_line_ids.product_tmpl_id.mapped('display_name')``
+-        de la fuente: los nombres sin repetir, en el orden de las líneas."""
+-        self.ensure_one()
+-        names = []
+-        for line in self.pav_attribute_line_ids.select_related(
+-                'product_tmpl_id'):
+-            name = line.product_tmpl_id.display_name
+-            if name not in names:
+-                names.append(name)
+-        return names
+-
+     @api.ondelete(at_uninstall=False)
+     def _unlink_except_used_on_product(self):
+         if is_used_on_products := self.check_is_used_on_products():
+@@ -220,15 +197,12 @@ class ProductAttributeValue(models.BaseModel, TimeStampedModel):
+     def unlink(self):
+         pavs_to_archive = self.env['product.attribute.value']
+         for pav in self:
+-            # ``search(...).with_context(active_test=False)
+-            # .ptav_product_variant_ids``: every variant, archived ones too.
+-            linked_products = pav.env['product.product'].objects.filter(**{
+-                'product_template_attribute_value_ids__'
+-                'product_attribute_value_id': pav.id,
+-            }).distinct()
+-            active_linked_products = linked_products.filter(active=True)
+-            if (not active_linked_products.exists()
+-                    and linked_products.exists()):
++            linked_products = pav.env[
++                'product.template.attribute.value'].search(
++                [('product_attribute_value_id', '=', pav.id)]
++            ).with_context(active_test=False).ptav_product_variant_ids
++            active_linked_products = linked_products.filtered('active')
++            if not active_linked_products and linked_products:
+                 # If product attribute value found on non-active product
+                 # variants archive PAV instead of deleting
+                 pavs_to_archive |= pav
+diff --git a/addons/product/models/product_product.py b/addons/product/models/product_product.py
+index 0f899079..97f37a09 100644
+--- a/addons/product/models/product_product.py
++++ b/addons/product/models/product_product.py
+@@ -115,7 +115,7 @@ from tools.float_utils import float_compare
+ COMBINATION_SEPARATOR = ','
+ 
+ 
+-class ProductProduct(TimeStampedModel):
++class ProductProduct(models.BaseModel, TimeStampedModel):
+     """``product.product`` — una combinación concreta de la ficha."""
+ 
+     #: Los atributos de clase de la fuente
+@@ -358,7 +358,7 @@ class ProductProduct(TimeStampedModel):
+     def refresh_combination_indices(self):
+         """``_compute_combination_indices`` — recalcula desde los valores."""
+         self.combination_indices = self.build_combination_indices(
+-            self.product_template_attribute_value_ids.all()
++            self.product_template_attribute_value_ids
+         )
+         return self.combination_indices
+ 
+@@ -382,7 +382,7 @@ class ProductProduct(TimeStampedModel):
+         base = self.product_tmpl_id.name
+         parts = [
+             str(value)
+-            for value in self.product_template_attribute_value_ids.all()
++            for value in self.product_template_attribute_value_ids
+             if getattr(value, 'is_distinguishing', True)
+         ]
+         self.display_name = f'{base} ({", ".join(parts)})' if parts else base
+@@ -399,7 +399,7 @@ class ProductProduct(TimeStampedModel):
+         """
+         return sum(
+             (getattr(value, 'price_extra', 0) or 0)
+-            for value in self.product_template_attribute_value_ids.all()
++            for value in self.product_template_attribute_value_ids
+         )
+ 
+     @property
+diff --git a/addons/product/models/product_template.py b/addons/product/models/product_template.py
+index 9d98591e..ca166b5e 100644
+--- a/addons/product/models/product_template.py
++++ b/addons/product/models/product_template.py
+@@ -130,7 +130,7 @@ TYPE_CHOICES = [
+ SERVICE_TRACKING_CHOICES = [('no', 'Nada')]
+ 
+ 
+-class ProductTemplate(ImageMixin, TimeStampedModel):
++class ProductTemplate(models.BaseModel, ImageMixin, TimeStampedModel):
+     """``product.template`` — el producto del catálogo."""
+ 
+     #: Los atributos de clase de la fuente
+@@ -439,7 +439,7 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
+         por el ``related_name`` de aquel archivo, sin tocar éste.
+         """
+         variants = getattr(self, 'product_variant_ids', None)
+-        return variants.count() if variants is not None else 0
++        return len(variants) if variants is not None else 0
+ 
+     @property
+     def product_variant_id(self):
+diff --git a/addons/product/models/product_template_attribute_line.py b/addons/product/models/product_template_attribute_line.py
+index e45ceee8..a6696784 100644
+--- a/addons/product/models/product_template_attribute_line.py
++++ b/addons/product/models/product_template_attribute_line.py
+@@ -16,7 +16,7 @@ import models
+ from addons.base.models import TimeStampedModel
+ 
+ 
+-class ProductTemplateAttributeLine(TimeStampedModel):
++class ProductTemplateAttributeLine(models.BaseModel, TimeStampedModel):
+     """
+     ``product.template.attribute.line`` — atributo aplicado a un producto.
+     """
+diff --git a/addons/product/models/product_template_attribute_value.py b/addons/product/models/product_template_attribute_value.py
+index 10e808e9..19f7f925 100644
+--- a/addons/product/models/product_template_attribute_value.py
++++ b/addons/product/models/product_template_attribute_value.py
+@@ -35,7 +35,7 @@ import models
+ from addons.base.models import TimeStampedModel
+ 
+ 
+-class ProductTemplateAttributeValue(TimeStampedModel):
++class ProductTemplateAttributeValue(models.BaseModel, TimeStampedModel):
+     """
+     ``product.template.attribute.value`` — valor por-producto con price_extra.
+     """
+diff --git a/addons/product/services.py b/addons/product/services.py
+index be488ae9..048350f7 100644
+--- a/addons/product/services.py
++++ b/addons/product/services.py
+@@ -24,7 +24,7 @@ def sync_template_values(line):
+     nuevo).
+     """
+     created = []
+-    for value in line.value_ids.all():
++    for value in line.value_ids:
+         ptav, was_created = (
+             ProductTemplateAttributeValue.objects.get_or_create(
+                 attribute_line_id=line,
+@@ -52,13 +52,15 @@ def combinations(template):
+     ``sequence``).
+     Sin líneas → una combinación vacía (la ficha sin variantes).
+     """
+-    lines = list(template.attribute_lines.order_by('sequence', 'id'))
++    lines = list(template.attribute_lines.sorted(
++        lambda line: (line.sequence, line.id)))
+     per_line = []
+     for line in lines:
+-        ptavs = list(line.product_template_value_ids.order_by('id'))
++        ptavs = list(line.product_template_value_ids.sorted('id'))
+         if not ptavs:
+             sync_template_values(line)
+-            ptavs = list(line.product_template_value_ids.order_by('id'))
++            line.invalidate_recordset(['product_template_value_ids'])
++            ptavs = list(line.product_template_value_ids.sorted('id'))
+         if ptavs:
+             per_line.append(ptavs)
+     if not per_line:
+@@ -92,8 +94,8 @@ def combination_count(template) -> int:
+     """
+     count = 1
+     has_line = False
+-    for line in template.attribute_lines.all():
+-        n = line.product_template_value_ids.count() or line.value_ids.count()
++    for line in template.attribute_lines:
++        n = len(line.product_template_value_ids) or len(line.value_ids)
+         if n:
+             has_line = True
+             count *= n
+diff --git a/addons/purchase/models/purchase_order.py b/addons/purchase/models/purchase_order.py
+index ce9bb2ab..f05f5ad1 100644
+--- a/addons/purchase/models/purchase_order.py
++++ b/addons/purchase/models/purchase_order.py
+@@ -73,8 +73,7 @@ import models
+ from django.utils import timezone
+ from exceptions import UserError
+ from orm.environments import (
+-    company_scope, get_current_company, get_current_uid, get_current_user,
+-    sudo)
++    company_scope, get_current_company, get_current_uid, get_current_user)
+ from tools.translate import _
+ 
+ from addons.account.models.account_document_import_mixin import (
+@@ -555,9 +554,12 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
+                 supplierinfo['product_name'] = selected.product_name
+                 supplierinfo['product_code'] = selected.product_code
+                 supplierinfo['product_uom_id'] = line.product_uom_id
+-            with sudo():
+-                template.write(
+-                    {'seller_ids': [fields.Command.create(supplierinfo)]})
++            # ≙ ``product_tmpl_id.sudo().write(vals)``
++            # (``odoo19c: addons/purchase/models/purchase_order.py:708``): la
++            # elevación va en el registro, porque ``write`` entra en el
++            # entorno del registro y anula un ``sudo()`` del ambiente.
++            template.sudo().write(
++                {'seller_ids': [fields.Command.create(supplierinfo)]})
+ 
+     def button_cancel(self):
+         """≙ ``button_cancel`` (``odoo19c: :641-649``)."""
+diff --git a/addons/purchase/models/purchase_order_line.py b/addons/purchase/models/purchase_order_line.py
+index eb173583..b9ac7661 100644
+--- a/addons/purchase/models/purchase_order_line.py
++++ b/addons/purchase/models/purchase_order_line.py
+@@ -397,7 +397,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
+                 for seller in product.product_tmpl_id.seller_ids.all()
+                 if seller.product_uom_id and seller.product_id_id in {
+                     None, product.pk}]
+-            units = [product.uom_id, *product.product_tmpl_id.uom_ids.all(),
++            units = [product.uom_id, *product.product_tmpl_id.uom_ids,
+                      *seller_uoms]
+             line.allowed_uom_ids = list(dict.fromkeys(
+                 unit for unit in units if unit))
+@@ -911,7 +911,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
+         if product_lang.description_purchase:
+             name += '\n' + product_lang.description_purchase
+         for no_variant_attribute_value in (
+-                self.product_no_variant_attribute_value_ids.all()):
++                self.product_no_variant_attribute_value_ids):
+             name += ("\n" + no_variant_attribute_value.attribute_id.name
+                      + ': ' + no_variant_attribute_value.name)
+ 
+diff --git a/src/orm/models.py b/src/orm/models.py
+index 7330d837..d846bec1 100644
+--- a/src/orm/models.py
++++ b/src/orm/models.py
+@@ -6282,6 +6282,20 @@ def order_to_django(model, order, reverse=False, prefix='', seen=frozenset()):
+                 target, f"{last} {direction} {nulls}".strip(),
+                 prefix=path, seen=seen))
+             continue
++        delegation = _inherits_delegation(model, field)
++        if delegation is not None:
++            # ≙ el ``related`` no almacenado que la fuente declara para un
++            # campo heredado por ``_inherits`` (``odoo19c:
++            # odoo/orm/models.py:2923-2926``): se ordena por el campo del
++            # padre a través de la clave de delegación, que es el join que
++            # añade ``_traverse_related_sql``. Aquí la entrada del registro es
++            # el campo del padre con su columna, y sin esta rama llegaba a
++            # Django como columna de la tabla del hijo.
++            fk_name, parent = delegation
++            terms.extend(order_to_django(
++                parent, f"{fname} {direction} {nulls}".strip(),
++                prefix=prefix + fk_name + '__', seen=seen))
++            continue
+         column = ('pk' if fname == 'id' and not prefix
+                   else prefix + getattr(field, 'attname', fname))
+         expression = F(column)
+@@ -11611,3 +11625,25 @@ def _log_access_bad_names(model):
+     if loading_log_access():
+         return []
+     return list(LOG_ACCESS_COLUMNS)
++
++
++def _inherits_delegation(model, field):
++    """``(clave, padre)`` si ``field`` es de un padre de ``_inherits``.
++
++    Devuelve la clave de delegación del modelo hacia el padre dueño del
++    campo, o ``None`` si el campo es del propio modelo. Diseño:
++    ``scripts/workbench/orm-continuation-plan-20261103T095630/designs/
++    order-by-inherited-field.md``.
++    """
++    owner = getattr(field, 'model', None)
++    if owner is None or owner is model or issubclass(model, owner):
++        return None
++    for fk_name in (getattr(model, '_inherits', None) or {}).values():
++        try:
++            fk = model._meta.get_field(fk_name)
++        except FieldDoesNotExist:
++            continue
++        parent = fk.related_model
++        if parent is owner or issubclass(parent, owner):
++            return fk.name, parent
++    return None
+diff --git a/tests/integration/delivery/conftest.py b/tests/integration/delivery/conftest.py
+new file mode 100644
+index 00000000..4b112936
+--- /dev/null
++++ b/tests/integration/delivery/conftest.py
+@@ -0,0 +1,16 @@
++"""Las pruebas de este directorio corren como superusuario."""
++import pytest
++
++from orm.environments import Environment
++from orm.utils import SUPERUSER_ID
++
++
++@pytest.fixture(autouse=True)
++def superuser_env(db):
++    """≙ ``TransactionCase`` de la fuente, que construye su entorno con
++    ``SUPERUSER_ID``: los modelos de producto son ``BaseModel`` y leerlos
++    pasa por la ACL. Una prueba que mide la ACL redefine este fixture.
++    Precedente: ``tests/unit/fleet/conftest.py``."""
++    environment = Environment(None, SUPERUSER_ID, {})
++    with environment:
++        yield environment
+diff --git a/tests/integration/loyalty/conftest.py b/tests/integration/loyalty/conftest.py
+new file mode 100644
+index 00000000..4b112936
+--- /dev/null
++++ b/tests/integration/loyalty/conftest.py
+@@ -0,0 +1,16 @@
++"""Las pruebas de este directorio corren como superusuario."""
++import pytest
++
++from orm.environments import Environment
++from orm.utils import SUPERUSER_ID
++
++
++@pytest.fixture(autouse=True)
++def superuser_env(db):
++    """≙ ``TransactionCase`` de la fuente, que construye su entorno con
++    ``SUPERUSER_ID``: los modelos de producto son ``BaseModel`` y leerlos
++    pasa por la ACL. Una prueba que mide la ACL redefine este fixture.
++    Precedente: ``tests/unit/fleet/conftest.py``."""
++    environment = Environment(None, SUPERUSER_ID, {})
++    with environment:
++        yield environment
+diff --git a/tests/integration/product/test_display_name_assignment.py b/tests/integration/product/test_display_name_assignment.py
+index 548acb50..8ee99671 100644
+--- a/tests/integration/product/test_display_name_assignment.py
++++ b/tests/integration/product/test_display_name_assignment.py
+@@ -14,6 +14,7 @@ from addons.product.models import (
+     ProductTemplateAttributeValue,
+ )
+ from orm.environments import transaction_scope
++from orm.commands import Command
+ 
+ pytestmark = [pytest.mark.integration, pytest.mark.django_db]
+ 
+@@ -39,14 +40,14 @@ def values(variant):
+         product_tmpl_id=variant.product_tmpl_id,
+         attribute_id=attribute,
+     )
+-    line.value_ids.set([red, blue])
++    line.write({'value_ids': [Command.set([record.id for record in [red, blue]])]})
+     red_value = ProductTemplateAttributeValue.objects.create(
+         attribute_line_id=line, product_attribute_value_id=red
+     )
+     blue_value = ProductTemplateAttributeValue.objects.create(
+         attribute_line_id=line, product_attribute_value_id=blue
+     )
+-    variant.product_template_attribute_value_ids.add(red_value)
++    variant.write({'product_template_attribute_value_ids': [Command.link(red_value.id)]})
+     return red, red_value, blue_value
+ 
+ 
+@@ -76,9 +77,9 @@ def test_relation_change_invalidates_variant_label(variant, values):
+     _, _, blue_value = values
+     with transaction_scope():
+         assert variant.display_name == 'Camiseta (Rojo)'
+-        variant.product_template_attribute_value_ids.add(blue_value)
++        variant.write({'product_template_attribute_value_ids': [Command.link(blue_value.id)]})
+         assert variant.display_name == 'Camiseta (Rojo, Azul)'
+-        variant.product_template_attribute_value_ids.clear()
++        variant.write({'product_template_attribute_value_ids': [Command.clear()]})
+         assert variant.display_name == 'Camiseta'
+ 
+ 
+@@ -106,7 +107,7 @@ def test_reverse_add_invalidates_the_owning_variant(variant, values):
+     _, _, blue_value = values
+     with transaction_scope():
+         assert variant.display_name == 'Camiseta (Rojo)'
+-        blue_value.ptav_product_variant_ids.add(variant)
++        blue_value.write({'ptav_product_variant_ids': [Command.link(variant.id)]})
+         assert variant.display_name == 'Camiseta (Rojo, Azul)'
+ 
+ 
+@@ -118,13 +119,14 @@ def test_reverse_remove_and_clear_invalidate_previous_owners(variant, values):
+     other = ProductProduct.objects.create(
+         product_tmpl_id=variant.product_tmpl_id, active=False
+     )
+-    other.product_template_attribute_value_ids.add(red_value)
++    other.write({'product_template_attribute_value_ids': [Command.link(red_value.id)]})
+     with transaction_scope():
+         assert variant.display_name == other.display_name == 'Camiseta (Rojo)'
+-        red_value.ptav_product_variant_ids.remove(variant)
++        red_value.write(
++            {'ptav_product_variant_ids': [Command.unlink(variant.id)]})
+         assert variant.display_name == 'Camiseta'
+         assert other.display_name == 'Camiseta (Rojo)'
+-        red_value.ptav_product_variant_ids.clear()
++        red_value.write({'ptav_product_variant_ids': [Command.clear()]})
+         assert other.display_name == 'Camiseta'
+ 
+ 
+@@ -132,7 +134,7 @@ def test_set_replacement_invalidates_the_previous_combination(variant, values):
+     _, _, blue_value = values
+     with transaction_scope():
+         assert variant.display_name == 'Camiseta (Rojo)'
+-        variant.product_template_attribute_value_ids.set([blue_value])
++        variant.write({'product_template_attribute_value_ids': [Command.set([record.id for record in [blue_value]])]})
+         assert variant.display_name == 'Camiseta (Azul)'
+ 
+ 
+@@ -159,7 +161,7 @@ def test_unrelated_cached_variant_is_not_recomputed(
+         assert variant.display_name == 'Camiseta (Rojo)'
+         assert other.display_name == 'Camiseta'
+         computed.clear()
+-        variant.product_template_attribute_value_ids.add(blue_value)
++        variant.write({'product_template_attribute_value_ids': [Command.link(blue_value.id)]})
+         assert other.display_name == 'Camiseta'
+         assert other.pk not in computed
+ 
+diff --git a/tests/integration/product/test_product_attribute_custom_value.py b/tests/integration/product/test_product_attribute_custom_value.py
+index 1abddbb0..c1ff3b7f 100644
+--- a/tests/integration/product/test_product_attribute_custom_value.py
++++ b/tests/integration/product/test_product_attribute_custom_value.py
+@@ -34,6 +34,7 @@ from addons.product.models import (
+     ProductTemplateAttributeLine,
+     ProductTemplateAttributeValue,
+ )
++from orm.commands import Command
+ 
+ pytestmark = pytest.mark.django_db
+ 
+@@ -49,7 +50,7 @@ def attribute_value():
+     line = ProductTemplateAttributeLine.objects.create(
+         product_tmpl_id=template, attribute_id=attribute, sequence=10
+     )
+-    line.value_ids.set([value])
++    line.write({'value_ids': [Command.set([record.id for record in [value]])]})
+     return ProductTemplateAttributeValue.objects.create(
+         attribute_line_id=line, product_attribute_value_id=value
+     )
+diff --git a/tests/integration/product/test_product_variants_and_stock.py b/tests/integration/product/test_product_variants_and_stock.py
+index c734fb33..d90ca28d 100644
+--- a/tests/integration/product/test_product_variants_and_stock.py
++++ b/tests/integration/product/test_product_variants_and_stock.py
+@@ -31,6 +31,7 @@ from addons.product.models import (
+ from addons.stock.models import StockLocation, StockQuant
+ from addons.stock.services import InsufficientStockError, InventoryService
+ from tests.factories.product_factory import get_stock, make_product
++from orm.commands import Command
+ 
+ pytestmark = pytest.mark.integration
+ 
+@@ -50,7 +51,7 @@ def _line(product_tmpl, attr, values, sequence=10):
+     line = ProductTemplateAttributeLine.objects.create(
+         product_tmpl_id=product_tmpl, attribute_id=attr, sequence=sequence
+     )
+-    line.value_ids.set(values)
++    line.write({'value_ids': [Command.set([record.id for record in values])]})
+     return line
+ 
+ 
+@@ -93,7 +94,7 @@ class TestCartesianCombinations:
+         _line(tmpl_a, color, valores)
+         _line(tmpl_b, color, [valores[0]])
+         assert color.attribute_line_ids.count() == 2
+-        assert valores[0].pav_attribute_line_ids.count() == 2
++        assert len(valores[0].pav_attribute_line_ids) == 2
+ 
+ 
+ # =============================================================================
+diff --git a/tests/integration/purchase/conftest.py b/tests/integration/purchase/conftest.py
+new file mode 100644
+index 00000000..4b112936
+--- /dev/null
++++ b/tests/integration/purchase/conftest.py
+@@ -0,0 +1,16 @@
++"""Las pruebas de este directorio corren como superusuario."""
++import pytest
++
++from orm.environments import Environment
++from orm.utils import SUPERUSER_ID
++
++
++@pytest.fixture(autouse=True)
++def superuser_env(db):
++    """≙ ``TransactionCase`` de la fuente, que construye su entorno con
++    ``SUPERUSER_ID``: los modelos de producto son ``BaseModel`` y leerlos
++    pasa por la ACL. Una prueba que mide la ACL redefine este fixture.
++    Precedente: ``tests/unit/fleet/conftest.py``."""
++    environment = Environment(None, SUPERUSER_ID, {})
++    with environment:
++        yield environment
+diff --git a/tests/integration/purchase/test_purchase_security_data.py b/tests/integration/purchase/test_purchase_security_data.py
+index 62efc9f5..85e3da41 100644
+--- a/tests/integration/purchase/test_purchase_security_data.py
++++ b/tests/integration/purchase/test_purchase_security_data.py
+@@ -28,6 +28,13 @@ from tests.factories.product_factory import make_product
+ 
+ pytestmark = pytest.mark.django_db
+ 
++
++@pytest.fixture
++def superuser_env():
++    """Estas pruebas miden la ACL: no corren como superusuario."""
++    yield None
++
++
+ SOURCE = pathlib.Path('/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/'
+                       'odoo-19.0/addons/purchase/security')
+ PORT = pathlib.Path(__file__).resolve().parents[3] / 'addons/purchase/security'
+diff --git a/tests/integration/rating/conftest.py b/tests/integration/rating/conftest.py
+new file mode 100644
+index 00000000..4b112936
+--- /dev/null
++++ b/tests/integration/rating/conftest.py
+@@ -0,0 +1,16 @@
++"""Las pruebas de este directorio corren como superusuario."""
++import pytest
++
++from orm.environments import Environment
++from orm.utils import SUPERUSER_ID
++
++
++@pytest.fixture(autouse=True)
++def superuser_env(db):
++    """≙ ``TransactionCase`` de la fuente, que construye su entorno con
++    ``SUPERUSER_ID``: los modelos de producto son ``BaseModel`` y leerlos
++    pasa por la ACL. Una prueba que mide la ACL redefine este fixture.
++    Precedente: ``tests/unit/fleet/conftest.py``."""
++    environment = Environment(None, SUPERUSER_ID, {})
++    with environment:
++        yield environment
+diff --git a/tests/integration/sale/conftest.py b/tests/integration/sale/conftest.py
+index 8ed5996a..d996cd4e 100644
+--- a/tests/integration/sale/conftest.py
++++ b/tests/integration/sale/conftest.py
+@@ -13,6 +13,8 @@ import pytest
+ 
+ from addons.base.models import ResCompany
+ from orm.environments import set_current_company
++from orm.environments import Environment
++from orm.utils import SUPERUSER_ID
+ 
+ 
+ @pytest.fixture(autouse=True)
+@@ -22,3 +24,13 @@ def active_company(db):
+     set_current_company(company.pk)
+     yield company
+     set_current_company(None)
++
++@pytest.fixture(autouse=True)
++def superuser_env(db):
++    """≙ ``TransactionCase`` de la fuente, que construye su entorno con
++    ``SUPERUSER_ID``: los modelos de producto son ``BaseModel`` y leerlos
++    pasa por la ACL. Una prueba que mide la ACL redefine este fixture.
++    Precedente: ``tests/unit/fleet/conftest.py``."""
++    environment = Environment(None, SUPERUSER_ID, {})
++    with environment:
++        yield environment
+diff --git a/tests/integration/sale/test_product_attribute.py b/tests/integration/sale/test_product_attribute.py
+index d3ed7a30..cc9b7e07 100644
+--- a/tests/integration/sale/test_product_attribute.py
++++ b/tests/integration/sale/test_product_attribute.py
+@@ -19,6 +19,7 @@ from addons.product.models import (
+     ProductTemplateAttributeValue,
+ )
+ from tests.factories.product_factory import make_product
++from orm.commands import Command
+ 
+ pytestmark = pytest.mark.integration
+ 
+@@ -52,7 +53,7 @@ def _line(product, attr, values, sequence=10):
+         attribute_id=attr,
+         sequence=sequence,
+     )
+-    line.value_ids.set(values)
++    line.write({'value_ids': [Command.set([record.id for record in values])]})
+     return line
+ 
+ 
+@@ -64,7 +65,7 @@ def test_attribute_is_reusable_across_products(db):
+     _line(pb, color, [red])
+     # El mismo atributo Color se usa en dos productos distintos.
+     assert color.attribute_line_ids.count() == 2
+-    assert red.pav_attribute_line_ids.count() == 2
++    assert len(red.pav_attribute_line_ids) == 2
+ 
+ 
+ def test_sync_creates_template_values(db):
+@@ -72,10 +73,10 @@ def test_sync_creates_template_values(db):
+     product = _product()
+     line = _line(product, color, [red, blue])
+     pa_services.sync_template_values(line)
+-    assert line.product_template_value_ids.count() == 2
++    assert len(line.product_template_value_ids) == 2
+     # Idempotente: no duplica.
+     pa_services.sync_template_values(line)
+-    assert line.product_template_value_ids.count() == 2
++    assert len(line.product_template_value_ids) == 2
+ 
+ 
+ def test_cartesian_combinations(db):
+diff --git a/tests/integration/stock/conftest.py b/tests/integration/stock/conftest.py
+new file mode 100644
+index 00000000..4b112936
+--- /dev/null
++++ b/tests/integration/stock/conftest.py
+@@ -0,0 +1,16 @@
++"""Las pruebas de este directorio corren como superusuario."""
++import pytest
++
++from orm.environments import Environment
++from orm.utils import SUPERUSER_ID
++
++
++@pytest.fixture(autouse=True)
++def superuser_env(db):
++    """≙ ``TransactionCase`` de la fuente, que construye su entorno con
++    ``SUPERUSER_ID``: los modelos de producto son ``BaseModel`` y leerlos
++    pasa por la ACL. Una prueba que mide la ACL redefine este fixture.
++    Precedente: ``tests/unit/fleet/conftest.py``."""
++    environment = Environment(None, SUPERUSER_ID, {})
++    with environment:
++        yield environment
+diff --git a/tests/integration/test_orm/test_many2many_ondelete.py b/tests/integration/test_orm/test_many2many_ondelete.py
+index 0431bb26..7a92b873 100644
+--- a/tests/integration/test_orm/test_many2many_ondelete.py
++++ b/tests/integration/test_orm/test_many2many_ondelete.py
+@@ -60,6 +60,6 @@ def test_a_value_used_by_a_variant_is_not_deleted():
+     ptav = ProductTemplateAttributeValue.objects.create(
+         attribute_line_id=line, product_attribute_value_id=red)
+     variant = ProductProduct.objects.create(product_tmpl_id=template)
+-    variant.product_template_attribute_value_ids.add(ptav)
++    variant.write({'product_template_attribute_value_ids': [Command.link(ptav.id)]})
+     with pytest.raises(ProtectedError):
+         ptav.delete()
+diff --git a/tests/integration/website_sale_wishlist/conftest.py b/tests/integration/website_sale_wishlist/conftest.py
+new file mode 100644
+index 00000000..4b112936
+--- /dev/null
++++ b/tests/integration/website_sale_wishlist/conftest.py
+@@ -0,0 +1,16 @@
++"""Las pruebas de este directorio corren como superusuario."""
++import pytest
++
++from orm.environments import Environment
++from orm.utils import SUPERUSER_ID
++
++
++@pytest.fixture(autouse=True)
++def superuser_env(db):
++    """≙ ``TransactionCase`` de la fuente, que construye su entorno con
++    ``SUPERUSER_ID``: los modelos de producto son ``BaseModel`` y leerlos
++    pasa por la ACL. Una prueba que mide la ACL redefine este fixture.
++    Precedente: ``tests/unit/fleet/conftest.py``."""
++    environment = Environment(None, SUPERUSER_ID, {})
++    with environment:
++        yield environment
+diff --git a/tests/unit/account/conftest.py b/tests/unit/account/conftest.py
+new file mode 100644
+index 00000000..4b112936
+--- /dev/null
++++ b/tests/unit/account/conftest.py
+@@ -0,0 +1,16 @@
++"""Las pruebas de este directorio corren como superusuario."""
++import pytest
++
++from orm.environments import Environment
++from orm.utils import SUPERUSER_ID
++
++
++@pytest.fixture(autouse=True)
++def superuser_env(db):
++    """≙ ``TransactionCase`` de la fuente, que construye su entorno con
++    ``SUPERUSER_ID``: los modelos de producto son ``BaseModel`` y leerlos
++    pasa por la ACL. Una prueba que mide la ACL redefine este fixture.
++    Precedente: ``tests/unit/fleet/conftest.py``."""
++    environment = Environment(None, SUPERUSER_ID, {})
++    with environment:
++        yield environment
+diff --git a/tests/unit/account/test_company_default_taxes.py b/tests/unit/account/test_company_default_taxes.py
+index 34b36895..d154f88a 100644
+--- a/tests/unit/account/test_company_default_taxes.py
++++ b/tests/unit/account/test_company_default_taxes.py
+@@ -25,6 +25,7 @@ from django.db.models import ProtectedError
+ from addons.account.models import AccountTax
+ from addons.base.models import ResCompany
+ from addons.product.models import ProductTemplate
++from orm.commands import Command
+ 
+ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
+ 
+@@ -73,7 +74,7 @@ class TestProductInheritsCompanyTax:
+         product = ProductTemplate.objects.create(
+             name='Eleke', company_id=company)
+ 
+-        assert list(product.taxes.all()) == [sale_tax]
++        assert list(product.taxes) == [sale_tax]
+ 
+     def test_without_company_default_product_has_no_taxes(self, company):
+         """La contraprueba: el receptor no inventa un impuesto.
+@@ -85,7 +86,7 @@ class TestProductInheritsCompanyTax:
+         """
+         product = ProductTemplate.objects.create(
+             name='Eleke', company_id=company)
+-        assert list(product.taxes.all()) == []
++        assert list(product.taxes) == []
+ 
+     def test_does_not_override_declared_taxes(self, company, sale_tax):
+         """
+@@ -103,11 +104,10 @@ class TestProductInheritsCompanyTax:
+ 
+         product = ProductTemplate.objects.create(
+             name='Eleke', company_id=company)
+-        product.taxes.set([other_tax])
+-        product.save()
++        product.write({'taxes': [Command.set([other_tax.id])]})
+         product.refresh_from_db()
+ 
+-        assert list(product.taxes.all()) == [other_tax]
++        assert list(product.taxes) == [other_tax]
+ 
+     def test_later_edit_does_not_restore_default(self, company, sale_tax):
+         """
+@@ -120,14 +120,14 @@ class TestProductInheritsCompanyTax:
+         company.save(update_fields=['account_sale_tax'])
+         product = ProductTemplate.objects.create(
+             name='Eleke', company_id=company)
+-        assert list(product.taxes.all()) == [sale_tax]
++        assert list(product.taxes) == [sale_tax]
+ 
+-        product.taxes.clear()
++        product.write({'taxes': [Command.clear()]})
+         product.name = 'Eleke de Yemayá'
+         product.save()
+         product.refresh_from_db()
+ 
+-        assert list(product.taxes.all()) == []
++        assert list(product.taxes) == []
+ 
+     def test_product_without_company_does_not_crash(self, company, sale_tax):
+         """``company`` es opcional en nuestro ``ProductTemplate``.
+@@ -138,4 +138,4 @@ class TestProductInheritsCompanyTax:
+         company.account_sale_tax = sale_tax
+         company.save(update_fields=['account_sale_tax'])
+         product = ProductTemplate.objects.create(name='Sin empresa')
+-        assert list(product.taxes.all()) == []
++        assert list(product.taxes) == []
+diff --git a/tests/unit/account/test_product_account_extensions.py b/tests/unit/account/test_product_account_extensions.py
+index 116f5f9d..12a968a0 100644
+--- a/tests/unit/account/test_product_account_extensions.py
++++ b/tests/unit/account/test_product_account_extensions.py
+@@ -35,6 +35,7 @@ from addons.product.models import (
+     ProductProduct,
+     ProductTemplate,
+ )
++from orm.commands import Command
+ 
+ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
+ 
+@@ -238,8 +239,8 @@ class TestImpuestosYEtiquetas:
+             name='Eleke', categ_id=categoria
+         )
+ 
+-        producto.taxes.add(iva_venta)
+-        producto.supplier_taxes.add(iva_compra)
++        producto.write({'taxes': [Command.link(iva_venta.id)],
++                        'supplier_taxes': [Command.link(iva_compra.id)]})
+ 
+         assert list(producto.taxes.all()) == [iva_venta]
+         assert list(producto.supplier_taxes.all()) == [iva_compra]
+@@ -269,9 +270,9 @@ class TestImpuestosYEtiquetas:
+             name='Eleke', categ_id=categoria
+         )
+ 
+-        producto.account_tags.add(etiqueta)
++        producto.write({'account_tags': [Command.link(etiqueta.id)]})
+ 
+-        assert list(producto.account_tags.all()) == [etiqueta]
++        assert list(producto.account_tags) == [etiqueta]
+ 
+ 
+ class TestProtect:
+diff --git a/tests/unit/orm/test_new_record_nonstored_compute.py b/tests/unit/orm/test_new_record_nonstored_compute.py
+index 151cd936..ad4a12bb 100644
+--- a/tests/unit/orm/test_new_record_nonstored_compute.py
++++ b/tests/unit/orm/test_new_record_nonstored_compute.py
+@@ -23,6 +23,7 @@ from addons.product.models import (
+ from orm.environments import env, sudo
+ from orm.identifiers import NewId
+ from tests.factories.product_factory import make_product
++from orm.commands import Command
+ 
+ pytestmark = pytest.mark.django_db
+ 
+@@ -132,11 +133,11 @@ def test_a_related_ending_on_a_django_many2many():
+     variant = make_product(name='Camiseta NewId')
+     line = ProductTemplateAttributeLine.objects.create(
+         product_tmpl_id=variant.product_tmpl_id, attribute_id=attribute)
+-    line.value_ids.set([red, blue])
++    line.write({'value_ids': [Command.set([record.id for record in [red, blue]])]})
+     values = [ProductTemplateAttributeValue.objects.create(
+         attribute_line_id=line, product_attribute_value_id=value)
+         for value in (red, blue)]
+-    variant.product_template_attribute_value_ids.set(values)
++    variant.write({'product_template_attribute_value_ids': [Command.set([record.id for record in values])]})
+     record = env()['purchase.order.line'].new({'product_id': variant.pk})
+     read = record.product_template_attribute_value_ids
+     assert isinstance(read, QuerySet)
+diff --git a/tests/unit/orm/test_order_by_inherited_field.py b/tests/unit/orm/test_order_by_inherited_field.py
+new file mode 100644
+index 00000000..0702b584
+--- /dev/null
++++ b/tests/unit/orm/test_order_by_inherited_field.py
+@@ -0,0 +1,32 @@
++"""Ordenar por un campo heredado por ``_inherits``.
++
++≙ ``odoo19c: odoo/orm/models.py:2910-2934`` (``_field_to_sql``): el campo
++heredado es un ``related`` no almacenado y se ordena por el join de la
++clave de delegación. Diseño: ``scripts/workbench/
++orm-continuation-plan-20261103T095630/designs/order-by-inherited-field.md``.
++
++*Métrica:* el camino que ``order_to_django`` da para ``name`` en
++``product.product`` y el orden real de dos variantes.
++*Ciega a:* ``_inherits`` de varios niveles, que el puerto no propaga.
++"""
++import pytest
++
++from addons.product.models import ProductProduct, ProductTemplate
++from orm.models import order_to_django
++
++pytestmark = pytest.mark.django_db
++
++
++def test_an_inherited_field_orders_through_the_delegation_key():
++    [term] = order_to_django(ProductProduct, 'name')
++    assert term.expression.name == 'product_tmpl_id__name'
++
++
++def test_variants_follow_the_name_of_their_templates():
++    zeta = ProductProduct.objects.create(
++        product_tmpl_id=ProductTemplate.objects.create(name='Zeta oibf'))
++    alfa = ProductProduct.objects.create(
++        product_tmpl_id=ProductTemplate.objects.create(name='Alfa oibf'))
++    rows = ProductProduct.objects.filter(pk__in=[zeta.pk, alfa.pk]).order_by(
++        *order_to_django(ProductProduct, 'name'))
++    assert [row.pk for row in rows] == [alfa.pk, zeta.pk]
+diff --git a/tests/unit/orm/test_related_many2many_end_of_chain.py b/tests/unit/orm/test_related_many2many_end_of_chain.py
+index 5135635d..9756c686 100644
+--- a/tests/unit/orm/test_related_many2many_end_of_chain.py
++++ b/tests/unit/orm/test_related_many2many_end_of_chain.py
+@@ -23,7 +23,7 @@ def test_the_end_of_the_chain_reads_the_queryset_of_a_many2many():
+     assert isinstance(value, QuerySet)
+     assert not isinstance(value, Manager)
+     assert list(value) == list(
+-        product.product_template_attribute_value_ids.all())
++        product.product_template_attribute_value_ids)
+ 
+ 
+ def test_a_scalar_at_the_end_of_the_chain_is_read_as_is():
+diff --git a/tests/unit/product/test_attribute_line_source_relation.py b/tests/unit/product/test_attribute_line_source_relation.py
+index 3624071d..f7827bb5 100644
+--- a/tests/unit/product/test_attribute_line_source_relation.py
++++ b/tests/unit/product/test_attribute_line_source_relation.py
+@@ -14,6 +14,7 @@ import pytest
+ from addons.product.models import (
+     ProductAttribute, ProductAttributeValue, ProductTemplate,
+     ProductTemplateAttributeLine)
++from orm.commands import Command
+ 
+ pytestmark = pytest.mark.django_db
+ 
+@@ -35,6 +36,6 @@ def test_the_attribute_and_the_value_reach_their_lines():
+     line = ProductTemplateAttributeLine.objects.create(
+         product_tmpl_id=ProductTemplate.objects.create(name='Polo alsr'),
+         attribute_id=attribute)
+-    line.value_ids.set([small])
++    line.write({'value_ids': [Command.set([record.id for record in [small]])]})
+     assert list(attribute.attribute_line_ids.all()) == [line]
+-    assert list(small.pav_attribute_line_ids.all()) == [line]
++    assert list(small.pav_attribute_line_ids) == [line]
+diff --git a/tests/unit/product/test_product_attribute_source_names.py b/tests/unit/product/test_product_attribute_source_names.py
+index 8bbbf605..3883e2c7 100644
+--- a/tests/unit/product/test_product_attribute_source_names.py
++++ b/tests/unit/product/test_product_attribute_source_names.py
+@@ -15,6 +15,7 @@ import pytest
+ from addons.product.models import (
+     ProductAttribute, ProductAttributeValue, ProductTemplate,
+     ProductTemplateAttributeLine)
++from orm.commands import Command
+ 
+ pytestmark = pytest.mark.django_db
+ 
+@@ -52,7 +53,7 @@ def test_a_line_carries_its_attribute_and_values():
+     template = ProductTemplate.objects.create(name='Playera')
+     line = ProductTemplateAttributeLine.objects.create(
+         product_tmpl_id=template, attribute_id=color)
+-    line.value_ids.set([red])
++    line.write({'value_ids': [Command.set([record.id for record in [red]])]})
+     assert line.attribute_id == color
+-    assert list(line.value_ids.all()) == [red]
++    assert list(line.value_ids) == [red]
+     assert red.display_name == 'Color: Rojo'
+diff --git a/tests/unit/product/test_product_attribute_value_complete.py b/tests/unit/product/test_product_attribute_value_complete.py
+index 527d0dce..e8079a39 100644
+--- a/tests/unit/product/test_product_attribute_value_complete.py
++++ b/tests/unit/product/test_product_attribute_value_complete.py
+@@ -23,6 +23,7 @@ from addons.product.models import (
+ )
+ from exceptions import UserError
+ from orm.models import BaseModel
++from orm.commands import Command
+ 
+ pytestmark = pytest.mark.django_db
+ 
+@@ -48,7 +49,7 @@ def _used(value, template_name='Playera'):
+     template = ProductTemplate.objects.create(name=template_name)
+     line = ProductTemplateAttributeLine.objects.create(
+         product_tmpl_id=template, attribute_id=value.attribute_id)
+-    line.value_ids.set([value])
++    line.write({'value_ids': [Command.set([record.id for record in [value]])]})
+     ptav = ProductTemplateAttributeValue.objects.create(
+         attribute_line_id=line, product_attribute_value_id=value)
+     return template, ptav
+@@ -95,7 +96,7 @@ def test_a_value_used_only_by_archived_variants_is_archived(
+     template.save()
+     variant = ProductProduct.objects.create(product_tmpl_id=template,
+                                             active=False)
+-    variant.product_template_attribute_value_ids.set([ptav])
++    variant.write({'product_template_attribute_value_ids': [Command.set([record.id for record in [ptav]])]})
+     value = superuser_env['product.attribute.value'].browse(red.pk)
+     value.unlink()
+     assert value.exists()
+diff --git a/tests/unit/product/test_product_models.py b/tests/unit/product/test_product_models.py
+index ad1dbc88..56900b7c 100644
+--- a/tests/unit/product/test_product_models.py
++++ b/tests/unit/product/test_product_models.py
+@@ -45,6 +45,7 @@ from addons.product.models.product_template import (
+     TYPE_COMBO,
+     TYPE_SERVICE,
+ )
++from orm.commands import Command
+ 
+ pytestmark = [pytest.mark.unit, pytest.mark.django_db]
+ 
+@@ -290,12 +291,12 @@ class TestProductProduct:
+         line = ProductTemplateAttributeLine.objects.create(
+             product_tmpl_id=tmpl, attribute_id=color
+         )
+-        line.value_ids.set([rojo])
++        line.write({'value_ids': [Command.set([record.id for record in [rojo]])]})
+         ptav = ProductTemplateAttributeValue.objects.create(
+             attribute_line_id=line, product_attribute_value_id=rojo
+         )
+         variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
+-        variante.product_template_attribute_value_ids.set([ptav])
++        variante.write({'product_template_attribute_value_ids': [Command.set([record.id for record in [ptav]])]})
+         variante.refresh_combination_indices()
+         assert variante.combination_indices == str(ptav.pk)
+ 
+@@ -310,13 +311,13 @@ class TestProductProduct:
+         line = ProductTemplateAttributeLine.objects.create(
+             product_tmpl_id=tmpl, attribute_id=color
+         )
+-        line.value_ids.set([dorado])
++        line.write({'value_ids': [Command.set([record.id for record in [dorado]])]})
+         ptav = ProductTemplateAttributeValue.objects.create(
+             attribute_line_id=line, product_attribute_value_id=dorado,
+             price_extra=Decimal('30.00'),
+         )
+         variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
+-        variante.product_template_attribute_value_ids.set([ptav])
++        variante.write({'product_template_attribute_value_ids': [Command.set([record.id for record in [ptav]])]})
+         assert variante.list_price == Decimal('100.00')
+         assert variante.price_extra == Decimal('30.00')
+         assert variante.lst_price == Decimal('130.00')
+@@ -335,12 +336,12 @@ class TestProductProduct:
+         line = ProductTemplateAttributeLine.objects.create(
+             product_tmpl_id=tmpl, attribute_id=color
+         )
+-        line.value_ids.set([rojo])
++        line.write({'value_ids': [Command.set([record.id for record in [rojo]])]})
+         ptav = ProductTemplateAttributeValue.objects.create(
+             attribute_line_id=line, product_attribute_value_id=rojo
+         )
+         variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
+-        variante.product_template_attribute_value_ids.set([ptav])
++        variante.write({'product_template_attribute_value_ids': [Command.set([record.id for record in [ptav]])]})
+         assert variante.display_name == 'Eleke (Rojo)'
+ 
+     def test_clean_permite_combo_con_variante(self):
+diff --git a/tests/unit/product/test_ptav_source_names.py b/tests/unit/product/test_ptav_source_names.py
+index c2119a0d..c9d690c0 100644
+--- a/tests/unit/product/test_ptav_source_names.py
++++ b/tests/unit/product/test_ptav_source_names.py
+@@ -41,7 +41,7 @@ def ptav():
+ 
+ 
+ def test_the_line_lists_its_values_by_the_source_inverse(ptav):
+-    assert list(ptav.attribute_line_id.product_template_value_ids.all()) == [
++    assert list(ptav.attribute_line_id.product_template_value_ids) == [
+         ptav]
+ 
+ 
+diff --git a/tests/unit/product/test_variant_combination_source_relation.py b/tests/unit/product/test_variant_combination_source_relation.py
+index 086d5e96..bb6ade57 100644
+--- a/tests/unit/product/test_variant_combination_source_relation.py
++++ b/tests/unit/product/test_variant_combination_source_relation.py
+@@ -14,6 +14,7 @@ import pytest
+ from addons.product.models import (
+     ProductAttribute, ProductAttributeValue, ProductProduct, ProductTemplate,
+     ProductTemplateAttributeLine, ProductTemplateAttributeValue)
++from orm.commands import Command
+ 
+ pytestmark = pytest.mark.django_db
+ 
+@@ -37,5 +38,5 @@ def test_a_value_reaches_the_variants_that_use_it():
+     ptav = ProductTemplateAttributeValue.objects.create(
+         attribute_line_id=line, product_attribute_value_id=red)
+     variant = ProductProduct.objects.create(product_tmpl_id=template)
+-    variant.product_template_attribute_value_ids.add(ptav)
+-    assert list(ptav.ptav_product_variant_ids.all()) == [variant]
++    variant.write({'product_template_attribute_value_ids': [Command.link(ptav.id)]})
++    assert list(ptav.ptav_product_variant_ids) == [variant]
+diff --git a/tests/unit/purchase/conftest.py b/tests/unit/purchase/conftest.py
+new file mode 100644
+index 00000000..4b112936
+--- /dev/null
++++ b/tests/unit/purchase/conftest.py
+@@ -0,0 +1,16 @@
++"""Las pruebas de este directorio corren como superusuario."""
++import pytest
++
++from orm.environments import Environment
++from orm.utils import SUPERUSER_ID
++
++
++@pytest.fixture(autouse=True)
++def superuser_env(db):
++    """≙ ``TransactionCase`` de la fuente, que construye su entorno con
++    ``SUPERUSER_ID``: los modelos de producto son ``BaseModel`` y leerlos
++    pasa por la ACL. Una prueba que mide la ACL redefine este fixture.
++    Precedente: ``tests/unit/fleet/conftest.py``."""
++    environment = Environment(None, SUPERUSER_ID, {})
++    with environment:
++        yield environment
+diff --git a/tests/unit/purchase/test_purchase_line_price_and_dates.py b/tests/unit/purchase/test_purchase_line_price_and_dates.py
+index 812141b0..e5014e3d 100644
+--- a/tests/unit/purchase/test_purchase_line_price_and_dates.py
++++ b/tests/unit/purchase/test_purchase_line_price_and_dates.py
+@@ -21,6 +21,7 @@ from orm.environments import company_scope, sudo
+ from orm.migration_operations import ComputeStoredFields
+ from orm.registry import MODELS_BY_NAME
+ from tests.factories.product_factory import make_product
++from orm.commands import Command
+ 
+ pytestmark = pytest.mark.django_db
+ LINE = 'purchase.order.line'
+@@ -152,7 +153,7 @@ def test_compute_tax_id_maps_supplier_taxes_through_the_position(
+         name='IVA compra P5', amount=16, type_tax_use='purchase',
+         company=company)
+     product = _product(unit, name='Insumo impuesto P5')
+-    product.product_tmpl_id.supplier_taxes.set([tax])
++    product.product_tmpl_id.write({'supplier_taxes': [Command.set([tax.id])]})
+     order = _order(company, vendor)
+     line = _line(order, product, price_unit=Decimal('1'))
+     line._compute_tax_id()
+diff --git a/tests/unit/purchase/test_purchase_line_related.py b/tests/unit/purchase/test_purchase_line_related.py
+index e766974d..f65173f3 100644
+--- a/tests/unit/purchase/test_purchase_line_related.py
++++ b/tests/unit/purchase/test_purchase_line_related.py
+@@ -64,7 +64,7 @@ def test_the_product_and_company_fields_reach_the_line(order):
+     assert line.tax_calculation_rounding_method == (
+         order.company_id.tax_calculation_rounding_method)
+     assert list(line.product_template_attribute_value_ids) == list(
+-        product.product_template_attribute_value_ids.all())
++        product.product_template_attribute_value_ids)
+ 
+ 
+ def test_the_related_fields_have_no_column():
+diff --git a/tests/unit/purchase/test_purchase_product.py b/tests/unit/purchase/test_purchase_product.py
+index f5c47737..c83d5bf7 100644
+--- a/tests/unit/purchase/test_purchase_product.py
++++ b/tests/unit/purchase/test_purchase_product.py
+@@ -231,7 +231,7 @@ def _user(*xmlids):
+ def test_the_bill_line_shows_the_product_warning_with_the_group():
+     template = _product('Avisado PP').product_tmpl_id
+     template.write({'purchase_line_warn_msg': 'Revisar lote'})
+-    line = _bill_line(template.product_variant_ids.first())
++    line = _bill_line(template.product_variant_ids[:1])
+     user = _user('purchase.group_warning_purchase')
+     with Environment('default', user.pk, {}):
+         assert line.purchase_line_warn_msg == 'Revisar lote'
+@@ -240,7 +240,7 @@ def test_the_bill_line_shows_the_product_warning_with_the_group():
+ def test_without_the_group_the_warning_is_empty():
+     template = _product('Sin aviso PP').product_tmpl_id
+     template.write({'purchase_line_warn_msg': 'Revisar lote'})
+-    line = _bill_line(template.product_variant_ids.first())
++    line = _bill_line(template.product_variant_ids[:1])
+     user = _user()
+     with Environment('default', user.pk, {}):
+         assert line.purchase_line_warn_msg == ''
+diff --git a/tests/unit/stock/conftest.py b/tests/unit/stock/conftest.py
+new file mode 100644
+index 00000000..4b112936
+--- /dev/null
++++ b/tests/unit/stock/conftest.py
+@@ -0,0 +1,16 @@
++"""Las pruebas de este directorio corren como superusuario."""
++import pytest
++
++from orm.environments import Environment
++from orm.utils import SUPERUSER_ID
++
++
++@pytest.fixture(autouse=True)
++def superuser_env(db):
++    """≙ ``TransactionCase`` de la fuente, que construye su entorno con
++    ``SUPERUSER_ID``: los modelos de producto son ``BaseModel`` y leerlos
++    pasa por la ACL. Una prueba que mide la ACL redefine este fixture.
++    Precedente: ``tests/unit/fleet/conftest.py``."""
++    environment = Environment(None, SUPERUSER_ID, {})
++    with environment:
++        yield environment
+diff --git a/tests/unit/website_sale/conftest.py b/tests/unit/website_sale/conftest.py
+new file mode 100644
+index 00000000..4b112936
+--- /dev/null
++++ b/tests/unit/website_sale/conftest.py
+@@ -0,0 +1,16 @@
++"""Las pruebas de este directorio corren como superusuario."""
++import pytest
++
++from orm.environments import Environment
++from orm.utils import SUPERUSER_ID
++
++
++@pytest.fixture(autouse=True)
++def superuser_env(db):
++    """≙ ``TransactionCase`` de la fuente, que construye su entorno con
++    ``SUPERUSER_ID``: los modelos de producto son ``BaseModel`` y leerlos
++    pasa por la ACL. Una prueba que mide la ACL redefine este fixture.
++    Precedente: ``tests/unit/fleet/conftest.py``."""
++    environment = Environment(None, SUPERUSER_ID, {})
++    with environment:
++        yield environment
+diff --git a/tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py b/tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py
+index e34d8210..e19cab06 100644
+--- a/tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py
++++ b/tests/unit/website_sale/test_the_product_slug_keeps_non_ascii.py
+@@ -29,11 +29,26 @@ from addons.website_sale_wishlist.controllers.serializers import (
+ )
+ 
+ 
+-def slug_of(name, pk=42):
++pytestmark = pytest.mark.django_db
++
++
++def _as_42(slug, record):
++    """El slug con el identificador real sustituido por ``42``.
++
++    ``product.template`` es ``BaseModel``: su ``display_name`` sale del
++    entorno, y un registro sin fila no tiene qué leer. La prueba crea uno
++    real, como un caso de la fuente, y normaliza el sufijo para conservar
++    las cadenas esperadas, que es lo que mide.
++    """
++    suffix = str(record.pk)
++    assert slug.endswith(suffix)
++    return slug[:-len(suffix)] + '42'
++
++
++def slug_of(name):
+     """El slug que el serializer del escaparate produce para ese nombre."""
+-    product = ProductTemplate(name=name)
+-    product.pk = pk
+-    return ProductListSerializer().get_slug(product)
++    product = ProductTemplate.objects.create(name=name)
++    return _as_42(ProductListSerializer().get_slug(product), product)
+ 
+ 
+ class TestTheSlugKeepsWhatDjangoWouldDrop:
+@@ -82,8 +97,7 @@ class TestTheTwoSerializersAgreeOnTheSameName:
+         'name', ['手工皂', 'Café Orgánico', 'Camisa Azul']
+     )
+     def test_the_showcase_slug_starts_with_the_wishlist_one(self, name):
+-        variant = ProductTemplate(name=name)
+-        variant.pk = 42
++        variant = ProductTemplate.objects.create(name=name)
+         wishlist = WishlistProductNestedSerializer().get_slug(variant)
+         assert slug_of(name) == f'{wishlist}-42'
+ 
