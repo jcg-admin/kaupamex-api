@@ -40,13 +40,20 @@ class ProductTemplateAttributeLine(TimeStampedModel):
     attribute_id = fields.Many2one(
         'product.ProductAttribute',
         null=False, on_delete=models.PROTECT,
-        related_name='template_lines',
+        related_name='attribute_line_ids',
         help_text='Atributo (Odoo attribute_id).',
         db_column='attribute_id',
     )
+    #: ≙ ``relation`` de la fuente (``:32-36``); las columnas son las que
+    #: Odoo deriva de las dos tablas. El otro extremo,
+    #: ``pav_attribute_line_ids`` de ``product.attribute.value``, es el
+    #: accesor inverso.
     value_ids = fields.Many2many(
         'product.ProductAttributeValue',
-        related_name='template_lines',
+        relation='product_attribute_value_product_template_attribute_line_rel',
+        column1='product_template_attribute_line_id',
+        column2='product_attribute_value_id',
+        related_name='pav_attribute_line_ids',
         help_text='Valores aplicables a este producto (Odoo value_ids).',
     )
     sequence = models.PositiveIntegerField(
