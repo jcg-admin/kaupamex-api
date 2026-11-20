@@ -19,6 +19,12 @@
         'base',  # ResCompany, ResCurrency, ResPartner, DecimalPrecision
         'uom',  # Uom — el producto se vende y se almacena en una unidad
     ],
+    # ≙ ``odoo19c: product/__manifest__.py:28-31``: sólo los dos archivos de
+    # seguridad; ``data/product_data.xml`` y las vistas no están portados.
+    'data': [
+        'security/product_security.xml',
+        'security/ir.model.access.csv',
+    ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',
     'application': False,

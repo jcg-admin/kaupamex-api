@@ -107,6 +107,15 @@ TYPE_URL = 'url'
 class ProductDocument(TimeStampedModel):
     """``product.document`` — adjunto de producto, ordenable y archivable."""
 
+    #: Atributos de clase de ``odoo19c: product/models/product_document.py:
+    #: 9-14``, verbatim.
+    _name = 'product.document'
+    _description = "Product Document"
+    _inherits = {
+        'ir.attachment': 'ir_attachment_id',
+    }
+    _order = 'sequence, name'
+
     ir_attachment_id = fields.Many2one(
         IrAttachment,
         db_column='ir_attachment_id',

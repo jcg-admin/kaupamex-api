@@ -75,11 +75,14 @@ import fields
 import models
 from django.core.exceptions import ValidationError
 
+from addons.base.models.res_company import ResCompany
+from addons.base.models.res_currency import ResCurrency
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.product.models.product_category import ProductCategory
 from addons.product.models.product_pricelist import ProductPricelist
 from addons.product.models.product_product import ProductProduct
 from addons.product.models.product_template import ProductTemplate
+from orm.environments import env
 from tools.float_utils import float_round
 
 APPLIED_VARIANT = '0_product_variant'
@@ -122,10 +125,10 @@ class ProductPricelistItem(TimeStampedModel):
 
     #: ≙ la cabecera de la fuente
     #: (``odoo19c: addons/product/models/product_pricelist_item.py:9-12``).
-    #: ``_check_company_auto = True`` (``:12``) queda fuera hasta que el modelo
-    #: declare ``company_id``, que la fuente calcula y almacena de la tarifa o
-    #: de la plantilla (``:31`` y ``:173``): sin él, la verificación no tiene
-    #: contra qué comparar. Sucesor ``product-fk-names-0122``.
+    #: ``_check_company_auto = True`` (``:12``) y los ``check_company=True``
+    #: de ``product_tmpl_id``, ``product_id`` y ``base_pricelist_id``
+    #: (``:80``, ``:85``, ``:104``) son la unidad sucesora
+    #: ``pricelist-item-check-company-0397``.
     _name = 'product.pricelist.item'
     _description = "Pricelist Rule"
     _order = "applied_on, min_quantity desc, categ_id desc, id desc"
@@ -253,6 +256,37 @@ class ProductPricelistItem(TimeStampedModel):
         help_text='Se mide contra la BASE, no contra el precio en curso.',
     )
 
+    #: ≙ ``company_id`` (``:31``): ``compute='_compute_company_id',
+    #: store=True``. Se fija en :meth:`save`, como el ``precompute`` de
+    #: ``product.combo.item``.
+    company_id = fields.Many2one(
+        ResCompany,
+        db_column='company_id',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        editable=False,
+        related_name='pricelist_item_ids',
+        verbose_name='Compañía',
+        help_text='La de la tarifa o, sin ella, la de la plantilla.',
+    )
+    #: ≙ ``currency_id`` (``:32``): ``compute='_compute_currency_id',
+    #: store=True``. Se fija en :meth:`save`.
+    currency_id = fields.Many2one(
+        ResCurrency,
+        db_column='currency_id',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        editable=False,
+        related_name='pricelist_item_ids',
+        verbose_name='Moneda',
+        help_text=(
+            'La de la tarifa, o la de la compañía, o la de la compañía '
+            'del entorno.'
+        ),
+    )
+
     class Meta:
         db_table = 'product_pricelist_item'
         ordering = ['applied_on', '-min_quantity', '-categ_id', '-id']
@@ -261,6 +295,35 @@ class ProductPricelistItem(TimeStampedModel):
 
     def __str__(self):
         return f'{self.pricelist_id_id}/{self.applied_on}#{self.pk}'
+
+    def save(self, *args, **kwargs):
+        """Calcula los dos almacenados antes de escribir la fila.
+
+        ≙ ``_compute_company_id`` y ``_compute_currency_id``
+        (``odoo19c: addons/product/models/product_pricelist_item.py:
+        170-183``), verbatim en su orden de precedencia.
+        """
+        self.company_id = self._compute_company_id()
+        self.currency_id = self._compute_currency_id()
+        super().save(*args, **kwargs)
+
+    def _compute_company_id(self):
+        """La compañía de la tarifa o, sin ella, la de la plantilla."""
+        return ((self.pricelist_id and self.pricelist_id.company_id)
+                or (self.product_tmpl_id and self.product_tmpl_id.company_id)
+                or None)
+
+    def _compute_currency_id(self):
+        """La moneda de la tarifa, la de la compañía o la del entorno.
+
+        ``res.company`` guarda su moneda en ``currency`` (su sucesor de
+        nombre es ``res-company-currency-id``); ``currency_id`` es allí el
+        id escalar, no el registro.
+        """
+        return ((self.pricelist_id and self.pricelist_id.currency_id)
+                or (self.company_id and self.company_id.currency)
+                or (env().company and env().company.currency)
+                or None)
 
     def clean(self):
         """El alcance declarado y el campo que lo concreta tienen que casar.
