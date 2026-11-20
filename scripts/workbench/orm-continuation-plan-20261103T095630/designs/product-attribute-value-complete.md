@@ -116,10 +116,12 @@ Dos símbolos con nombre propio:
   `test_the_attribute_of_a_used_value_cannot_change`, que leen el nombre de
   la plantilla en el mensaje.
 - La migración `0044_product_attribute_value_complete` lleva a la tabla los
-  campos de `odoo19c: product_attribute_value.py:19-58` y el `cascade` de
-  `product_template_attribute_value.py:27-30`; la prueban
-  `test_the_value_is_a_base_model_with_the_source_fields` y
-  `test_an_unused_value_is_deleted_with_its_template_values`.
+  campos de `odoo19c: addons/product/models/product_attribute_value.py:19-58`
+  y el `cascade` de
+  `odoo19c: addons/product/models/product_template_attribute_value.py:27-30`;
+  la prueban `test_the_value_is_a_base_model_with_the_source_fields` y
+  `test_an_unused_value_is_deleted_with_its_template_values`, en
+  `tests/unit/product/test_product_attribute_value_complete.py`.
 
 ## Pruebas
 
