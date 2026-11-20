@@ -290,7 +290,7 @@ product.combo.item	addons/product/models/product_combo_item.py:13	cascade	produc
 product.combo.item	addons/product/models/product_combo_item.py:14	restrict	product.ProductComboItem	product	restrict	PROTECT	a	True	coherente
 product.combo.item	addons/product/models/product_combo_item.py:12	set null (defecto)	product.ProductComboItem	company	set null	CASCADE	a	True	divergencia de política
 product.pricelist	addons/product/models/product_pricelist.py:36	restrict (defecto)	product.ProductPricelist	currency	set null	PROTECT	a	True	divergencia de atributo
-product.pricelist	addons/product/models/product_pricelist.py:43	set null (defecto)	product.ProductPricelist	company	set null	CASCADE	a	True	divergencia de política
+product.pricelist	addons/product/models/product_pricelist.py:43	set null (defecto)	product.ProductPricelist	company_id	set null	CASCADE	a	True	divergencia de política
 product.pricelist.item	addons/product/models/product_pricelist_item.py:19	cascade	product.ProductPricelistItem	pricelist	set null	CASCADE	a	True	divergencia de atributo
 product.pricelist.item	addons/product/models/product_pricelist_item.py:72	cascade	product.ProductPricelistItem	categ	set null	CASCADE	a	True	divergencia de atributo
 product.pricelist.item	addons/product/models/product_pricelist_item.py:77	cascade	product.ProductPricelistItem	product_tmpl	set null	CASCADE	a	True	divergencia de atributo

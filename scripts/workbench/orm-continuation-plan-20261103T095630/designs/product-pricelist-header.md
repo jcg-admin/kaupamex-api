@@ -73,3 +73,25 @@ grupo de países asignado sobrevive en la tabla de la fuente;
 `pricelist_domain` admite la tarifa propia y la compartida, no la ajena.
 Control de anulación: devolver `pricelist_domain` a `company` hace caer
 exactamente esa prueba (1 failed, 5 passed).
+
+## Corrección tras F2 en `284c2d42`
+
+La batería completa salió verde con **9** `xfailed` contra 8 en `bce62146`.
+El noveno era `test_the_django_policy_matches_the_source_ondelete
+[product.ProductPricelist.company]`: el censo
+`outputs/fk_reference_ondelete.tsv` nombra el campo por su nombre al
+medirlo (`company`); al renombrar la entrada de `CORRECTED` a `company_id`
+la fila dejó de estar corregida, volvió a `xfail` estricto y el
+`FieldDoesNotExist` de `get_field('company')` se contó como fallo esperado.
+Un verde que ocultaba una corrección perdida.
+
+Se corrige la celda `field` de esa fila a `company_id` (sólo el nombre; la
+política la lee la prueba del modelo vivo). Regenerar el censo entero no
+cabe aquí: el sondeo actual da 1734 filas, con las columnas de auditoría,
+contra las 907 que fija la población del contrato. Las otras filas
+renombradas de `product` (`ProductCategory.parent`,
+`ProductAttributeValue.attribute`, `ProductTemplateAttributeLine.attribute`,
+`ProductPricelistItem.categ`, `ProductSupplierinfo.partner`) no entran en la
+población destructiva, así que su nombre viejo no se resuelve en ninguna
+prueba. Medido: el archivo da 95 passed, 2 xfailed; la fila de la tarifa
+pasa como corregida.
