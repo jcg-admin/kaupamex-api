@@ -49,8 +49,9 @@ def _used(value, template_name='Playera'):
     template = ProductTemplate.objects.create(name=template_name)
     line = ProductTemplateAttributeLine.objects.create(
         product_tmpl_id=template, attribute_id=value.attribute_id)
-    line.write({'value_ids': [Command.set([record.id for record in [value]])]})
-    ptav = ProductTemplateAttributeValue.objects.create(
+    line.with_context(create_product_product=False).write(
+        {'value_ids': [Command.set([value.id])]})
+    ptav = ProductTemplateAttributeValue.objects.get(
         attribute_line_id=line, product_attribute_value_id=value)
     return template, ptav
 

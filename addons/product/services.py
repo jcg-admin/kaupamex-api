@@ -11,30 +11,6 @@ combinación = precio base + Σ ``price_extra``. Es el enriquecimiento que el
 import itertools
 from decimal import Decimal
 
-from addons.product.models.product_template_attribute_value import (
-    ProductTemplateAttributeValue,
-)
-
-
-def sync_template_values(line):
-    """Crea el ``ProductTemplateAttributeValue`` de cada valor de la línea.
-
-    Réplica de ``_update_product_template_attribute_values`` de Odoo: por cada
-    valor en ``line.value_ids`` asegura un PTAV (con ``price_extra=0`` si es
-    nuevo).
-    """
-    created = []
-    for value in line.value_ids:
-        ptav, was_created = (
-            ProductTemplateAttributeValue.objects.get_or_create(
-                attribute_line_id=line,
-                product_attribute_value_id=value,
-            )
-        )
-        if was_created:
-            created.append(ptav)
-    return created
-
 
 def combinations(template):
     """Producto cartesiano de un PTAV por cada línea de atributo (Odoo).
@@ -59,7 +35,7 @@ def combinations(template):
     for line in lines:
         ptavs = list(line.product_template_value_ids.sorted('id'))
         if not ptavs:
-            sync_template_values(line)
+            line._update_product_template_attribute_values()
             line.invalidate_recordset(['product_template_value_ids'])
             ptavs = list(line.product_template_value_ids.sorted('id'))
         if ptavs:

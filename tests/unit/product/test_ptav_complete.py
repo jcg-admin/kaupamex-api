@@ -40,7 +40,7 @@ def _line(template, attribute, values):
     line = ProductTemplateAttributeLine.objects.create(
         product_tmpl_id=template, attribute_id=attribute)
     line.write({'value_ids': [Command.set([value.id for value in values])]})
-    ptavs = [ProductTemplateAttributeValue.objects.create(
+    ptavs = [ProductTemplateAttributeValue.objects.get(
         attribute_line_id=line, product_attribute_value_id=value)
         for value in values]
     return line, ptavs

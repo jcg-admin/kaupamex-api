@@ -72,10 +72,10 @@ def test_sync_creates_template_values(db):
     color, (red, blue) = _attribute('Color', ['Rojo', 'Azul'])
     product = _product()
     line = _line(product, color, [red, blue])
-    pa_services.sync_template_values(line)
+    line._update_product_template_attribute_values()
     assert len(line.product_template_value_ids) == 2
     # Idempotente: no duplica.
-    pa_services.sync_template_values(line)
+    line._update_product_template_attribute_values()
     assert len(line.product_template_value_ids) == 2
 
 
@@ -97,7 +97,7 @@ def test_combination_price_adds_price_extra(db):
     size, (s, m, l) = _attribute('Talla', ['S', 'M', 'L'])
     product = _product(price='100.00')
     line = _line(product, size, [s, m, l])
-    pa_services.sync_template_values(line)
+    line._update_product_template_attribute_values()
     # XL cuesta +50; S y M sin extra.
     ptav_l = ProductTemplateAttributeValue.objects.get(
         attribute_line_id=line, product_attribute_value_id=l
@@ -122,8 +122,8 @@ def test_multi_axis_price_sums_extras(db):
     product = _product(price='200.00')
     lc = _line(product, color, [red, gold], sequence=1)
     ls = _line(product, size, [s, xl], sequence=2)
-    pa_services.sync_template_values(lc)
-    pa_services.sync_template_values(ls)
+    lc._update_product_template_attribute_values()
+    ls._update_product_template_attribute_values()
     # Dorado +30 ; XL +40.
     ProductTemplateAttributeValue.objects.filter(
         attribute_line_id=lc, product_attribute_value_id=gold

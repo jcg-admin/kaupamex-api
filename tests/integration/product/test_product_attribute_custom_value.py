@@ -51,7 +51,7 @@ def attribute_value():
         product_tmpl_id=template, attribute_id=attribute, sequence=10
     )
     line.write({'value_ids': [Command.set([record.id for record in [value]])]})
-    return ProductTemplateAttributeValue.objects.create(
+    return ProductTemplateAttributeValue.objects.get(
         attribute_line_id=line, product_attribute_value_id=value
     )
 

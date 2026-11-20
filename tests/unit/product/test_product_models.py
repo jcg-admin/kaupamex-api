@@ -288,7 +288,7 @@ class TestProductProduct:
             product_tmpl_id=tmpl, attribute_id=color
         )
         line.write({'value_ids': [Command.set([red.id, blue.id])]})
-        ptavs = [ProductTemplateAttributeValue.objects.create(
+        ptavs = [ProductTemplateAttributeValue.objects.get(
             attribute_line_id=line, product_attribute_value_id=value)
             for value in (blue, red)]
         variant = ProductProduct.objects.create(product_tmpl_id=tmpl)
@@ -311,10 +311,9 @@ class TestProductProduct:
             product_tmpl_id=tmpl, attribute_id=color
         )
         line.write({'value_ids': [Command.set([dorado.id])]})
-        ptav = ProductTemplateAttributeValue.objects.create(
-            attribute_line_id=line, product_attribute_value_id=dorado,
-            price_extra=Decimal('30.00'),
-        )
+        ptav = ProductTemplateAttributeValue.objects.get(
+            attribute_line_id=line, product_attribute_value_id=dorado)
+        ptav.write({'price_extra': Decimal('30.00')})
         variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
         variante.write({
             'product_template_attribute_value_ids': [Command.set([ptav.id])],
@@ -338,9 +337,8 @@ class TestProductProduct:
             product_tmpl_id=tmpl, attribute_id=color
         )
         line.write({'value_ids': [Command.set([rojo.id])]})
-        ptav = ProductTemplateAttributeValue.objects.create(
-            attribute_line_id=line, product_attribute_value_id=rojo
-        )
+        ptav = ProductTemplateAttributeValue.objects.get(
+            attribute_line_id=line, product_attribute_value_id=rojo)
         variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
         variante.write({
             'product_template_attribute_value_ids': [Command.set([ptav.id])],

@@ -41,11 +41,14 @@ def values(variant):
         product_tmpl_id=variant.product_tmpl_id,
         attribute_id=attribute,
     )
-    line.write({'value_ids': [Command.set([red.id, blue.id])]})
-    red_value = ProductTemplateAttributeValue.objects.create(
+    # La variante se compone a mano: sin generar las del producto cartesiano
+    # (contexto ``create_product_product`` de la fuente).
+    line.with_context(create_product_product=False).write(
+        {'value_ids': [Command.set([red.id, blue.id])]})
+    red_value = ProductTemplateAttributeValue.objects.get(
         attribute_line_id=line, product_attribute_value_id=red
     )
-    blue_value = ProductTemplateAttributeValue.objects.create(
+    blue_value = ProductTemplateAttributeValue.objects.get(
         attribute_line_id=line, product_attribute_value_id=blue
     )
     variant.write({

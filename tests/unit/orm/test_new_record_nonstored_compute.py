@@ -133,8 +133,9 @@ def test_a_related_ending_on_a_many2many():
     variant = make_product(name='Camiseta NewId')
     line = ProductTemplateAttributeLine.objects.create(
         product_tmpl_id=variant.product_tmpl_id, attribute_id=attribute)
-    line.write({'value_ids': [Command.set([red.id, blue.id])]})
-    values = [ProductTemplateAttributeValue.objects.create(
+    line.with_context(create_product_product=False).write(
+        {'value_ids': [Command.set([red.id, blue.id])]})
+    values = [ProductTemplateAttributeValue.objects.get(
         attribute_line_id=line, product_attribute_value_id=value)
         for value in (red, blue)]
     variant.write({

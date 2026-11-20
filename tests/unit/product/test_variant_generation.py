@@ -7,9 +7,10 @@ product-template-variant-generation.md``.
 
 *Métrica:* las variantes activas que quedan por combinación, tras crear
 plantillas, exclusiones y archivar.
-*Ciega a:* la creación de los valores de plantilla desde la línea
-(``_update_product_template_attribute_values``), que es la etapa de la
-línea: aquí los valores se crean a mano.
+*Ciega a:* la generación disparada por la propia línea
+(``_update_product_template_attribute_values``), que se prueba en
+``test_ptal_complete.py``: aquí la línea se escribe con
+``create_product_product=False`` y la generación se invoca directamente.
 """
 import pytest
 
@@ -41,8 +42,9 @@ def _attribute(name, create_variant='always', values=('A', 'B')):
 def _line(template, attribute, values):
     line = ProductTemplateAttributeLine.objects.create(
         product_tmpl_id=template, attribute_id=attribute)
-    line.write({'value_ids': [Command.set([value.id for value in values])]})
-    return [ProductTemplateAttributeValue.objects.create(
+    line.with_context(create_product_product=False).write(
+        {'value_ids': [Command.set([value.id for value in values])]})
+    return [ProductTemplateAttributeValue.objects.get(
         attribute_line_id=line, product_attribute_value_id=value)
         for value in values]
 
