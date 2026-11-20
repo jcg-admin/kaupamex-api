@@ -91,7 +91,7 @@ from django.utils import timezone
 from exceptions import UserError
 from orm.domains import FALSE_DOMAIN, OR
 from orm.environments import get_current_companies
-from orm.method_chain import chain_method
+from orm.method_chain import chain_method, wrap_method
 from tools.barcode import check_barcode_encoding
 from tools.mail import html2plaintext, is_html_empty
 from tools.translate import _
@@ -906,17 +906,24 @@ def _get_only_qty_available(cls, products):
     return actuales
 
 
-def _filter_to_unlink(cls, products):
-    """≙ ``_filter_to_unlink`` (``odoo19c: :747-751``).
+def _filter_to_unlink(self, previous):
+    """≙ ``_filter_to_unlink`` (``odoo19c:
+    addons/stock/models/product.py:747-751``).
 
     Un producto con lotes registrados no se borra: la fuente lo excluye del
-    conjunto antes de delegar en su superclase.
+    conjunto antes de delegar en su superclase (``product``,
+    ``product_product.py:744-745``). Se instala con ``wrap_method``: es un
+    override con ``super()``, no un método nuevo.
     """
+    # ``stock.lot`` es todavía modelo de Django: el ``_read_group`` por
+    # ``product_id`` de la fuente es aquí la consulta de sus ids distintos.
     StockLot = apps.get_model('stock', 'StockLot')
-    products = list(products)
-    with_lot = set(StockLot.objects.filter(product__in=products)
-                   .values_list('product_id', flat=True))
-    return [p for p in products if p.pk not in with_lot]
+    linked_product_ids = set(StockLot.objects.filter(
+        product__in=self.ids).values_list('product_id', flat=True))
+    # La fuente llama a ``super()`` sobre el conjunto reducido, no sobre
+    # ``self``: ``previous`` llega ligada a ``self`` (``functools.partial``),
+    # así que se aplica su función al conjunto reducido.
+    return previous.func(self - self.browse(linked_product_ids))
 
 
 def _count_returned_sn_products(cls, sn_lot, or_domains=()):
@@ -1194,7 +1201,8 @@ def apply_stock_product_extensions():
 
     # ≙ ``description_picking`` / ``description_pickingout`` /
     # ``description_pickingin`` (``odoo19c: stock/models/product.py:856-858``).
-    # Los declara ``product.template``; los consume ``_get_picking_description``.
+    # Los declara ``product.template``; los consume
+    # ``_get_picking_description``.
     for name, label in (
         ('description_picking', 'Descripción en el albarán'),
         ('description_pickingout', 'Descripción en órdenes de entrega'),
@@ -1287,7 +1295,8 @@ def apply_stock_product_extensions():
     # que ``stock.lot._compute_name`` saca el nombre cuando el usuario no lo
     # escribe: sin él, ese compute no tiene de dónde numerar.
     #
-    # El sufijo ``_id`` se retira como en todo el árbol; queda ``lot_sequence``,
+    # El sufijo ``_id`` se retira como en todo el árbol; queda
+    # ``lot_sequence``,
     # que no colisiona con nada de ``product.template``.
     _add_if_absent(ProductTemplate, 'lot_sequence', fields.Many2one(
         'base.IrSequence', null=True, blank=True, on_delete=models.SET_NULL,
@@ -1308,9 +1317,10 @@ def apply_stock_product_extensions():
     for name, function in (
         ('_compute_nbr_moves', _compute_nbr_moves),
         ('_get_only_qty_available', _get_only_qty_available),
-        ('_filter_to_unlink', _filter_to_unlink),
+        # ``_filter_to_unlink`` se envuelve al final: es override.
         ('_count_returned_sn_products', _count_returned_sn_products),
-        ('_count_returned_sn_products_domain', _count_returned_sn_products_domain),
+        ('_count_returned_sn_products_domain',
+         _count_returned_sn_products_domain),
         ('filter_has_routes', filter_has_routes),
         ('_get_rules_from_location', _get_rules_from_location),
         ('_get_dates_info', _get_dates_info),
@@ -1337,3 +1347,7 @@ def apply_stock_product_extensions():
     ):
         if not hasattr(ProductProduct, name):
             setattr(ProductProduct, name, function)
+    # ≙ el override de ``_filter_to_unlink`` (``odoo19c:
+    # addons/stock/models/product.py:747-751``): ``super()`` con las
+    # variantes sin lotes.
+    wrap_method(ProductProduct, '_filter_to_unlink', _filter_to_unlink)

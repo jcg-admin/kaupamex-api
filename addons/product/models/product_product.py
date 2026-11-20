@@ -101,6 +101,7 @@ import api
 import fields
 import models
 from django.apps import apps
+from django.db import transaction
 
 from addons.base.models import DecimalPrecision
 from addons.base.models.timestamped_mixin import TimeStampedModel
@@ -110,6 +111,7 @@ from addons.product.models.product_template_attribute_value import (
     ProductTemplateAttributeValue,
 )
 from tools.float_utils import float_compare
+from tools.misc import mute_logger
 
 #: Separador de la clave de combinación, verbatim de ``_ids2str``.
 COMBINATION_SEPARATOR = ','
@@ -662,3 +664,40 @@ class ProductProduct(models.BaseModel, TimeStampedModel):
         declaran los atributos. Ver H-API-190.
         """
         super().clean()
+
+    def _filter_to_unlink(self):
+        """≙ ``_filter_to_unlink`` (``odoo19c:
+        addons/product/models/product_product.py:744-745``): el gancho que los
+        addons extienden para retener variantes; en ``product``, todas."""
+        return self
+
+    def _unlink_or_archive(self, check_access=True):
+        """≙ ``_unlink_or_archive`` (``odoo19c: :747-781``): «Unlink or
+        archive products. Try in batch as much as possible because it is much
+        faster. Use dichotomy when an exception occurs.» El savepoint de la
+        fuente es ``transaction.atomic``."""
+        # Avoid access errors in case the products is shared amongst
+        # companies but the underlying objects are not.
+        if check_access:
+            self.check_access('unlink')
+            self.check_access('write')
+            self = self.sudo()
+            to_unlink = self._filter_to_unlink()
+            to_archive = self - to_unlink
+            to_archive.write({'active': False})
+            self = to_unlink
+
+        try:
+            with transaction.atomic(), mute_logger('django.db.backends'):
+                self.unlink()
+        except Exception:
+            # We catch all kind of exceptions to be sure that the operation
+            # doesn't fail.
+            if len(self) > 1:
+                self[:len(self) // 2]._unlink_or_archive(check_access=False)
+                self[len(self) // 2:]._unlink_or_archive(check_access=False)
+            else:
+                if self.active:
+                    # Note: this can still fail if something is preventing
+                    # from archiving.
+                    self.write({'active': False})

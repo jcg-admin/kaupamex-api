@@ -14,6 +14,7 @@ from addons.product.models import (
     ProductTemplateAttributeValue,
 )
 from orm.environments import transaction_scope
+from exceptions import UserError
 from orm.commands import Command
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]
@@ -111,11 +112,31 @@ def test_price_extra_change_invalidates_the_current_value_format(
         assert variant.display_name == 'Camiseta (Rojo (+5.00))'
 
 
+def _orm_write(record, vals):
+    """``write`` del ORM, por debajo de la guarda de PTAV.
+
+    ``product.template.attribute.value`` rehúsa escribir
+    ``ptav_product_variant_ids`` (``odoo19c:
+    addons/product/models/product_template_attribute_value.py:81-96``); lo que
+    estas pruebas miden es la invalidación del ORM al escribir el lado inverso
+    de un ``Many2many``, que sigue existiendo debajo de esa guarda.
+    """
+    return super(ProductTemplateAttributeValue, record).write(vals)
+
+
+def test_the_value_refuses_to_write_its_variants(variant, values):
+    _, _, blue_value = values
+    with pytest.raises(UserError):
+        blue_value.write({
+            'ptav_product_variant_ids': [Command.link(variant.id)],
+        })
+
+
 def test_reverse_add_invalidates_the_owning_variant(variant, values):
     _, _, blue_value = values
     with transaction_scope():
         assert variant.display_name == 'Camiseta (Rojo)'
-        blue_value.write({
+        _orm_write(blue_value, {
             'ptav_product_variant_ids': [Command.link(variant.id)],
         })
         assert variant.display_name == 'Camiseta (Rojo, Azul)'
@@ -134,11 +155,12 @@ def test_reverse_remove_and_clear_invalidate_previous_owners(variant, values):
     })
     with transaction_scope():
         assert variant.display_name == other.display_name == 'Camiseta (Rojo)'
-        red_value.write(
+        _orm_write(
+            red_value,
             {'ptav_product_variant_ids': [Command.unlink(variant.id)]})
         assert variant.display_name == 'Camiseta'
         assert other.display_name == 'Camiseta (Rojo)'
-        red_value.write({'ptav_product_variant_ids': [Command.clear()]})
+        _orm_write(red_value, {'ptav_product_variant_ids': [Command.clear()]})
         assert other.display_name == 'Camiseta'
 
 

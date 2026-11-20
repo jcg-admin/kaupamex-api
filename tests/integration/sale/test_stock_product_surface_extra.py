@@ -219,8 +219,8 @@ def test_a_product_with_lots_is_not_offered_for_deletion(db):
     free = make_product(name='Untracked')
     StockLot.objects.create(name='SN-1', product=with_lot)
 
-    quedan = ProductProduct._filter_to_unlink([with_lot, free])
-    assert [p.pk for p in quedan] == [free.pk]
+    remaining = (with_lot | free)._filter_to_unlink()
+    assert remaining.ids == [free.pk]
 
 
 def test_filter_has_routes_sees_the_inherited_route(db):

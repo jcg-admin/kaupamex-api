@@ -136,10 +136,7 @@ class ProductAttributeValue(models.BaseModel, TimeStampedModel):
         ptavs_by_pav = self.env['product.template.attribute.value'].sudo(
         ).search_fetch([
             ('product_attribute_value_id', 'in', self.ids),
-            # ``product_tmpl_id`` de PTAV es un related almacenado de su
-            # línea aún sin portar (``ptav-complete-0122``): se llega a la
-            # plantilla por la línea.
-            ('attribute_line_id.product_tmpl_id', 'any', company_domain),
+            ('product_tmpl_id', 'any', company_domain),
         ], ['price_extra', 'product_attribute_value_id']).grouped(
             'product_attribute_value_id')
         for pav in self:
