@@ -174,11 +174,6 @@
    "id": "gate-preflight-migrate-through-default-0485",
    "task": "TASK-API-0485",
    "reason": "state failed"
-  },
-  {
-   "id": "product-variant-cluster-stage1-0122",
-   "task": "TASK-API-0122",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
   }
  ],
  "unrepresented": [
@@ -585,7 +580,8 @@
   "product-security-data-0397",
   "product-attribute-value-complete-0122",
   "website-sale-security-data-0397",
-  "res-users-default-groups-0485"
+  "res-users-default-groups-0485",
+  "product-variant-cluster-stage1-0122"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
