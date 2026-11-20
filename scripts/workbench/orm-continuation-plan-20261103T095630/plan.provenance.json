@@ -1284,6 +1284,13 @@
         "product-attribute-fk-names-0122"
       ],
       "writtenAt": "2026-11-20T00:28:57Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-category-header-0122"
+      ],
+      "writtenAt": "2026-11-20T01:23:38Z"
     }
   ]
 }
