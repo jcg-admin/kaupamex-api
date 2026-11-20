@@ -1347,6 +1347,13 @@
         "product-uom-source-names-0122"
       ],
       "writtenAt": "2026-11-20T08:14:44Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-combo-source-names-0122"
+      ],
+      "writtenAt": "2026-11-20T08:58:43Z"
     }
   ]
 }
