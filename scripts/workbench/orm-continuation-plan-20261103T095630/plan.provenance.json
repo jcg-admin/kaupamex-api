@@ -1396,6 +1396,13 @@
         "product-security-data-0397"
       ],
       "writtenAt": "2026-11-20T14:08:38Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-attribute-value-complete-0122"
+      ],
+      "writtenAt": "2026-11-20T15:29:03Z"
     }
   ]
 }
