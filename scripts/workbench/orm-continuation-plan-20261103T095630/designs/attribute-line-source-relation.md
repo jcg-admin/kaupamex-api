@@ -44,3 +44,27 @@ pruebas (`color.template_lines` es la del atributo; `red.template_lines` y
 Tabla y columnas de la intermedia con los nombres de la fuente; las dos
 inversas; una relación existente sobrevive a la migración (lo comprueba
 `sqlmigrate`: sólo renombres).
+
+## Resultado medido
+
+`makemigrations` lo resuelve sin recrear la intermedia:
+`0040_attribute_line_source_relation` (dos `AlterField`), y su `sqlmigrate`
+es `ALTER TABLE … RENAME TO` más dos `RENAME COLUMN`. No hizo falta
+`SeparateDatabaseAndState`.
+
+## Símbolos que cambian
+
+- `ProductTemplateAttributeLine.value_ids`
+  (`odoo19c: addons/product/models/product_template_attribute_line.py:32-36`),
+  con su inversa `ProductAttributeValue.pav_attribute_line_ids`
+  (`odoo19c: addons/product/models/product_attribute_value.py:29-33`);
+- `ProductTemplateAttributeLine.attribute_id`, por su inversa
+  `ProductAttribute.attribute_line_ids`
+  (`odoo19c: addons/product/models/product_attribute.py:59-62`);
+- la migración `0040_attribute_line_source_relation`.
+
+Pruebas: `tests/unit/product/test_attribute_line_source_relation.py`.
+Controles de anulación: quitar `relation` hace caer las dos pruebas (la
+segunda lee la tabla real, que la base ya tiene con el nombre nuevo: depende
+de `relation` tanto como la primera); devolver `related_name='template_lines'`
+a `value_ids` hace caer exactamente la de las inversas (1 failed, 1 passed).
