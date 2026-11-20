@@ -73,3 +73,21 @@ en pruebas. Decisión: cada sitio pasa a la API de recordset de la fuente
 adaptador que devuelva un manager; y los directorios de prueba que leen
 estos modelos sin usuario ganan el entorno de superusuario de
 `TransactionCase` donde la prueba no mide la ACL, como `product` y `fleet`.
+
+## Etapa 1, avance (2026-11-20 16:30Z)
+
+Trabajo en curso, no publicado como código: el parche
+`outputs/cluster-wip/stage1-wip-2.patch` (los cuatro cambios de base, los
+sitios de `product` y `product_attribute_value.py` vueltos a los cuerpos de
+la fuente, y catorce archivos de prueba con `Command.set`/`Command.link`).
+Se aplica con `git apply` sobre `7c973a44`.
+
+Re-medido sobre los 16 directorios que fallaban: **143 failed, 20 errors,
+6731 passed** (de 216 + 85). Lo que queda:
+
+| Causa | Ocurrencias | Destino |
+|---|---|---|
+| `PermissionDenied` leyendo `product.template`/`product.product` | ~71 | dos grupos: pruebas sin usuario (≙ `TransactionCase`, entorno de superusuario) y **un camino de producto**: `addons/sale/services.py::confirm_draft_order` lee `lst_price` como el comprador (18). En la fuente el controlador de tienda lee con `sudo()`; hay que portar esa elevación en los flujos de comprador, no sólo en las pruebas |
+| `FieldError: name` sobre `product.product` | 14 | un `filter(name=…)` de Django sobre un campo que llega por `_inherits`: pasa a `search([('name', …)])` o al campo del padre |
+| API de manager restante (`.all`, `.order_by`, `.count`, `.clear`, `.add` sobre `taxes_id`) | ~25 | igual que el resto: API de recordset |
+| `KeyError` / `IndexError` / carrito vacío | ~37 | por clasificar; varios son la respuesta de una vista que falló por los permisos |
