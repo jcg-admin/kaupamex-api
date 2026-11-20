@@ -1425,6 +1425,13 @@
         "product-variant-cluster-stage1-0122"
       ],
       "writtenAt": "2026-11-20T20:39:01Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "ptav-complete-0122"
+      ],
+      "writtenAt": "2026-11-20T22:00:45Z"
     }
   ]
 }
