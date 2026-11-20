@@ -73,8 +73,10 @@ def _grant(mode='read', group=None):
 
 
 def _user(login):
+    # ``group_ids=[]``: sin los grupos por defecto (``_default_groups``); el
+    # permiso de cada caso lo da su ``_grant``.
     return get_user_model().objects.create_user(
-        login=login, password='AcqsPrueba123!'
+        login=login, password='AcqsPrueba123!', group_ids=[]
     )
 
 

@@ -21,8 +21,10 @@ MODES = ('read', 'write', 'create', 'unlink')
 
 
 def _user(login, *xmlids):
+    # ``group_ids=[]``: la prueba elige los grupos; sin él, el default
+    # (``_default_groups``) añade ``base.group_user``.
     user = get_user_model().objects.create_user(
-        login=login, password=None, name=login)
+        login=login, password=None, name=login, group_ids=[])
     for xmlid in xmlids:
         user.group_ids.add(IrModelData.ref(xmlid))
     return user

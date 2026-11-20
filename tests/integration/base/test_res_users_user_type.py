@@ -29,7 +29,9 @@ def grupos(db):
 
 
 def _user(login):
-    return User.objects.create_user(login=login)
+    # ``group_ids=[]``: la prueba elige los grupos; sin él, el default
+    # (``_default_groups``) añade ``base.group_user``.
+    return User.objects.create_user(login=login, group_ids=[])
 
 
 class TestUserTypeAxis:

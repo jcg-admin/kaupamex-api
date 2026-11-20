@@ -47,8 +47,11 @@ TOTP_URL = '/login/totp'
 
 @pytest.fixture
 def user():
+    # ``group_ids=[]``: la prueba elige los grupos; sin él, el default
+    # (``_default_groups``) añade ``base.group_user``.
     return ResUsers.objects.create_user(
-        login='mfa-chain@kaupamex.mx', password='Str0ng-Passw0rd!'
+        login='mfa-chain@kaupamex.mx', password='Str0ng-Passw0rd!',
+        group_ids=[],
     )
 
 

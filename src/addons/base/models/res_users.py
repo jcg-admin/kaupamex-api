@@ -429,6 +429,11 @@ class ResUsersManager(models.AccessManager):
         user = self.model(login=login, partner=partner, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
+        if group_ids is None:
+            # ≙ el ``default`` de ``group_ids`` (``odoo19c:
+            # res_users.py:257``): sin ``group_ids`` en ``vals``, los grupos
+            # por defecto. Una lista explícita, vacía incluida, se respeta.
+            group_ids = user._default_groups()
         if group_ids:
             user.group_ids.set(group_ids)
         # Equivalente del punto en que ``super().create()`` retorna en la
@@ -511,7 +516,7 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
     — verificado con ``pg_constraint``. No hace falta un ``Meta.constraints``
     para renombrarlo.
 
-    Los 64 símbolos que este porte NO trae, y su desenlace
+    Los 63 símbolos que este porte NO trae, y su desenlace
     -------------------------------------------------------
 
     Medido con ``check_porte_completo`` contra
@@ -527,7 +532,7 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
     :meth:`delete`, porque el gancho equivalente de Django es sobrescribir ese
     método y no un ``@api.ondelete``. Los 72 restantes sí son ausencias.
 
-    **1. La capa de vista de su cliente OWL — 21 símbolos.** DIVERGENCIA DE
+    **1. La capa de vista de su cliente OWL — 20 símbolos.** DIVERGENCIA DE
     STACK. ``onchange``, ``on_change_login``, ``onchange_parent_id``,
     ``_onchange_role``, ``fields_get``, ``_get_view_postprocessed``,
     ``_default_view_group_hierarchy``, ``_action_show``,
@@ -536,9 +541,9 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
     ``action_change_password_wizard``, ``api_key_wizard``,
     ``preference_save``, ``preference_change_password``,
     ``action_revoke_all_devices``, ``_compute_email_domain_placeholder``,
-    ``_compute_signature``, ``_compute_role``, ``copy_data``,
-    ``_default_groups``. Son el diálogo entre su ORM y su cliente web: un
-    ``@api.onchange`` recalcula un formulario abierto, y una ``action_*``
+    ``_compute_signature``, ``_compute_role``, ``copy_data``. Son el
+    diálogo entre su ORM y su cliente web: un ``@api.onchange`` recalcula
+    un formulario abierto, y una ``action_*``
     devuelve un diccionario que su cliente interpreta como «abre esta vista».
     Aquí el cliente es React sobre endpoints DRF: el equivalente del onchange
     es la validación del serializer, y el de la acción es la URL que el
@@ -2381,6 +2386,18 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
                 'No se puede eliminar al usuario %r: se usa en la '
                 'configuración de seguridad y en el acceso anónimo. '
                 'Archívalo en su lugar.' % self.login)
+
+    def _default_groups(self):
+        """≙ ``_default_groups`` (``odoo19c: res_users.py:203-212``) —
+        «Default groups for employees»: ``base.group_user`` más los
+        implicados de ``base.default_user_group``."""
+        data_model = apps.get_model('base', 'IrModelData')
+        groups = [data_model.ref('base.group_user')]
+        default_group = data_model.ref('base.default_user_group',
+                                       raise_if_not_found=False)
+        if default_group:
+            groups += list(default_group.implied_ids.all())
+        return groups
 
 
 class ResUsersLog(TimeStampedModel):

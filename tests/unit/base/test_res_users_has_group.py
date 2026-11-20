@@ -48,7 +48,10 @@ def _group(xmlid, label, user_type=None):
 
 
 def _user(login):
-    return ResUsers.objects.create_user(login=login, password='x')
+    # ``group_ids=[]``: la prueba elige los grupos; sin él, el default
+    # (``_default_groups``) añade ``base.group_user``.
+    return ResUsers.objects.create_user(login=login, password='x',
+                                        group_ids=[])
 
 
 @pytest.fixture

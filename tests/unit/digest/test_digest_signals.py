@@ -95,7 +95,8 @@ class TestAutoSubscribeNewUser:
         """Sin grupos el usuario es share — la referencia tampoco lo
         suscribiría (``filtered_domain([('share','=',False)])``)."""
         _configurar(digest)
-        user = ResUsers.objects.create_user(login='sin-grupo@kaupamex.mx')
+        user = ResUsers.objects.create_user(login='sin-grupo@kaupamex.mx',
+                                            group_ids=[])
 
         assert user.share is True
         assert not digest.user_ids.filter(pk=user.pk).exists()
@@ -113,6 +114,13 @@ class TestCreateUserAppliesGroups:
         assert list(user.group_ids.all()) == [grupo_interno]
         assert user._is_internal() is True
 
-    def test_without_group_ids_user_has_none(self):
+    def test_without_group_ids_the_user_gets_the_default_groups(self):
+        """≙ el ``default`` de ``group_ids`` (``odoo19c: res_users.py:257``):
+        sin ``group_ids`` el usuario nace interno (``_default_groups``)."""
         user = ResUsers.objects.create_user(login='pelado@kaupamex.mx')
+        assert user._is_internal() is True
+
+    def test_an_empty_group_ids_leaves_the_user_without_groups(self):
+        user = ResUsers.objects.create_user(login='vacio@kaupamex.mx',
+                                            group_ids=[])
         assert list(user.group_ids.all()) == []

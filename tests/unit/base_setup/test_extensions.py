@@ -84,16 +84,18 @@ class TestIrHttpSessionInfo:
     ):
         assert IrHttp.session_info(internal_user, {})['show_effect'] is False
 
-    def test_a_user_without_an_internal_group_gets_no_flag(self, admin_user):
+    def test_a_user_without_an_internal_group_gets_no_flag(self, db):
         """La guarda ``_is_internal()`` de la fuente, con su control negativo.
 
-        ``admin_user`` tiene rol de superadministrador pero **ningún grupo con
-        ``user_type='internal'``**, que es lo que ``_is_internal()`` mide. Sin
-        este caso el par de arriba no distinguiría «la guarda pasa» de «la
-        guarda no existe».
+        Una cuenta creada con ``group_ids=[]`` no tiene ningún grupo con
+        ``user_type='internal'``, que es lo que ``_is_internal()`` mide (sin
+        él, ``_default_groups`` la haría interna). Sin este caso el par de
+        arriba no distinguiría «la guarda pasa» de «la guarda no existe».
         """
+        outsider = ResUsers.objects.create_user(
+            login='sin-interno@kaupamex.mx', group_ids=[])
         SystemParameter.set_param(SHOW_EFFECT_PARAM, '1')
-        assert 'show_effect' not in IrHttp.session_info(admin_user, {})
+        assert 'show_effect' not in IrHttp.session_info(outsider, {})
 
     def test_an_anonymous_caller_gets_no_flag(self):
         SystemParameter.set_param(SHOW_EFFECT_PARAM, '1')

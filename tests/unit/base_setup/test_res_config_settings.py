@@ -102,7 +102,7 @@ class TestComputes:
         # ``share`` es una propiedad: la negación de ``_is_internal()``. Un
         # usuario nuevo sin grupo interno NO cuenta.
         django_user_model.objects.create_user(
-            login='shared-user@example.com', password='x' * 12
+            login='shared-user@example.com', password='x' * 12, group_ids=[]
         )
         assert settings._compute_active_user_count() == before
 

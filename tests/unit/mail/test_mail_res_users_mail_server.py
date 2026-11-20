@@ -20,8 +20,10 @@ pytestmark = pytest.mark.django_db
 
 
 def _user(login, email=None, internal=True):
+    # ``group_ids=[]``: la prueba elige los grupos; sin él, el default
+    # (``_default_groups``) añade ``base.group_user``.
     user = ResUsers.objects.create_user(login=login, password='x' * 12,
-                                        name=login)
+                                        name=login, group_ids=[])
     if email is not None:
         user.email = email
         user.save()

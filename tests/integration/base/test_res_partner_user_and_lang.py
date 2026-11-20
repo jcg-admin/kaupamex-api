@@ -40,7 +40,10 @@ PASSWORD = 'VendedorYPrincipal123!'
 
 def _user(login, internal=True, active=True):
     """Una cuenta que apunta a su own partner, interna o compartida."""
-    account = User.objects.create_user(login=login, password=PASSWORD)
+    # ``group_ids=[]``: sin los grupos por defecto (``_default_groups``), que
+    # la harían interna; la prueba elige el tipo con su propio grupo.
+    account = User.objects.create_user(login=login, password=PASSWORD,
+                                       group_ids=[])
     if internal:
         group = ResGroups.objects.create(
             name=f'grupo-{login}', user_type='internal'

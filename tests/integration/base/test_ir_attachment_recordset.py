@@ -28,8 +28,11 @@ def env():
 
 
 def _user(login):
+    # ``group_ids=[]``: la prueba elige los grupos; sin él, el default
+    # (``_default_groups``) añade ``base.group_user``.
     return get_user_model().objects.create_user(login=login,
-                                                password='Adjunto123!')
+                                                password='Adjunto123!',
+                                                group_ids=[])
 
 
 def test_the_model_answers_the_recordset_api_on_the_class(env):

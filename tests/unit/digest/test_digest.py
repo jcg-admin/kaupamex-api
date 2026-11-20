@@ -115,7 +115,7 @@ class TestDigestSubscription:
             assert digest.is_subscribed is True
 
     def test_action_subscribe_noop_for_share_user(self, digest):
-        share_user = UserFactory(login='publico@kaupamex.mx')
+        share_user = UserFactory(login='publico@kaupamex.mx', group_ids=[])
         assert share_user.share is True
         with user_scope(share_user.pk):
             digest.action_subscribe()

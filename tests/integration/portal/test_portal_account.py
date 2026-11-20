@@ -44,8 +44,11 @@ def comprador(db):
     partner = ResPartner.objects.create(
         name='Ana Portal', email='ana@portal.test'
     )
+    # ``group_ids=[]``: una cuenta compartida (``share``), sin el default
+    # interno de ``_default_groups``.
     user = User.objects.create_user(
-        login='ana@portal.test', password=PASS_VIEJA, partner=partner
+        login='ana@portal.test', password=PASS_VIEJA, partner=partner,
+        group_ids=[],
     )
     rol = Role.objects.get(code='comprador')
     RoleAssignment.objects.create(user=user, role=rol)
