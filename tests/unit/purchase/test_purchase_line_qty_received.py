@@ -128,10 +128,12 @@ def test_the_received_quantity_at_a_past_date_is_recomputed(order):
     line.write({'qty_received_manual': Decimal('6')})
     line.flush_recordset()
     yesterday = (timezone.localdate() - datetime.timedelta(days=1))
-    with context_scope(accrual_entry_date=yesterday.isoformat()):
-        line.invalidate_recordset(['qty_received_at_date'])
-        assert line._date_in_the_past() is True
-        assert line.qty_received_at_date == Decimal('6')
+    # El contexto viaja con el registro (``with_context``), como en la
+    # fuente: el entorno del registro manda sobre el ambiente.
+    dated = line.with_context(accrual_entry_date=yesterday.isoformat())
+    dated.invalidate_recordset(['qty_received_at_date'])
+    assert dated._date_in_the_past() is True
+    assert dated.qty_received_at_date == Decimal('6')
 
 
 def test_migration_0019_fills_the_existing_lines(order):
@@ -188,6 +190,8 @@ def test_no_note_from_the_accrual_wizard(order):
     line = _line(order)
     order.button_confirm()
     before = order.message_ids.count()
-    with context_scope(accrual_entry_date='2026-01-01'):
-        line._track_qty_received(Decimal('5'))
+    # El contexto viaja con el registro (``with_context``), como en la
+    # fuente: el entorno del registro manda sobre el ambiente.
+    dated = line.with_context(accrual_entry_date='2026-01-01')
+    dated._track_qty_received(Decimal('5'))
     assert order.message_ids.count() == before

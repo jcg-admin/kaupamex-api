@@ -41,7 +41,7 @@ def ptav():
 
 
 def test_the_line_lists_its_values_by_the_source_inverse(ptav):
-    assert list(ptav.attribute_line_id.product_template_value_ids.all()) == [
+    assert list(ptav.attribute_line_id.product_template_value_ids) == [
         ptav]
 
 

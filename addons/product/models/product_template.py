@@ -15,9 +15,8 @@ variante lleva lo que distingue una combinación de otra y es lo que apunta un
 movimiento de stock o una línea de pedido.
 
 La referencia lo refuerza con dos campos que este archivo porta:
-``product_variant_count`` y ``product_variant_id`` — el segundo sólo tiene
-sentido cuando la plantilla tiene **exactamente una** variante, que es el caso
-del producto sin atributos.
+``product_variant_count`` y ``product_variant_id`` — el segundo es la primera
+variante; quien exige una sola lo comprueba con el primero, como la fuente.
 
 Divergencia declarada: el precio es ``Monetary``, no ``Float``
 ==============================================================
@@ -130,7 +129,20 @@ TYPE_CHOICES = [
 SERVICE_TRACKING_CHOICES = [('no', 'Nada')]
 
 
-class ProductTemplate(ImageMixin, TimeStampedModel):
+def _get_default_uom_id():
+    """≙ ``ProductTemplate._get_default_uom_id`` (``odoo19c:
+    addons/product/models/product_template.py:34-36``): la unidad,
+    ``uom.product_uom_unit``.
+
+    DIVERGENCIA DE MECANISMO declarada, la de ``_get_default_color``: Django
+    serializa un ``default`` callable por su ruta de import, así que queda a
+    nivel de módulo y sin ``self``. Registrada en
+    ``scripts/divergencias_declaradas.txt``.
+    """
+    return IrModelData._xmlid_to_res_id('uom.product_uom_unit')
+
+
+class ProductTemplate(models.BaseModel, ImageMixin, TimeStampedModel):
     """``product.template`` — el producto del catálogo."""
 
     #: Los atributos de clase de la fuente
@@ -207,12 +219,17 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         verbose_name='Compañía',
         help_text='Vacío = producto compartido por todas las compañías.',
     )
+    # ≙ ``uom_id`` (``odoo19c: :118-121``): ``default`` la unidad y
+    # ``required`` (``blank=False``). La columna sigue admitiendo nulo hasta
+    # que las filas sin unidad se rellenen
+    # (``product-uom-uom-extension-0397``).
     uom_id = fields.Many2one(
         Uom,
         db_column='uom_id',
         on_delete=models.PROTECT,
+        default=_get_default_uom_id,
         null=True,
-        blank=True,
+        blank=False,
         related_name='product_tmpl_ids',
         verbose_name='Unidad de medida',
         help_text='Odoo uom_id. FK real: uom.uom ya está portado.',
@@ -439,20 +456,15 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         por el ``related_name`` de aquel archivo, sin tocar éste.
         """
         variants = getattr(self, 'product_variant_ids', None)
-        return variants.count() if variants is not None else 0
+        return len(variants) if variants is not None else 0
 
     @property
     def product_variant_id(self):
-        """``_compute_product_variant_id`` — la variante única, si lo es.
-
-        ``None`` cuando hay cero o más de una: pedir "la" variante de un
-        producto con tres sólo puede ser un error de quien pregunta, y
-        devolver una cualquiera lo escondería.
-        """
-        variants = getattr(self, 'product_variant_ids', None)
-        if variants is None or variants.count() != 1:
-            return None
-        return variants.first()
+        """≙ ``_compute_product_variant_id`` (``odoo19c:
+        addons/product/models/product_template.py:247-249``): la primera
+        variante, ``product_variant_ids[:1]``. Quien exige una sola lo
+        comprueba con ``product_variant_count``, como la fuente."""
+        return self.product_variant_ids[:1]
 
     @property
     def product_document_ids(self):
@@ -488,8 +500,13 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
     @property
     def barcode(self):
         """``_compute_barcode`` — el código de barras de la variante única."""
-        variant = self.product_variant_id
-        return getattr(variant, 'barcode', '') if variant is not None else ''
+        # ≙ ``_compute_template_field_from_variant_field('barcode')``
+        # (``odoo19c: :269-290``): el de la variante única, o vacío.
+        variants = self.product_variant_ids
+        if not variants and self.env.context.get('active_test', True):
+            # Sin variantes activas, se reintenta sin ``active_test``.
+            return self.with_context(active_test=False).barcode
+        return variants.barcode if len(variants) == 1 else ''
 
     @property
     def properties_definition(self):

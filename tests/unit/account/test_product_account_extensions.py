@@ -35,6 +35,7 @@ from addons.product.models import (
     ProductProduct,
     ProductTemplate,
 )
+from orm.commands import Command
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -238,8 +239,8 @@ class TestImpuestosYEtiquetas:
             name='Eleke', categ_id=categoria
         )
 
-        producto.taxes.add(iva_venta)
-        producto.supplier_taxes.add(iva_compra)
+        producto.write({'taxes': [Command.link(iva_venta.id)],
+                        'supplier_taxes': [Command.link(iva_compra.id)]})
 
         assert list(producto.taxes.all()) == [iva_venta]
         assert list(producto.supplier_taxes.all()) == [iva_compra]
@@ -269,9 +270,9 @@ class TestImpuestosYEtiquetas:
             name='Eleke', categ_id=categoria
         )
 
-        producto.account_tags.add(etiqueta)
+        producto.write({'account_tags': [Command.link(etiqueta.id)]})
 
-        assert list(producto.account_tags.all()) == [etiqueta]
+        assert list(producto.account_tags) == [etiqueta]
 
 
 class TestProtect:

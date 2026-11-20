@@ -6282,6 +6282,20 @@ def order_to_django(model, order, reverse=False, prefix='', seen=frozenset()):
                 target, f"{last} {direction} {nulls}".strip(),
                 prefix=path, seen=seen))
             continue
+        delegation = _inherits_delegation(model, field)
+        if delegation is not None:
+            # ≙ el ``related`` no almacenado que la fuente declara para un
+            # campo heredado por ``_inherits`` (``odoo19c:
+            # odoo/orm/models.py:2923-2926``): se ordena por el campo del
+            # padre a través de la clave de delegación, que es el join que
+            # añade ``_traverse_related_sql``. Aquí la entrada del registro es
+            # el campo del padre con su columna, y sin esta rama llegaba a
+            # Django como columna de la tabla del hijo.
+            fk_name, parent = delegation
+            terms.extend(order_to_django(
+                parent, f"{fname} {direction} {nulls}".strip(),
+                prefix=prefix + fk_name + '__', seen=seen))
+            continue
         column = ('pk' if fname == 'id' and not prefix
                   else prefix + getattr(field, 'attname', fname))
         expression = F(column)
@@ -11611,3 +11625,25 @@ def _log_access_bad_names(model):
     if loading_log_access():
         return []
     return list(LOG_ACCESS_COLUMNS)
+
+
+def _inherits_delegation(model, field):
+    """``(clave, padre)`` si ``field`` es de un padre de ``_inherits``.
+
+    Devuelve la clave de delegación del modelo hacia el padre dueño del
+    campo, o ``None`` si el campo es del propio modelo. Diseño:
+    ``scripts/workbench/orm-continuation-plan-20261103T095630/designs/
+    order-by-inherited-field.md``.
+    """
+    owner = getattr(field, 'model', None)
+    if owner is None or owner is model or issubclass(model, owner):
+        return None
+    for fk_name in (getattr(model, '_inherits', None) or {}).values():
+        try:
+            fk = model._meta.get_field(fk_name)
+        except FieldDoesNotExist:
+            continue
+        parent = fk.related_model
+        if parent is owner or issubclass(parent, owner):
+            return fk.name, parent
+    return None

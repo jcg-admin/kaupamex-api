@@ -45,6 +45,7 @@ from addons.product.models.product_template import (
     TYPE_COMBO,
     TYPE_SERVICE,
 )
+from orm.commands import Command
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -290,12 +291,14 @@ class TestProductProduct:
         line = ProductTemplateAttributeLine.objects.create(
             product_tmpl_id=tmpl, attribute_id=color
         )
-        line.value_ids.set([rojo])
+        line.write({'value_ids': [Command.set([rojo.id])]})
         ptav = ProductTemplateAttributeValue.objects.create(
             attribute_line_id=line, product_attribute_value_id=rojo
         )
         variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
-        variante.product_template_attribute_value_ids.set([ptav])
+        variante.write({
+            'product_template_attribute_value_ids': [Command.set([ptav.id])],
+        })
         variante.refresh_combination_indices()
         assert variante.combination_indices == str(ptav.pk)
 
@@ -310,13 +313,15 @@ class TestProductProduct:
         line = ProductTemplateAttributeLine.objects.create(
             product_tmpl_id=tmpl, attribute_id=color
         )
-        line.value_ids.set([dorado])
+        line.write({'value_ids': [Command.set([dorado.id])]})
         ptav = ProductTemplateAttributeValue.objects.create(
             attribute_line_id=line, product_attribute_value_id=dorado,
             price_extra=Decimal('30.00'),
         )
         variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
-        variante.product_template_attribute_value_ids.set([ptav])
+        variante.write({
+            'product_template_attribute_value_ids': [Command.set([ptav.id])],
+        })
         assert variante.list_price == Decimal('100.00')
         assert variante.price_extra == Decimal('30.00')
         assert variante.lst_price == Decimal('130.00')
@@ -335,12 +340,14 @@ class TestProductProduct:
         line = ProductTemplateAttributeLine.objects.create(
             product_tmpl_id=tmpl, attribute_id=color
         )
-        line.value_ids.set([rojo])
+        line.write({'value_ids': [Command.set([rojo.id])]})
         ptav = ProductTemplateAttributeValue.objects.create(
             attribute_line_id=line, product_attribute_value_id=rojo
         )
         variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
-        variante.product_template_attribute_value_ids.set([ptav])
+        variante.write({
+            'product_template_attribute_value_ids': [Command.set([ptav.id])],
+        })
         assert variante.display_name == 'Eleke (Rojo)'
 
     def test_clean_permite_combo_con_variante(self):

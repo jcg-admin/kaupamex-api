@@ -35,7 +35,7 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class ProductTemplateAttributeValue(TimeStampedModel):
+class ProductTemplateAttributeValue(models.BaseModel, TimeStampedModel):
     """
     ``product.template.attribute.value`` — valor por-producto con price_extra.
     """

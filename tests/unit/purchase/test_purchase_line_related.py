@@ -64,7 +64,7 @@ def test_the_product_and_company_fields_reach_the_line(order):
     assert line.tax_calculation_rounding_method == (
         order.company_id.tax_calculation_rounding_method)
     assert list(line.product_template_attribute_value_ids) == list(
-        product.product_template_attribute_value_ids.all())
+        product.product_template_attribute_value_ids)
 
 
 def test_the_related_fields_have_no_column():

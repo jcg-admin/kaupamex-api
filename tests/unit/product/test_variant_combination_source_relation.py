@@ -14,6 +14,7 @@ import pytest
 from addons.product.models import (
     ProductAttribute, ProductAttributeValue, ProductProduct, ProductTemplate,
     ProductTemplateAttributeLine, ProductTemplateAttributeValue)
+from orm.commands import Command
 
 pytestmark = pytest.mark.django_db
 
@@ -37,5 +38,7 @@ def test_a_value_reaches_the_variants_that_use_it():
     ptav = ProductTemplateAttributeValue.objects.create(
         attribute_line_id=line, product_attribute_value_id=red)
     variant = ProductProduct.objects.create(product_tmpl_id=template)
-    variant.product_template_attribute_value_ids.add(ptav)
-    assert list(ptav.ptav_product_variant_ids.all()) == [variant]
+    variant.write({
+        'product_template_attribute_value_ids': [Command.link(ptav.id)],
+    })
+    assert list(ptav.ptav_product_variant_ids) == [variant]

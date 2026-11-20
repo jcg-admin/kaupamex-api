@@ -21,6 +21,7 @@ from orm.environments import company_scope, sudo
 from orm.migration_operations import ComputeStoredFields
 from orm.registry import MODELS_BY_NAME
 from tests.factories.product_factory import make_product
+from orm.commands import Command
 
 pytestmark = pytest.mark.django_db
 LINE = 'purchase.order.line'
@@ -152,7 +153,7 @@ def test_compute_tax_id_maps_supplier_taxes_through_the_position(
         name='IVA compra P5', amount=16, type_tax_use='purchase',
         company=company)
     product = _product(unit, name='Insumo impuesto P5')
-    product.product_tmpl_id.supplier_taxes.set([tax])
+    product.product_tmpl_id.write({'supplier_taxes': [Command.set([tax.id])]})
     order = _order(company, vendor)
     line = _line(order, product, price_unit=Decimal('1'))
     line._compute_tax_id()

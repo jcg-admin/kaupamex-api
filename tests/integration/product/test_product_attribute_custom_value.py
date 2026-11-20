@@ -34,6 +34,7 @@ from addons.product.models import (
     ProductTemplateAttributeLine,
     ProductTemplateAttributeValue,
 )
+from orm.commands import Command
 
 pytestmark = pytest.mark.django_db
 
@@ -49,7 +50,7 @@ def attribute_value():
     line = ProductTemplateAttributeLine.objects.create(
         product_tmpl_id=template, attribute_id=attribute, sequence=10
     )
-    line.value_ids.set([value])
+    line.write({'value_ids': [Command.set([record.id for record in [value]])]})
     return ProductTemplateAttributeValue.objects.create(
         attribute_line_id=line, product_attribute_value_id=value
     )

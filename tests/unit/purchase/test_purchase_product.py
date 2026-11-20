@@ -231,19 +231,21 @@ def _user(*xmlids):
 def test_the_bill_line_shows_the_product_warning_with_the_group():
     template = _product('Avisado PP').product_tmpl_id
     template.write({'purchase_line_warn_msg': 'Revisar lote'})
-    line = _bill_line(template.product_variant_ids.first())
+    line = _bill_line(template.product_variant_ids[:1])
     user = _user('purchase.group_warning_purchase')
-    with Environment('default', user.pk, {}):
-        assert line.purchase_line_warn_msg == 'Revisar lote'
+    # ``with_user`` fija ``env.user``, que decide el grupo; ``sudo`` deja
+    # fuera la ACL de la línea, que esta prueba no mide.
+    assert line.with_user(user).sudo().purchase_line_warn_msg == 'Revisar lote'
 
 
 def test_without_the_group_the_warning_is_empty():
     template = _product('Sin aviso PP').product_tmpl_id
     template.write({'purchase_line_warn_msg': 'Revisar lote'})
-    line = _bill_line(template.product_variant_ids.first())
+    line = _bill_line(template.product_variant_ids[:1])
     user = _user()
-    with Environment('default', user.pk, {}):
-        assert line.purchase_line_warn_msg == ''
+    # ``with_user`` fija ``env.user``, que decide el grupo; ``sudo`` deja
+    # fuera la ACL de la línea, que esta prueba no mide.
+    assert line.with_user(user).sudo().purchase_line_warn_msg == ''
 
 
 # --- migraciones sobre filas existentes -----------------------------------

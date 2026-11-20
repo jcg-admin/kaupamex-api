@@ -232,11 +232,11 @@ def _inherit_company_default_taxes(sender, instance, created, **kwargs):
         ('supplier_taxes', 'account_purchase_tax'),
     ):
         relation = getattr(instance, field_name, None)
-        if relation is None or relation.exists():
+        if relation is None or relation:
             continue
         tax = getattr(company, default_attr, None)
         if tax is not None:
-            relation.add(tax)
+            instance.write({field_name: [fields.Command.link(tax.id)]})
 
 
 def apply_account_extensions():

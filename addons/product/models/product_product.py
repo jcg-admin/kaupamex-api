@@ -115,7 +115,7 @@ from tools.float_utils import float_compare
 COMBINATION_SEPARATOR = ','
 
 
-class ProductProduct(TimeStampedModel):
+class ProductProduct(models.BaseModel, TimeStampedModel):
     """``product.product`` — una combinación concreta de la ficha."""
 
     #: Los atributos de clase de la fuente
@@ -358,7 +358,7 @@ class ProductProduct(TimeStampedModel):
     def refresh_combination_indices(self):
         """``_compute_combination_indices`` — recalcula desde los valores."""
         self.combination_indices = self.build_combination_indices(
-            self.product_template_attribute_value_ids.all()
+            self.product_template_attribute_value_ids
         )
         return self.combination_indices
 
@@ -382,7 +382,7 @@ class ProductProduct(TimeStampedModel):
         base = self.product_tmpl_id.name
         parts = [
             str(value)
-            for value in self.product_template_attribute_value_ids.all()
+            for value in self.product_template_attribute_value_ids
             if getattr(value, 'is_distinguishing', True)
         ]
         self.display_name = f'{base} ({", ".join(parts)})' if parts else base
@@ -399,7 +399,7 @@ class ProductProduct(TimeStampedModel):
         """
         return sum(
             (getattr(value, 'price_extra', 0) or 0)
-            for value in self.product_template_attribute_value_ids.all()
+            for value in self.product_template_attribute_value_ids
         )
 
     @property

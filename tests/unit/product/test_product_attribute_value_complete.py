@@ -23,6 +23,7 @@ from addons.product.models import (
 )
 from exceptions import UserError
 from orm.models import BaseModel
+from orm.commands import Command
 
 pytestmark = pytest.mark.django_db
 
@@ -48,7 +49,7 @@ def _used(value, template_name='Playera'):
     template = ProductTemplate.objects.create(name=template_name)
     line = ProductTemplateAttributeLine.objects.create(
         product_tmpl_id=template, attribute_id=value.attribute_id)
-    line.value_ids.set([value])
+    line.write({'value_ids': [Command.set([record.id for record in [value]])]})
     ptav = ProductTemplateAttributeValue.objects.create(
         attribute_line_id=line, product_attribute_value_id=value)
     return template, ptav
@@ -95,7 +96,9 @@ def test_a_value_used_only_by_archived_variants_is_archived(
     template.save()
     variant = ProductProduct.objects.create(product_tmpl_id=template,
                                             active=False)
-    variant.product_template_attribute_value_ids.set([ptav])
+    variant.write({
+        'product_template_attribute_value_ids': [Command.set([ptav.id])],
+    })
     value = superuser_env['product.attribute.value'].browse(red.pk)
     value.unlink()
     assert value.exists()

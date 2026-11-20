@@ -16,7 +16,7 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class ProductTemplateAttributeLine(TimeStampedModel):
+class ProductTemplateAttributeLine(models.BaseModel, TimeStampedModel):
     """
     ``product.template.attribute.line`` — atributo aplicado a un producto.
     """

@@ -31,6 +31,7 @@ from addons.product.models import (
 from addons.stock.models import StockLocation, StockQuant
 from addons.stock.services import InsufficientStockError, InventoryService
 from tests.factories.product_factory import get_stock, make_product
+from orm.commands import Command
 
 pytestmark = pytest.mark.integration
 
@@ -50,7 +51,7 @@ def _line(product_tmpl, attr, values, sequence=10):
     line = ProductTemplateAttributeLine.objects.create(
         product_tmpl_id=product_tmpl, attribute_id=attr, sequence=sequence
     )
-    line.value_ids.set(values)
+    line.write({'value_ids': [Command.set([record.id for record in values])]})
     return line
 
 
@@ -93,7 +94,7 @@ class TestCartesianCombinations:
         _line(tmpl_a, color, valores)
         _line(tmpl_b, color, [valores[0]])
         assert color.attribute_line_ids.count() == 2
-        assert valores[0].pav_attribute_line_ids.count() == 2
+        assert len(valores[0].pav_attribute_line_ids) == 2
 
 
 # =============================================================================

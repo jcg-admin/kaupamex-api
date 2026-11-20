@@ -29,11 +29,26 @@ from addons.website_sale_wishlist.controllers.serializers import (
 )
 
 
-def slug_of(name, pk=42):
+pytestmark = pytest.mark.django_db
+
+
+def _as_42(slug, record):
+    """El slug con el identificador real sustituido por ``42``.
+
+    ``product.template`` es ``BaseModel``: su ``display_name`` sale del
+    entorno, y un registro sin fila no tiene qué leer. La prueba crea uno
+    real, como un caso de la fuente, y normaliza el sufijo para conservar
+    las cadenas esperadas, que es lo que mide.
+    """
+    suffix = str(record.pk)
+    assert slug.endswith(suffix)
+    return slug[:-len(suffix)] + '42'
+
+
+def slug_of(name):
     """El slug que el serializer del escaparate produce para ese nombre."""
-    product = ProductTemplate(name=name)
-    product.pk = pk
-    return ProductListSerializer().get_slug(product)
+    product = ProductTemplate.objects.create(name=name)
+    return _as_42(ProductListSerializer().get_slug(product), product)
 
 
 class TestTheSlugKeepsWhatDjangoWouldDrop:
@@ -82,8 +97,7 @@ class TestTheTwoSerializersAgreeOnTheSameName:
         'name', ['手工皂', 'Café Orgánico', 'Camisa Azul']
     )
     def test_the_showcase_slug_starts_with_the_wishlist_one(self, name):
-        variant = ProductTemplate(name=name)
-        variant.pk = 42
+        variant = ProductTemplate.objects.create(name=name)
         wishlist = WishlistProductNestedSerializer().get_slug(variant)
         assert slug_of(name) == f'{wishlist}-42'
 

@@ -25,6 +25,7 @@ from django.db.models import ProtectedError
 from addons.account.models import AccountTax
 from addons.base.models import ResCompany
 from addons.product.models import ProductTemplate
+from orm.commands import Command
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -73,7 +74,7 @@ class TestProductInheritsCompanyTax:
         product = ProductTemplate.objects.create(
             name='Eleke', company_id=company)
 
-        assert list(product.taxes.all()) == [sale_tax]
+        assert list(product.taxes) == [sale_tax]
 
     def test_without_company_default_product_has_no_taxes(self, company):
         """La contraprueba: el receptor no inventa un impuesto.
@@ -85,7 +86,7 @@ class TestProductInheritsCompanyTax:
         """
         product = ProductTemplate.objects.create(
             name='Eleke', company_id=company)
-        assert list(product.taxes.all()) == []
+        assert list(product.taxes) == []
 
     def test_does_not_override_declared_taxes(self, company, sale_tax):
         """
@@ -103,11 +104,10 @@ class TestProductInheritsCompanyTax:
 
         product = ProductTemplate.objects.create(
             name='Eleke', company_id=company)
-        product.taxes.set([other_tax])
-        product.save()
+        product.write({'taxes': [Command.set([other_tax.id])]})
         product.refresh_from_db()
 
-        assert list(product.taxes.all()) == [other_tax]
+        assert list(product.taxes) == [other_tax]
 
     def test_later_edit_does_not_restore_default(self, company, sale_tax):
         """
@@ -120,14 +120,14 @@ class TestProductInheritsCompanyTax:
         company.save(update_fields=['account_sale_tax'])
         product = ProductTemplate.objects.create(
             name='Eleke', company_id=company)
-        assert list(product.taxes.all()) == [sale_tax]
+        assert list(product.taxes) == [sale_tax]
 
-        product.taxes.clear()
+        product.write({'taxes': [Command.clear()]})
         product.name = 'Eleke de Yemayá'
         product.save()
         product.refresh_from_db()
 
-        assert list(product.taxes.all()) == []
+        assert list(product.taxes) == []
 
     def test_product_without_company_does_not_crash(self, company, sale_tax):
         """``company`` es opcional en nuestro ``ProductTemplate``.
@@ -138,4 +138,4 @@ class TestProductInheritsCompanyTax:
         company.account_sale_tax = sale_tax
         company.save(update_fields=['account_sale_tax'])
         product = ProductTemplate.objects.create(name='Sin empresa')
-        assert list(product.taxes.all()) == []
+        assert list(product.taxes) == []

@@ -24,7 +24,7 @@ def sync_template_values(line):
     nuevo).
     """
     created = []
-    for value in line.value_ids.all():
+    for value in line.value_ids:
         ptav, was_created = (
             ProductTemplateAttributeValue.objects.get_or_create(
                 attribute_line_id=line,
@@ -52,13 +52,15 @@ def combinations(template):
     ``sequence``).
     Sin líneas → una combinación vacía (la ficha sin variantes).
     """
-    lines = list(template.attribute_lines.order_by('sequence', 'id'))
+    lines = list(template.attribute_lines.sorted(
+        lambda line: (line.sequence, line.id)))
     per_line = []
     for line in lines:
-        ptavs = list(line.product_template_value_ids.order_by('id'))
+        ptavs = list(line.product_template_value_ids.sorted('id'))
         if not ptavs:
             sync_template_values(line)
-            ptavs = list(line.product_template_value_ids.order_by('id'))
+            line.invalidate_recordset(['product_template_value_ids'])
+            ptavs = list(line.product_template_value_ids.sorted('id'))
         if ptavs:
             per_line.append(ptavs)
     if not per_line:
@@ -92,8 +94,8 @@ def combination_count(template) -> int:
     """
     count = 1
     has_line = False
-    for line in template.attribute_lines.all():
-        n = line.product_template_value_ids.count() or line.value_ids.count()
+    for line in template.attribute_lines:
+        n = len(line.product_template_value_ids) or len(line.value_ids)
         if n:
             has_line = True
             count *= n

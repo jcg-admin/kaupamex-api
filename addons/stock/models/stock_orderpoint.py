@@ -835,7 +835,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         por_calcular, resto = [], []
         for orderpoint in orderpoints:
             uom = orderpoint.product_uom
-            redondeo = uom.rounding if uom is not None else 0.01
+            redondeo = uom.rounding if uom else 0.01
             if (
                 orderpoint.pk
                 and float_compare(
@@ -1226,7 +1226,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
             )
 
         uom = self.product_uom
-        redondeo = uom.rounding if uom is not None else 0.01
+        redondeo = uom.rounding if uom else 0.01
         if (
             float_compare(
                 self.qty_forecast,

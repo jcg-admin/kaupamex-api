@@ -13,15 +13,6 @@ recordset.
 Divergencia declarada: ``name`` no lleva ``translate=True``; el
 almacenamiento jsonb de los campos traducibles es TASK-GEN-0060.
 
-Divergencia de mecanismo declarada: los tres comodelos que los métodos
-recorren —``product.template.attribute.line``,
-``product.template.attribute.value`` y ``product.product``— aún derivan de
-``TimeStampedModel``, así que ``env[...]`` devuelve su clase de Django y sus
-filas se leen por su manager (el dominio de la fuente, compilado con
-``orm.domains.to_q``). La lógica y el orden de cada método son los de la
-fuente; el sucesor que los lleva a ``BaseModel`` es
-``basemodel-adoption-product-chain-0397``.
-
 Diseño: ``scripts/workbench/orm-continuation-plan-20261103T095630/designs/
 product-attribute-value-complete.md``.
 """
@@ -33,7 +24,6 @@ import fields
 import models
 from addons.base.models import TimeStampedModel
 from exceptions import UserError
-from orm.domains import to_q
 from tools.translate import _
 
 
@@ -135,30 +125,25 @@ class ProductAttributeValue(models.BaseModel, TimeStampedModel):
     @api.depends('pav_attribute_line_ids')
     def _compute_is_used_on_products(self):
         for pav in self:
-            pav.is_used_on_products = pav.pav_attribute_line_ids.filter(
-                product_tmpl_id__active=True).exists()
+            pav.is_used_on_products = bool(
+                pav.pav_attribute_line_ids.filtered('product_tmpl_id.active'))
 
     @api.depends('default_extra_price')
     def _compute_default_extra_price_changed(self):
-        templates = self.env['product.template']
-        company_domain = templates._check_company_domain(self.env.companies)
-        # `sudo` required to know which products we lack access to: the
-        # manager of a Django model reads without the ACL. The PTAV
-        # ``product_tmpl_id`` of the source is a stored related of its line,
-        # not yet ported (successor of ``ptav-source-names.md``); until then
-        # the template is reached through ``attribute_line_id``.
-        ptavs_by_pav = {}
-        allowed_templates = templates.objects.filter(
-            to_q(company_domain, model=templates))
-        values = self.env['product.template.attribute.value'].objects
-        for ptav in values.filter(
-                product_attribute_value_id__in=self.ids,
-                attribute_line_id__product_tmpl_id__in=allowed_templates,
-        ).only('price_extra', 'product_attribute_value_id'):
-            ptavs_by_pav.setdefault(
-                ptav.product_attribute_value_id_id, []).append(ptav)
+        company_domain = self.env['product.template']._check_company_domain(
+            self.env.companies)
+        # `sudo` required to know which products we lack access to
+        ptavs_by_pav = self.env['product.template.attribute.value'].sudo(
+        ).search_fetch([
+            ('product_attribute_value_id', 'in', self.ids),
+            # ``product_tmpl_id`` de PTAV es un related almacenado de su
+            # línea aún sin portar (``ptav-complete-0122``): se llega a la
+            # plantilla por la línea.
+            ('attribute_line_id.product_tmpl_id', 'any', company_domain),
+        ], ['price_extra', 'product_attribute_value_id']).grouped(
+            'product_attribute_value_id')
         for pav in self:
-            ptavs = ptavs_by_pav.get(pav.id, [])
+            ptavs = ptavs_by_pav.get(pav, [])
             pav.default_extra_price_changed = (
                 pav.default_extra_price != pav._origin.default_extra_price
                 or any(pav.default_extra_price != ptav.price_extra
@@ -177,7 +162,9 @@ class ProductAttributeValue(models.BaseModel, TimeStampedModel):
                         " %(value)s because it is used on the following"
                         " products: %(products)s",
                         value=pav.display_name,
-                        products=", ".join(pav._used_template_names()),
+                        products=", ".join(
+                            pav.pav_attribute_line_ids.product_tmpl_id.mapped(
+                                'display_name')),
                     ))
 
         invalidate = 'sequence' in vals and any(
@@ -196,21 +183,11 @@ class ProductAttributeValue(models.BaseModel, TimeStampedModel):
                 "You cannot delete the value %(value)s because it is used on"
                 " the following products:\n%(products)s\n",
                 value=pav.display_name,
-                products=", ".join(pav._used_template_names()),
+                products=", ".join(
+                    pav.pav_attribute_line_ids.product_tmpl_id.mapped(
+                        'display_name')),
             )
         return False
-
-    def _used_template_names(self):
-        """``pav_attribute_line_ids.product_tmpl_id.mapped('display_name')``
-        de la fuente: los nombres sin repetir, en el orden de las líneas."""
-        self.ensure_one()
-        names = []
-        for line in self.pav_attribute_line_ids.select_related(
-                'product_tmpl_id'):
-            name = line.product_tmpl_id.display_name
-            if name not in names:
-                names.append(name)
-        return names
 
     @api.ondelete(at_uninstall=False)
     def _unlink_except_used_on_product(self):
@@ -220,15 +197,12 @@ class ProductAttributeValue(models.BaseModel, TimeStampedModel):
     def unlink(self):
         pavs_to_archive = self.env['product.attribute.value']
         for pav in self:
-            # ``search(...).with_context(active_test=False)
-            # .ptav_product_variant_ids``: every variant, archived ones too.
-            linked_products = pav.env['product.product'].objects.filter(**{
-                'product_template_attribute_value_ids__'
-                'product_attribute_value_id': pav.id,
-            }).distinct()
-            active_linked_products = linked_products.filter(active=True)
-            if (not active_linked_products.exists()
-                    and linked_products.exists()):
+            linked_products = pav.env[
+                'product.template.attribute.value'].search(
+                [('product_attribute_value_id', '=', pav.id)]
+            ).with_context(active_test=False).ptav_product_variant_ids
+            active_linked_products = linked_products.filtered('active')
+            if not active_linked_products and linked_products:
                 # If product attribute value found on non-active product
                 # variants archive PAV instead of deleting
                 pavs_to_archive |= pav

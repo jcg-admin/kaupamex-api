@@ -19,6 +19,7 @@ from addons.product.models import (
     ProductTemplateAttributeValue,
 )
 from tests.factories.product_factory import make_product
+from orm.commands import Command
 
 pytestmark = pytest.mark.integration
 
@@ -52,7 +53,7 @@ def _line(product, attr, values, sequence=10):
         attribute_id=attr,
         sequence=sequence,
     )
-    line.value_ids.set(values)
+    line.write({'value_ids': [Command.set([record.id for record in values])]})
     return line
 
 
@@ -64,7 +65,7 @@ def test_attribute_is_reusable_across_products(db):
     _line(pb, color, [red])
     # El mismo atributo Color se usa en dos productos distintos.
     assert color.attribute_line_ids.count() == 2
-    assert red.pav_attribute_line_ids.count() == 2
+    assert len(red.pav_attribute_line_ids) == 2
 
 
 def test_sync_creates_template_values(db):
@@ -72,10 +73,10 @@ def test_sync_creates_template_values(db):
     product = _product()
     line = _line(product, color, [red, blue])
     pa_services.sync_template_values(line)
-    assert line.product_template_value_ids.count() == 2
+    assert len(line.product_template_value_ids) == 2
     # Idempotente: no duplica.
     pa_services.sync_template_values(line)
-    assert line.product_template_value_ids.count() == 2
+    assert len(line.product_template_value_ids) == 2
 
 
 def test_cartesian_combinations(db):

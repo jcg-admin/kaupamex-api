@@ -18,6 +18,8 @@ from addons.product.models import (
     ProductAttribute, ProductAttributeValue, ProductProduct, ProductTemplate,
     ProductTemplateAttributeLine, ProductTemplateAttributeValue)
 from orm.commands import Command
+from orm.environments import Environment
+from orm.utils import SUPERUSER_ID
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 
@@ -51,15 +53,20 @@ def test_11_ondelete_many2many(env):
 def test_a_value_used_by_a_variant_is_not_deleted():
     """``product_template_attribute_value_ids`` es ``restrict``
     (``odoo19c: addons/product/models/product_product.py:49``)."""
-    attribute = ProductAttribute.objects.create(name='Color m2mo')
-    red = ProductAttributeValue.objects.create(attribute_id=attribute,
-                                               name='Rojo m2mo')
-    template = ProductTemplate.objects.create(name='Taza m2mo')
-    line = ProductTemplateAttributeLine.objects.create(
-        product_tmpl_id=template, attribute_id=attribute)
-    ptav = ProductTemplateAttributeValue.objects.create(
-        attribute_line_id=line, product_attribute_value_id=red)
-    variant = ProductProduct.objects.create(product_tmpl_id=template)
-    variant.product_template_attribute_value_ids.add(ptav)
-    with pytest.raises(ProtectedError):
-        ptav.delete()
+    # Los modelos del producto aplican la ACL: corre como superusuario,
+    # el ``TransactionCase`` de la fuente.
+    with Environment(None, SUPERUSER_ID, {}):
+        attribute = ProductAttribute.objects.create(name='Color m2mo')
+        red = ProductAttributeValue.objects.create(attribute_id=attribute,
+                                                   name='Rojo m2mo')
+        template = ProductTemplate.objects.create(name='Taza m2mo')
+        line = ProductTemplateAttributeLine.objects.create(
+            product_tmpl_id=template, attribute_id=attribute)
+        ptav = ProductTemplateAttributeValue.objects.create(
+            attribute_line_id=line, product_attribute_value_id=red)
+        variant = ProductProduct.objects.create(product_tmpl_id=template)
+        variant.write({
+            'product_template_attribute_value_ids': [Command.link(ptav.id)],
+        })
+        with pytest.raises(ProtectedError):
+            ptav.delete()

@@ -73,8 +73,7 @@ import models
 from django.utils import timezone
 from exceptions import UserError
 from orm.environments import (
-    company_scope, get_current_company, get_current_uid, get_current_user,
-    sudo)
+    company_scope, get_current_company, get_current_uid, get_current_user)
 from tools.translate import _
 
 from addons.account.models.account_document_import_mixin import (
@@ -555,9 +554,12 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
                 supplierinfo['product_name'] = selected.product_name
                 supplierinfo['product_code'] = selected.product_code
                 supplierinfo['product_uom_id'] = line.product_uom_id
-            with sudo():
-                template.write(
-                    {'seller_ids': [fields.Command.create(supplierinfo)]})
+            # ≙ ``product_tmpl_id.sudo().write(vals)``
+            # (``odoo19c: addons/purchase/models/purchase_order.py:708``): la
+            # elevación va en el registro, porque ``write`` entra en el
+            # entorno del registro y anula un ``sudo()`` del ambiente.
+            template.sudo().write(
+                {'seller_ids': [fields.Command.create(supplierinfo)]})
 
     def button_cancel(self):
         """≙ ``button_cancel`` (``odoo19c: :641-649``)."""

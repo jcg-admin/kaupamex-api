@@ -14,6 +14,7 @@ from addons.product.models import (
     ProductTemplateAttributeValue,
 )
 from orm.environments import transaction_scope
+from orm.commands import Command
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 
@@ -39,14 +40,16 @@ def values(variant):
         product_tmpl_id=variant.product_tmpl_id,
         attribute_id=attribute,
     )
-    line.value_ids.set([red, blue])
+    line.write({'value_ids': [Command.set([red.id, blue.id])]})
     red_value = ProductTemplateAttributeValue.objects.create(
         attribute_line_id=line, product_attribute_value_id=red
     )
     blue_value = ProductTemplateAttributeValue.objects.create(
         attribute_line_id=line, product_attribute_value_id=blue
     )
-    variant.product_template_attribute_value_ids.add(red_value)
+    variant.write({
+        'product_template_attribute_value_ids': [Command.link(red_value.id)],
+    })
     return red, red_value, blue_value
 
 
@@ -76,9 +79,15 @@ def test_relation_change_invalidates_variant_label(variant, values):
     _, _, blue_value = values
     with transaction_scope():
         assert variant.display_name == 'Camiseta (Rojo)'
-        variant.product_template_attribute_value_ids.add(blue_value)
+        variant.write({
+            'product_template_attribute_value_ids': [
+                Command.link(blue_value.id),
+            ],
+        })
         assert variant.display_name == 'Camiseta (Rojo, Azul)'
-        variant.product_template_attribute_value_ids.clear()
+        variant.write({
+            'product_template_attribute_value_ids': [Command.clear()],
+        })
         assert variant.display_name == 'Camiseta'
 
 
@@ -106,7 +115,9 @@ def test_reverse_add_invalidates_the_owning_variant(variant, values):
     _, _, blue_value = values
     with transaction_scope():
         assert variant.display_name == 'Camiseta (Rojo)'
-        blue_value.ptav_product_variant_ids.add(variant)
+        blue_value.write({
+            'ptav_product_variant_ids': [Command.link(variant.id)],
+        })
         assert variant.display_name == 'Camiseta (Rojo, Azul)'
 
 
@@ -118,13 +129,16 @@ def test_reverse_remove_and_clear_invalidate_previous_owners(variant, values):
     other = ProductProduct.objects.create(
         product_tmpl_id=variant.product_tmpl_id, active=False
     )
-    other.product_template_attribute_value_ids.add(red_value)
+    other.write({
+        'product_template_attribute_value_ids': [Command.link(red_value.id)],
+    })
     with transaction_scope():
         assert variant.display_name == other.display_name == 'Camiseta (Rojo)'
-        red_value.ptav_product_variant_ids.remove(variant)
+        red_value.write(
+            {'ptav_product_variant_ids': [Command.unlink(variant.id)]})
         assert variant.display_name == 'Camiseta'
         assert other.display_name == 'Camiseta (Rojo)'
-        red_value.ptav_product_variant_ids.clear()
+        red_value.write({'ptav_product_variant_ids': [Command.clear()]})
         assert other.display_name == 'Camiseta'
 
 
@@ -132,7 +146,11 @@ def test_set_replacement_invalidates_the_previous_combination(variant, values):
     _, _, blue_value = values
     with transaction_scope():
         assert variant.display_name == 'Camiseta (Rojo)'
-        variant.product_template_attribute_value_ids.set([blue_value])
+        variant.write({
+            'product_template_attribute_value_ids': [
+                Command.set([blue_value.id]),
+            ],
+        })
         assert variant.display_name == 'Camiseta (Azul)'
 
 
@@ -159,7 +177,11 @@ def test_unrelated_cached_variant_is_not_recomputed(
         assert variant.display_name == 'Camiseta (Rojo)'
         assert other.display_name == 'Camiseta'
         computed.clear()
-        variant.product_template_attribute_value_ids.add(blue_value)
+        variant.write({
+            'product_template_attribute_value_ids': [
+                Command.link(blue_value.id),
+            ],
+        })
         assert other.display_name == 'Camiseta'
         assert other.pk not in computed
 

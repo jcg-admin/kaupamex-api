@@ -28,6 +28,13 @@ from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.django_db
 
+
+@pytest.fixture
+def superuser_env():
+    """Estas pruebas miden la ACL: no corren como superusuario."""
+    yield None
+
+
 SOURCE = pathlib.Path('/home/user/odoo-tools/19.x/odoo-19.0/odoo-19.0/'
                       'odoo-19.0/addons/purchase/security')
 PORT = pathlib.Path(__file__).resolve().parents[3] / 'addons/purchase/security'

@@ -37,7 +37,10 @@ def test_the_order_follows_the_template_name():
 @pytest.mark.django_db
 def test_the_environment_resolves_the_model_by_its_name():
     with Environment(None, SUPERUSER_ID, {}) as env:
-        assert env['product.product'] is ProductProduct
+        # ``env[name]`` es el conjunto vacío de la clase, como en la fuente
+        # (``odoo19c: odoo/orm/environments.py``, ``__getitem__``).
+        records = env['product.product']
+        assert type(records) is ProductProduct and not records
 
 
 @pytest.mark.django_db

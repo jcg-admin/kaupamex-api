@@ -41,6 +41,8 @@ from addons.base.models.ir_actions_report import (
 )
 from addons.sale.models.sale_order_line import SaleOrderLine
 from addons.sale_stock.models.sale_order import SaleOrderDelivery
+from orm.environments import Environment
+from orm.utils import SUPERUSER_ID
 from tests.factories.order_factory import make_order
 from tests.factories.product_factory import make_product
 
@@ -280,15 +282,18 @@ class TestDespacho:
         serializan en Python, así que su cadena está completa sin compilar
         nada.
         """
-        reporte_orden.report_type = 'html'
-        reporte_orden.save()
-        html, etiqueta_html = IrActionsReport._render(
-            reporte_orden, [orden_con_lineas.pk])
+        # Como superusuario (≙ ``TransactionCase``): el pedido lee sus
+        # productos, que son ``BaseModel`` y pasan por la ACL.
+        with Environment(None, SUPERUSER_ID, {}):
+            reporte_orden.report_type = 'html'
+            reporte_orden.save()
+            html, etiqueta_html = IrActionsReport._render(
+                reporte_orden, [orden_con_lineas.pk])
 
-        reporte_orden.report_type = 'text'
-        reporte_orden.save()
-        texto, etiqueta_texto = IrActionsReport._render(
-            reporte_orden, [orden_con_lineas.pk])
+            reporte_orden.report_type = 'text'
+            reporte_orden.save()
+            texto, etiqueta_texto = IrActionsReport._render(
+                reporte_orden, [orden_con_lineas.pk])
 
         assert (etiqueta_html, etiqueta_texto) == ('html', 'text')
         assert isinstance(html, bytes) and isinstance(texto, bytes)

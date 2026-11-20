@@ -13,6 +13,8 @@ import pytest
 
 from addons.base.models import ResCompany
 from orm.environments import set_current_company
+from orm.environments import Environment
+from orm.utils import SUPERUSER_ID
 
 
 @pytest.fixture(autouse=True)
@@ -22,3 +24,14 @@ def active_company(db):
     set_current_company(company.pk)
     yield company
     set_current_company(None)
+
+
+@pytest.fixture(autouse=True)
+def superuser_env(db):
+    """≙ ``TransactionCase`` de la fuente, que construye su entorno con
+    ``SUPERUSER_ID``: los modelos de producto son ``BaseModel`` y leerlos
+    pasa por la ACL. Una prueba que mide la ACL redefine este fixture.
+    Precedente: ``tests/unit/fleet/conftest.py``."""
+    environment = Environment(None, SUPERUSER_ID, {})
+    with environment:
+        yield environment

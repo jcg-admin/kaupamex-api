@@ -23,6 +23,7 @@ from addons.product.models import (
 from orm.environments import env, sudo
 from orm.identifiers import NewId
 from tests.factories.product_factory import make_product
+from orm.commands import Command
 
 pytestmark = pytest.mark.django_db
 
@@ -123,7 +124,7 @@ def test_a_persisted_row_keeps_the_django_error():
         row.order_id
 
 
-def test_a_related_ending_on_a_django_many2many():
+def test_a_related_ending_on_a_many2many():
     attribute = ProductAttribute.objects.create(name='Color NewId')
     red = ProductAttributeValue.objects.create(attribute_id=attribute,
                                                name='Rojo')
@@ -132,17 +133,22 @@ def test_a_related_ending_on_a_django_many2many():
     variant = make_product(name='Camiseta NewId')
     line = ProductTemplateAttributeLine.objects.create(
         product_tmpl_id=variant.product_tmpl_id, attribute_id=attribute)
-    line.value_ids.set([red, blue])
+    line.write({'value_ids': [Command.set([red.id, blue.id])]})
     values = [ProductTemplateAttributeValue.objects.create(
         attribute_line_id=line, product_attribute_value_id=value)
         for value in (red, blue)]
-    variant.product_template_attribute_value_ids.set(values)
+    variant.write({
+        'product_template_attribute_value_ids': [
+            Command.set([record.id for record in values]),
+        ],
+    })
     record = env()['purchase.order.line'].new({'product_id': variant.pk})
+    # ``product.template.attribute.value`` es ``BaseModel``: el related lee
+    # el recordset de la variante, como en la fuente.
     read = record.product_template_attribute_value_ids
-    assert isinstance(read, QuerySet)
-    assert set(read) == set(values)
+    assert set(read.ids) == {value.id for value in values}
     empty = env()['purchase.order.line'].new({})
-    assert list(empty.product_template_attribute_value_ids) == []
+    assert not empty.product_template_attribute_value_ids
 
 
 def test_the_reported_consumers_read_on_new_records():

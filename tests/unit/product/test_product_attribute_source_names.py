@@ -15,6 +15,7 @@ import pytest
 from addons.product.models import (
     ProductAttribute, ProductAttributeValue, ProductTemplate,
     ProductTemplateAttributeLine)
+from orm.commands import Command
 
 pytestmark = pytest.mark.django_db
 
@@ -52,7 +53,7 @@ def test_a_line_carries_its_attribute_and_values():
     template = ProductTemplate.objects.create(name='Playera')
     line = ProductTemplateAttributeLine.objects.create(
         product_tmpl_id=template, attribute_id=color)
-    line.value_ids.set([red])
+    line.write({'value_ids': [Command.set([record.id for record in [red]])]})
     assert line.attribute_id == color
-    assert list(line.value_ids.all()) == [red]
+    assert list(line.value_ids) == [red]
     assert red.display_name == 'Color: Rojo'

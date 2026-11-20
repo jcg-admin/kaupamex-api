@@ -14,6 +14,7 @@ import pytest
 from addons.product.models import (
     ProductAttribute, ProductAttributeValue, ProductTemplate,
     ProductTemplateAttributeLine)
+from orm.commands import Command
 
 pytestmark = pytest.mark.django_db
 
@@ -35,6 +36,6 @@ def test_the_attribute_and_the_value_reach_their_lines():
     line = ProductTemplateAttributeLine.objects.create(
         product_tmpl_id=ProductTemplate.objects.create(name='Polo alsr'),
         attribute_id=attribute)
-    line.value_ids.set([small])
+    line.write({'value_ids': [Command.set([record.id for record in [small]])]})
     assert list(attribute.attribute_line_ids.all()) == [line]
-    assert list(small.pav_attribute_line_ids.all()) == [line]
+    assert list(small.pav_attribute_line_ids) == [line]

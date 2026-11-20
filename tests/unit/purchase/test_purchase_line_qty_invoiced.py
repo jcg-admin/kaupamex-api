@@ -18,7 +18,7 @@ from addons.account.models import (
     AccountJournal, AccountMove, AccountMoveLine, AccountTax)
 from addons.base.models import ResCompany, ResPartner
 from addons.uom.models import Uom
-from orm.environments import context_scope, sudo
+from orm.environments import sudo
 from orm.migration_operations import ComputeStoredFields
 from orm.registry import MODELS_BY_NAME
 from tests.factories.product_factory import make_product
@@ -143,9 +143,11 @@ def test_the_accrual_date_filters_the_bills(company):
     _bill(company, line, '2', invoice_date=today - datetime.timedelta(days=5))
     _bill(company, line, '3', invoice_date=today)
     accrual = (today - datetime.timedelta(days=1)).isoformat()
-    with context_scope(accrual_entry_date=accrual):
-        assert len(line._get_invoice_lines()) == 1
-        assert line.qty_invoiced_at_date == Decimal('2')
+    # El contexto viaja con el registro (``with_context``), como en la
+    # fuente: el entorno del registro manda sobre el ambiente.
+    dated = line.with_context(accrual_entry_date=accrual)
+    assert len(dated._get_invoice_lines()) == 1
+    assert dated.qty_invoiced_at_date == Decimal('2')
 
 
 def test_the_gross_price_unit(company):
@@ -225,11 +227,15 @@ def test_today_is_not_in_the_past_and_undated_bills_are_left_out(company):
     _bill(company, line, '3')
     line.flush_recordset()
     line.invalidate_recordset()
-    with context_scope(accrual_entry_date=today.isoformat()):
-        assert line.qty_invoiced_at_date == Decimal('5')
+    # El contexto viaja con el registro (``with_context``), como en la
+    # fuente: el entorno del registro manda sobre el ambiente.
+    dated = line.with_context(accrual_entry_date=today.isoformat())
+    assert dated.qty_invoiced_at_date == Decimal('5')
     past = (today - datetime.timedelta(days=1)).isoformat()
-    with context_scope(accrual_entry_date=past):
-        assert line.qty_invoiced_at_date == Decimal('2')
+    # El contexto viaja con el registro (``with_context``), como en la
+    # fuente: el entorno del registro manda sobre el ambiente.
+    dated = line.with_context(accrual_entry_date=past)
+    assert dated.qty_invoiced_at_date == Decimal('2')
 
 
 def test_get_invoice_lines_wants_one_line(company):

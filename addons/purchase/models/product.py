@@ -187,9 +187,7 @@ def _get_filtered_supplier(cls, previous, sellers, company_id, product_id,
 def _compute_purchase_line_warn_msg(self):
     """≙ ``_compute_purchase_line_warn_msg`` (``odoo19c: account_invoice.py:
     556-560``)."""
-    user = get_current_user()
-    has_group = bool(user) and user.has_group(
-        'purchase.group_warning_purchase')
+    has_group = self.env.user.has_group('purchase.group_warning_purchase')
     product = self.product_id
     self.purchase_line_warn_msg = (
         product.product_tmpl_id.purchase_line_warn_msg or ''

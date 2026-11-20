@@ -397,7 +397,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                 for seller in product.product_tmpl_id.seller_ids.all()
                 if seller.product_uom_id and seller.product_id_id in {
                     None, product.pk}]
-            units = [product.uom_id, *product.product_tmpl_id.uom_ids.all(),
+            units = [product.uom_id, *product.product_tmpl_id.uom_ids,
                      *seller_uoms]
             line.allowed_uom_ids = list(dict.fromkeys(
                 unit for unit in units if unit))
@@ -911,7 +911,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
         if product_lang.description_purchase:
             name += '\n' + product_lang.description_purchase
         for no_variant_attribute_value in (
-                self.product_no_variant_attribute_value_ids.all()):
+                self.product_no_variant_attribute_value_ids):
             name += ("\n" + no_variant_attribute_value.attribute_id.name
                      + ': ' + no_variant_attribute_value.name)
 

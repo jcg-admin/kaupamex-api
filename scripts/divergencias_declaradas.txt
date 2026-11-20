@@ -1231,6 +1231,11 @@ sales_team/models/crm_tag.py::CrmTag::_get_default_color
 # mismo `default=` en `color` (`odoo19c: product_attribute_value.py:16-17,42`).
 product/models/product_attribute_value.py::ProductAttributeValue::_get_default_color
 #
+# `_get_default_uom_id` de `product.template` es la misma divergencia de
+# mecanismo sobre el `default=` de `uom_id` (`odoo19c:
+# product_template.py:34-36,118-121`): a nivel de modulo y sin `self`.
+product/models/product_template.py::ProductTemplate::_get_default_uom_id
+#
 # ---- 13. `create` de `certificate` — DIVERGENCIA DE MECANISMO -----------
 #
 # Su gancho de alta; en Django es `save()` con `_state.adding`. Mismo motivo,
