@@ -556,7 +556,8 @@
   "basemodel-adoption-crm-0397",
   "basemodel-adoption-mass-mailing-0397",
   "product-model-headers-2-0122",
-  "product-attribute-fk-names-0122"
+  "product-attribute-fk-names-0122",
+  "product-category-header-0122"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
