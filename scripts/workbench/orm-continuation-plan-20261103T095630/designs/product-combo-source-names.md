@@ -55,3 +55,25 @@ Nombres y columnas; una opción toma la compañía de su elección al crearse;
 `check_combo_choices` rechaza una opción no vendible. Control de anulación:
 devolver la propagación de `save` a la forma anterior hace caer la prueba de
 compañía.
+
+## Símbolos que cambian
+
+- `ProductCombo.company_id`
+  (`odoo19c: addons/product/models/product_combo.py:14`),
+  `ProductComboItem.combo_id`, `ProductComboItem.product_id`,
+  `ProductComboItem.company_id`
+  (`odoo19c: addons/product/models/product_combo_item.py:12-14`);
+- `ProductComboItem.save`, `ProductComboItem.__str__`,
+  `ProductComboItem.lst_price`, `ProductComboItem.currency`,
+  `ProductComboItem.clean`, `ProductCombo.currency`, `ProductCombo.clean`,
+  `ProductTemplate.check_combo_choices`: cada uno lee el nombre de la
+  fuente; la conducta no cambia;
+- `Meta.ordering` de `ProductComboItem` pasa de `combo_id` a
+  `combo_id_id`: con el nombre del campo, `combo_id` ordenaría por el orden
+  del modelo relacionado y no por la columna;
+- la migración `0036_combo_source_names` (sin SQL en `sqlmigrate`).
+
+Pruebas: `tests/unit/product/test_product_combo_source_names.py`; las dos
+de `check_combo_choices` en `tests/unit/product/test_product_models.py`.
+Control de anulación: quitar la propagación de `ProductComboItem.save` hace
+caer exactamente la prueba de compañía heredada (1 failed, 5 passed).
