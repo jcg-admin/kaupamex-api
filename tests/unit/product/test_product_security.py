@@ -2,7 +2,7 @@
 
 ≙ ``odoo19c: addons/product/security/`` (``product_security.xml``: un
 privilegio, tres grupos y seis reglas de empresa; ``ir.model.access.csv``:
-38 filas, de las que 33 tienen modelo con XML-ID aquí),
+38 filas, de las que 35 tienen modelo con XML-ID aquí),
 ``odoo19c: addons/product/models/product_document.py:9-14`` (la cabecera
 de ``product.document``) y ``product_pricelist_item.py:31-32,170-183``
 (``company_id`` y ``currency_id``, que la regla de empresa necesita).
@@ -109,7 +109,7 @@ def test_the_manager_group_follows_the_source():
 
 def test_the_acl_and_rules_carry_their_external_ids():
     data = IrModelData.objects.filter(module='product')
-    assert data.filter(model='base.IrModelAccess').count() == 33
+    assert data.filter(model='base.IrModelAccess').count() == 35
     assert set(data.filter(model='base.IrRule').values_list(
         'name', flat=True)) == RULES
     assert data.filter(model='base.IrModel',

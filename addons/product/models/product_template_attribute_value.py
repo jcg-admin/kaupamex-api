@@ -11,14 +11,8 @@ orm-continuation-plan-20261103T095630/designs/ptav-complete.md``.
 Cobertura contra ``odoo19c``
 ============================
 
-Portados todos los campos y métodos salvo dos, con su sucesor:
-
-- ``exclude_for`` (``:44-49``), el inverso de
-  ``product.template.attribute.exclusion``: ese modelo es
-  ``product-template-attribute-exclusion-0122``.
-- la rama ``'exclude_for' in values`` de ``write`` (``:113-114``), que llama
-  ``product_tmpl_id._create_variant_ids()``:
-  ``product-template-create-variant-ids-0122``.
+Portados todos los campos y métodos. ``exclude_for`` (``:44-49``) es el
+inverso que declara ``product.template.attribute.exclusion``.
 
 ``currency_id`` (``odoo19c:
 addons/product/models/product_template_attribute_value.py:42``) es
@@ -169,8 +163,7 @@ class ProductTemplateAttributeValue(models.BaseModel, TimeStampedModel):
         return super().create(vals_list)
 
     def write(self, vals):
-        """≙ ``write`` (``:89-115``), sin la rama de ``exclude_for``
-        (sucesores en el docstring del módulo)."""
+        """≙ ``write`` (``:89-115``)."""
         values = vals
         if 'ptav_product_variant_ids' in values:
             # Force write on this relation from `product.product` to properly
@@ -198,7 +191,10 @@ class ProductTemplateAttributeValue(models.BaseModel, TimeStampedModel):
                         value=ptav.display_name,
                         product=ptav.product_tmpl_id.display_name,
                     ))
-        return super().write(values)
+        res = super().write(values)
+        if 'exclude_for' in values:
+            self.product_tmpl_id._create_variant_ids()
+        return res
 
     def unlink(self):
         """≙ ``unlink`` (``:117-148``): quita de las variantes los valores de

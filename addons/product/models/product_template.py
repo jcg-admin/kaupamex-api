@@ -94,9 +94,14 @@ que no filtra nada — que es la verdad de la fuente, no una simplificación.
   Entra con ``product_product.py``, que es donde vive el modelo que crea.
 """
 
+import itertools
+
+import api
 import fields
 import models
+from django.apps import apps
 from django.core.exceptions import ValidationError
+from orm.domains import Domain
 from orm.environments import env
 
 from addons.base.models.image_mixin import ImageMixin
@@ -107,6 +112,8 @@ from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.product.models.product_category import ProductCategory
 from addons.product.models.product_document import ProductDocument
 from addons.uom.models.uom_uom import Uom
+from exceptions import UserError
+from tools.translate import _
 
 #: Claves de contexto que afectan al precio calculado — verbatim de la fuente.
 #: Se conservan aunque el cálculo de precio viva en ``product.pricelist``:
@@ -357,13 +364,13 @@ class ProductTemplate(models.BaseModel, ImageMixin, TimeStampedModel):
         exactamente **una** variante — la que la línea de venta necesita para
         apuntar al combo. La confusión entre ambas reglas produjo H-API-190.
 
-        Método y no ``clean()``: ``attribute_lines`` es una relación inversa, y
-        Django persiste el padre antes que sus hijos. Mismo motivo que
-        ``check_combo_choices`` y ``ProductCombo.check_has_items``.
+        Método y no ``clean()``: ``attribute_line_ids`` es una relación
+        inversa, y Django persiste el padre antes que sus hijos. Mismo
+        motivo que ``check_combo_choices`` y ``ProductCombo.check_has_items``.
         """
         if self.type != TYPE_COMBO:
             return
-        lines = getattr(self, 'attribute_lines', None)
+        lines = getattr(self, 'attribute_line_ids', None)
         if lines is not None and lines.exists():
             raise ValidationError(
                 'Un producto combo no puede tener atributos: agrupa '
@@ -593,3 +600,301 @@ class ProductTemplate(models.BaseModel, ImageMixin, TimeStampedModel):
         """
         unidad = cls.get_volume_uom_id_from_ir_config_parameter()
         return str(unidad) if unidad is not None else ''
+
+    # === GENERACIÓN DE VARIANTES =========================================
+    # ≙ ``odoo19c: addons/product/models/product_template.py:567-591,
+    # 770-1128``. Diseño: ``designs/product-template-variant-generation.md``.
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        """≙ ``create`` (``:567-583``): genera las variantes de cada plantilla
+        salvo con ``create_product_product=False`` en el contexto.
+
+        La copia a la primera variante de los campos que comparten plantilla
+        y variante (``_get_related_fields_variant_template``, ``:575-581``)
+        espera a que esos campos dejen de ser propiedades en la plantilla
+        (sucesor ``product-template-crud-0122``).
+        """
+        templates = super().create(vals_list)
+        if self.env.context.get("create_product_product", True):
+            templates._create_variant_ids()
+        return templates
+
+    def write(self, vals):
+        """≙ las ramas de variantes de ``write`` (``:585-596``): regenera al
+        cambiar las líneas o al reactivar una plantilla sin variantes, y
+        archiva las variantes al archivar la plantilla.
+
+        La conversión de unidad (``:586-588``), la invalidación de imágenes
+        (``:597-603``) y ``combo_ids`` (``:604-606``) son del sucesor
+        ``product-template-crud-0122``.
+        """
+        res = super().write(vals)
+        if (self.env.context.get("create_product_product", True)
+                and 'attribute_line_ids' in vals
+                or (vals.get('active')
+                    and len(self.product_variant_ids) == 0)):
+            self._create_variant_ids()
+        if 'active' in vals and not vals.get('active'):
+            # ``mapped('product_variant_ids')`` sobre varias plantillas espera
+            # la rama multi-registro de los relacionales (TASK-API-0401): se
+            # recorre plantilla a plantilla, con el mismo efecto.
+            for template in self.with_context(active_test=False):
+                template.product_variant_ids.write(
+                    {'active': vals.get('active')})
+        return res
+
+    def _create_variant_ids(self):
+        """≙ ``_create_variant_ids`` (``:770-870``)."""
+        if not self:
+            return
+        self.env.flush_all()
+        Product = self.env["product.product"]
+
+        variants_to_create = []
+        variants_to_activate = Product
+        variants_to_unlink = Product
+
+        for tmpl_id in self:
+            lines_without_no_variants = (
+                tmpl_id.valid_product_template_attribute_line_ids
+                ._without_no_variant_attributes())
+
+            all_variants = tmpl_id.with_context(
+                active_test=False).product_variant_ids.sorted(
+                lambda p: (p.active, -p.id))
+
+            current_variants_to_create = []
+            current_variants_to_activate = Product
+
+            # adding an attribute with only one value should not recreate
+            # product; write this attribute on every product to make sure we
+            # don't lose them
+            single_value_lines = lines_without_no_variants.filtered(
+                lambda ptal: len(
+                    ptal.product_template_value_ids._only_active()) == 1)
+            if single_value_lines:
+                for variant in all_variants:
+                    combination = (
+                        variant.product_template_attribute_value_ids
+                        | single_value_lines.product_template_value_ids
+                        ._only_active())
+                    # Do not add single value if the resulting combination
+                    # would be invalid anyway.
+                    if (
+                        len(combination) == len(lines_without_no_variants)
+                        and combination.attribute_line_id
+                        == lines_without_no_variants
+                        # Update only if necessary to prevent a cache
+                        # invalidation
+                        and variant.product_template_attribute_value_ids
+                        != combination
+                    ):
+                        variant.product_template_attribute_value_ids = (
+                            combination)
+
+            # Set containing existing `product.template.attribute.value`
+            # combination
+            existing_variants = {
+                variant.product_template_attribute_value_ids: variant
+                for variant in all_variants
+            }
+
+            # Determine which product variants need to be created based on
+            # the attribute configuration. If any attribute is set to
+            # generate variants dynamically, skip the process.
+            if not tmpl_id.has_dynamic_attributes():
+                # Iterator containing all possible combinations, used to
+                # avoid MemoryError in case of a huge number of combinations.
+                all_combinations = itertools.product(*[
+                    ptal.product_template_value_ids._only_active()
+                    for ptal in lines_without_no_variants
+                ])
+                # For each possible variant, create if it doesn't exist yet.
+                for combination in (
+                        tmpl_id._filter_combinations_impossible_by_config(
+                            all_combinations, ignore_no_variant=True)):
+                    if combination in existing_variants:
+                        current_variants_to_activate += existing_variants[
+                            combination]
+                    else:
+                        current_variants_to_create.append(
+                            tmpl_id._prepare_variant_values(combination))
+                        variant_limit = SystemParameter.get_param(
+                            'product.dynamic_variant_limit', 1000)
+                        if len(current_variants_to_create) > int(
+                                variant_limit):
+                            raise UserError(_(
+                                'The number of variants to generate is above'
+                                ' allowed limit. You should either not'
+                                ' generate variants for each combination or'
+                                ' generate them on demand from the sales'
+                                ' order. To do so, open the form view of'
+                                ' attributes and change the mode of *Create'
+                                ' Variants*.'))
+                variants_to_create += current_variants_to_create
+                variants_to_activate += current_variants_to_activate
+
+            elif existing_variants:
+                variants_combinations = [
+                    variant.product_template_attribute_value_ids
+                    for variant in existing_variants.values()]
+                current_variants_to_activate += Product.concat(*[
+                    existing_variants[possible_combination]
+                    for possible_combination in
+                    tmpl_id._filter_combinations_impossible_by_config(
+                        variants_combinations, ignore_no_variant=True)
+                ])
+                variants_to_activate += current_variants_to_activate
+
+            variants_to_unlink += all_variants - current_variants_to_activate
+
+        if variants_to_activate:
+            # Only activate variants whose template is active
+            variants_to_activate.filtered(
+                lambda v: v.product_tmpl_id.active).write({'active': True})
+        if variants_to_create:
+            Product.create(variants_to_create)
+        if variants_to_unlink:
+            variants_to_unlink._unlink_or_archive()
+            # prevent change if exclusion deleted template by deleting last
+            # variant
+            if self.exists() != self:
+                raise UserError(_(
+                    "This configuration of product attributes, values, and"
+                    " exclusions would lead to no possible variant. Please"
+                    " archive or delete your product directly if intended."))
+        # ``product.combo.item`` es todavía modelo de Django: el ``search`` +
+        # ``unlink`` de la fuente es su consulta y su borrado.
+        ProductComboItem = apps.get_model('product', 'ProductComboItem')
+        for variant in variants_to_unlink:
+            # Unlink all combo items which reference unlinked variants.
+            ProductComboItem.objects.filter(product_id=variant.id).delete()
+
+        # prefetched o2m have to be reloaded (because of active_test)
+        self.env.flush_all()
+        self.env.invalidate_all()
+        return True
+
+    def _prepare_variant_values(self, combination):
+        """≙ ``_prepare_variant_values`` (``:872-878``)."""
+        self.ensure_one()
+        return {
+            'product_tmpl_id': self.id,
+            'product_template_attribute_value_ids': [
+                (6, 0, combination.ids)],
+            'active': self.active,
+        }
+
+    def has_dynamic_attributes(self):
+        """≙ ``has_dynamic_attributes`` (``:880-888``)."""
+        self.ensure_one()
+        # ``product.attribute`` es todavía modelo de Django: el recordset de
+        # sus filas por las líneas (``lines.attribute_id``) se recorre línea a
+        # línea, con la misma condición.
+        return any(
+            line.attribute_id.create_variant == 'dynamic'
+            for line in self.valid_product_template_attribute_line_ids)
+
+    @property
+    def valid_product_template_attribute_line_ids(self):
+        """≙ ``valid_product_template_attribute_line_ids`` (``:135-136``) con
+        su cómputo (``:890-900``): las líneas con al menos un valor."""
+        return self.attribute_line_ids.filtered(lambda ptal: ptal.value_ids)
+
+    def _get_own_attribute_exclusions(self, combination_ids=None):
+        """≙ ``_get_own_attribute_exclusions`` (``:990-1031``): por cada
+        valor de la plantilla, los valores que excluye."""
+        self.ensure_one()
+        product_template_attribute_values = (
+            self.valid_product_template_attribute_line_ids
+            .product_template_value_ids)
+        result = {}
+
+        domain_ptav = [('ptav_active', '=', True)]
+
+        if combination_ids:
+            domain_ptav = Domain.OR([
+                domain_ptav,
+                [('id', 'in', combination_ids)]
+            ])
+
+        domain_ptav = Domain.AND([
+            domain_ptav,
+            [('id', 'in', product_template_attribute_values.ids)],
+        ])
+
+        exclusion_ids_by_ptav = dict(
+            self.env['product.template.attribute.exclusion']._read_group(
+                domain=[
+                    ('product_template_attribute_value_id', 'any',
+                     domain_ptav),
+                    ('product_tmpl_id', '=', self.id),
+                ],
+                groupby=['product_template_attribute_value_id'],
+                aggregates=['id:recordset'],
+            ))
+
+        for ptav in product_template_attribute_values:
+            if (ptav.ptav_active
+                    or combination_ids and ptav.id in combination_ids):
+                if exclusions := exclusion_ids_by_ptav.get(ptav):
+                    result[ptav.id] = exclusions.value_ids.filtered(
+                        lambda x: x.ptav_active).ids
+                else:
+                    result[ptav.id] = []
+
+        return result
+
+    def _filter_combinations_impossible_by_config(
+            self, combination_tuples, ignore_no_variant=False):
+        """≙ ``_filter_combinations_impossible_by_config`` (``:1076-1111``):
+        «Filter combination_tuples according to the config of attributes on
+        the template.»"""
+        self.ensure_one()
+        attribute_lines = self.valid_product_template_attribute_line_ids
+        attribute_lines_active_values = (
+            attribute_lines.product_template_value_ids._only_active())
+        if ignore_no_variant:
+            attribute_lines = attribute_lines._without_no_variant_attributes()
+        attribute_lines_without_multi = attribute_lines.filtered(
+            lambda line: line.attribute_id.display_type != 'multi')
+        exclusions = self._get_own_attribute_exclusions()
+        for combination_tuple in combination_tuples:
+            combination = self.env['product.template.attribute.value'].concat(
+                *combination_tuple)
+            combination_without_multi = combination.filtered(
+                lambda line: line.attribute_line_id.attribute_id.display_type
+                != 'multi')
+            if (len(combination_without_multi)
+                    != len(attribute_lines_without_multi)):
+                # number of attribute values passed is different than the
+                # configuration of attributes on the template
+                continue
+            if (attribute_lines_without_multi
+                    != combination_without_multi.attribute_line_id):
+                # combination has different attributes than the ones
+                # configured on the template
+                continue
+            if not (attribute_lines_active_values >= combination):
+                # combination has different values than the ones configured
+                # on the template
+                continue
+            if exclusions:
+                # exclude if the current value is in an exclusion, and the
+                # value excluding it is also in the combination
+                combination_ids = set(combination.ids)
+                combination_excluded_ids = set(itertools.chain(*[
+                    exclusions.get(ptav_id) for ptav_id in combination.ids]))
+                if combination_ids & combination_excluded_ids:
+                    continue
+            yield combination
+
+    def _is_combination_possible_by_config(
+            self, combination, ignore_no_variant=False):
+        """≙ ``_is_combination_possible_by_config`` (``:1113-1127``)."""
+        self.ensure_one()
+        # Returns False on StopIteration. Empty combination should return
+        # True.
+        return isinstance(next(self._filter_combinations_impossible_by_config(
+            [combination], ignore_no_variant), False), models.BaseModel)

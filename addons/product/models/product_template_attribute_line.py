@@ -34,7 +34,7 @@ class ProductTemplateAttributeLine(models.BaseModel, TimeStampedModel):
         'product.ProductTemplate',
         db_column='product_tmpl_id',
         null=False, on_delete=models.CASCADE,
-        related_name='attribute_lines',
+        related_name='attribute_line_ids',
         help_text='Plantilla de producto (Odoo product_tmpl_id).',
     )
     attribute_id = fields.Many2one(
@@ -76,3 +76,19 @@ class ProductTemplateAttributeLine(models.BaseModel, TimeStampedModel):
 
     def __str__(self) -> str:
         return f'{self.product_tmpl_id} / {self.attribute_id}'
+
+    def _without_no_variant_attributes(self):
+        """≙ ``_without_no_variant_attributes`` (``odoo19c:
+        addons/product/models/product_template_attribute_line.py:262-263``).
+        """
+        return self.filtered(
+            lambda ptal: ptal.attribute_id.create_variant != 'no_variant')
+
+    def _is_configurable(self):
+        """≙ ``_is_configurable`` (``:265-271``)."""
+        self.ensure_one()
+        return (
+            len(self.value_ids) >= 2
+            or self.attribute_id.display_type == 'multi'
+            or self.value_ids.is_custom
+        )

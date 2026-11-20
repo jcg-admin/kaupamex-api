@@ -45,14 +45,15 @@ def combinations(template):
     ``product`` cuando el catálogo era plano y no había distinción; con la
     separación el nombre viejo inducía a pasar la variante y fallar con
     ``AttributeError: 'ProductProduct' object has no attribute
-    'attribute_lines'``. Ver H-API-217.
+    'attribute_lines'`` (hoy ``attribute_line_ids``, el nombre de la
+    fuente). Ver H-API-217.
 
     Devuelve una lista de combinaciones; cada combinación es una tupla de
     ``ProductTemplateAttributeValue`` (uno por línea, en orden de
     ``sequence``).
     Sin líneas → una combinación vacía (la ficha sin variantes).
     """
-    lines = list(template.attribute_lines.sorted(
+    lines = list(template.attribute_line_ids.sorted(
         lambda line: (line.sequence, line.id)))
     per_line = []
     for line in lines:
@@ -94,7 +95,7 @@ def combination_count(template) -> int:
     """
     count = 1
     has_line = False
-    for line in template.attribute_lines:
+    for line in template.attribute_line_ids:
         n = len(line.product_template_value_ids) or len(line.value_ids)
         if n:
             has_line = True

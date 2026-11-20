@@ -113,9 +113,6 @@ from addons.product.models.product_template_attribute_value import (
 from tools.float_utils import float_compare
 from tools.misc import mute_logger
 
-#: Separador de la clave de combinación, verbatim de ``_ids2str``.
-COMBINATION_SEPARATOR = ','
-
 
 class ProductProduct(models.BaseModel, TimeStampedModel):
     """``product.product`` — una combinación concreta de la ficha."""
@@ -170,11 +167,15 @@ class ProductProduct(models.BaseModel, TimeStampedModel):
         verbose_name='Activo',
         help_text='Desmarcar oculta la variante sin borrarla.',
     )
+    #: ≙ ``combination_indices`` (``odoo19c: :59``): calculado y almacenado
+    #: desde los valores de la variante (``_compute_combination_indices``).
     combination_indices = fields.Char(
+        compute='_compute_combination_indices',
+        store=True,
+        index=True,
         max_length=255,
+        null=True,
         blank=True,
-        default='',
-        db_index=True,
         verbose_name='Índices de la combinación',
         help_text=(
             'Ids de los valores de atributo, ORDENADOS y separados por '
@@ -345,24 +346,13 @@ class ProductProduct(models.BaseModel, TimeStampedModel):
 
     # === COMBINACIÓN =====================================================
 
-    @staticmethod
-    def build_combination_indices(attribute_values):
-        """``_ids2str`` — la clave de una combinación.
-
-        Los ids **ordenados** y unidos por coma. El ``sorted`` no es estética:
-        sin él, la misma combinación elegida en distinto orden daría claves
-        distintas y la comprobación de "¿existe ya esta variante?" crearía
-        duplicados.
-        """
-        ids = sorted(getattr(value, 'pk', value) for value in attribute_values)
-        return COMBINATION_SEPARATOR.join(str(pk) for pk in ids)
-
-    def refresh_combination_indices(self):
-        """``_compute_combination_indices`` — recalcula desde los valores."""
-        self.combination_indices = self.build_combination_indices(
-            self.product_template_attribute_value_ids
-        )
-        return self.combination_indices
+    @api.depends('product_template_attribute_value_ids')
+    def _compute_combination_indices(self):
+        """≙ ``_compute_combination_indices`` (``odoo19c: :300-303``): los
+        ids ordenados de los valores, ``_ids2str``."""
+        for product in self:
+            product.combination_indices = (
+                product.product_template_attribute_value_ids._ids2str())
 
     @api.depends(
         'product_tmpl_id.name',

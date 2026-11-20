@@ -276,31 +276,28 @@ class TestProductProduct:
         variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
         assert str(variante) == 'Eleke'
 
-    def test_build_combination_indices_ordena_los_ids(self):
-        # sorted([30, 10, 20]) -> '10,20,30' — sin el sort la clave dependería
-        # del orden de selección y "¿existe ya esta combinación?" fallaría.
-        indices = ProductProduct.build_combination_indices([30, 10, 20])
-        assert indices == '10,20,30'
-
-    def test_refresh_combination_indices_usa_los_valores_reales(self):
+    def test_the_combination_indices_follow_the_values(self):
+        """≙ ``_compute_combination_indices`` (``odoo19c:
+        product_product.py:300-303``): calculado al escribir los valores,
+        con los ids ordenados (``_ids2str``)."""
         color = ProductAttribute.objects.create(name='Color')
-        rojo = ProductAttributeValue.objects.create(
-            attribute_id=color, name='Rojo'
-        )
+        red, blue = (ProductAttributeValue.objects.create(
+            attribute_id=color, name=name) for name in ('Rojo', 'Azul'))
         tmpl = ProductTemplate.objects.create(name='Eleke')
         line = ProductTemplateAttributeLine.objects.create(
             product_tmpl_id=tmpl, attribute_id=color
         )
-        line.write({'value_ids': [Command.set([rojo.id])]})
-        ptav = ProductTemplateAttributeValue.objects.create(
-            attribute_line_id=line, product_attribute_value_id=rojo
-        )
-        variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
-        variante.write({
-            'product_template_attribute_value_ids': [Command.set([ptav.id])],
+        line.write({'value_ids': [Command.set([red.id, blue.id])]})
+        ptavs = [ProductTemplateAttributeValue.objects.create(
+            attribute_line_id=line, product_attribute_value_id=value)
+            for value in (blue, red)]
+        variant = ProductProduct.objects.create(product_tmpl_id=tmpl)
+        variant.write({
+            'product_template_attribute_value_ids': [
+                Command.set([ptav.id for ptav in reversed(ptavs)])],
         })
-        variante.refresh_combination_indices()
-        assert variante.combination_indices == str(ptav.pk)
+        assert variant.combination_indices == ','.join(
+            str(ptav.pk) for ptav in sorted(ptavs, key=lambda p: p.pk))
 
     def test_lst_price_suma_el_extra_de_los_atributos(self):
         color = ProductAttribute.objects.create(name='Color')

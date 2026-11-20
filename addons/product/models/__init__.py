@@ -42,8 +42,7 @@ ahora, con lo que aporta cada uno:
   (H-API-193).
 
 Pendientes — **8** de los 25:
-``product_attribute_custom_value.py``,
-``product_template_attribute_exclusion.py`` y las siete extensiones de
+``product_attribute_custom_value.py`` y las siete extensiones de
 modelos de ``base`` (``res_company``, ``res_partner``, ``res_currency``,
 ``res_config_settings``, ``res_country_group``, ``ir_attachment``,
 ``uom_uom``).
@@ -72,6 +71,9 @@ from addons.product.models.product_template import ProductTemplate
 from addons.product.models.product_attribute_value import (
     ProductAttributeValue,
 )
+from addons.product.models.product_template_attribute_exclusion import (
+    ProductTemplateAttributeExclusion,
+)
 from addons.product.models.product_template_attribute_line import (
     ProductTemplateAttributeLine,
 )
@@ -97,6 +99,7 @@ __all__ = [
     'ProductUom',
     'ProductTemplate',
     'ProductAttributeValue',
+    'ProductTemplateAttributeExclusion',
     'ProductTemplateAttributeLine',
     'ProductTemplateAttributeValue',
     'ProductAttributeCustomValue',

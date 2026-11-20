@@ -3253,7 +3253,6 @@ tests/unit/product/test_product_models.py::padre
 tests/unit/product/test_product_models.py::proveedor
 tests/unit/product/test_product_models.py::rojo
 tests/unit/product/test_product_models.py::talla
-tests/unit/product/test_product_models.py::test_build_combination_indices_ordena_los_ids
 tests/unit/product/test_product_models.py::test_clean_permite_combo_con_variante
 tests/unit/product/test_product_models.py::test_clean_rechaza_categoria_como_su_propio_padre
 tests/unit/product/test_product_models.py::test_clean_rechaza_ciclo_indirecto
@@ -3276,7 +3275,6 @@ tests/unit/product/test_product_models.py::test_parent_path_materializa_la_ruta
 tests/unit/product/test_product_models.py::test_product_count_cuenta_los_de_la_categoria
 tests/unit/product/test_product_models.py::test_product_count_cuenta_toda_la_rama
 tests/unit/product/test_product_models.py::test_product_count_vacia_es_cero
-tests/unit/product/test_product_models.py::test_refresh_combination_indices_usa_los_valores_reales
 tests/unit/product/test_product_models.py::test_renombrar_padre_repropaga_a_los_hijos
 tests/unit/product/test_product_models.py::test_service_con_peso_es_invalido
 tests/unit/product/test_product_models.py::test_service_con_volumen_es_invalido
