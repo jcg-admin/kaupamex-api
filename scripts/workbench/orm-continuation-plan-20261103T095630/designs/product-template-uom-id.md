@@ -67,6 +67,35 @@ datos nombra el campo.
   `ProductProduct.uom_id`;
 - `ProductPricelistItem.compute`, `ProductSupplierinfo`, `StockMove`,
   `StockMoveLine`, `StockLot` y los consumidores del punto 4;
+- lecturas del registro en: `ProductCatalogMixin._get_product_catalog_order_data`,
+  `ProductCatalogMixin._get_product_catalog_order_line_info`,
+  `ProductTemplate.uom_name`, `_compute_purchased_product_qty`,
+  `_compute_template_purchased_product_qty`, `_update_uom` (`purchase`),
+  `PurchaseOrderLine._compute_product_uom_qty`,
+  `PurchaseOrderLine._compute_amount_to_invoice_at_date`,
+  `PurchaseOrderLine._compute_price_unit_product_uom`,
+  `PurchaseOrderLine._compute_allowed_uom_ids`, `_in_product_uom`,
+  `_uom_change_is_blocked` (`stock/models/product.py`),
+  `StockMove._create_backorder`,
+  `StockMove._generate_serial_move_line_commands`,
+  `StockMove._get_available_move_lines`,
+  `StockMove._get_available_move_lines_in`,
+  `StockMove._get_available_move_lines_out`, `StockMove._onchange_lot_ids`,
+  `StockMove._prepare_move_line_vals`, `StockMove._set_lot_ids`,
+  `StockMove._set_quantity_done_prepare_vals` (y su auxiliar
+  `en_uom_del_movimiento`), `StockMove._split`,
+  `StockMove._update_reserved_quantity_vals`,
+  `StockMove.action_generate_lot_line_vals`,
+  `StockMoveLine._compute_quantity`,
+  `StockMoveLine._compute_quantity_product_uom`,
+  `StockMoveLine._free_reservation`,
+  `StockMoveLine._get_putaway_additional_qty`,
+  `StockMoveLine._onchange_quantity`,
+  `StockWarehouseOrderpoint._get_multiple_rounded_qty`,
+  `StockWarehouseOrderpoint._get_orderpoint_action`,
+  `StockScrap.action_validate`, `StockScrap.check_available_qty`. Cada una
+  sólo cambia el nombre que lee (`.uom` → `.uom_id`); la conducta es la de
+  la referencia, que lee `uom_id` en los mismos puntos;
 - la migración `0034_uom_id`.
 
 ## Fuera de esta unidad, con su sucesor
