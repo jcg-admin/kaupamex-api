@@ -117,3 +117,40 @@ Lo que queda y no es de pruebas:
   `env['product.product'] is ProductProduct`): pasan a la forma de la fuente.
 - tres casos por clasificar: el informe (`report_template._render_text`),
   líneas de factura de compra (2 en lugar de 1) y `precision_rounding` 0.
+
+## Etapa 1 — cierre: símbolos que la adopción de `BaseModel` obligó a portar
+
+Medido al cerrar la etapa (suite completa, sin corte por fallo): cada uno
+leía un `None` o un gestor de Django donde la fuente lee un recordset.
+
+- `ProductTemplate.product_variant_id` — `odoo19c:
+  addons/product/models/product_template.py:247-249`: es
+  `product_variant_ids[:1]`, no «la única o `None»`. Quien exige una sola lo
+  comprueba con `product_variant_count`. Prueba:
+  `tests/unit/stock/test_h_api_680_product_strategy_underscore.py`.
+- `ProductTemplate.barcode` — `odoo19c:
+  addons/product/models/product_template.py:269-290,341-342`
+  (`_compute_template_field_from_variant_field`): el de la variante única, o
+  vacío; sin variantes activas reintenta sin `active_test`. Prueba:
+  `tests/unit/product/test_product_template_uom_default.py` (vía la
+  variante única) y la suite de producto.
+- `_get_default_uom_id` y la migración `0045_product_template_uom_default`
+  — `odoo19c: addons/product/models/product_template.py:34-36,118-121`:
+  `uom_id` toma `uom.product_uom_unit` por defecto y es obligatorio
+  (`blank=False`); la columna sigue admitiendo nulo hasta rellenar las filas
+  antiguas (`product-uom-uom-extension-0397`). Sin la unidad, el redondeo
+  de las órdenes de reabastecimiento leía `0.0`. Prueba:
+  `tests/unit/product/test_product_template_uom_default.py`.
+- `StockWarehouseOrderpoint._compute_qty_to_order_computed` y
+  `StockWarehouseOrderpoint._get_qty_to_order` — `odoo19c:
+  addons/stock/models/stock_orderpoint.py:417-419,461-468`: leen
+  `product_uom.rounding`; la guarda pasa de `is not None` a la verdad del
+  recordset. Prueba: `tests/unit/stock/test_stock_rule_orderpoint_model.py`.
+- `_inherits_delegation` (auxiliar de `order_to_django`) — `odoo19c:
+  odoo/orm/models.py:5262-5291`, el join del campo heredado de
+  `order-by-inherited-field.md`. Prueba:
+  `tests/unit/orm/test_order_by_inherited_field.py`.
+
+Sucesor registrado: `environment-companies-from-context-0485` —
+`env.companies` lee el ámbito y no `allowed_company_ids` del contexto del
+entorno (`odoo19c: odoo/orm/environments.py:255-284`).
