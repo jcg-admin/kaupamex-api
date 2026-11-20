@@ -125,14 +125,14 @@ def test_a_persisted_row_keeps_the_django_error():
 
 def test_a_related_ending_on_a_django_many2many():
     attribute = ProductAttribute.objects.create(name='Color NewId')
-    red = ProductAttributeValue.objects.create(attribute=attribute,
+    red = ProductAttributeValue.objects.create(attribute_id=attribute,
                                                name='Rojo')
-    blue = ProductAttributeValue.objects.create(attribute=attribute,
+    blue = ProductAttributeValue.objects.create(attribute_id=attribute,
                                                 name='Azul')
     variant = make_product(name='Camiseta NewId')
     line = ProductTemplateAttributeLine.objects.create(
-        product_tmpl=variant.product_tmpl, attribute=attribute)
-    line.values.set([red, blue])
+        product_tmpl=variant.product_tmpl, attribute_id=attribute)
+    line.value_ids.set([red, blue])
     values = [ProductTemplateAttributeValue.objects.create(
         line=line, attribute_value=value) for value in (red, blue)]
     variant.product_template_attribute_values.set(values)

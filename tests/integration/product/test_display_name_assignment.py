@@ -30,16 +30,16 @@ def variant():
 def values(variant):
     attribute = ProductAttribute.objects.create(name='Color')
     red = ProductAttributeValue.objects.create(
-        attribute=attribute, name='Rojo'
+        attribute_id=attribute, name='Rojo'
     )
     blue = ProductAttributeValue.objects.create(
-        attribute=attribute, name='Azul'
+        attribute_id=attribute, name='Azul'
     )
     line = ProductTemplateAttributeLine.objects.create(
         product_tmpl=variant.product_tmpl,
-        attribute=attribute,
+        attribute_id=attribute,
     )
-    line.values.set([red, blue])
+    line.value_ids.set([red, blue])
     red_value = ProductTemplateAttributeValue.objects.create(
         line=line, attribute_value=red
     )

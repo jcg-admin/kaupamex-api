@@ -18,11 +18,18 @@ from addons.base.models import TimeStampedModel
 class ProductAttributeValue(TimeStampedModel):
     """``product.attribute.value`` — un valor de un atributo reutilizable."""
 
-    attribute = fields.Many2one(
+    #: ≙ la cabecera de la fuente
+    #: (``odoo19c: addons/product/models/product_attribute_value.py:12-14``).
+    _name = 'product.attribute.value'
+    _order = 'attribute_id, sequence, id'
+    _description = "Attribute Value"
+
+    attribute_id = fields.Many2one(
         'product.ProductAttribute',
         null=False, on_delete=models.CASCADE,
         related_name='values',
         help_text='Atributo (Odoo attribute_id).',
+        db_column='attribute_id',
     )
     name = fields.Char(
         max_length=100,
@@ -38,7 +45,7 @@ class ProductAttributeValue(TimeStampedModel):
         ordering = ['sequence', 'id']
         constraints = [
             models.UniqueConstraint(
-                fields=['attribute', 'name'],
+                fields=['attribute_id', 'name'],
                 name='unique_attribute_value_name',
             ),
         ]
@@ -46,4 +53,4 @@ class ProductAttributeValue(TimeStampedModel):
         verbose_name_plural = 'Valores de atributo'
 
     def __str__(self) -> str:
-        return f'{self.attribute.name}: {self.name}'
+        return f'{self.attribute_id.name}: {self.name}'

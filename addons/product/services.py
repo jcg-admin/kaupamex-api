@@ -20,11 +20,11 @@ def sync_template_values(line):
     """Crea el ``ProductTemplateAttributeValue`` de cada valor de la línea.
 
     Réplica de ``_update_product_template_attribute_values`` de Odoo: por cada
-    valor en ``line.values`` asegura un PTAV (con ``price_extra=0`` si es
+    valor en ``line.value_ids`` asegura un PTAV (con ``price_extra=0`` si es
     nuevo).
     """
     created = []
-    for value in line.values.all():
+    for value in line.value_ids.all():
         ptav, was_created = (
             ProductTemplateAttributeValue.objects.get_or_create(
                 line=line,
@@ -93,7 +93,7 @@ def combination_count(template) -> int:
     count = 1
     has_line = False
     for line in template.attribute_lines.all():
-        n = line.template_values.count() or line.values.count()
+        n = line.template_values.count() or line.value_ids.count()
         if n:
             has_line = True
             count *= n

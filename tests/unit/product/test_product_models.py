@@ -122,22 +122,24 @@ class TestProductAttribute:
     def test_value_str_incluye_el_atributo(self):
         color = ProductAttribute.objects.create(name='Color')
         rojo = ProductAttributeValue.objects.create(
-            attribute=color, name='Rojo'
+            attribute_id=color, name='Rojo'
         )
         assert str(rojo) == 'Color: Rojo'
 
     def test_unique_attribute_value_name(self):
         color = ProductAttribute.objects.create(name='Color')
-        ProductAttributeValue.objects.create(attribute=color, name='Rojo')
+        ProductAttributeValue.objects.create(attribute_id=color, name='Rojo')
         with pytest.raises(Exception):
-            ProductAttributeValue.objects.create(attribute=color, name='Rojo')
+            ProductAttributeValue.objects.create(
+                attribute_id=color, name='Rojo')
 
     def test_mismo_nombre_en_otro_atributo_no_choca(self):
         color = ProductAttribute.objects.create(name='Color')
         talla = ProductAttribute.objects.create(name='Talla')
-        ProductAttributeValue.objects.create(attribute=color, name='Rojo')
+        ProductAttributeValue.objects.create(attribute_id=color, name='Rojo')
         # 'Rojo' es una talla rara pero la unicidad es por (attribute, name).
-        v2 = ProductAttributeValue.objects.create(attribute=talla, name='Rojo')
+        v2 = ProductAttributeValue.objects.create(
+            attribute_id=talla, name='Rojo')
         assert v2.pk is not None
 
 
@@ -188,7 +190,7 @@ class TestProductTemplateComboInvariants:
         tmpl = ProductTemplate.objects.create(name='Menú', type=TYPE_COMBO)
         color = ProductAttribute.objects.create(name='Color')
         ProductTemplateAttributeLine.objects.create(
-            product_tmpl=tmpl, attribute=color
+            product_tmpl=tmpl, attribute_id=color
         )
         with pytest.raises(ValidationError):
             tmpl.check_combo_has_no_attributes()
@@ -197,7 +199,7 @@ class TestProductTemplateComboInvariants:
         tmpl = ProductTemplate.objects.create(name='Eleke')
         color = ProductAttribute.objects.create(name='Color')
         ProductTemplateAttributeLine.objects.create(
-            product_tmpl=tmpl, attribute=color
+            product_tmpl=tmpl, attribute_id=color
         )
         tmpl.check_combo_has_no_attributes()  # no debe levantar
 
@@ -276,13 +278,13 @@ class TestProductProduct:
     def test_refresh_combination_indices_usa_los_valores_reales(self):
         color = ProductAttribute.objects.create(name='Color')
         rojo = ProductAttributeValue.objects.create(
-            attribute=color, name='Rojo'
+            attribute_id=color, name='Rojo'
         )
         tmpl = ProductTemplate.objects.create(name='Eleke')
         line = ProductTemplateAttributeLine.objects.create(
-            product_tmpl=tmpl, attribute=color
+            product_tmpl=tmpl, attribute_id=color
         )
-        line.values.set([rojo])
+        line.value_ids.set([rojo])
         ptav = ProductTemplateAttributeValue.objects.create(
             line=line, attribute_value=rojo
         )
@@ -294,15 +296,15 @@ class TestProductProduct:
     def test_lst_price_suma_el_extra_de_los_atributos(self):
         color = ProductAttribute.objects.create(name='Color')
         dorado = ProductAttributeValue.objects.create(
-            attribute=color, name='Dorado'
+            attribute_id=color, name='Dorado'
         )
         tmpl = ProductTemplate.objects.create(
             name='Eleke', list_price=Decimal('100.00')
         )
         line = ProductTemplateAttributeLine.objects.create(
-            product_tmpl=tmpl, attribute=color
+            product_tmpl=tmpl, attribute_id=color
         )
-        line.values.set([dorado])
+        line.value_ids.set([dorado])
         ptav = ProductTemplateAttributeValue.objects.create(
             line=line, attribute_value=dorado, price_extra=Decimal('30.00')
         )
@@ -320,13 +322,13 @@ class TestProductProduct:
         se verifica el caso donde SÍ aparece en el nombre."""
         color = ProductAttribute.objects.create(name='Color')
         rojo = ProductAttributeValue.objects.create(
-            attribute=color, name='Rojo'
+            attribute_id=color, name='Rojo'
         )
         tmpl = ProductTemplate.objects.create(name='Eleke')
         line = ProductTemplateAttributeLine.objects.create(
-            product_tmpl=tmpl, attribute=color
+            product_tmpl=tmpl, attribute_id=color
         )
-        line.values.set([rojo])
+        line.value_ids.set([rojo])
         ptav = ProductTemplateAttributeValue.objects.create(
             line=line, attribute_value=rojo
         )

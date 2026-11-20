@@ -43,13 +43,13 @@ def attribute_value():
     """Un valor de atributo por-producto — el destino de la FK."""
     attribute = ProductAttribute.objects.create(name='Grabado')
     value = ProductAttributeValue.objects.create(
-        attribute=attribute, name='Personalizado', sequence=0
+        attribute_id=attribute, name='Personalizado', sequence=0
     )
     template = ProductTemplate.objects.create(name='Placa conmemorativa')
     line = ProductTemplateAttributeLine.objects.create(
-        product_tmpl=template, attribute=attribute, sequence=10
+        product_tmpl=template, attribute_id=attribute, sequence=10
     )
-    line.values.set([value])
+    line.value_ids.set([value])
     return ProductTemplateAttributeValue.objects.create(
         line=line, attribute_value=value
     )

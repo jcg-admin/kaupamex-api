@@ -39,7 +39,7 @@ def _attribute(name, values):
     attr = ProductAttribute.objects.create(name=name)
     objs = [
         ProductAttributeValue.objects.create(
-            attribute=attr, name=v, sequence=i
+            attribute_id=attr, name=v, sequence=i
         )
         for i, v in enumerate(values)
     ]
@@ -49,10 +49,10 @@ def _attribute(name, values):
 def _line(product, attr, values, sequence=10):
     line = ProductTemplateAttributeLine.objects.create(
         product_tmpl=product.product_tmpl,
-        attribute=attr,
+        attribute_id=attr,
         sequence=sequence,
     )
-    line.values.set(values)
+    line.value_ids.set(values)
     return line
 
 
