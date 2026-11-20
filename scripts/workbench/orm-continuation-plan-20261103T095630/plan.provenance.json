@@ -1312,6 +1312,13 @@
         "product-supplierinfo-fk-names-0122"
       ],
       "writtenAt": "2026-11-20T03:31:31Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-template-categ-id-0122"
+      ],
+      "writtenAt": "2026-11-20T04:19:14Z"
     }
   ]
 }
