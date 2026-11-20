@@ -321,8 +321,6 @@ addons/product/models/product_combo_item.py::ProductComboItem.product
 addons/product/models/product_document.py::ProductDocument.ir_attachment
 addons/product/models/product_template_attribute_value.py::ProductTemplateAttributeValue.attribute_value
 addons/product/models/product_template_attribute_value.py::ProductTemplateAttributeValue.line
-addons/product/models/product_uom.py::ProductUom.company
-addons/product/models/product_uom.py::ProductUom.product
 addons/product_matrix/models/product_matrix_config.py::ProductMatrixConfig.product
 addons/project/models/project_project.py::Project.company
 addons/project/models/project_project.py::Project.partner

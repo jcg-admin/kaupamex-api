@@ -304,8 +304,8 @@ product.supplierinfo	addons/product/models/product_supplierinfo.py:42	set null (
 product.supplierinfo	addons/product/models/product_supplierinfo.py:47	cascade	product.ProductSupplierinfo	product_tmpl_id	restrict	CASCADE	a	True	divergencia de atributo
 product.supplierinfo	addons/purchase_requisition/models/product.py:11	set null (defecto)	product.ProductSupplierinfo	purchase_requisition_line	set null	CASCADE	a	True	divergencia de política
 product.uom	addons/product/models/product_uom.py:13	cascade	product.ProductUom	uom_id	restrict	CASCADE	a	True	divergencia de atributo
-product.uom	addons/product/models/product_uom.py:14	cascade	product.ProductUom	product	restrict	CASCADE	a	True	divergencia de atributo
-product.uom	addons/product/models/product_uom.py:16	set null (defecto)	product.ProductUom	company	set null	CASCADE	a	True	divergencia de política
+product.uom	addons/product/models/product_uom.py:14	cascade	product.ProductUom	product_id	restrict	CASCADE	a	True	divergencia de atributo
+product.uom	addons/product/models/product_uom.py:16	set null (defecto)	product.ProductUom	company_id	set null	CASCADE	a	True	divergencia de política
 product.attribute.value	addons/product/models/product_attribute_value.py:21	cascade	product.ProductAttributeValue	attribute	restrict	CASCADE	a	True	divergencia de atributo
 product.template.attribute.line	addons/product/models/product_template_attribute_line.py:19	cascade	product.ProductTemplateAttributeLine	product_tmpl_id	restrict	CASCADE	a	True	divergencia de atributo
 product.template.attribute.line	addons/product/models/product_template_attribute_line.py:26	restrict	product.ProductTemplateAttributeLine	attribute	restrict	PROTECT	a	True	coherente

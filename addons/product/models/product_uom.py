@@ -35,6 +35,14 @@ from addons.base.models.res_company import ResCompany
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.product.models.product_product import ProductProduct
 from addons.uom.models.uom_uom import Uom
+from orm.environments import env
+
+
+def _default_company():
+    """≙ ``default=lambda self: self.env.company``
+    (``odoo19c: addons/product/models/product_uom.py:16``): la empresa
+    activa, o ninguna si no hay empresa en contexto."""
+    return env().company
 
 
 class ProductUom(TimeStampedModel):
@@ -54,8 +62,9 @@ class ProductUom(TimeStampedModel):
         related_name='product_uom_ids',
         verbose_name='Unidad',
     )
-    product = fields.Many2one(
+    product_id = fields.Many2one(
         ProductProduct,
+        db_column='product_id',
         null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='product_uom_ids',
@@ -64,8 +73,10 @@ class ProductUom(TimeStampedModel):
     barcode = fields.Char(
         max_length=64, db_index=True, verbose_name='Código de barras'
     )
-    company = fields.Many2one(
+    company_id = fields.Many2one(
         ResCompany,
+        db_column='company_id',
+        default=_default_company,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -87,7 +98,7 @@ class ProductUom(TimeStampedModel):
         ]
 
     def __str__(self):
-        return f'{self.barcode} para: {self.product}'
+        return f'{self.barcode} para: {self.product_id}'
 
     def clean(self):
         """``_check_barcode_uniqueness`` — el código no lo usa ya una variante.
