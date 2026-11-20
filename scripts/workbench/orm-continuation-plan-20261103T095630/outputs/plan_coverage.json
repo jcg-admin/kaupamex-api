@@ -571,7 +571,8 @@
   "ptav-source-names-0122",
   "attribute-line-source-relation-0122",
   "variant-combination-source-relation-0122",
-  "many2many-column2-ondelete-0122"
+  "many2many-column2-ondelete-0122",
+  "product-security-data-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
