@@ -183,3 +183,4 @@ f2-3b1b4ed6	full-batch	3b1b4ed6	-	0	14269	0	0	8	-	14269 passed, 66 skipped, 8 xf
 f2-46ab3756	full-batch	46ab3756	-	0	14276	0	0	8	-	14276 passed, 66 skipped, 8 xfailed, exit 0	verde	product-pricelist-item-fk-names-0122	f2-46ab3756.log:acef59d9070bd3acdcce73343208738907328e03cd83d905cf2ce80ef7db34f3
 f2-f2bd4193	full-batch	f2bd4193	-	0	14284	0	0	8	-	14284 passed, 66 skipped, 8 xfailed, exit 0	verde	product-supplierinfo-fk-names-0122	f2-f2bd4193.log:508093b0ca05c57fde90222747a496ace0a880665aa06f78c0e41a159430c2bb
 f2-740b25b8	full-batch	740b25b8	-	0	14287	0	0	8	-	14287 passed, 66 skipped, 8 xfailed, exit 0	verde	product-template-categ-id-0122	f2-740b25b8.log:98fc4105a6778d74ac415fdbd64e461f3df14124a049251a6f6cb76dcd861c5f
+f2-f61e2206	full-batch	f61e2206	-	0	14291	0	0	8	-	14291 passed, 66 skipped, 8 xfailed, exit 0	verde	product-template-company-id-0122	f2-f61e2206.log:8da9e9102ace4c5d5dbb8c23abea94bc92b84c01caaebbe9f9f07be93c2df5d0

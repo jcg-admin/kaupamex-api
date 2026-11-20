@@ -1319,6 +1319,13 @@
         "product-template-categ-id-0122"
       ],
       "writtenAt": "2026-11-20T04:19:14Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-template-company-id-0122"
+      ],
+      "writtenAt": "2026-11-20T05:19:18Z"
     }
   ]
 }
