@@ -320,15 +320,9 @@ addons/product/models/product_combo_item.py::ProductComboItem.combo
 addons/product/models/product_combo_item.py::ProductComboItem.company
 addons/product/models/product_combo_item.py::ProductComboItem.product
 addons/product/models/product_document.py::ProductDocument.ir_attachment
-addons/product/models/product_pricelist_item.py::ProductPricelistItem.base_pricelist
-addons/product/models/product_pricelist_item.py::ProductPricelistItem.categ
-addons/product/models/product_pricelist_item.py::ProductPricelistItem.pricelist
-addons/product/models/product_pricelist_item.py::ProductPricelistItem.product
-addons/product/models/product_pricelist_item.py::ProductPricelistItem.product_tmpl
 addons/product/models/product_product.py::ProductProduct.product_tmpl
 addons/product/models/product_supplierinfo.py::ProductSupplierinfo.company
 addons/product/models/product_supplierinfo.py::ProductSupplierinfo.currency
-addons/product/models/product_supplierinfo.py::ProductSupplierinfo.partner
 addons/product/models/product_supplierinfo.py::ProductSupplierinfo.product
 addons/product/models/product_supplierinfo.py::ProductSupplierinfo.product_tmpl
 addons/product/models/product_supplierinfo.py::ProductSupplierinfo.product_uom

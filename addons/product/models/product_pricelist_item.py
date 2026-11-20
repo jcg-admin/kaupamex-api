@@ -130,8 +130,11 @@ class ProductPricelistItem(TimeStampedModel):
     _description = "Pricelist Rule"
     _order = "applied_on, min_quantity desc, categ_id desc, id desc"
 
-    pricelist = fields.Many2one(
+    #: ≙ ``pricelist_id`` (``odoo19c: addons/product/models/
+    #: product_pricelist_item.py:19``) en forma C.
+    pricelist_id = fields.Many2one(
         ProductPricelist,
+        db_column='pricelist_id',
         on_delete=models.CASCADE, null=True, blank=True,
         db_index=True,
         related_name='item_ids',
@@ -156,16 +159,20 @@ class ProductPricelistItem(TimeStampedModel):
         db_column='categ_id',
         verbose_name='Categoría',
     )
-    product_tmpl = fields.Many2one(
+    #: ≙ ``product_tmpl_id`` (``:77``) en forma C.
+    product_tmpl_id = fields.Many2one(
         ProductTemplate,
+        db_column='product_tmpl_id',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
         related_name='pricelist_rule_ids',
         verbose_name='Producto',
     )
-    product = fields.Many2one(
+    #: ≙ ``product_id`` (``:82``) en forma C.
+    product_id = fields.Many2one(
         ProductProduct,
+        db_column='product_id',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
@@ -191,8 +198,10 @@ class ProductPricelistItem(TimeStampedModel):
         default=BASE_LIST_PRICE,
         verbose_name='Basado en',
     )
-    base_pricelist = fields.Many2one(
+    #: ≙ ``base_pricelist_id`` (``:104``) en forma C.
+    base_pricelist_id = fields.Many2one(
         ProductPricelist,
+        db_column='base_pricelist_id',
         on_delete=models.PROTECT,
         null=True,
         blank=True,
@@ -251,7 +260,7 @@ class ProductPricelistItem(TimeStampedModel):
         verbose_name_plural = 'Reglas de tarifa'
 
     def __str__(self):
-        return f'{self.pricelist_id}/{self.applied_on}#{self.pk}'
+        return f'{self.pricelist_id_id}/{self.applied_on}#{self.pk}'
 
     def clean(self):
         """El alcance declarado y el campo que lo concreta tienen que casar.
@@ -305,12 +314,12 @@ class ProductPricelistItem(TimeStampedModel):
         if self.applied_on == APPLIED_GLOBAL:
             return True
         if self.applied_on == APPLIED_VARIANT:
-            return getattr(product, 'pk', None) == self.product_id
+            return getattr(product, 'pk', None) == self.product_id_id
         if self.applied_on == APPLIED_PRODUCT:
             tmpl = getattr(product, 'product_tmpl_id', None) or getattr(
                 product, 'pk', None
             )
-            return tmpl == self.product_tmpl_id
+            return tmpl == self.product_tmpl_id_id
         if self.applied_on == APPLIED_CATEGORY:
             categ = getattr(product, 'categ', None)
             # Una regla de categoría alcanza a toda la rama, no sólo al nodo:
