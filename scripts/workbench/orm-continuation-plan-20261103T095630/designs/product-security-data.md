@@ -53,14 +53,30 @@ carga el ciclo de instalación con los modelos vivos.
      `product/models/uom_uom.py` sin portar: sin ella `product.model_uom_uom`
      no existe).
    Quedan 33 filas.
-2. `ProductDocument` gana `_name`, `_description` y `_order`, verbatim.
-   `_inherits` activa la delegación de campos y de dominio
-   (`orm/inherits.py`, `orm/domains.py:1273`) y sustituye las propiedades
-   escritas a mano: es la unidad sucesora `product-document-inherits-0397`.
+2. `ProductDocument` gana su cabecera completa, verbatim: `_name`,
+   `_description`, `_inherits = {'ir.attachment': 'ir_attachment_id'}` y
+   `_order`. Medido al cargar el XML: el cargador valida el dominio de cada
+   regla, y `product_document_comp_rule` cita `company_id`, que el documento
+   sólo tiene por `_inherits`. Con él, la regla valida.
+3. `product.pricelist.item` gana `company_id` y `currency_id`
+   (`odoo19c: product_pricelist_item.py:31-32`, calculados y almacenados,
+   `_compute_company_id`/`_compute_currency_id` en `:170-183`).
+   Medido igual: `product_pricelist_item_comp_rule` no valida sin
+   `company_id`. Se calculan en `save()` (precedente `product.combo.item`)
+   y la migración `0043` los rellena en las filas existentes. La lectura de
+   la moneda de la compañía va por `currency`, nombre que el puerto da hoy
+   a `res.company.currency_id`.
+   `_check_company_auto` y los tres `check_company=True` de la regla
+   quedan en el sucesor `pricelist-item-check-company-0397`.
 
 ## Sucesores
 
-- `product-document-inherits-0397`: `_inherits` de `product.document`.
+- `product-document-delegation-0397`: retirar las propiedades escritas a
+  mano de `product.document` que `_inherits` ya delega.
+- `pricelist-item-check-company-0397`: `_check_company_auto` y
+  `check_company` de `product.pricelist.item`.
+- `res-company-currency-id`: nombre de la fuente de la moneda de
+  `res.company`.
 - `product-uom-uom-extension-0397`: `product/models/uom_uom.py`
   (`product_uom_ids`) y su fila de ACL.
 - `product-template-attribute-exclusion-0397`: modelo y sus dos filas.
@@ -72,5 +88,7 @@ carga el ciclo de instalación con los modelos vivos.
 `tests/unit/product/test_product_security.py`: los grupos y el privilegio
 con su XML-ID y sus implicaciones; las 33 filas y las seis reglas con su
 XML-ID; un usuario interno lee `product.template` y no lo escribe; un gestor
-lo escribe; la regla de empresa oculta una plantilla de otra empresa.
+lo escribe; la regla de empresa oculta una plantilla de otra empresa; una
+regla de tarifa guarda la compañía y la moneda de su tarifa o de su
+plantilla.
 Anulación: retirar los dos archivos de `data` hace caer las pruebas.
