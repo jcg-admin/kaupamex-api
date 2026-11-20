@@ -48,3 +48,21 @@ estado difiere del modelo (makemigrations --check por base no lo ve).
 
 Sin contraparte en la referencia: es infraestructura del gate (clase E del
 flujo de referencia).
+
+## Medido tras el arreglo
+
+- `tests/unit/scripts/test_gate_preflight.py`: 13 pruebas verdes. Anulación:
+  devuelto `prepare_database` a `call_command(..., database=alias)`, cae
+  exactamente `test_preparation_migrates_only_a_database_with_pending_migrations`
+  (1 failed, 12 passed).
+- En la base real: con `product.0044` desaplicada en `orm_x2hokp_qa_gw0`
+  (0 de las 3 columnas medidas, 0 filas en `django_migrations`),
+  `gate_preflight.py --prepare --workers 4` informó «1 migraciones
+  aplicadas» en `gw0` y la base quedó con las 3 columnas y la fila de
+  `0044`.
+
+## Lo que no cierra
+
+El preflight sigue sin ver una migración aplicada cuyo contenido cambió
+después (el origen del episodio). Sucesor:
+`gate-preflight-applied-migration-drift-0485`.
