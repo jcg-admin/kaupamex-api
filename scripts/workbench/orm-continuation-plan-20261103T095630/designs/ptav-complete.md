@@ -68,3 +68,7 @@ variante que no se puede borrar. Anulación por método.
   fuente; las pruebas de invalidación del ORM sobre ese inverso lo escriben
   por debajo de la guarda
   (`tests/integration/product/test_display_name_assignment.py`).
+- `apply_stock_product_extensions` deja de instalar `_filter_to_unlink`
+  con `if not hasattr` y lo envuelve al final con `wrap_method` (`odoo19c:
+  addons/stock/models/product.py:747-751`). Prueba:
+  `tests/integration/sale/test_stock_product_surface_extra.py`.
