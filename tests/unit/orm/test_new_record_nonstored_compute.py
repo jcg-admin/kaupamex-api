@@ -136,7 +136,7 @@ def test_a_related_ending_on_a_django_many2many():
     values = [ProductTemplateAttributeValue.objects.create(
         attribute_line_id=line, product_attribute_value_id=value)
         for value in (red, blue)]
-    variant.product_template_attribute_values.set(values)
+    variant.product_template_attribute_value_ids.set(values)
     record = env()['purchase.order.line'].new({'product_id': variant.pk})
     read = record.product_template_attribute_value_ids
     assert isinstance(read, QuerySet)

@@ -17,11 +17,13 @@ pytestmark = pytest.mark.django_db
 
 def test_the_end_of_the_chain_reads_the_queryset_of_a_many2many():
     product = make_product(name='Variante related M2M')
-    field = type(product)._meta.get_field('product_template_attribute_values')
+    field = type(product)._meta.get_field(
+        'product_template_attribute_value_ids')
     value = _end_of_chain(product, field)
     assert isinstance(value, QuerySet)
     assert not isinstance(value, Manager)
-    assert list(value) == list(product.product_template_attribute_values.all())
+    assert list(value) == list(
+        product.product_template_attribute_value_ids.all())
 
 
 def test_a_scalar_at_the_end_of_the_chain_is_read_as_is():

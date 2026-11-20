@@ -291,7 +291,7 @@ class TestProductProduct:
             attribute_line_id=line, product_attribute_value_id=rojo
         )
         variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
-        variante.product_template_attribute_values.set([ptav])
+        variante.product_template_attribute_value_ids.set([ptav])
         variante.refresh_combination_indices()
         assert variante.combination_indices == str(ptav.pk)
 
@@ -312,7 +312,7 @@ class TestProductProduct:
             price_extra=Decimal('30.00'),
         )
         variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
-        variante.product_template_attribute_values.set([ptav])
+        variante.product_template_attribute_value_ids.set([ptav])
         assert variante.list_price == Decimal('100.00')
         assert variante.price_extra == Decimal('30.00')
         assert variante.lst_price == Decimal('130.00')
@@ -336,7 +336,7 @@ class TestProductProduct:
             attribute_line_id=line, product_attribute_value_id=rojo
         )
         variante = ProductProduct.objects.create(product_tmpl_id=tmpl)
-        variante.product_template_attribute_values.set([ptav])
+        variante.product_template_attribute_value_ids.set([ptav])
         assert variante.display_name == 'Eleke (Rojo)'
 
     def test_clean_permite_combo_con_variante(self):

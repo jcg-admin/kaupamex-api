@@ -46,7 +46,7 @@ def values(variant):
     blue_value = ProductTemplateAttributeValue.objects.create(
         attribute_line_id=line, product_attribute_value_id=blue
     )
-    variant.product_template_attribute_values.add(red_value)
+    variant.product_template_attribute_value_ids.add(red_value)
     return red, red_value, blue_value
 
 
@@ -76,9 +76,9 @@ def test_relation_change_invalidates_variant_label(variant, values):
     _, _, blue_value = values
     with transaction_scope():
         assert variant.display_name == 'Camiseta (Rojo)'
-        variant.product_template_attribute_values.add(blue_value)
+        variant.product_template_attribute_value_ids.add(blue_value)
         assert variant.display_name == 'Camiseta (Rojo, Azul)'
-        variant.product_template_attribute_values.clear()
+        variant.product_template_attribute_value_ids.clear()
         assert variant.display_name == 'Camiseta'
 
 
@@ -106,7 +106,7 @@ def test_reverse_add_invalidates_the_owning_variant(variant, values):
     _, _, blue_value = values
     with transaction_scope():
         assert variant.display_name == 'Camiseta (Rojo)'
-        blue_value.product_variant_ids.add(variant)
+        blue_value.ptav_product_variant_ids.add(variant)
         assert variant.display_name == 'Camiseta (Rojo, Azul)'
 
 
@@ -118,13 +118,13 @@ def test_reverse_remove_and_clear_invalidate_previous_owners(variant, values):
     other = ProductProduct.objects.create(
         product_tmpl_id=variant.product_tmpl_id, active=False
     )
-    other.product_template_attribute_values.add(red_value)
+    other.product_template_attribute_value_ids.add(red_value)
     with transaction_scope():
         assert variant.display_name == other.display_name == 'Camiseta (Rojo)'
-        red_value.product_variant_ids.remove(variant)
+        red_value.ptav_product_variant_ids.remove(variant)
         assert variant.display_name == 'Camiseta'
         assert other.display_name == 'Camiseta (Rojo)'
-        red_value.product_variant_ids.clear()
+        red_value.ptav_product_variant_ids.clear()
         assert other.display_name == 'Camiseta'
 
 
@@ -132,7 +132,7 @@ def test_set_replacement_invalidates_the_previous_combination(variant, values):
     _, _, blue_value = values
     with transaction_scope():
         assert variant.display_name == 'Camiseta (Rojo)'
-        variant.product_template_attribute_values.set([blue_value])
+        variant.product_template_attribute_value_ids.set([blue_value])
         assert variant.display_name == 'Camiseta (Azul)'
 
 
@@ -159,7 +159,7 @@ def test_unrelated_cached_variant_is_not_recomputed(
         assert variant.display_name == 'Camiseta (Rojo)'
         assert other.display_name == 'Camiseta'
         computed.clear()
-        variant.product_template_attribute_values.add(blue_value)
+        variant.product_template_attribute_value_ids.add(blue_value)
         assert other.display_name == 'Camiseta'
         assert other.pk not in computed
 

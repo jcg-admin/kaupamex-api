@@ -180,11 +180,17 @@ class ProductProduct(TimeStampedModel):
             'consulta.'
         ),
     )
-    product_template_attribute_values = fields.Many2many(
+    #: ≙ ``product_template_attribute_value_ids`` (``odoo19c: :49``): la
+    #: relación y las columnas de la fuente; el otro extremo es
+    #: ``ptav_product_variant_ids`` de PTAV. El ``ondelete='restrict'`` de
+    #: ``column2`` es la unidad ``many2many-column2-ondelete-0122``.
+    product_template_attribute_value_ids = fields.Many2many(
         ProductTemplateAttributeValue,
         blank=True,
-        db_table='product_variant_combination',
-        related_name='product_variant_ids',
+        relation='product_variant_combination',
+        column1='product_product_id',
+        column2='product_template_attribute_value_id',
+        related_name='ptav_product_variant_ids',
         verbose_name='Valores de atributo',
     )
     # Los tres que la variante SOBREESCRIBE — el valor de la ficha no aplica.
@@ -351,15 +357,15 @@ class ProductProduct(TimeStampedModel):
     def refresh_combination_indices(self):
         """``_compute_combination_indices`` — recalcula desde los valores."""
         self.combination_indices = self.build_combination_indices(
-            self.product_template_attribute_values.all()
+            self.product_template_attribute_value_ids.all()
         )
         return self.combination_indices
 
     @api.depends(
         'product_tmpl_id.name',
-        'product_template_attribute_values',
-        'product_template_attribute_values.product_attribute_value_id.name',
-        'product_template_attribute_values.price_extra',
+        'product_template_attribute_value_ids',
+        'product_template_attribute_value_ids.product_attribute_value_id.name',
+        'product_template_attribute_value_ids.price_extra',
     )
     def _compute_display_name(self):
         """≙ ``display_name`` / ``_compute_display_name`` (``:813-872``), que
@@ -375,7 +381,7 @@ class ProductProduct(TimeStampedModel):
         base = self.product_tmpl_id.name
         parts = [
             str(value)
-            for value in self.product_template_attribute_values.all()
+            for value in self.product_template_attribute_value_ids.all()
             if getattr(value, 'is_distinguishing', True)
         ]
         self.display_name = f'{base} ({", ".join(parts)})' if parts else base
@@ -392,7 +398,7 @@ class ProductProduct(TimeStampedModel):
         """
         return sum(
             (getattr(value, 'price_extra', 0) or 0)
-            for value in self.product_template_attribute_values.all()
+            for value in self.product_template_attribute_value_ids.all()
         )
 
     @property

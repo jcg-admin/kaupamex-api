@@ -259,10 +259,10 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
         related='company_id.tax_calculation_rounding_method',
         string='Tax calculation rounding method', readonly=True)
     #: ``product.product`` nombra el campo
-    #: ``product_template_attribute_values``
+    #: ``product_template_attribute_value_ids``
     #: (divergencia de nombre del porte de ``product``).
     product_template_attribute_value_ids = fields.Many2many(
-        related='product_id.product_template_attribute_values',
+        related='product_id.product_template_attribute_value_ids',
         readonly=True, related_name='+')
     #: ≙ ``product_no_variant_attribute_value_ids`` (``odoo19c: :106``), con
     #: la tabla que la fuente deriva.
