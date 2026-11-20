@@ -169,6 +169,11 @@
    "id": "many2one-reference-declarations-0485",
    "task": "TASK-API-0485",
    "reason": "state failed"
+  },
+  {
+   "id": "gate-preflight-migrate-through-default-0485",
+   "task": "TASK-API-0485",
+   "reason": "state failed"
   }
  ],
  "unrepresented": [
@@ -573,7 +578,8 @@
   "variant-combination-source-relation-0122",
   "many2many-column2-ondelete-0122",
   "product-security-data-0397",
-  "product-attribute-value-complete-0122"
+  "product-attribute-value-complete-0122",
+  "website-sale-security-data-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
