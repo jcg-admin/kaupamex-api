@@ -1502,3 +1502,48 @@ class TestOrmSharedCompute(TestOrmModel):
 
     class Meta(TestOrmModel.Meta):
         db_table = 'test_orm_shared_compute'
+
+
+class TestOrmModelA(TestOrmModel):
+    """≙ ``test_orm.model_a`` (``odoo19c: odoo/addons/test_orm/models/
+    test_orm.py:1275-1281``).
+
+    Las columnas son las que la fuente deriva de las dos tablas cuando no
+    las declara; aquí se escriben porque emparejar un extremo con su espejo
+    exige el par (``Many2manyField``).
+    """
+
+    _name = 'test_orm.model_a'
+    _description = 'Model A'
+
+    name = fields.Char()
+    a_restricted_b_ids = fields.Many2many(
+        'test_orm.model_b', relation='rel_model_a_model_b_1',
+        column1='test_orm_model_a_id', column2='test_orm_model_b_id')
+    b_restricted_b_ids = fields.Many2many(
+        'test_orm.model_b', relation='rel_model_a_model_b_2',
+        column1='test_orm_model_a_id', column2='test_orm_model_b_id',
+        ondelete='restrict')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_model_a'
+
+
+class TestOrmModelB(TestOrmModel):
+    """≙ ``test_orm.model_b`` (``odoo19c: :1284-1290``): el otro extremo de
+    las dos relaciones de ``model_a``."""
+
+    _name = 'test_orm.model_b'
+    _description = 'Model B'
+
+    name = fields.Char()
+    a_restricted_a_ids = fields.Many2many(
+        'test_orm.model_a', relation='rel_model_a_model_b_1',
+        column1='test_orm_model_b_id', column2='test_orm_model_a_id',
+        ondelete='restrict')
+    b_restricted_a_ids = fields.Many2many(
+        'test_orm.model_a', relation='rel_model_a_model_b_2',
+        column1='test_orm_model_b_id', column2='test_orm_model_a_id')
+
+    class Meta(TestOrmModel.Meta):
+        db_table = 'test_orm_model_b'

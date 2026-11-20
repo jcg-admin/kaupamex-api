@@ -54,6 +54,7 @@ class ProductTemplateAttributeLine(TimeStampedModel):
         column1='product_template_attribute_line_id',
         column2='product_attribute_value_id',
         related_name='pav_attribute_line_ids',
+        ondelete='restrict',
         help_text='Valores aplicables a este producto (Odoo value_ids).',
     )
     sequence = models.PositiveIntegerField(

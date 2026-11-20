@@ -965,7 +965,12 @@ class Many2manyField(models.ManyToManyField):
         return 'ManyToManyField'
 
     def __init__(self, *args, relation=None, column1=None, column2=None,
-                 **kwargs):
+                 ondelete='cascade', **kwargs):
+        if ondelete not in _MANY2MANY_ON_DELETE:
+            raise ValueError(
+                f'Many2many(ondelete={ondelete!r}): sólo se admiten '
+                f'{sorted(_MANY2MANY_ON_DELETE)}')
+        self.ondelete = ondelete
         if relation is not None:
             kwargs.setdefault('db_table', relation)
         self.relation = relation
@@ -978,6 +983,8 @@ class Many2manyField(models.ManyToManyField):
         """Conserva ``column1``/``column2``: sin ellos la migración nombraría
         las columnas a la manera de Django."""
         name, path, args, kwargs = super().deconstruct()
+        if self.ondelete != 'cascade':
+            kwargs['ondelete'] = self.ondelete
         through = self.remote_field.through
         explicit = through is not None and not isinstance(through, str) and \
             not through._meta.auto_created
@@ -1058,6 +1065,13 @@ class Many2manyField(models.ManyToManyField):
             # ``remote_field``.
             owner.remote_field.related_name = name
             owner._related_name = name
+            # El ``column2`` del espejo es el ``column1`` del dueño: su
+            # ``ondelete`` va en esa FK de la intermedia que el dueño creó.
+            through = owner.remote_field.through
+            if (through is not None and not isinstance(through, str)
+                    and through._meta.auto_created):
+                source, _target = owner._through_field_names(owner.model)
+                _restrict_through_column(through, source, self.ondelete)
             return
         explicit = self._explicit_through(cls)
         if explicit is not None:
@@ -1072,6 +1086,10 @@ class Many2manyField(models.ManyToManyField):
         if (self.column1 is not None and not isinstance(through, str)
                 and through._meta.auto_created):
             self._name_through_columns(through, cls)
+        if (through is not None and not isinstance(through, str)
+                and through._meta.auto_created):
+            _source, target = self._through_field_names(cls)
+            _restrict_through_column(through, target, self.ondelete)
 
     def _name_through_columns(self, through, cls):
         """Fija ``column1``/``column2`` sobre la intermedia generada."""
@@ -1158,7 +1176,8 @@ def Many2many(*args, check_company=False, store=_UNSET, related=None,
     args, source_name = _translate_comodel(args)
     args, kwargs = _source_many2many_kwargs(args, kwargs)
     field_class = (Many2manyField if any(
-        name in kwargs for name in ('relation', 'column1', 'column2'))
+        name in kwargs
+        for name in ('relation', 'column1', 'column2', 'ondelete'))
         else models.ManyToManyField)
     field = _mark_check_company(field_class(*args, **kwargs), check_company)
     if source_name is not None:
@@ -3309,3 +3328,24 @@ for _relational_multi_owner in (One2many, models.ManyToManyField):
                     _relational_multi_member)
 models.ManyToManyField.write_real = _many2many_write_real
 models.ManyToManyField.write_new = _many2many_write_new
+
+
+#: ``ondelete`` de un ``Many2many`` → ``on_delete`` de la FK de la intermedia
+#: (``odoo19c: odoo/orm/fields_relational.py:1253``). La fuente sólo usa
+#: ``restrict`` además del defecto (19 declaraciones medidas); ``restrict``
+#: queda en Python, como el resto del puerto (``foreign-keys-delete-
+#: contract.md``, determinación 3).
+_MANY2MANY_ON_DELETE = {'cascade': models.CASCADE, 'restrict': models.PROTECT}
+
+
+def _restrict_through_column(through, field_name, ondelete):
+    """Fija el ``on_delete`` de una FK de la intermedia automática.
+
+    ≙ ``update_db_foreign_keys`` (``odoo19c: :1355-1367``): ``column2`` →
+    comodelo con ``self.ondelete``. El ``Collector`` de Django lo respeta en
+    una intermedia ``auto_created`` (medido); el defecto no se toca.
+    """
+    if ondelete == 'cascade':
+        return
+    field = through._meta.get_field(field_name)
+    field.remote_field.on_delete = _MANY2MANY_ON_DELETE[ondelete]

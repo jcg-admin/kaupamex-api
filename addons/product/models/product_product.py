@@ -182,8 +182,8 @@ class ProductProduct(TimeStampedModel):
     )
     #: ≙ ``product_template_attribute_value_ids`` (``odoo19c: :49``): la
     #: relación y las columnas de la fuente; el otro extremo es
-    #: ``ptav_product_variant_ids`` de PTAV. El ``ondelete='restrict'`` de
-    #: ``column2`` es la unidad ``many2many-column2-ondelete-0122``.
+    #: ``ptav_product_variant_ids`` de PTAV. ``ondelete='restrict'`` es la
+    #: FK de ``column2``: no se borra un PTAV que alguna variante usa.
     product_template_attribute_value_ids = fields.Many2many(
         ProductTemplateAttributeValue,
         blank=True,
@@ -191,6 +191,7 @@ class ProductProduct(TimeStampedModel):
         column1='product_product_id',
         column2='product_template_attribute_value_id',
         related_name='ptav_product_variant_ids',
+        ondelete='restrict',
         verbose_name='Valores de atributo',
     )
     # Los tres que la variante SOBREESCRIBE — el valor de la ficha no aplica.
