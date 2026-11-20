@@ -154,3 +154,20 @@ leía un `None` o un gestor de Django donde la fuente lee un recordset.
 Sucesor registrado: `environment-companies-from-context-0485` —
 `env.companies` lee el ámbito y no `allowed_company_ids` del contexto del
 entorno (`odoo19c: odoo/orm/environments.py:255-284`).
+
+## Orden corregido de las etapas 2-5 (medido al abrir la etapa 2)
+
+La lista de «Etapas» de arriba pone la línea antes que PTAV, y no puede ir
+así. `odoo19c: addons/product/models/product_template_attribute_line.py`
+llama desde `create`/`write`/`unlink` (`:78-199`) y
+`_update_product_template_attribute_values` (`:201-260`) a:
+
+- `ptav_active`, `product_tmpl_id`, `attribute_id`, `price_extra` y
+  `_only_active` de PTAV — ninguno existe hoy en
+  `addons/product/models/product_template_attribute_value.py`;
+- `product_tmpl_id._create_variant_ids()` — etapa 5.
+
+Y `_create_variant_ids` lee las exclusiones (etapa 3) y los campos de PTAV.
+El orden de dependencias es entonces **4 → 3 → 5 → 2**:
+`ptav-complete-0122`, `product-template-attribute-exclusion-0122`,
+`product-template-create-variant-ids-0122`, `ptal-complete-0122`.
