@@ -33,8 +33,12 @@ en él los campos del adjunto.
 - `ProductDocument.name`, `ProductDocument.type`, `ProductDocument.url`,
   `ProductDocument.mimetype`, `ProductDocument.res_model`,
   `ProductDocument.res_id`, `ProductDocument.clean`,
-  `ProductDocument.delete`: leen el nombre de la fuente; la conducta no
-  cambia;
+  `ProductDocument.delete`, `ProductDocument.for_record` (sus búsquedas
+  `ir_attachment_id__res_model` e `ir_attachment_id__res_id`): leen el
+  nombre de la fuente; la conducta no cambia;
+- `Meta.ordering` de `ProductDocument`: `ir_attachment__name` pasa a
+  `ir_attachment_id__name` (con el nombre viejo Django rehúsa cargar el
+  modelo, `models.E015`);
 - la migración `0037_document_ir_attachment_id`.
 
 ## Pruebas
