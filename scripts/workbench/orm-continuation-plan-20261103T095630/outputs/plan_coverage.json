@@ -563,7 +563,8 @@
   "product-supplierinfo-fk-names-0122",
   "product-template-categ-id-0122",
   "product-template-company-id-0122",
-  "product-tmpl-id-0122"
+  "product-tmpl-id-0122",
+  "product-template-uom-id-0122"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
