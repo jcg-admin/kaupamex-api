@@ -74,3 +74,32 @@ de `column2` se puede fijar en el mismo punto.
    calendar, sale_stock, ir.rule) quedan para
    `many2many-ondelete-declarations-0122`: cada uno exige primero que su
    campo tenga la relación de la fuente.
+
+## Símbolos que cambian
+
+- `Many2manyField.__init__` (`ondelete`), `Many2manyField.deconstruct`,
+  `Many2manyField.contribute_to_class` (dueño y espejo), el despachador
+  `Many2many` y la función nueva `_restrict_through_column`
+  (`src/orm/fields_relational.py`), con su tabla `_MANY2MANY_ON_DELETE`
+  (`odoo19c: odoo/orm/fields_relational.py:1253, 1355-1367`);
+- `TestOrmModelA.a_restricted_b_ids`, `TestOrmModelA.b_restricted_b_ids`,
+  `TestOrmModelB.a_restricted_a_ids`, `TestOrmModelB.b_restricted_a_ids`
+  (`odoo19c: odoo/addons/test_orm/models/test_orm.py:1275-1290`) y la
+  migración `0049_many2many_ondelete` de `test_orm`, que crea cada tabla
+  una sola vez con las columnas de la fuente;
+- `ProductProduct.product_template_attribute_value_ids` y
+  `ProductTemplateAttributeLine.value_ids` con `ondelete='restrict'`, y la
+  migración `0042_many2many_restrict` de `product` (sin SQL: la política
+  vive en Python).
+
+Corrección durante la unidad: en un modelo abstracto `through` es `None`;
+la primera versión leía `through._meta` sin comprobarlo y el proyecto no
+cargaba. Las dos ramas nuevas comprueban `through is not None`.
+
+## Pruebas y controles
+
+`tests/integration/test_orm/test_many2many_ondelete.py`: `test_10` y
+`test_11` de la fuente y el PTAV usado por una variante. Controles de
+anulación: vaciar `_restrict_through_column` hace caer las tres; quitar
+sólo la rama del espejo hace caer exactamente `test_10` (1 failed, 2
+passed), que es la que depende del `restrict` del segundo extremo.
