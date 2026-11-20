@@ -32,10 +32,11 @@ Este puerto llamaba a esos campos `attribute` (en los dos modelos) y
 ## Símbolos que cambian
 
 - `ProductAttributeValue.attribute_id` ≙ `attribute_id`
-  (`odoo19c: addons/product/models/product_attribute_value.py`);
+  (`odoo19c: addons/product/models/product_attribute_value.py:21`);
 - `ProductTemplateAttributeLine.attribute_id` y
   `ProductTemplateAttributeLine.value_ids` ≙ `attribute_id` y `value_ids`
-  (`odoo19c: addons/product/models/product_template_attribute_line.py`);
+  (`odoo19c: addons/product/models/product_template_attribute_line.py:26`
+  y `:32`, citada `odoo19c: addons/product/models/product_template_attribute_line.py:32`);
 - la migración `0026_attribute_source_names`.
 
 Prueba de los cuatro:
