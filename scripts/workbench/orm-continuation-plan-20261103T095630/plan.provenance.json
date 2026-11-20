@@ -1340,6 +1340,13 @@
         "product-template-uom-id-0122"
       ],
       "writtenAt": "2026-11-20T07:30:24Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-uom-source-names-0122"
+      ],
+      "writtenAt": "2026-11-20T08:14:44Z"
     }
   ]
 }
