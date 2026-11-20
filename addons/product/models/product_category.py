@@ -36,13 +36,11 @@ Es un ``compute`` sin ``store`` → propiedad derivada aquí.
 Qué NO se porta, con su medición
 ================================
 
-- **``_inherit = ['mail.thread']``**: la categoría es un hilo de mensajería en
-  la referencia (seguidores, registro de cambios). Aquí ``addons/mail`` existe
-  con otro diseño —``MailThread``, ``MailFollowers``, ``MailMessage``— y
-  colgar la categoría de él es una decisión de producto, no de portación.
-- **``name_create`` / ``copy_data``**: crear desde un desplegable escribiendo
-  un nombre, y duplicar añadiendo *"(copia)"*. Son azúcar del cliente web de
-  Odoo; el equivalente aquí es el serializer DRF.
+- **El hilo de ``mail.thread``**: la cabecera lo declara verbatim, pero la
+  clase no hereda ``MailThread`` (seguidores, registro de cambios). Junto con
+  ``name_create``, ``copy_data`` y el ``display_name`` según
+  ``hierarchical_naming``, depende de llevar el modelo a ``BaseModel``:
+  sucesor ``product-category-mail-0122``.
 - **``product_properties_definition``** (``PropertiesDefinition``): el esquema
   de propiedades libres que heredan los productos de la categoría. Se porta
   el campo —es ``JSONField`` en este árbol— pero **no** la maquinaria que lo
@@ -63,6 +61,22 @@ COMPLETE_NAME_SEPARATOR = ' / '
 class ProductCategory(TimeStampedModel):
     """``product.category`` — una categoría dentro del árbol."""
 
+    #: ≙ la cabecera de ``odoo19c: addons/product/models/
+    #: product_category.py:9-15``, verbatim. ``_inherit`` nombra la
+    #: extensión de ``mail.thread`` aunque el hilo de mensajes sobre la
+    #: categoría no esté cableado (sucesor ``product-category-mail-0122``).
+    #: ``_parent_store`` en un modelo que no es ``BaseModel`` no activa el
+    #: mantenimiento del núcleo: ``parent_path`` lo calcula ``save()``,
+    #: como en ``uom.uom``; lo que sí habilita es ``child_of`` por ruta.
+    _name = 'product.category'
+    _inherit = ['mail.thread']
+    _description = "Product Category"
+    _parent_name = "parent_id"
+    _parent_store = True
+    _rec_name = 'complete_name'
+    #: ``Meta.ordering`` es su forma en Django; los dos conviven.
+    _order = 'complete_name'
+
     name = fields.Char(max_length=255, db_index=True, verbose_name='Nombre')
     complete_name = fields.Char(
         max_length=1024,
@@ -75,8 +89,12 @@ class ProductCategory(TimeStampedModel):
             'los descendientes al renombrar un padre.'
         ),
     )
-    parent = fields.Many2one(
+    #: ≙ ``parent_id`` (``odoo19c: addons/product/models/
+    #: product_category.py:21``) en forma C: el nombre de la fuente, con su
+    #: columna explícita.
+    parent_id = fields.Many2one(
         'self',
+        db_column='parent_id',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
@@ -125,21 +143,21 @@ class ProductCategory(TimeStampedModel):
         """
         super().clean()
         seen = set()
-        node = self.parent
+        node = self.parent_id
         while node is not None:
             if node.pk == self.pk or node.pk in seen:
                 raise ValidationError(
                     'No se pueden crear categorías recursivas.'
                 )
             seen.add(node.pk)
-            node = node.parent
+            node = node.parent_id
 
     def build_complete_name(self):
         """
         ``_compute_complete_name`` — ``Padre / Hijo``, o el nombre a secas.
         """
-        if self.parent is not None:
-            parent_name = self.parent.complete_name or self.parent.name
+        if self.parent_id is not None:
+            parent_name = self.parent_id.complete_name or self.parent_id.name
             return f'{parent_name}{COMPLETE_NAME_SEPARATOR}{self.name}'
         return self.name
 
@@ -156,8 +174,8 @@ class ProductCategory(TimeStampedModel):
         super().save(*args, **kwargs)
 
         parent_path = (
-            f'{self.parent.parent_path}{self.pk}/'
-            if self.parent is not None
+            f'{self.parent_id.parent_path}{self.pk}/'
+            if self.parent_id is not None
             else f'{self.pk}/'
         )
         if self.parent_path != parent_path:

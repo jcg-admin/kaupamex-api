@@ -445,7 +445,7 @@ def test_get_total_routes_unions_product_and_category_routes(db):
     """
     parent_categ = ProductCategory.objects.create(name='Parent')
     child_categ = ProductCategory.objects.create(
-        name='Child', parent=parent_categ
+        name='Child', parent_id=parent_categ
     )
     product = make_product(name='With routes', categ=child_categ)
 

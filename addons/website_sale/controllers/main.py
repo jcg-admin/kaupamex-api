@@ -337,7 +337,7 @@ class CategoryTreeView(ListAPIView):
     def get_queryset(self):
         return (
             ProductCategory.objects
-            .filter(parent__isnull=True)
+            .filter(parent_id__isnull=True)
             .prefetch_related('child_id')
             .order_by('name')
         )

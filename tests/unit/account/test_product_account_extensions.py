@@ -143,14 +143,15 @@ class TestResolutionOfAccount:
         """No es "la cuenta de mi categoría": es la del primer ascendiente.
 
         Configurar una vez arriba y heredar hacia abajo es el punto entero de
-        que la referencia recorra ``categ.parent`` en bucle.
+        que la referencia recorra ``categ.parent_id`` en bucle.
         """
         ingreso, _ = cuentas
         abuela = ProductCategory.objects.create(
             name='Religiosos', property_account_income_categ=ingreso
         )
-        madre = ProductCategory.objects.create(name='Collares', parent=abuela)
-        hija = ProductCategory.objects.create(name='Elekes', parent=madre)
+        madre = ProductCategory.objects.create(
+            name='Collares', parent_id=abuela)
+        hija = ProductCategory.objects.create(name='Elekes', parent_id=madre)
         producto = ProductTemplate.objects.create(name='Eleke', categ=hija)
 
         assert producto._get_product_accounts()['income'] == ingreso

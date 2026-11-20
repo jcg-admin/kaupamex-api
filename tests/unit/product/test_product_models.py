@@ -62,17 +62,17 @@ class TestProductCategory:
 
     def test_complete_name_hijo_concatena_con_separador(self):
         padre = ProductCategory.objects.create(name='Collares')
-        hijo = ProductCategory.objects.create(name='Elekes', parent=padre)
+        hijo = ProductCategory.objects.create(name='Elekes', parent_id=padre)
         assert hijo.complete_name == 'Collares / Elekes'
 
     def test_parent_path_materializa_la_ruta(self):
         padre = ProductCategory.objects.create(name='Collares')
-        hijo = ProductCategory.objects.create(name='Elekes', parent=padre)
+        hijo = ProductCategory.objects.create(name='Elekes', parent_id=padre)
         assert hijo.parent_path == f'{padre.pk}/{hijo.pk}/'
 
     def test_renombrar_padre_repropaga_a_los_hijos(self):
         padre = ProductCategory.objects.create(name='Collares')
-        hijo = ProductCategory.objects.create(name='Elekes', parent=padre)
+        hijo = ProductCategory.objects.create(name='Elekes', parent_id=padre)
         padre.name = 'Collares Sagrados'
         padre.save()
         hijo.refresh_from_db()
@@ -80,14 +80,14 @@ class TestProductCategory:
 
     def test_clean_rechaza_categoria_como_su_propio_padre(self):
         cat = ProductCategory.objects.create(name='Collares')
-        cat.parent = cat
+        cat.parent_id = cat
         with pytest.raises(ValidationError):
             cat.clean()
 
     def test_clean_rechaza_ciclo_indirecto(self):
         a = ProductCategory.objects.create(name='A')
-        b = ProductCategory.objects.create(name='B', parent=a)
-        a.parent = b
+        b = ProductCategory.objects.create(name='B', parent_id=a)
+        a.parent_id = b
         with pytest.raises(ValidationError):
             a.clean()
 
@@ -101,7 +101,7 @@ class TestProductCategory:
         propia ayuda diga lo contrario (odoo19c: product_category.py).
         """
         padre = ProductCategory.objects.create(name='Joyería')
-        hija = ProductCategory.objects.create(name='Collares', parent=padre)
+        hija = ProductCategory.objects.create(name='Collares', parent_id=padre)
         ProductTemplate.objects.create(name='Eleke', categ=hija)
         ProductTemplate.objects.create(name='Ide', categ=padre)
         assert padre.product_count == 2

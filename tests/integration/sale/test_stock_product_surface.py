@@ -42,10 +42,10 @@ def test_parent_route_ids_walks_up_the_parent_chain(db):
     """≙ ``_compute_parent_route_ids`` (``odoo19c: :1310-1318``)."""
     grandparent = ProductCategory.objects.create(name='Abuela')
     parent_categ = ProductCategory.objects.create(
-        name='Madre', parent=grandparent
+        name="Madre", parent_id=grandparent
     )
     child_categ = ProductCategory.objects.create(
-        name='Hija', parent=parent_categ
+        name='Hija', parent_id=parent_categ
     )
 
     grandparent_route = _route('Ruta abuela')
@@ -61,7 +61,7 @@ def test_parent_route_ids_excludes_the_own_ones(db):
     """La referencia resta las propias: ``routes - category.route_ids``."""
     parent_categ = ProductCategory.objects.create(name='Madre')
     child_categ = ProductCategory.objects.create(
-        name='Hija', parent=parent_categ
+        name='Hija', parent_id=parent_categ
     )
     shared = _route('Compartida')
     shared.categ_ids.add(parent_categ, child_categ)
@@ -76,7 +76,7 @@ def test_total_route_ids_unions_own_and_inherited(db):
     """≙ ``_compute_total_route_ids`` (``odoo19c: :1325-1328``)."""
     parent_categ = ProductCategory.objects.create(name='Madre')
     child_categ = ProductCategory.objects.create(
-        name='Hija', parent=parent_categ
+        name='Hija', parent_id=parent_categ
     )
     from_parent = _route('De la madre')
     from_child = _route('De la hija')
@@ -98,7 +98,7 @@ def test_search_total_route_ids_finds_the_inherited_one(db):
     """
     parent_categ = ProductCategory.objects.create(name='Madre')
     child_categ = ProductCategory.objects.create(
-        name='Hija', parent=parent_categ
+        name='Hija', parent_id=parent_categ
     )
     unrelated = ProductCategory.objects.create(name='Ajena')
     route = _route('Heredable')

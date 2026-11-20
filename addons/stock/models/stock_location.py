@@ -677,7 +677,8 @@ class StockLocation(models.DefaultGetMixin, TimeStampedModel):
 
     def _get_putaway_strategy(self, product, quantity=0, package=None,
                               packaging=None, additional_qty=None,
-                              products=None, locations=None, exclude_sml_ids=None):
+                              products=None, locations=None,
+                              exclude_sml_ids=None):
         """≙ ``_get_putaway_strategy`` (``odoo19c: :300-374``).
 
         Devuelve la ubicación donde colocar el producto según las reglas de
@@ -707,7 +708,7 @@ class StockLocation(models.DefaultGetMixin, TimeStampedModel):
         propia = categ
         while categ is not None:
             categorias.append(categ)
-            categ = categ.parent
+            categ = categ.parent_id
 
         reglas = [
             r for r in self.putaway_rule_ids.all()

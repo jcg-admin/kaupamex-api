@@ -148,7 +148,7 @@ def _get_category_account(self, field_name):
         cuenta = getattr(categ, field_name, None)
         if cuenta is not None:
             return cuenta
-        categ = categ.parent
+        categ = categ.parent_id
     return None
 
 

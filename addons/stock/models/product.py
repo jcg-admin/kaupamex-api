@@ -247,10 +247,10 @@ def parent_route_ids(self):
     restar las propias.
     """
     StockRoute = apps.get_model('stock', 'StockRoute')
-    inherited, current = set(), self.parent
+    inherited, current = set(), self.parent_id
     while current is not None:
         inherited.update(current.route_ids.values_list('pk', flat=True))
-        current = current.parent
+        current = current.parent_id
     own = set(self.route_ids.values_list('pk', flat=True))
     return StockRoute.objects.filter(pk__in=inherited - own)
 
