@@ -559,7 +559,8 @@
   "product-attribute-fk-names-0122",
   "product-category-header-0122",
   "product-pricelist-header-0122",
-  "product-pricelist-item-fk-names-0122"
+  "product-pricelist-item-fk-names-0122",
+  "product-supplierinfo-fk-names-0122"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
