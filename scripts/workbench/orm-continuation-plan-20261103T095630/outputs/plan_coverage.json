@@ -569,7 +569,8 @@
   "product-combo-source-names-0122",
   "product-document-ir-attachment-id-0122",
   "ptav-source-names-0122",
-  "attribute-line-source-relation-0122"
+  "attribute-line-source-relation-0122",
+  "variant-combination-source-relation-0122"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
