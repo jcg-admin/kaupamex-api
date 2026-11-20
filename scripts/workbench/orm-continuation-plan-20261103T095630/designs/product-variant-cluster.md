@@ -52,3 +52,24 @@ Consumidores actuales de `addons/product/services.py` (grep, 2026-11-20T15:36:39
           2 tests/integration/test_orm/test_domain.py
           1 tests/unit/orm/test_contract_domains_reference.py
           1 tests/unit/tools/test_set_expression_against_the_reference.py
+
+## Etapa 1 medida (2026-11-20, suite entera sobre `76067059` + el cambio de base)
+
+Con los cuatro modelos sobre `BaseModel` y nada más: **216 failed, 85
+errors, 14048 passed** (`-n 4`, 1854.94 s). Por excepción, de las líneas
+`E` de los tracebacks:
+
+| Causa | Ocurrencias | Qué es |
+|---|---|---|
+| API de manager sobre un x2many de `BaseModel` (`.all()`, `.set()`, `.add()`, `.filter()`, `.order_by()`) | ~195 | el campo devuelve un recordset; el consumidor estaba escrito contra el manager de Django. 153 son un solo `.all()` sobre PTAV |
+| `PermissionDenied` al leer `product.product` / `product.template` sin usuario | ~44 | la ACL cargada en `5b8f7fea` ya aplica; las pruebas corren sin entorno de superusuario |
+| `FieldError: name` en `product.template`, `KeyError` derivados | ~40 | por clasificar; varios son consecuencia de los dos de arriba |
+
+Sitios con API de manager sobre campos del grupo (grep): unos 40 en código
+(`stock/models/stock_rule.py` 10, `stock/models/product.py` 10,
+`product/services.py` 4, `product/models/product_product.py` 3, …) y unos 45
+en pruebas. Decisión: cada sitio pasa a la API de recordset de la fuente
+(iterar el recordset, `Command.set`, `filtered`, `sorted`), no a un
+adaptador que devuelva un manager; y los directorios de prueba que leen
+estos modelos sin usuario ganan el entorno de superusuario de
+`TransactionCase` donde la prueba no mide la ACL, como `product` y `fleet`.
