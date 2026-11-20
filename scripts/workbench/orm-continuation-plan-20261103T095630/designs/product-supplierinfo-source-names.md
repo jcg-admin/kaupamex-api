@@ -46,7 +46,7 @@ sucesor `product-fk-names-0122`.
    - `_get_replenishment_multiple_alternative`
      (`addons/purchase_stock/models/stock.py`), `_compute_display_name` de
      la tarifa (`addons/purchase_stock/models/product.py`) y el respaldo de
-     `stock_rule.py` (`s.company_id_id`);
+     `_get_matching_supplier` (`stock_rule.py`, `s.company_id_id`);
    - `addons/stock/models/stock_move.py`, `stock_move_line.py`,
      `stock_scrap.py` y `stock_orderpoint.py`: `getattr(proveedor,
      'product_uom', None)` habría devuelto `None` en silencio;
@@ -70,7 +70,11 @@ sucesor `product-fk-names-0122`.
   `_compute_price_unit_and_date_planned_and_name`, `_suggest_quantity`,
   `_prepare_supplier_info`, `_add_supplier_to_product`,
   `_get_replenishment_multiple_alternative`, `_compute_display_name`,
-  `_create_supplier_info`;
+  `_create_supplier_info`, `_get_matching_supplier`;
+- `StockMove.allowed_uom_ids`, `StockMoveLine.allowed_uom_ids`,
+  `StockScrap.allowed_uom_ids`,
+  `StockWarehouseOrderpoint.allowed_replenishment_uom_ids`: las unidades
+  admitidas incluyen la del proveedor, que leían como `product_uom`;
 - la migración `0030_supplierinfo_source_names`.
 
 ## Fuera de esta unidad, con su sucesor
