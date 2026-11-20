@@ -68,9 +68,13 @@ def _group_record(value):
 @api.depends('type')
 def _compute_purchase_method(self):
     """≙ ``_compute_purchase_method`` (``odoo19c: :22-28``)."""
-    default = type(self)._meta.get_field('purchase_method').get_default() \
-        or 'receive'
-    self.purchase_method = 'purchase' if self.type == 'service' else default
+    default_purchase_method = self.env['product.template'].default_get(
+        ['purchase_method']).get('purchase_method', 'receive')
+    for product in self:
+        if product.type == 'service':
+            product.purchase_method = 'purchase'
+        else:
+            product.purchase_method = default_purchase_method
 
 
 def _compute_template_purchased_product_qty(self):
