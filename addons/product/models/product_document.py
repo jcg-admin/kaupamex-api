@@ -107,8 +107,9 @@ TYPE_URL = 'url'
 class ProductDocument(TimeStampedModel):
     """``product.document`` — adjunto de producto, ordenable y archivable."""
 
-    ir_attachment = fields.Many2one(
+    ir_attachment_id = fields.Many2one(
         IrAttachment,
+        db_column='ir_attachment_id',
         null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='product_document_ids',
@@ -133,7 +134,7 @@ class ProductDocument(TimeStampedModel):
         db_table = 'product_document'
         # ``_order = 'sequence, name'`` de la fuente; ``name`` vive en el
         # adjunto, así que se ordena atravesando el enlace.
-        ordering = ['sequence', 'ir_attachment__name']
+        ordering = ['sequence', 'ir_attachment_id__name']
         verbose_name = 'Documento de producto'
         verbose_name_plural = 'Documentos de producto'
 
@@ -145,22 +146,22 @@ class ProductDocument(TimeStampedModel):
     @property
     def name(self):
         """El nombre del adjunto — lo que la fuente usa en su ``_order``."""
-        return self.ir_attachment.name
+        return self.ir_attachment_id.name
 
     @property
     def type(self):
         """``binary`` o ``url`` (``ir_attachment.py``)."""
-        return self.ir_attachment.type
+        return self.ir_attachment_id.type
 
     @property
     def url(self):
         """La URL, cuando ``type == 'url'``."""
-        return self.ir_attachment.url
+        return self.ir_attachment_id.url
 
     @property
     def mimetype(self):
         """El tipo MIME del adjunto."""
-        return self.ir_attachment.mimetype
+        return self.ir_attachment_id.mimetype
 
     @property
     def res_model(self):
@@ -169,12 +170,12 @@ class ProductDocument(TimeStampedModel):
         La mitad "modelo" de la referencia genérica que la fuente usa como
         ``inverse_name``/``domain``. Ver el docstring del módulo.
         """
-        return self.ir_attachment.res_model
+        return self.ir_attachment_id.res_model
 
     @property
     def res_id(self):
         """Id del registro al que acompaña el documento."""
-        return self.ir_attachment.res_id
+        return self.ir_attachment_id.res_id
 
     # === CONSULTA POLIMÓRFICA (lo que la fuente resuelve con ``domain``) ===
 
@@ -196,8 +197,8 @@ class ProductDocument(TimeStampedModel):
             return cls.objects.none()
         return cls.objects.filter(
             active=True,
-            ir_attachment__res_model=type(record)._meta.label,
-            ir_attachment__res_id=record.pk,
+            ir_attachment_id__res_model=type(record)._meta.label,
+            ir_attachment_id__res_id=record.pk,
         )
 
     # === INVARIANTES ======================================================
@@ -214,9 +215,9 @@ class ProductDocument(TimeStampedModel):
         validar.
         """
         super().clean()
-        if not self.ir_attachment_id:
+        if not self.ir_attachment_id_id:
             return
-        attachment = self.ir_attachment
+        attachment = self.ir_attachment_id
         if (
             attachment.type == TYPE_URL
             and attachment.url
@@ -239,7 +240,8 @@ class ProductDocument(TimeStampedModel):
 
         El orden es el de la fuente: primero el documento, después el adjunto.
         """
-        attachment = self.ir_attachment if self.ir_attachment_id else None
+        attachment = (self.ir_attachment_id if self.ir_attachment_id_id
+                      else None)
         result = super().delete(*args, **kwargs)
         if attachment is not None:
             attachment.delete()

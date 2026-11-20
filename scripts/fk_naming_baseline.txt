@@ -314,7 +314,6 @@ addons/payment/models/gateway_event.py::PaymentGatewayEvent.payment
 addons/payment/models/payment.py::Payment.sale_order
 addons/payment/models/refund.py::Refund.payment
 addons/payment/models/saved_card.py::SavedCard.user
-addons/product/models/product_document.py::ProductDocument.ir_attachment
 addons/product/models/product_template_attribute_value.py::ProductTemplateAttributeValue.attribute_value
 addons/product/models/product_template_attribute_value.py::ProductTemplateAttributeValue.line
 addons/product_matrix/models/product_matrix_config.py::ProductMatrixConfig.product

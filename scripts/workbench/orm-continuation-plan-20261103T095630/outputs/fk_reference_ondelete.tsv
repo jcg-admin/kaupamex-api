@@ -271,7 +271,7 @@ mail.mail	addons/mail/models/mail_mail.py:46	cascade	mail.MailMail	mail_message	
 -	-	-	mail.Notification	mail_message	-	SET_NULL	a	True	sin contraparte en la fuente
 -	-	-	mail.NotificationPreference	user	-	CASCADE	a	True	sin contraparte en la fuente
 -	-	-	mail.ManualNotification	sender	-	SET_NULL	a	True	sin contraparte en la fuente
-product.document	addons/product/models/product_document.py:16	cascade	product.ProductDocument	ir_attachment	restrict	CASCADE	a	True	divergencia de atributo
+product.document	addons/product/models/product_document.py:16	cascade	product.ProductDocument	ir_attachment_id	restrict	CASCADE	a	True	divergencia de atributo
 product.category	addons/product/models/product_category.py:21	cascade	product.ProductCategory	parent	set null	CASCADE	a	True	divergencia de atributo
 product.category	addons/stock/models/product.py:1284	set null (defecto)	product.ProductCategory	removal_strategy	set null	SET_NULL	a	True	coherente
 product.category	addons/account/models/product.py:17	company_dependent	product.ProductCategory	property_account_income_categ	set null	PROTECT	a	True	dependiente de empresa en la fuente (sin FK)
