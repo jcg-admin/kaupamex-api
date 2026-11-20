@@ -45,3 +45,26 @@ cambiar el valor o escribir las variantes; `unlink` borra si puede y
 archiva si no; `display_name`; `_get_combination_name` omite las líneas de
 un solo valor y los atributos `no_variant`; `_unlink_or_archive` archiva la
 variante que no se puede borrar. Anulación por método.
+
+## Migración y consumidores (medido al implementar)
+
+- `0046_ptav_complete` — añade `ptav_active`, `color`, `product_tmpl_id` y
+  `attribute_id`, renombra la restricción a `_attribute_value_unique` y
+  calcula los dos `related` almacenados sobre las filas existentes
+  (`ComputeStoredFields`, `odoo19c: odoo/orm/models.py:3220-3238`). Prueba:
+  `tests/unit/product/test_ptav_complete.py`.
+- `_filter_to_unlink` de `stock` (`odoo19c:
+  addons/stock/models/product.py:747-751`): con la base ya declarada en
+  `product`, su instalación por `if not hasattr` quedaba ignorada en
+  silencio. Pasa a `wrap_method`, el override con `super()` sobre el
+  conjunto sin lotes. Prueba:
+  `tests/integration/sale/test_stock_product_surface_extra.py`.
+- `product.attribute.value._compute_default_extra_price_changed` vuelve al
+  dominio de la fuente (`('product_tmpl_id', 'any', company_domain)`,
+  `odoo19c: addons/product/models/product_attribute_value.py:80-92`), ahora
+  que PTAV almacena `product_tmpl_id`. Prueba:
+  `tests/unit/product/test_product_attribute_value_complete.py`.
+- Escribir `ptav_product_variant_ids` desde PTAV se rehúsa como en la
+  fuente; las pruebas de invalidación del ORM sobre ese inverso lo escriben
+  por debajo de la guarda
+  (`tests/integration/product/test_display_name_assignment.py`).
