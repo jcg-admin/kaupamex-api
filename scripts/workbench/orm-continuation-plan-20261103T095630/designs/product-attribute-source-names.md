@@ -29,6 +29,18 @@ Este puerto llamaba a esos campos `attribute` (en los dos modelos) y
    `addons/product/services.py` leen `line.value_ids`; las pruebas crean con
    `attribute_id=` y fijan `line.value_ids`.
 
+## Símbolos que cambian
+
+- `ProductAttributeValue.attribute_id` ≙ `attribute_id`
+  (`odoo19c: addons/product/models/product_attribute_value.py`);
+- `ProductTemplateAttributeLine.attribute_id` y
+  `ProductTemplateAttributeLine.value_ids` ≙ `attribute_id` y `value_ids`
+  (`odoo19c: addons/product/models/product_template_attribute_line.py`);
+- la migración `0026_attribute_source_names`.
+
+Prueba de los cuatro:
+`tests/unit/product/test_product_attribute_source_names.py`.
+
 ## Fuera de esta unidad, con su sucesor
 
 - `product.category`, `product.pricelist` y `product.document` (renombres de
