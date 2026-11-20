@@ -51,7 +51,7 @@ inverso de `res.country.group.country_ids`) y no cambia.
 - `ProductPricelist.currency_id`, `ProductPricelist.company_id`,
   `ProductPricelist.country_group_ids`;
 - `_compute_has_active_pricelist`, `pricelist_domain`;
-- la migración de `product` que renombra los tres.
+- la migración `0028_pricelist_source_header`, que renombra los tres.
 
 ## Fuera de esta unidad, con su sucesor
 
