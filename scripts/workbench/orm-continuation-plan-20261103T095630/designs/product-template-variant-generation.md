@@ -97,3 +97,7 @@ gancho de `create`, guarda dinámica, cascada de archivado y filtro
 `no_variant` — 1 de 8 en cada uno. Subconjunto derivado (product, sale,
 test_orm, account, mail, orm, purchase): 5550 passed, 39 skipped,
 8 xfailed.
+- `ProductTemplate.check_combo_has_no_attributes`
+  (`odoo19c: addons/product/models/product_template.py:460-462`) sólo sigue
+  el renombre del inverso a `attribute_line_ids`; su prueba es
+  `tests/unit/product/test_product_models.py`.
