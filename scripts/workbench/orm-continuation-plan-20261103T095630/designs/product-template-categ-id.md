@@ -28,8 +28,12 @@ puerto lo llamaba `categ`, y la variante lo delegaba con una propiedad
    `ProductCategory.product_count`, `ProductTemplate` (propiedades de
    categoría), `get_total_routes`, `filter_has_routes`,
    `_search_filter_for_stock_putaway_rule` (`stock/models/product.py`),
-   `StockLocation._get_putaway_strategy`, `StockMove`, `StockMoveLine`,
-   `StockQuant`, `StockRule`, `StockWarehouseOrderpoint`,
+   `StockLocation._get_putaway_strategy`, `StockMove`,
+   `StockMoveLine.product_category_name`, `StockQuant.product_categ`,
+   `StockQuant._get_removal_strategy`, `StockRule._get_rule` (y su
+   `get_rule_for_routes`), `StockRule._search_rule`,
+   `StockRule._search_rule_for_warehouses`,
+   `StockWarehouseOrderpoint._get_default_route`,
    `ProductListView` y `_published_products` (`website_sale`),
    `WishlistView` y `WishlistItemSerializer` (`website_sale_wishlist`).
 4. Las pruebas crean con `categ_id=`; el parámetro `categ` de
