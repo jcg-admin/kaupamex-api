@@ -45,3 +45,45 @@ sus PTAV y sus variantes. Las pruebas que además crean PTAV a mano chocarán
 con `_attribute_value_unique`, y las que crean variantes a mano con
 `_combination_unique`. Son premisas de prueba que se corrigen leyendo el
 PTAV/variante generados, no relajando el mecanismo.
+
+## Implementación (2026-11-20)
+
+- `addons/product/models/product_template_attribute_line.py`:
+  `ProductTemplateAttributeLine.active` y `value_count`
+  (`odoo19c: addons/product/models/product_template_attribute_line.py:18,38`),
+  `_compute_value_count` (`:44-47`), `_onchange_attribute_id` (`:49-58`),
+  `_check_valid_values` (`:60-78`), `create` (`:80-115`), `write`
+  (`:117-158`), `unlink` (`:160-192`; el savepoint es
+  `transaction.atomic`) y `_update_product_template_attribute_values`
+  (`:194-255`). Se retira `unique_template_attribute` y `Meta.ordering`
+  pasa a `sequence, attribute_id, id`.
+- **Migración 0049** `addons/product/migrations/0049_attribute_line_complete.py`:
+  opciones, retirada de la restricción, `active`, `value_count` y
+  `ComputeStoredFields` para las filas existentes.
+- `addons/product/services.py`: se retira `sync_template_values`;
+  `combinations` llama a `_update_product_template_attribute_values`.
+- `action_open_attribute_values` (`:268-284`) resuelve
+  `product.product_template_attribute_value_view_tree` y `_view_form`, y las
+  vistas de `product` no están portadas: sucesor **product-views-0122**.
+
+## Pruebas
+
+`tests/unit/product/test_ptal_complete.py` (11 casos). Premisas corregidas,
+porque la línea ahora genera sus valores de plantilla y sus variantes:
+`tests/unit/product/test_ptav_complete.py`,
+`tests/unit/product/test_product_models.py`,
+`tests/unit/product/test_product_attribute_value_complete.py`,
+`tests/unit/product/test_variant_generation.py`,
+`tests/unit/orm/test_new_record_nonstored_compute.py`,
+`tests/integration/product/test_display_name_assignment.py`,
+`tests/integration/product/test_product_attribute_custom_value.py` y
+`tests/integration/sale/test_product_attribute.py` leen el PTAV generado
+en vez de crearlo, y las que componen la variante a mano escriben la línea
+con `create_product_product=False`, el contexto de la fuente (`:254`).
+
+Anulación: reactivación, mover de plantilla, cambiar de atributo, vaciar al
+archivar, las dos ramas de `_check_valid_values`, la regeneración de
+`unlink`, `value_count` y el `onchange` tiran 1 de 11 cada uno; la llamada
+de `write` a `_update_product_template_attribute_values` tira los 2 que
+dependen de ella. Subconjunto derivado (product, sale, test_orm, orm):
+4565 passed, 39 skipped, 8 xfailed.
