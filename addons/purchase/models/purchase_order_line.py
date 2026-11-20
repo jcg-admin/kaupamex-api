@@ -393,9 +393,9 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                 line.allowed_uom_ids = []
                 continue
             seller_uoms = [
-                seller.product_uom
+                seller.product_uom_id
                 for seller in product.product_tmpl.seller_ids.all()
-                if seller.product_uom_id and seller.product_id in {
+                if seller.product_uom_id and seller.product_id_id in {
                     None, product.pk}]
             units = [product.uom, *product.product_tmpl.uom_ids.all(),
                      *seller_uoms]
@@ -859,10 +859,10 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                 price_unit = AccountTax._fix_tax_included_price_company(
                     seller.price, product.supplier_taxes.all(),
                     line_taxes, line.company_id)
-                price_unit = seller.currency._convert(
+                price_unit = seller.currency_id._convert(
                     price_unit, line.currency_id, line.company_id,
                     line.date_order or timezone.localdate(), False)
-                line._reset_price_unit(seller.product_uom._compute_price(
+                line._reset_price_unit(seller.product_uom_id._compute_price(
                     price_unit, line.product_uom_id))
                 line.discount = seller.discount or Decimal('0')
 
@@ -889,13 +889,14 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
         seller_min_qty = sorted(
             (info for info in self.product_id.product_tmpl.seller_ids.all()
              if partner is not None and info.partner_id_id == partner.pk
-             and (not info.product_id or info.product_id == self.product_id.pk)
+             and (not info.product_id
+                  or info.product_id_id == self.product_id.pk)
              and (not info.date_start or info.date_start <= date)
              and (not info.date_end or info.date_end >= date)),
             key=lambda info: info.min_qty)
         if seller_min_qty:
             self.product_qty = seller_min_qty[0].min_qty or Decimal('1')
-            self.product_uom_id = seller_min_qty[0].product_uom
+            self.product_uom_id = seller_min_qty[0].product_uom_id
         else:
             self.product_qty = Decimal('1')
 

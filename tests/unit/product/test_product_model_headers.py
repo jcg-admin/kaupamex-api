@@ -58,5 +58,5 @@ def test_a_vendor_price_shows_its_vendor():
     vendor = ResPartner.objects.create(name='Proveedor Cabecera')
     template = ProductTemplate.objects.create(name='Insumo Cabecera')
     price = ProductSupplierinfo.objects.create(
-        partner_id=vendor, product_tmpl=template, price=1)
+        partner_id=vendor, product_tmpl_id=template, price=1)
     assert str(price) == str(vendor)

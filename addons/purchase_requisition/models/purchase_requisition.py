@@ -727,7 +727,7 @@ class PurchaseRequisitionLine(models.BaseModel, AnalyticMixin,
             )
             already_there = (
                 ProductSupplierinfo.objects.filter(
-                    product=self.product,
+                    product_id=self.product,
                     partner_id=requisition.vendor,
                 )
                 .exclude(purchase_requisition_line__isnull=True)
@@ -779,11 +779,11 @@ class PurchaseRequisitionLine(models.BaseModel, AnalyticMixin,
         ProductSupplierinfo = apps.get_model('product', 'ProductSupplierinfo')
         return ProductSupplierinfo.objects.create(
             partner_id=requisition.vendor,
-            product=self.product,
-            product_uom=self.product_uom,
-            product_tmpl=self.product.product_tmpl,
+            product_id=self.product,
+            product_uom_id=self.product_uom,
+            product_tmpl_id=self.product.product_tmpl,
             price=self.price_unit,
-            currency=requisition.currency,
+            currency_id=requisition.currency,
             purchase_requisition_line=self,
         )
 

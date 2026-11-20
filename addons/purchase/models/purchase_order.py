@@ -513,7 +513,7 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
                          if sellers else 1),
             'min_qty': 1.0,
             'price': price,
-            'currency': currency,
+            'currency_id': currency,
             'discount': line.discount,
             'delay': 0,
         }
@@ -554,7 +554,7 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
             if selected:
                 supplierinfo['product_name'] = selected.product_name
                 supplierinfo['product_code'] = selected.product_code
-                supplierinfo['product_uom'] = line.product_uom_id
+                supplierinfo['product_uom_id'] = line.product_uom_id
             with sudo():
                 template.write(
                     {'seller_ids': [fields.Command.create(supplierinfo)]})

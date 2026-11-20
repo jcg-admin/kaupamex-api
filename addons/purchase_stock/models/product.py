@@ -528,9 +528,9 @@ def _compute_display_name(self):
     if get_context().get('use_simplified_supplier_name'):
         return None
     price_str = formatLang(env(), float(self.price),
-                           currency_obj=self.currency if self.currency_id
+                           currency_obj=self.currency_id if self.currency_id_id
                            else None)
-    uom = self.product_uom.name if self.product_uom_id else ''
+    uom = self.product_uom_id.name if self.product_uom_id_id else ''
     label = (
         f'{self.partner_id.display_name if self.partner_id_id else ""} '
         f'({self.min_qty} {uom} - {price_str})'

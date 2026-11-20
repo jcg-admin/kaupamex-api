@@ -49,7 +49,7 @@ def setup(company):
     product = make_product(uom=unit, name='Insumo en memoria 0122')
     for min_qty, price, delay in ((1, '7', 1), (10, '5', 10)):
         ProductSupplierinfo.objects.create(
-            partner_id=vendor, product_tmpl=product.product_tmpl,
+            partner_id=vendor, product_tmpl_id=product.product_tmpl,
             min_qty=min_qty, price=Decimal(price), delay=delay)
     [order] = MODELS_BY_NAME['purchase.order'].create(
         [{'partner_id': vendor.pk, 'company_id': company.pk,

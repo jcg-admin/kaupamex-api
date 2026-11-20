@@ -568,7 +568,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
             unidades = [self.product.uom]
         if any(getattr(r, 'action', None) == 'buy' for r in self.rule_ids):
             for proveedor in getattr(self.product, 'seller_ids', None) or []:
-                unidad = getattr(proveedor, 'product_uom', None)
+                unidad = getattr(proveedor, 'product_uom_id', None)
                 if unidad is not None and unidad not in unidades:
                     unidades.append(unidad)
         return unidades

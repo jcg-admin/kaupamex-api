@@ -426,10 +426,10 @@ class ProductProduct(TimeStampedModel):
         for seller in self.product_tmpl.seller_ids.all():
             if seller.partner_id_id != partner_id:
                 continue
-            if seller.product_id and seller.product_id != self.pk:
+            if seller.product_id and seller.product_id_id != self.pk:
                 continue  # tarifa específica de otra variante
             code = seller.product_code or self.default_code
-            if seller.product_id == self.pk:
+            if seller.product_id_id == self.pk:
                 break  # específica de ésta: manda y termina
         return code
 
@@ -533,9 +533,10 @@ class ProductProduct(TimeStampedModel):
         for seller in sellers_filtered:
             # La cantidad, en la unidad del proveedor.
             quantity_uom_seller = quantity
-            if quantity_uom_seller and uom_id and uom_id != seller.product_uom:
+            if (quantity_uom_seller and uom_id
+                    and uom_id != seller.product_uom_id):
                 quantity_uom_seller = uom_id._compute_quantity(
-                    quantity_uom_seller, seller.product_uom
+                    quantity_uom_seller, seller.product_uom_id
                 )
 
             if seller.date_start and seller.date_start > date:
@@ -545,8 +546,8 @@ class ProductProduct(TimeStampedModel):
             if (
                 params
                 and params.get('force_uom')
-                and seller.product_uom != uom_id
-                and seller.product_uom != self.uom
+                and seller.product_uom_id != uom_id
+                and seller.product_uom_id != self.uom
             ):
                 continue
             if partner_pk and seller.partner_id_id not in (partner_pk,
@@ -562,7 +563,7 @@ class ProductProduct(TimeStampedModel):
                 == -1
             ):
                 continue
-            if seller.product_id and seller.product_id != self.pk:
+            if seller.product_id and seller.product_id_id != self.pk:
                 continue
             sellers.append(seller)
         return sellers
@@ -605,8 +606,8 @@ class ProductProduct(TimeStampedModel):
 
         def sort_function(record):
             vals = {}
-            if record.currency is not None and owner_currency is not None:
-                vals['price_discounted'] = record.currency._convert(
+            if record.currency_id is not None and owner_currency is not None:
+                vals['price_discounted'] = record.currency_id._convert(
                     record.price_discounted,
                     owner_currency,
                     owner,

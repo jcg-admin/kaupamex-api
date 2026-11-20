@@ -38,7 +38,7 @@ def _confirm(partner, product, price='40.00', **line_values):
 
 def _sellers(product):
     return list(ProductSupplierinfo.objects.filter(
-        product_tmpl=product.product_tmpl).order_by('sequence', 'id'))
+        product_tmpl_id=product.product_tmpl).order_by('sequence', 'id'))
 
 
 def test_a_new_vendor_is_added_with_the_source_values():
@@ -46,7 +46,7 @@ def test_a_new_vendor_is_added_with_the_source_values():
     product = make_product(name='Insumo S1')
     ProductSupplierinfo.objects.create(
         partner_id=ResPartner.objects.create(name='Otro S1'),
-        product_tmpl=product.product_tmpl, sequence=4, price=1)
+        product_tmpl_id=product.product_tmpl, sequence=4, price=1)
     _confirm(vendor, product, discount=Decimal('5'))
     added = _sellers(product)[-1]
     assert added.partner_id_id == vendor.pk
@@ -69,7 +69,7 @@ def test_an_existing_vendor_is_not_duplicated():
     vendor = ResPartner.objects.create(name='Proveedor S3', is_company=True)
     product = make_product(name='Insumo S3')
     ProductSupplierinfo.objects.create(
-        partner_id=vendor, product_tmpl=product.product_tmpl, price=1)
+        partner_id=vendor, product_tmpl_id=product.product_tmpl, price=1)
     _confirm(vendor, product)
     assert len(_sellers(product)) == 1
 
@@ -79,7 +79,7 @@ def test_more_than_ten_vendors_adds_nothing():
     for index in range(11):
         ProductSupplierinfo.objects.create(
             partner_id=ResPartner.objects.create(name=f'P{index} S4'),
-            product_tmpl=product.product_tmpl, price=1)
+            product_tmpl_id=product.product_tmpl, price=1)
     vendor = ResPartner.objects.create(name='Proveedor S4', is_company=True)
     _confirm(vendor, product)
     assert len(_sellers(product)) == 11
@@ -101,7 +101,7 @@ def test_a_contact_already_selling_adds_nothing():
     contact = ResPartner.objects.create(name='Luis S6', parent=company)
     product = make_product(name='Insumo S6')
     ProductSupplierinfo.objects.create(
-        partner_id=contact, product_tmpl=product.product_tmpl, price=1)
+        partner_id=contact, product_tmpl_id=product.product_tmpl, price=1)
     _confirm(contact, product)
     assert [s.partner_id_id for s in _sellers(product)] == [contact.pk]
 
@@ -118,7 +118,7 @@ def test_the_selected_seller_carries_its_product_name_and_code(monkeypatch):
     other = ResPartner.objects.create(name='Otro S7', is_company=True)
     product = make_product(name='Insumo S7')
     foreign = ProductSupplierinfo.objects.create(
-        partner_id=other, product_tmpl=product.product_tmpl, price=1,
+        partner_id=other, product_tmpl_id=product.product_tmpl, price=1,
         product_name='Nombre del proveedor', product_code='COD-S7')
     line_model = MODELS_BY_NAME['purchase.order.line']
 

@@ -72,7 +72,7 @@ def _line(order, product, **values):
 def _seller(vendor, product, **values):
     values.setdefault('price', Decimal('7'))
     return ProductSupplierinfo.objects.create(
-        partner_id=vendor, product_tmpl=product.product_tmpl, **values)
+        partner_id=vendor, product_tmpl_id=product.product_tmpl, **values)
 
 
 def test_the_seller_price_and_discount_fill_a_new_line(company, vendor, unit):

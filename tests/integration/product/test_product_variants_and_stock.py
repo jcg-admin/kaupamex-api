@@ -181,12 +181,13 @@ class TestSupplierinfoCodeFor:
         )
         proveedor = ResPartner.objects.create(name='Proveedor de prueba')
         ProductSupplierinfo.objects.create(
-            partner_id=proveedor, product_tmpl=tmpl, product_code='PROV-TMPL'
+            partner_id=proveedor, product_tmpl_id=tmpl,
+            product_code='PROV-TMPL'
         )
         ProductSupplierinfo.objects.create(
             partner_id=proveedor,
-            product_tmpl=tmpl,
-            product=variante,
+            product_tmpl_id=tmpl,
+            product_id=variante,
             product_code='PROV-VARIANTE',
         )
         assert variante.code_for(proveedor) == 'PROV-VARIANTE'

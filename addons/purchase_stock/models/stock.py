@@ -752,7 +752,7 @@ def _get_replenishment_multiple_alternative(self, qty_to_order):
         )
         chosen = elegidas[0] if elegidas else None
 
-    return chosen.product_uom if chosen is not None else False
+    return chosen.product_uom_id if chosen is not None else False
 
 
 # =========================================================================

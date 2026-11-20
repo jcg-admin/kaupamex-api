@@ -407,7 +407,7 @@ def _get_matching_supplier(
     respaldo = [
         s
         for s in product_id._prepare_sellers(False, company=company_id)
-        if not s.company_id or s.company_id == company_pk
+        if not s.company_id or s.company_id_id == company_pk
     ]
     return respaldo[0] if respaldo else None
 

@@ -193,10 +193,11 @@ def test_the_order_company_filters_the_sellers():
     ).ProductSupplierinfo
     mine = seller_model.objects.create(
         partner_id=ResPartner.objects.create(name='Mío PP'),
-        product_tmpl=product.product_tmpl, company=order.company_id, price=1)
+        product_tmpl_id=product.product_tmpl, company_id=order.company_id,
+        price=1)
     seller_model.objects.create(
         partner_id=ResPartner.objects.create(name='Ajeno PP'),
-        product_tmpl=product.product_tmpl, company=other, price=1)
+        product_tmpl_id=product.product_tmpl, company_id=other, price=1)
     sellers = seller_model._get_filtered_supplier(
         product.product_tmpl.seller_ids.all(), other, product,
         {'order_id': order})

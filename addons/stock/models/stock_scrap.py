@@ -269,7 +269,7 @@ class StockScrap(MailThread, TimeStampedModel):
         permitidas |= set(producto.uom_ids.values_list('pk', flat=True)) \
             if hasattr(producto, 'uom_ids') else set()
         permitidas |= set(
-            producto.seller_ids.exclude(product_uom__isnull=True)
+            producto.seller_ids.exclude(product_uom_id__isnull=True)
             .values_list('product_uom_id', flat=True)
         ) if hasattr(producto, 'seller_ids') else set()
         return sorted(p for p in permitidas if p)

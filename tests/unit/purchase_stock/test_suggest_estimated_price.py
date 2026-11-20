@@ -37,7 +37,7 @@ def _variant(name='Eleke', standard_price=Decimal('1.00')):
 
 def _tariff(tmpl, partner, **kwargs):
     return ProductSupplierinfo.objects.create(
-        partner_id=partner, product_tmpl=tmpl, **kwargs
+        partner_id=partner, product_tmpl_id=tmpl, **kwargs
     )
 
 

@@ -394,7 +394,7 @@ class TestSelectSeller:
 
     def _tariff(self, tmpl, partner, **kwargs):
         return ProductSupplierinfo.objects.create(
-            partner_id=partner, product_tmpl=tmpl, **kwargs
+            partner_id=partner, product_tmpl_id=tmpl, **kwargs
         )
 
     def _variant(self, name='Eleke'):
@@ -426,7 +426,7 @@ class TestSelectSeller:
         other = ProductProduct.objects.create(product_tmpl=tmpl, active=False)
         supplier = ResPartner.objects.create(name='Proveedor')
         from_template = self._tariff(tmpl, supplier)
-        self._tariff(tmpl, supplier, product=other)
+        self._tariff(tmpl, supplier, product_id=other)
         assert variant._prepare_sellers() == [from_template]
 
     def test_filtered_sellers_drops_an_expired_tariff(self):

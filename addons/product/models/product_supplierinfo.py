@@ -171,8 +171,10 @@ class ProductSupplierinfo(TimeStampedModel):
         verbose_name='Secuencia',
         help_text='Prioridad del proveedor en la lista. Menor gana.',
     )
-    product_uom = fields.Many2one(
+    #: ≙ ``product_uom_id`` (``:25``) en forma C.
+    product_uom_id = fields.Many2one(
         Uom,
+        db_column='product_uom_id',
         on_delete=models.PROTECT,
         null=True,
         blank=True,
@@ -212,8 +214,10 @@ class ProductSupplierinfo(TimeStampedModel):
             'purchase_order_line.discount, que es quien lo consume.'
         ),
     )
-    company = fields.Many2one(
+    #: ≙ ``company_id`` (``:33``) en forma C.
+    company_id = fields.Many2one(
         ResCompany,
+        db_column='company_id',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -222,8 +226,10 @@ class ProductSupplierinfo(TimeStampedModel):
         verbose_name='Compañía',
         help_text='Vacío = la tarifa sirve a todas las compañías.',
     )
-    currency = fields.Many2one(
+    #: ≙ ``currency_id`` (``:36``) en forma C.
+    currency_id = fields.Many2one(
         ResCurrency,
+        db_column='currency_id',
         on_delete=models.PROTECT,
         null=True,
         blank=True,
@@ -247,8 +253,10 @@ class ProductSupplierinfo(TimeStampedModel):
         verbose_name='Fecha de fin',
         help_text='Hasta cuándo rige este precio.',
     )
-    product = fields.Many2one(
+    #: ≙ ``product_id`` (``:42``) en forma C.
+    product_id = fields.Many2one(
         ProductProduct,
+        db_column='product_id',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -261,8 +269,10 @@ class ProductSupplierinfo(TimeStampedModel):
             'de plantilla. El related_name no lo nombra la referencia.'
         ),
     )
-    product_tmpl = fields.Many2one(
+    #: ≙ ``product_tmpl_id`` (``:47``) en forma C.
+    product_tmpl_id = fields.Many2one(
         ProductTemplate,
+        db_column='product_tmpl_id',
         null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='seller_ids',
@@ -310,16 +320,16 @@ class ProductSupplierinfo(TimeStampedModel):
         """
         super().clean()
         if (
-            self.product_id
-            and self.product_tmpl_id
-            and self.product.product_tmpl_id != self.product_tmpl_id
+            self.product_id_id
+            and self.product_tmpl_id_id
+            and self.product_id.product_tmpl_id != self.product_tmpl_id_id
         ):
             raise ValidationError(
                 'La variante no pertenece a la plantilla de esta tarifa.'
             )
-        if self.company_id:
-            tmpl_company = getattr(self.product_tmpl, 'company_id', None)
-            if tmpl_company and tmpl_company != self.company_id:
+        if self.company_id_id and self.product_tmpl_id_id:
+            tmpl_company = getattr(self.product_tmpl_id, 'company_id', None)
+            if tmpl_company and tmpl_company != self.company_id_id:
                 raise ValidationError(
                     'El producto y la tarifa son de compañías distintas.'
                 )
@@ -340,11 +350,11 @@ class ProductSupplierinfo(TimeStampedModel):
           borraría la unidad que el proveedor realmente usa, que es el dato
           por el que el campo existe.
         """
-        if self.product_id and not self.product_tmpl_id:
-            self.product_tmpl = self.product.product_tmpl
-        if not self.product_uom_id:
-            source = self.product if self.product_id else self.product_tmpl
-            self.product_uom = getattr(source, 'uom', None)
+        if self.product_id_id and self.product_tmpl_id_id is None:
+            self.product_tmpl_id = self.product_id.product_tmpl
+        if self.product_uom_id_id is None:
+            source = self.product_id or self.product_tmpl_id
+            self.product_uom_id = getattr(source, 'uom', None)
         super().save(*args, **kwargs)
 
     # === PRECIO ===========================================================
@@ -366,9 +376,9 @@ class ProductSupplierinfo(TimeStampedModel):
         """
         price = self.price or decimal.Decimal(0)
         target = getattr(
-            self.product if self.product_id else self.product_tmpl, 'uom', None
+            self.product_id or self.product_tmpl_id, 'uom', None
         )
-        source = self.product_uom
+        source = self.product_uom_id
         if (
             price
             and target is not None
@@ -385,7 +395,7 @@ class ProductSupplierinfo(TimeStampedModel):
     @property
     def product_variant_count(self):
         """``related='product_tmpl_id.product_variant_count'``."""
-        return self.product_tmpl.product_variant_count
+        return self.product_tmpl_id.product_variant_count
 
     # === SELECCIÓN ========================================================
 
@@ -420,9 +430,9 @@ class ProductSupplierinfo(TimeStampedModel):
         return [
             seller
             for seller in sellers
-            if (not seller.company_id or seller.company_id == company_pk)
+            if (not seller.company_id or seller.company_id_id == company_pk)
             and getattr(seller.partner_id, 'active', True)
-            and (not seller.product_id or seller.product_id == product_pk)
+            and (not seller.product_id or seller.product_id_id == product_pk)
         ]
 
     @classmethod

@@ -69,7 +69,7 @@ def test_deleting_a_variant_keeps_its_vendor_price():
     template, variant = _variant('Producto D')
     price = ProductSupplierinfo.objects.create(
         partner_id=ResPartner.objects.create(name='Proveedor D'),
-        product_tmpl=template, product=variant)
+        product_tmpl_id=template, product_id=variant)
     _delete(variant)
     price.refresh_from_db()
     assert price.product_id is None

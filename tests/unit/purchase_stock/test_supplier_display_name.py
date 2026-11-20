@@ -38,14 +38,14 @@ def _tariff(**kwargs):
     template = ProductTemplate.objects.create(name='Eleke')
     partner = ResPartner.objects.create(name='Proveedor')
     return ProductSupplierinfo.objects.create(
-        partner_id=partner, product_tmpl=template, min_qty=3,
+        partner_id=partner, product_tmpl_id=template, min_qty=3,
         price=Decimal('1234.5'), **kwargs)
 
 
 def test_the_price_is_formatted_with_the_currency(environment):
     currency, _ = ResCurrency.objects.get_or_create(
         name='MXN', defaults={'symbol': '$'})
-    tariff = _tariff(currency=currency)
+    tariff = _tariff(currency_id=currency)
     price = f'{currency.symbol}\N{NO-BREAK SPACE}1,234.50'
     if currency.position == 'after':
         price = f'1,234.50\N{NO-BREAK SPACE}{currency.symbol}'

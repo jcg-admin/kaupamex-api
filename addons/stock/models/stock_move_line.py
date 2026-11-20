@@ -482,8 +482,8 @@ class StockMoveLine(TimeStampedModel):
             uom.pk for uom in getattr(producto, 'uom_ids', uom_model.objects.none())
         )
         for proveedor in getattr(producto, 'seller_ids', []):
-            if getattr(proveedor, 'product_uom', None) is not None:
-                permitidas.add(proveedor.product_uom.pk)
+            if getattr(proveedor, 'product_uom_id', None) is not None:
+                permitidas.add(proveedor.product_uom_id.pk)
         return list(uom_model.objects.filter(pk__in=permitidas))
 
     @property

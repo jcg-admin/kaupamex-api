@@ -721,8 +721,8 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         tmpl = self.product.product_tmpl
         ids = {tmpl.uom_id} if tmpl.uom_id else set()   # FK sin traer la fila
         ids |= set(tmpl.uom_ids.values_list('pk', flat=True))
-        ids |= set(tmpl.seller_ids.exclude(product_uom__isnull=True)
-                   .values_list('product_uom', flat=True))
+        ids |= set(tmpl.seller_ids.exclude(product_uom_id__isnull=True)
+                   .values_list('product_uom_id', flat=True))
         return Uom.objects.filter(pk__in=ids)
 
     @property

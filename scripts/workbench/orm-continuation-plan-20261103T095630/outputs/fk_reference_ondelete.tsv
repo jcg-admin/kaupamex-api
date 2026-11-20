@@ -297,11 +297,11 @@ product.pricelist.item	addons/product/models/product_pricelist_item.py:77	cascad
 product.pricelist.item	addons/product/models/product_pricelist_item.py:82	cascade	product.ProductPricelistItem	product	set null	CASCADE	a	True	divergencia de atributo
 product.pricelist.item	addons/product/models/product_pricelist_item.py:104	set null (defecto)	product.ProductPricelistItem	base_pricelist	set null	PROTECT	a	True	divergencia de política
 product.supplierinfo	addons/product/models/product_supplierinfo.py:13	cascade	product.ProductSupplierinfo	partner	restrict	CASCADE	a	True	divergencia de atributo
-product.supplierinfo	addons/product/models/product_supplierinfo.py:25	restrict (defecto)	product.ProductSupplierinfo	product_uom	set null	PROTECT	a	True	divergencia de atributo
-product.supplierinfo	addons/product/models/product_supplierinfo.py:33	set null (defecto)	product.ProductSupplierinfo	company	set null	CASCADE	a	True	divergencia de política
-product.supplierinfo	addons/product/models/product_supplierinfo.py:36	restrict (defecto)	product.ProductSupplierinfo	currency	set null	PROTECT	a	True	divergencia de atributo
-product.supplierinfo	addons/product/models/product_supplierinfo.py:42	set null (defecto)	product.ProductSupplierinfo	product	set null	CASCADE	a	True	divergencia de política
-product.supplierinfo	addons/product/models/product_supplierinfo.py:47	cascade	product.ProductSupplierinfo	product_tmpl	restrict	CASCADE	a	True	divergencia de atributo
+product.supplierinfo	addons/product/models/product_supplierinfo.py:25	restrict (defecto)	product.ProductSupplierinfo	product_uom_id	set null	PROTECT	a	True	divergencia de atributo
+product.supplierinfo	addons/product/models/product_supplierinfo.py:33	set null (defecto)	product.ProductSupplierinfo	company_id	set null	CASCADE	a	True	divergencia de política
+product.supplierinfo	addons/product/models/product_supplierinfo.py:36	restrict (defecto)	product.ProductSupplierinfo	currency_id	set null	PROTECT	a	True	divergencia de atributo
+product.supplierinfo	addons/product/models/product_supplierinfo.py:42	set null (defecto)	product.ProductSupplierinfo	product_id	set null	CASCADE	a	True	divergencia de política
+product.supplierinfo	addons/product/models/product_supplierinfo.py:47	cascade	product.ProductSupplierinfo	product_tmpl_id	restrict	CASCADE	a	True	divergencia de atributo
 product.supplierinfo	addons/purchase_requisition/models/product.py:11	set null (defecto)	product.ProductSupplierinfo	purchase_requisition_line	set null	CASCADE	a	True	divergencia de política
 product.uom	addons/product/models/product_uom.py:13	cascade	product.ProductUom	uom	restrict	CASCADE	a	True	divergencia de atributo
 product.uom	addons/product/models/product_uom.py:14	cascade	product.ProductUom	product	restrict	CASCADE	a	True	divergencia de atributo
