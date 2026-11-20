@@ -46,7 +46,7 @@ def company():
 def setup(company):
     unit = Uom.objects.create(name='Units new 0122', relative_factor=1.0)
     vendor = ResPartner.objects.create(name='Proveedor en memoria 0122')
-    product = make_product(uom=unit, name='Insumo en memoria 0122')
+    product = make_product(uom_id=unit, name='Insumo en memoria 0122')
     for min_qty, price, delay in ((1, '7', 1), (10, '5', 10)):
         ProductSupplierinfo.objects.create(
             partner_id=vendor, product_tmpl_id=product.product_tmpl_id,

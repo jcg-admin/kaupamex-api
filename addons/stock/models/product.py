@@ -350,7 +350,8 @@ def check_factor_not_in_use(self):
         raise UserError(message)
     if StockMoveLine.objects.filter(open_moves, product_uom=self).exists():
         raise UserError(message)
-    if StockQuant.objects.filter(product__product_tmpl_id__uom=self).exclude(
+    if StockQuant.objects.filter(
+            product__product_tmpl_id__uom_id=self).exclude(
             quantity=0).exists():
         raise UserError(message)
 
@@ -649,7 +650,7 @@ def _compute_quantities_dict(cls, products, lot=None, owner=None, package=None,
                               (moves_out_past, q_move_out_done)):
             for move in (StockMove.objects
                          .filter(query, state='done', date__gt=cutoff)
-                         .select_related('product__product_tmpl_id__uom',
+                         .select_related('product__product_tmpl_id__uom_id',
                                          'product_uom')):
                 bucket[move.product_id] += _in_product_uom(move)
 
@@ -665,7 +666,7 @@ def _compute_quantities_dict(cls, products, lot=None, owner=None, package=None,
         if dates_in_the_past:
             on_hand = on_hand - moves_in_past.get(pk, 0.0) + moves_out_past.get(pk, 0.0)
         expired_qty = expired.get(pk, 0.0)
-        uom = record.uom
+        uom = record.uom_id
         incoming = _round_to(uom, moves_in.get(pk, 0.0))
         outgoing = _round_to(uom, moves_out.get(pk, 0.0))
         res[pk] = {
@@ -709,7 +710,7 @@ def _in_product_uom(move):
     nulables, y sin unidad de origen o de destino no hay conversión que hacer.
     """
     qty = float(move.quantity or 0)
-    origin, target = move.product_uom, move.product.uom
+    origin, target = move.product_uom, move.product.uom_id
     if origin is None or target is None:
         return qty
     return origin._compute_quantity(qty, target)
@@ -721,7 +722,7 @@ def _round_to(uom, value):
     **Divergencia declarada.** La fuente escribe ``product.uom_id.round(...)``
     sin guarda porque allá ``uom_id`` es obligatorio y trae default
     (``odoo19c: product/models/product_template.py``). Aquí
-    ``ProductTemplate.uom`` es nulable, así que un producto sin unidad haría
+    ``ProductTemplate.uom_id`` es nulable, así que un producto sin unidad haría
     reventar el motor con ``AttributeError`` — un fallo que la referencia no
     puede tener. Sin unidad se devuelve el valor crudo.
     """
@@ -1006,7 +1007,7 @@ def _uom_change_is_blocked(product, to_uom):
     """
     StockMove = apps.get_model('stock', 'StockMove')
     StockMoveLine = apps.get_model('stock', 'StockMoveLine')
-    actual = product.uom
+    actual = product.uom_id
     usadas = set(StockMove.objects.filter(product=product)
                  .exclude(product_uom__isnull=True)
                  .values_list('product_uom_id', flat=True))

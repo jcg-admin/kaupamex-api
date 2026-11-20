@@ -89,7 +89,7 @@ def test_another_unit_converts_the_price_to_the_template_unit():
     unit = Uom.objects.create(name='Units S5', relative_factor=1.0)
     dozen = Uom.objects.create(name='Dozen S5', relative_factor=12,
                                relative_uom_id=unit)
-    product = make_product(name='Insumo S5', uom=unit)
+    product = make_product(name='Insumo S5', uom_id=unit)
     vendor = ResPartner.objects.create(name='Proveedor S5', is_company=True)
     _confirm(vendor, product, price='120.00', product_uom_id=dozen.pk)
     assert _sellers(product)[-1].price == Decimal('10.00')

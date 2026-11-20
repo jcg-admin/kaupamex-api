@@ -97,7 +97,7 @@ def _published_products():
     return (
         ProductTemplate.objects
         .filter(is_published=True, sale_ok=True, active=True)
-        .select_related('categ_id', 'uom')
+        .select_related('categ_id', 'uom_id')
     )
 
 

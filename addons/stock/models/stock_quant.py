@@ -511,7 +511,7 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
     @property
     def product_uom(self):
         """≙ ``product_uom_id`` (related a ``product_id.uom_id``, ``:52-54``)."""
-        return self.product.uom if self.product is not None else None
+        return self.product.uom_id if self.product is not None else None
 
     @property
     def is_favorite(self):

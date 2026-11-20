@@ -22,9 +22,9 @@ aquí; los 5 que necesitan piezas ausentes son la unidad
 
 ``_inherit`` se expresa con :func:`~orm.model_classes.extend_model`; donde la
 fuente llama a ``super()`` se usa :func:`~orm.method_chain.wrap_method`, que
-entrega la implementación previa. En ``product`` los FK de Django se llaman
-sin sufijo (``uom``, ``product_tmpl``): ``uom_id`` es su ``attname``. Los
-cómputos operan sobre una fila: el ORM
+entrega la implementación previa. Los FK de ``product`` llevan el nombre de la
+fuente (``uom_id``, ``product_tmpl_id``). Los cómputos operan sobre una
+fila: el ORM
 invoca el de un modelo de Django por instancia (``orm/models.py``,
 ``_run_precompute_field``), la misma forma que ``_compute_balance`` de
 ``account.move.line``.
@@ -83,7 +83,7 @@ def _compute_template_purchased_product_qty(self):
         .filter(product_tmpl_id=self)
     total = sum(variant.purchased_product_qty for variant in variants)
     self.purchased_product_qty = (
-        self.uom.round(total) if self.uom else total)
+        self.uom_id.round(total) if self.uom_id else total)
 
 
 # --- product.product ------------------------------------------------------
@@ -105,7 +105,7 @@ def _compute_purchased_product_qty(self):
         return
     qty = purchased_data.get(self.pk, 0) or 0
     self.purchased_product_qty = (
-        self.uom.round(qty) if self.uom else qty)
+        self.uom_id.round(qty) if self.uom_id else qty)
 
 
 @api.depends_context('order_id')
@@ -144,7 +144,7 @@ def _update_uom(self, previous, to_uom_id):
         ['id:recordset'],
     ):
         uom, product = _group_record(uom), _group_record(product)
-        template_uom = product.product_tmpl_id.uom
+        template_uom = product.product_tmpl_id.uom_id
         if uom != template_uom:
             raise UserError(_(
                 'As other units of measure (ex : %(problem_uom)s) '

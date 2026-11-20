@@ -354,7 +354,7 @@ class ProductSupplierinfo(TimeStampedModel):
             self.product_tmpl_id = self.product_id.product_tmpl_id
         if self.product_uom_id_id is None:
             source = self.product_id or self.product_tmpl_id
-            self.product_uom_id = getattr(source, 'uom', None)
+            self.product_uom_id = getattr(source, 'uom_id', None)
         super().save(*args, **kwargs)
 
     # === PRECIO ===========================================================
@@ -376,7 +376,7 @@ class ProductSupplierinfo(TimeStampedModel):
         """
         price = self.price or decimal.Decimal(0)
         target = getattr(
-            self.product_id or self.product_tmpl_id, 'uom', None
+            self.product_id or self.product_tmpl_id, 'uom_id', None
         )
         source = self.product_uom_id
         if (

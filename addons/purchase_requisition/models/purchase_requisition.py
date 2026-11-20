@@ -643,7 +643,7 @@ class PurchaseRequisitionLine(models.BaseModel, AnalyticMixin,
         """
         ≙ ``_compute_product_uom_id`` (``odoo19c: :201-204``) — la unidad del
         producto."""
-        return self.product.uom if self.product_id else None
+        return self.product.uom_id if self.product_id else None
 
     def _compute_price_unit(self):
         """≙ ``_compute_price_unit`` (``odoo19c: :206-214``) — **parcial**.

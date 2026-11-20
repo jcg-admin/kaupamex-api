@@ -360,7 +360,7 @@ class ProductPricelistItem(TimeStampedModel):
 
         def convert(amount):
             """Los importes de la regla van en la unidad del producto."""
-            product_uom = getattr(product, 'uom', None)
+            product_uom = getattr(product, 'uom_id', None)
             if to_uom is None or product_uom is None or product_uom == to_uom:
                 return float(amount)
             return product_uom._compute_price(float(amount), to_uom)

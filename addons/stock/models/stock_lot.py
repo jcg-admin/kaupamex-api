@@ -463,7 +463,7 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         ``related='product_id.uom_id'`` sin ``store``: aquí es una propiedad,
         no una columna.
         """
-        return getattr(self.product, 'uom', None)
+        return getattr(self.product, 'uom_id', None)
 
     @property
     def product_qty(self) -> Decimal:

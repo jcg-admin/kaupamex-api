@@ -77,7 +77,8 @@ def destination(db):
 def serial_variant(db, unit):
     """Producto con seguimiento por número de serie — una unidad por línea."""
     tmpl = ProductTemplate.objects.create(
-        name='Motor', list_price=Decimal('900.00'), uom=unit, tracking='serial'
+        name='Motor', list_price=Decimal('900.00'), uom_id=unit,
+        tracking='serial'
     )
     return ProductProduct.objects.create(
         product_tmpl_id=tmpl, default_code='MOT-1'
@@ -88,7 +89,8 @@ def serial_variant(db, unit):
 def plain_variant(db, unit):
     """Producto sin seguimiento — el caso que ``_set_lot_ids`` ignora."""
     tmpl = ProductTemplate.objects.create(
-        name='Camisa', list_price=Decimal('100.00'), uom=unit, tracking='none'
+        name='Camisa', list_price=Decimal('100.00'), uom_id=unit,
+        tracking='none'
     )
     return ProductProduct.objects.create(
         product_tmpl_id=tmpl, default_code='CAM-M'
@@ -119,7 +121,7 @@ def make_move(db, source, destination, company, serial_variant):
             location=source,
             location_dest=destination,
             company=company,
-            product_uom=product.product_tmpl_id.uom,
+            product_uom=product.product_tmpl_id.uom_id,
             product_uom_qty=Decimal('3'),
             state=StockMove.STATE_CONFIRMED,
             date=timezone.now(),

@@ -59,7 +59,7 @@ def _order(company, vendor, **values):
 
 
 def _product(unit, **values):
-    return make_product(uom=unit, **values)
+    return make_product(uom_id=unit, **values)
 
 
 def _line(order, product, **values):
@@ -181,7 +181,7 @@ def test_onchange_product_id_resets_and_suggests(company, vendor, unit):
     # depende de ``product_qty``), que es lo que el comentario de la fuente
     # anuncia: *"_onchange_quantity will provide default values"*.
     assert line.price_unit == Decimal('4')
-    assert line.product_uom_id == product.uom
+    assert line.product_uom_id == product.uom_id
     assert line.name == product.display_name
 
 

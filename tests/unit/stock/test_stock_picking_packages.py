@@ -68,9 +68,9 @@ def destination(db):
 
 @pytest.fixture
 def uom(db):
-    # La unidad NO se siembra sola: sin ella ``product_tmpl.uom`` es ``None`` y
-    # todo compute que convierta cantidades queda mudo (``show_check_availability``
-    # lo lee para comparar contra cero).
+    # La unidad NO se siembra sola: sin ella ``product_tmpl_id.uom_id`` es
+    # ``None`` y todo compute que convierta cantidades queda mudo
+    # (``show_check_availability`` lo lee para comparar contra cero).
     return Uom.objects.create(name='Unidad 521P')
 
 
@@ -82,7 +82,7 @@ def variant(db, uom):
         name='Camisa 521P',
         list_price=Decimal('100.00'),
         is_storable=True,
-        uom=uom,
+        uom_id=uom,
     )
     return ProductProduct.objects.create(
         product_tmpl_id=tmpl, default_code='CAM-521P'
@@ -381,7 +381,7 @@ class TestShowCheckAvailability:
             location=source,
             location_dest=destination,
             company=company,
-            product_uom=variant.product_tmpl_id.uom,
+            product_uom=variant.product_tmpl_id.uom_id,
             product_uom_qty=Decimal('5'),
             state='confirmed',
         )
@@ -465,7 +465,7 @@ class TestShowAllocation:
             location=source,
             location_dest=stock,
             company=company,
-            product_uom=variant.product_tmpl_id.uom,
+            product_uom=variant.product_tmpl_id.uom_id,
             product_uom_qty=Decimal('5'),
             state='assigned',
         )
@@ -483,7 +483,7 @@ class TestShowAllocation:
             location=stock,
             location_dest=destination,
             company=company,
-            product_uom=variant.product_tmpl_id.uom,
+            product_uom=variant.product_tmpl_id.uom_id,
             product_uom_qty=Decimal('3'),
             state='confirmed',
         )
@@ -524,7 +524,7 @@ class TestShowAllocation:
             location=source,
             location_dest=stock,
             company=company,
-            product_uom=variant.product_tmpl_id.uom,
+            product_uom=variant.product_tmpl_id.uom_id,
             product_uom_qty=Decimal('5'),
             state='assigned',
         )

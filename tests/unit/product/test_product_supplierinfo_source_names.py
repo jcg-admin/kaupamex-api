@@ -72,4 +72,4 @@ def test_save_derives_the_template_and_seeds_the_unit(template, partner):
     info = ProductSupplierinfo.objects.create(
         partner_id=partner, product_id=variant)
     assert info.product_tmpl_id == template
-    assert info.product_uom_id == template.uom
+    assert info.product_uom_id == template.uom_id

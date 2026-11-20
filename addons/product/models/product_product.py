@@ -263,9 +263,9 @@ class ProductProduct(TimeStampedModel):
         return self.product_tmpl_id.categ_id
 
     @property
-    def uom(self):
+    def uom_id(self):
         """La unidad de medida de la ficha."""
-        return self.product_tmpl_id.uom
+        return self.product_tmpl_id.uom_id
 
     @property
     def type(self):
@@ -550,7 +550,7 @@ class ProductProduct(TimeStampedModel):
                 params
                 and params.get('force_uom')
                 and seller.product_uom_id != uom_id
-                and seller.product_uom_id != self.uom
+                and seller.product_uom_id != self.uom_id
             ):
                 continue
             if partner_pk and seller.partner_id_id not in (partner_pk,

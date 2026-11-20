@@ -43,8 +43,8 @@ def _as_superuser():
 def _product(name, **values):
     """Un producto con unidad: ``uom_id`` es obligatorio en la plantilla de
     la fuente; ``make_product`` no la pone si no se le da."""
-    values.setdefault('uom', Uom.objects.create(name='Unidad ' + name,
-                                                relative_factor=1.0))
+    values.setdefault('uom_id', Uom.objects.create(
+        name='Unidad ' + name, relative_factor=1.0))
     return make_product(name=name, **values)
 
 
@@ -56,7 +56,7 @@ def _order(product, qty=3, uom=None, approved=True, days_ago=0):
           'currency_id': company.currency_id}])
     # Una línea de producto lleva unidad: la fuente lo exige con un CHECK
     # (``purchase_order_line.py:99``).
-    uom = uom or product.uom
+    uom = uom or product.uom_id
     values = {'order_id': order.id, 'name': 'Insumo', 'product_qty': qty,
               'price_unit': Decimal('10.00'), 'product_id': product.pk,
               'product_uom_id': uom.pk}
@@ -79,7 +79,7 @@ def test_the_line_quantity_in_the_product_unit_converts_the_line_unit():
     unit = Uom.objects.create(name='Units PP', relative_factor=1.0)
     dozen = Uom.objects.create(name='Dozen PP', relative_factor=12,
                                relative_uom_id=unit)
-    product = _product('Insumo PP docena', uom=unit)
+    product = _product('Insumo PP docena', uom_id=unit)
     order = _order(product, qty=2, uom=dozen)
     [line] = MODELS_BY_NAME[LINE].objects.filter(order_id=order.id)
     assert line.product_uom_qty == 24
@@ -157,7 +157,7 @@ def test_the_unit_cannot_change_once_another_unit_was_bought():
     unit = Uom.objects.create(name='Units PP2', relative_factor=1.0)
     dozen = Uom.objects.create(name='Dozen PP2', relative_factor=12,
                                relative_uom_id=unit)
-    product = _product('Unidad PP', uom=unit)
+    product = _product('Unidad PP', uom_id=unit)
     _order(product, qty=1, uom=dozen)
     with pytest.raises(UserError):
         product._update_uom(dozen.pk)
@@ -166,7 +166,7 @@ def test_the_unit_cannot_change_once_another_unit_was_bought():
 def test_changing_the_unit_rewrites_the_purchase_lines():
     unit = Uom.objects.create(name='Units PP3', relative_factor=1.0)
     other = Uom.objects.create(name='Pack PP3', relative_factor=1.0)
-    product = _product('Reescribe PP', uom=unit)
+    product = _product('Reescribe PP', uom_id=unit)
     order = _order(product, qty=1)
     product._update_uom(other.pk)
     [line] = MODELS_BY_NAME[LINE].objects.filter(order_id=order.id)
@@ -266,7 +266,7 @@ def test_migration_0016_fills_the_existing_lines():
     unit = Uom.objects.create(name='Units MIG', relative_factor=1.0)
     dozen = Uom.objects.create(name='Dozen MIG', relative_factor=12,
                                relative_uom_id=unit)
-    order = _order(_product('Migrada PP', uom=unit), qty=3, uom=dozen)
+    order = _order(_product('Migrada PP', uom_id=unit), qty=3, uom=dozen)
     [line] = MODELS_BY_NAME[LINE].objects.filter(order_id=order.id)
     MODELS_BY_NAME[LINE].objects.filter(pk=line.pk).update(
         product_uom_qty=None)

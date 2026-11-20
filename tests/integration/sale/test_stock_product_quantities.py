@@ -49,7 +49,7 @@ def _quant(product, location, qty, reserved=0):
 def _move(product, source, dest, qty, state='confirmed', moment=None):
     move = StockMove.objects.create(
         product=product,
-        product_uom=product.uom,
+        product_uom=product.uom_id,
         product_uom_qty=Decimal(str(qty)),
         product_qty=Decimal(str(qty)),
         quantity=Decimal(str(qty)),

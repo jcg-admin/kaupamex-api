@@ -67,7 +67,7 @@ def unit(db):
     """La unidad de medida del producto.
 
     Va explícita porque toda la ola C convierte cantidades: sin ``uom`` en la
-    plantilla, ``self.product.uom`` es ``None`` y la primera conversión
+    plantilla, ``self.product.uom_id`` es ``None`` y la primera conversión
     revienta.
     """
     return Uom.objects.create(name='Unidades')
@@ -76,7 +76,7 @@ def unit(db):
 @pytest.fixture
 def variant(db, unit):
     tmpl = ProductTemplate.objects.create(
-        name='Camisa', list_price=Decimal('100.00'), uom=unit
+        name='Camisa', list_price=Decimal('100.00'), uom_id=unit
     )
     return ProductProduct.objects.create(
         product_tmpl_id=tmpl, default_code='CAM-M'
@@ -102,7 +102,7 @@ def move(db, variant, source, destination, company):
         location=source,
         location_dest=destination,
         company=company,
-        product_uom=variant.product_tmpl_id.uom,
+        product_uom=variant.product_tmpl_id.uom_id,
         product_uom_qty=Decimal('5'),
     )
 

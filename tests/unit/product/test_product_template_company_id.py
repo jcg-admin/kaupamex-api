@@ -7,8 +7,8 @@ product-template-company-id.md``.
 *Métrica:* el nombre y la columna del campo, la delegación en la variante,
 la moneda de coste y el lote nuevo de una línea de movimiento, que leen la
 compañía del producto por nombre.
-*Ciega a:* ``ProductTemplate.uom`` y ``ProductProduct.product_tmpl_id``, que el
-diseño declara con su sucesor.
+*Ciega a:* ``ProductTemplate.uom_id`` y ``ProductProduct.product_tmpl_id``,
+que el diseño declara con su sucesor.
 """
 import pytest
 

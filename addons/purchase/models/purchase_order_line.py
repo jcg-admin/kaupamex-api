@@ -315,18 +315,18 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
     def _compute_product_uom_qty(self):
         """≙ ``_compute_product_uom_qty`` (``odoo19c: :484-490``)."""
         for line in self:
-            # ``product.uom`` es el ``uom_id`` de la fuente: en ``product`` los
-            # FK de Django no llevan el sufijo y ``uom_id`` es su ``attname``.
+            # ``product.uom_id`` es la unidad de la ficha, con el nombre de la
+            # fuente.
             # Una línea sin unidad copia la cantidad: es la rama
             # ``if not self: return qty`` de ``uom.uom._compute_quantity``
             # (``odoo19c: uom/models/uom_uom.py:162-163``).
             product = line.product_id
             if (product and line.product_uom_id
-                    and product.uom != line.product_uom_id):
+                    and product.uom_id != line.product_uom_id):
                 # ``product_uom_qty`` es ``Float`` y ``product_qty`` se
                 # guarda en ``Decimal`` (ver su declaración).
                 line.product_uom_qty = line.product_uom_id._compute_quantity(
-                    float(line.product_qty), product.uom)
+                    float(line.product_qty), product.uom_id)
             else:
                 line.product_uom_qty = float(line.product_qty)
 
@@ -376,7 +376,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                 not line.display_type and not line.is_downpayment
                 and line.product_uom_id
                 and line.product_uom_id._compute_price(
-                    float(line.price_unit), line.product_id.uom)) or 0.0
+                    float(line.price_unit), line.product_id.uom_id)) or 0.0
 
     @api.depends('product_id', 'product_id.uom_id', 'product_id.uom_ids',
                  'product_id.seller_ids',
@@ -384,8 +384,8 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
     def _compute_allowed_uom_ids(self):
         """≙ ``_compute_allowed_uom_ids`` (``odoo19c: :229-235``).
 
-        La tarifa nombra su unidad ``product_uom`` y la plantilla sus
-        unidades ``uom_ids``; ``uom`` es el ``uom_id`` del producto.
+        La tarifa nombra su unidad ``product_uom_id`` y la plantilla sus
+        unidades ``uom_ids``.
         """
         for line in self:
             product = line.product_id
@@ -397,7 +397,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                 for seller in product.product_tmpl_id.seller_ids.all()
                 if seller.product_uom_id and seller.product_id_id in {
                     None, product.pk}]
-            units = [product.uom, *product.product_tmpl_id.uom_ids.all(),
+            units = [product.uom_id, *product.product_tmpl_id.uom_ids.all(),
                      *seller_uoms]
             line.allowed_uom_ids = list(dict.fromkeys(
                 unit for unit in units if unit))
@@ -589,7 +589,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                 - (line.qty_invoiced_at_date or Decimal('0')))
             if line.product_uom_id:
                 qty_to_invoice = line.product_uom_id._compute_quantity(
-                    qty_to_invoice, line.product_id.uom)
+                    qty_to_invoice, line.product_id.uom_id)
             line.amount_to_invoice_at_date = (
                 qty_to_invoice * line._get_gross_price_unit())
 
@@ -609,7 +609,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                 rounding_method='round_globally',
             )['total_void']
             price_unit = price_unit / qty
-        product_uom = self.product_id.uom
+        product_uom = self.product_id.uom_id
         if self.product_uom_id and product_uom and (
                 self.product_uom_id.pk != product_uom.pk):
             price_unit *= Decimal(repr(
@@ -747,7 +747,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
         if not self.product_id:
             return
 
-        self.product_uom_id = self.product_id.uom
+        self.product_uom_id = self.product_id.uom_id
         with context_scope(
                 lang=get_lang(self.env, self.partner_id.lang
                               if self.partner_id else None).code,
@@ -841,9 +841,9 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                     # avoid to override unit price set manually.
                     continue
                 line.discount = Decimal('0')
-                po_line_uom = line.product_uom_id or product.uom
+                po_line_uom = line.product_uom_id or product.uom_id
                 price_unit = AccountTax._fix_tax_included_price_company(
-                    product.uom._compute_price(
+                    product.uom_id._compute_price(
                         product.standard_price, po_line_uom),
                     product.supplier_taxes.all(),
                     line_taxes,

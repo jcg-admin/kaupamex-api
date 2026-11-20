@@ -267,7 +267,7 @@ class StockStorageCategoryCapacity(TimeStampedModel):
     @property
     def product_uom(self):
         """≙ ``product_uom_id`` (``related='product_id.uom_id'``, ``:62``)."""
-        return self.product.uom if self.product is not None else None
+        return self.product.uom_id if self.product is not None else None
 
     @property
     def company(self):

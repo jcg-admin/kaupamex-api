@@ -167,7 +167,7 @@ class TestReplenishmentMultipleAlternative:
         base del producto, para que devolver ``self.product_uom`` por error
         se note de inmediato."""
         product = make_product(name='Con compra')
-        base_uom = product.uom
+        base_uom = product.uom_id
         seller_uom = _uom('Caja de 12')
         assert seller_uom.pk != getattr(base_uom, 'pk', None)
         supplier = ResPartner.objects.create(name='Proveedor')

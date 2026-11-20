@@ -365,7 +365,7 @@ class AccountMoveLine(models.BaseModel, AnalyticMixin):
         if not self.product_id:
             self.product_uom_id = None
             return
-        product_uom = self.product_id.uom
+        product_uom = self.product_id.uom_id
         if self.move_id and self.move.is_purchase_document():
             sellers = list(self.product_id.product_tmpl_id.seller_ids.all())
             filtered_sellers = ProductSupplierinfo._get_filtered_supplier(

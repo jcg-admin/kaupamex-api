@@ -207,8 +207,9 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         verbose_name='Compañía',
         help_text='Vacío = producto compartido por todas las compañías.',
     )
-    uom = fields.Many2one(
+    uom_id = fields.Many2one(
         Uom,
+        db_column='uom_id',
         on_delete=models.PROTECT,
         null=True,
         blank=True,
@@ -417,7 +418,7 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
     @property
     def uom_name(self):
         """``uom_name`` — ``related='uom_id.name'`` en la referencia."""
-        return getattr(self.uom, 'name', '')
+        return getattr(self.uom_id, 'name', '')
 
     @property
     def is_product_variant(self):

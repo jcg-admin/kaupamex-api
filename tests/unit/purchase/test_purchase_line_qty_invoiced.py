@@ -65,7 +65,7 @@ def _bill(company, line, quantity, move_type='in_invoice', state='posted',
     move = AccountMove.objects.create(**values)
     AccountMoveLine.objects.create(
         move=move, debit=Decimal('1'), quantity=Decimal(quantity),
-        product_uom_id=uom or line.product_uom_id or line.product_id.uom,
+        product_uom_id=uom or line.product_uom_id or line.product_id.uom_id,
         purchase_line_id=line)
     line.invalidate_recordset()
     return move
@@ -108,7 +108,7 @@ def test_the_bill_unit_is_converted_to_the_line_unit(company):
     unit = Uom.objects.create(name='Units F3', relative_factor=1.0)
     dozen = Uom.objects.create(name='Dozen F3', relative_factor=12,
                                relative_uom_id=unit)
-    product = make_product(name='Insumo F3', uom=unit)
+    product = make_product(name='Insumo F3', uom_id=unit)
     line = _line(company, product=product, product_uom_id=unit.pk)
     _bill(company, line, '1', uom=dozen)
     assert line._prepare_qty_invoiced()[line] == Decimal('12')

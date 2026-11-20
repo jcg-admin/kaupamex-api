@@ -181,7 +181,8 @@ class ProductCatalogMixin:
         return {
             product.pk: {
                 'productType': product.type,
-                'uomDisplayName': str(product.uom) if product.uom else '',
+                'uomDisplayName': (str(product.uom_id) if product.uom_id
+                                   else ''),
                 'code': product.code_for(partner) or '',
             }
             for product in products
@@ -216,7 +217,7 @@ class ProductCatalogMixin:
             # Sólo si la línea no trajo la suya: puede estar en otra unidad.
             if not info.get('uomDisplayName'):
                 info['uomDisplayName'] = (
-                    str(product.uom) if product.uom else ''
+                    str(product.uom_id) if product.uom_id else ''
                 )
             order_line_info[product.pk] = info
 

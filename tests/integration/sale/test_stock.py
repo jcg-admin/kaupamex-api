@@ -199,7 +199,7 @@ def _procurement(product, location, qty, **values):
     return StockRule.Procurement(
         product,
         qty,
-        product.uom or _uom(),
+        product.uom_id or _uom(),
         location,
         product.name,
         'test',

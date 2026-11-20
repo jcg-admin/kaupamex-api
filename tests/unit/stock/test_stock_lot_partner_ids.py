@@ -62,7 +62,8 @@ def destination(db):
 @pytest.fixture
 def variant(db, unit):
     tmpl = ProductTemplate.objects.create(
-        name='Motor', list_price=Decimal('900.00'), uom=unit, tracking='serial'
+        name='Motor', list_price=Decimal('900.00'), uom_id=unit,
+        tracking='serial'
     )
     return ProductProduct.objects.create(
         product_tmpl_id=tmpl, default_code='MOT-1'
@@ -97,7 +98,7 @@ def make_delivery(db, source, destination, company, variant, outgoing_type):
             location=source,
             location_dest=destination,
             company=company,
-            product_uom=variant.product_tmpl_id.uom,
+            product_uom=variant.product_tmpl_id.uom_id,
             product_uom_qty=quantity,
             picking=picking,
             state=StockMove.STATE_DONE,
@@ -106,7 +107,7 @@ def make_delivery(db, source, destination, company, variant, outgoing_type):
             move=move,
             picking=picking,
             product=variant,
-            product_uom=variant.product_tmpl_id.uom,
+            product_uom=variant.product_tmpl_id.uom_id,
             location=source,
             location_dest=destination,
             company=company,

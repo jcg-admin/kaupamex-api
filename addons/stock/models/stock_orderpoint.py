@@ -455,7 +455,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
     @property
     def product_uom(self):
         """≙ ``product_uom`` (``:53-54``) — related a ``product_id.uom_id``."""
-        return self.product.uom if self.product_id is not None else None
+        return self.product.uom_id if self.product_id is not None else None
 
     @property
     def product_uom_name(self):
@@ -566,8 +566,8 @@ class StockWarehouseOrderpoint(TimeStampedModel):
         if self.product_id is None:
             return []
         unidades = list(getattr(self.product, 'uom_ids', None) or [])
-        if not unidades and self.product.uom is not None:
-            unidades = [self.product.uom]
+        if not unidades and self.product.uom_id is not None:
+            unidades = [self.product.uom_id]
         if any(getattr(r, 'action', None) == 'buy' for r in self.rule_ids):
             for proveedor in getattr(self.product, 'seller_ids', None) or []:
                 unidad = getattr(proveedor, 'product_uom_id', None)
@@ -1275,9 +1275,10 @@ class StockWarehouseOrderpoint(TimeStampedModel):
             self.replenishment_uom
             or self._get_replenishment_multiple_alternative(qty_to_order)
         )
-        if not multiplo or self.product_id is None or self.product.uom is None:
+        if (not multiplo or self.product_id is None
+                or self.product.uom_id is None):
             return qty_to_order
-        unidad = self.product.uom
+        unidad = self.product.uom_id
         cantidad = unidad._compute_quantity(qty_to_order, multiplo,
                                             round=False)
         cantidad = multiplo.round(cantidad, rounding_method='UP')
@@ -1421,11 +1422,11 @@ class StockWarehouseOrderpoint(TimeStampedModel):
                     for m in salidas.get(producto.pk, ())
                     if is_parent_path_in(ubicacion, rutas, m[0])
                 )
-                if producto.uom is None:
+                if producto.uom_id is None:
                     continue
                 if (
-                    producto.uom.compare(disponible + entrante - saliente, 0)
-                    >= 0
+                    producto.uom_id.compare(
+                        disponible + entrante - saliente, 0) >= 0
                 ):
                     continue
                 reglas = product_model._get_rules_from_location(
@@ -1449,8 +1450,8 @@ class StockWarehouseOrderpoint(TimeStampedModel):
                     to_date=hoy + timedelta(days=dias),
                 )
                 if (
-                    producto.uom is not None
-                    and producto.uom.compare(pronostico, 0) < 0
+                    producto.uom_id is not None
+                    and producto.uom_id.compare(pronostico, 0) < 0
                 ):
                     a_reponer[(producto.pk, ubicacion_id)] = pronostico
         if not a_reponer:

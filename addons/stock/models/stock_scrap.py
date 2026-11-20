@@ -265,7 +265,7 @@ class StockScrap(MailThread, TimeStampedModel):
         if self.product_id is None:
             return []
         producto = self.product
-        permitidas = {producto.uom} if producto.uom else set()
+        permitidas = {producto.uom_id} if producto.uom_id else set()
         permitidas |= set(producto.uom_ids.values_list('pk', flat=True)) \
             if hasattr(producto, 'uom_ids') else set()
         permitidas |= set(
@@ -285,7 +285,7 @@ class StockScrap(MailThread, TimeStampedModel):
     def _compute_product_uom_id(self):
         """≙ ``_compute_product_uom_id`` (``odoo19c: :66-69``)."""
         if self.product_id:
-            self.product_uom = self.product.uom
+            self.product_uom = self.product.uom_id
 
     def _compute_location_id(self):
         """≙ ``_compute_location_id`` (``odoo19c: :71-86``).
@@ -548,7 +548,7 @@ class StockScrap(MailThread, TimeStampedModel):
             lot=self.lot, package=self.package, owner=self.owner, strict=True,
         )
         cantidad = self.product_uom._compute_quantity(
-            self.scrap_qty, self.product.uom)
+            self.scrap_qty, self.product.uom_id)
         return float_compare(float(disponible), float(cantidad),
                              precision_digits=precision) >= 0
 
@@ -575,7 +575,7 @@ class StockScrap(MailThread, TimeStampedModel):
                 'default_location_id': self.location_id,
                 'default_scrap_id': self.pk,
                 'default_quantity': self.product_uom._compute_quantity(
-                    self.scrap_qty, self.product.uom),
+                    self.scrap_qty, self.product.uom_id),
                 'default_product_uom_name': self.product.uom_name,
             },
         }

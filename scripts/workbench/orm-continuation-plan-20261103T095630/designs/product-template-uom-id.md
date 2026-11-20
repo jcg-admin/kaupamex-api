@@ -55,6 +55,20 @@ Se devolvieron a `product.uom` antes de ejecutar la suite. Las claves
 `account_tax_python`) y de `PRICE_CONTEXT_KEYS` son claves de contexto de la
 fuente y no cambian.
 
+La suite completa del árbol (8219 passed) destapó 25 fallos y 5 errores en
+`tests/unit/purchase`: las llamadas `make_product(uom=…)` y el ayudante
+`_product` de `test_purchase_product.py` pasan `uom` por `**tmpl_kwargs` a
+`ProductTemplate`, y Django lo rechaza (`unexpected keyword arguments:
+'uom'`). La primera sustitución de argumentos sólo miraba llamadas
+directas a `ProductTemplate`/`ProductUom`. Pasan a `uom_id=`; los
+parámetros propios `_order(uom=…)` y `_bill(uom=…)` no nombran el campo y
+se conservan. Los 15 errores de `test_multidb_isolation` son los
+ambientales conocidos (la base desechable sólo la prepara F2).
+
+La reescritura de la docstring de `product_expiry/models/product_product.py`
+convierte su tabla RST de 87 columnas en una lista: el gate de estilo
+atribuye al cambio toda la sentencia tocada, y la tabla no cabía en 79.
+
 Búsqueda: `.uom`, `'uom'`, `"uom"`, `uom__`, `__uom`, `uom=` y
 `product.uom` en `addons`, `src` y `tests`; ningún XML, CSV ni JSON de
 datos nombra el campo.

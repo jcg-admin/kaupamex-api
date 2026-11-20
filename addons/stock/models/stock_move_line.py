@@ -475,7 +475,7 @@ class StockMoveLine(TimeStampedModel):
             return []
         uom_model = apps.get_model('uom', 'Uom')
         permitidas = set()
-        unidad = getattr(producto, 'uom', None)
+        unidad = getattr(producto, 'uom_id', None)
         if unidad is not None:
             permitidas.add(unidad.pk)
         permitidas.update(
@@ -664,7 +664,7 @@ class StockMoveLine(TimeStampedModel):
         if del_movimiento is not None:
             self.product_uom = del_movimiento
         elif self.product is not None:
-            self.product_uom = self.product.uom
+            self.product_uom = self.product.uom_id
 
     def _compute_quantity(self):
         """≙ ``_compute_quantity`` (``odoo19c: :155-171``).
@@ -676,7 +676,7 @@ class StockMoveLine(TimeStampedModel):
         quant = self.quant_id
         if quant is None or self.quantity:
             return
-        uom_producto = self.product.uom
+        uom_producto = self.product.uom_id
         uom_linea = self.product_uom
         movimiento = self.move
         visible = movimiento._visible_quantity() if movimiento is not None else 0.0
@@ -700,7 +700,7 @@ class StockMoveLine(TimeStampedModel):
             self.quantity_product_uom = self.quantity
             return
         cantidad = self.product_uom._compute_quantity(
-            float(self.quantity), self.product.uom,
+            float(self.quantity), self.product.uom_id,
             rounding_method='HALF-UP')
         self.quantity_product_uom = Decimal(str(cantidad))
 
@@ -875,7 +875,7 @@ class StockMoveLine(TimeStampedModel):
         """
         if not self.quantity or self.tracking != 'serial':
             return {}
-        uom = self.product.uom
+        uom = self.product.uom_id
         cantidad = float(self.quantity_product_uom)
         if uom.compare(cantidad, 1.0) != 0 and not uom.is_zero(cantidad):
             raise UserError(_(
@@ -997,7 +997,7 @@ class StockMoveLine(TimeStampedModel):
             if line.product_uom is None or line.product is None:
                 continue
             cantidad = line.product_uom._compute_quantity(
-                float(line.quantity), line.product.uom)
+                float(line.quantity), line.product.uom_id)
             clave = line.location_dest_id
             adicional[clave] = adicional.get(clave, 0) - cantidad
         return adicional
@@ -1146,7 +1146,7 @@ class StockMoveLine(TimeStampedModel):
                 continue
             if getattr(ml.product, 'is_storable', True):
                 cantidad = Decimal(str(ml.product_uom._compute_quantity(
-                    float(ml.quantity), ml.product.uom,
+                    float(ml.quantity), ml.product.uom_id,
                     rounding_method='HALF-UP')))
                 disponible, in_date = quant_model._update_available_quantity(
                     ml.product, ml.location, -cantidad, lot_id=ml.lot,
@@ -1240,9 +1240,11 @@ class StockMoveLine(TimeStampedModel):
                     nueva_uom = updates.get('product_uom', ml.product_uom)
                     nueva_reserva = Decimal(str(nueva_uom._compute_quantity(
                         float(vals.get('quantity', ml.quantity)),
-                        ml.product.uom, rounding_method='HALF-UP')))
-                    if ml.product.uom.compare(float(nueva_reserva), 0) < 0:
-                        raise UserError(_('Reserving a negative quantity is not allowed.'))
+                        ml.product.uom_id, rounding_method='HALF-UP')))
+                    if ml.product.uom_id.compare(float(nueva_reserva), 0) < 0:
+                        raise UserError(_(
+                            'Reserving a negative quantity is not '
+                            'allowed.'))
                 else:
                     nueva_reserva = ml.quantity_product_uom
 
@@ -1302,9 +1304,9 @@ class StockMoveLine(TimeStampedModel):
                     uom = updates.get('product_uom', ml.product_uom)
                     nueva = uom._compute_quantity(
                         float(vals.get('quantity', ml.quantity)),
-                        ml.product.uom, rounding_method='HALF-UP')
+                        ml.product.uom_id, rounding_method='HALF-UP')
                     vieja = ml.product_uom._compute_quantity(
-                        float(ml.quantity), ml.product.uom,
+                        float(ml.quantity), ml.product.uom_id,
                         rounding_method='HALF-UP')
                     if ml.product_uom.compare(vieja, nueva) < 0:
                         a_refrescar.add(ml.pk)
@@ -1750,7 +1752,7 @@ class StockMoveLine(TimeStampedModel):
                     break
             else:
                 candidato.quantity -= Decimal(str(
-                    candidato.product.uom._compute_quantity(
+                    candidato.product.uom_id._compute_quantity(
                         float(quantity), candidato.product_uom,
                         rounding_method='HALF-UP')))
                 candidato.save()

@@ -59,7 +59,7 @@ def _done_line(product, picking_type, source, dest, company):
     )
     move = StockMove.objects.create(
         product=product,
-        product_uom=product.uom,
+        product_uom=product.uom_id,
         product_uom_qty=Decimal('1'),
         location=source,
         location_dest=dest,
@@ -70,7 +70,7 @@ def _done_line(product, picking_type, source, dest, company):
         move=move,
         picking=picking,
         product=product,
-        product_uom=product.uom,
+        product_uom=product.uom_id,
         quantity=Decimal('1'),
         location=source,
         location_dest=dest,
@@ -272,7 +272,7 @@ def test_the_uom_warning_fires_only_with_moves(db):
     moved = make_product(name='Moved once')
     StockMove.objects.create(
         product=moved,
-        product_uom=moved.uom,
+        product_uom=moved.uom_id,
         product_uom_qty=Decimal('1'),
         location=_location('Vendors', StockLocation.USAGE_SUPPLIER),
         location_dest=_location('WH/Stock'),

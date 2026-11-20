@@ -9,7 +9,7 @@ product-tmpl-id.md``.
 *Métrica:* el nombre y la columna de los tres campos, la delegación de
 ``_inherits`` y la coherencia variante-plantilla de una tarifa, que compara
 ids.
-*Ciega a:* ``ProductTemplate.uom``, que el diseño declara con su sucesor.
+*Ciega a:* ``ProductTemplate.uom_id``, que el diseño declara con su sucesor.
 """
 import pytest
 from django.core.exceptions import ValidationError

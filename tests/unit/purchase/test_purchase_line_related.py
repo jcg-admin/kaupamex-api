@@ -125,7 +125,7 @@ def test_the_unit_price_in_the_product_unit(order):
     unit = Uom.objects.create(name='Units R2', relative_factor=1.0)
     dozen = Uom.objects.create(name='Dozen R2', relative_factor=12,
                                relative_uom_id=unit)
-    product = make_product(name='Insumo R2', uom=unit)
+    product = make_product(name='Insumo R2', uom_id=unit)
     line = _line(order, product_id=product.pk, product_uom_id=dozen.pk,
                  price_unit=Decimal('120'))
     assert line.price_unit_product_uom == pytest.approx(10.0)
@@ -154,7 +154,7 @@ def test_the_allowed_units_add_the_vendor_unit(order):
     unit = Uom.objects.create(name='Units R3', relative_factor=1.0)
     box = Uom.objects.create(name='Box R3', relative_factor=6,
                              relative_uom_id=unit)
-    product = make_product(name='Insumo R3', uom=unit)
+    product = make_product(name='Insumo R3', uom_id=unit)
     ProductSupplierinfo.objects.create(
         partner_id=order.partner_id, product_tmpl_id=product.product_tmpl_id,
         price=1, product_uom_id=box)

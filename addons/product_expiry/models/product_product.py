@@ -10,25 +10,30 @@ Porte símbolo por símbolo — 8 de la referencia
 ``odoo19c: addons/product_expiry/models/product_product.py`` (59 líneas):
 2 clases, 8 símbolos.
 
-===========================================  ==========================================
-Símbolo de la referencia (línea)             Dónde queda en este puerto
-===========================================  ==========================================
-``ProductProduct._compute_quantities_dict``  **bloqueado** — ver "Lo que no cierra"
-``ProductProduct.free_qty`` (help, 51-54)    **bloqueado** — el campo no existe aquí
-``ProductProduct.virtual_available`` (55-58) **bloqueado** — el campo no existe aquí
-``ProductTemplate.use_expiration_date`` (20) campo homónimo (``add_to_class``)
-``ProductTemplate.expiration_time`` (24)     campo homónimo (``add_to_class``)
-``ProductTemplate.use_time`` (28)            campo homónimo (``add_to_class``)
-``ProductTemplate.removal_time`` (31)        campo homónimo (``add_to_class``)
-``ProductTemplate.alert_time`` (34)          campo homónimo (``add_to_class``)
-``ProductTemplate.write`` (37-40)            receptor ``pre_save`` ``_clear_expiry_when_untracked``
-===========================================  ==========================================
+Cada símbolo de la referencia (línea) y dónde queda en este puerto:
+
+- ``ProductProduct._compute_quantities_dict`` — **bloqueado**; ver "Lo que
+  no cierra".
+- ``ProductProduct.free_qty`` (help, 51-54) — **bloqueado**; el campo no
+  existe aquí.
+- ``ProductProduct.virtual_available`` (55-58) — **bloqueado**; el campo
+  no existe aquí.
+- ``ProductTemplate.use_expiration_date`` (20) — campo homónimo
+  (``add_to_class``).
+- ``ProductTemplate.expiration_time`` (24) — campo homónimo
+  (``add_to_class``).
+- ``ProductTemplate.use_time`` (28) — campo homónimo (``add_to_class``).
+- ``ProductTemplate.removal_time`` (31) — campo homónimo
+  (``add_to_class``).
+- ``ProductTemplate.alert_time`` (34) — campo homónimo (``add_to_class``).
+- ``ProductTemplate.write`` (37-40) — receptor ``pre_save``
+  ``_clear_expiry_when_untracked``.
 
 Los cinco campos van sobre **``product.template``**, igual que la referencia;
 ``product.product`` los expone por delegación al template — que es como este
 puerto materializa el ``_inherits`` de la referencia
-(``api: addons/product/models/product_product.py``, donde ``categ``, ``uom`` y
-``type`` ya se resuelven así).
+(``api: addons/product/models/product_product.py``, donde ``categ_id``,
+``uom_id`` y ``type`` ya se resuelven así).
 
 ``write`` → receptor ``pre_save``
 -----------------------------------
@@ -56,7 +61,8 @@ medible, no de conveniencia: los tres símbolos no existen en el puerto de
 
 .. code-block:: text
 
-   grep -rn "_compute_quantities_dict\|virtual_available" addons/ src/ --include=*.py
+   grep -rn "_compute_quantities_dict\|virtual_available" \
+        addons/ src/ --include=*.py
    → 0
 
 Sin el diccionario de cantidades no hay dónde inyectar el contexto

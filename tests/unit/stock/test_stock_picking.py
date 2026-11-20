@@ -93,7 +93,7 @@ def _move(picking, variant, source, destination, company, **extra):
         location=source,
         location_dest=destination,
         company=company,
-        product_uom=variant.product_tmpl_id.uom,
+        product_uom=variant.product_tmpl_id.uom_id,
         product_uom_qty=Decimal('5'),
     )
     values.update(extra)
@@ -868,7 +868,7 @@ def test_onchange_location_id_warns_when_chained_reservation_breaks(
         location=other_branch,
         location_dest=destination,
         company=company,
-        product_uom=variant.product_tmpl_id.uom,
+        product_uom=variant.product_tmpl_id.uom_id,
         quantity=Decimal('1'),
     )
 

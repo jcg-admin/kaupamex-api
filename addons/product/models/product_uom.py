@@ -46,8 +46,9 @@ class ProductUom(TimeStampedModel):
     _description = 'Link between products and their UoMs'
     _rec_name = 'barcode'
 
-    uom = fields.Many2one(
+    uom_id = fields.Many2one(
         Uom,
+        db_column='uom_id',
         null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='product_uom_ids',

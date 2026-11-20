@@ -71,7 +71,7 @@ def _move(line, variant, company, origin, destination, **extra):
         location=origin,
         location_dest=destination,
         company=company,
-        product_uom=variant.product_tmpl_id.uom,
+        product_uom=variant.product_tmpl_id.uom_id,
         product_uom_qty=Decimal('1'),
         purchase_line=line,
     )

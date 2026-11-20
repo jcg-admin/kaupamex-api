@@ -79,7 +79,7 @@ def destination(db):
 @pytest.fixture
 def variant(db, unit):
     tmpl = ProductTemplate.objects.create(
-        name='Camisa', list_price=Decimal('100.00'), uom=unit
+        name='Camisa', list_price=Decimal('100.00'), uom_id=unit
     )
     return ProductProduct.objects.create(
         product_tmpl_id=tmpl, default_code='CAM-M'
@@ -118,7 +118,7 @@ def make_move(db, variant, source, destination, company):
             location=source,
             location_dest=destination,
             company=company,
-            product_uom=variant.product_tmpl_id.uom,
+            product_uom=variant.product_tmpl_id.uom_id,
             product_uom_qty=Decimal('5'),
             state=StockMove.STATE_CONFIRMED,
             date=timezone.now(),

@@ -542,7 +542,7 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
             price = line.price_unit
             # El precio pasa a la unidad de la plantilla, que es la de la
             # tarifa del proveedor.
-            default_uom = template.uom
+            default_uom = template.uom_id
             if line.product_uom_id and line.product_uom_id != default_uom:
                 price = Decimal(str(line.product_uom_id._compute_price(
                     float(price), default_uom)))
