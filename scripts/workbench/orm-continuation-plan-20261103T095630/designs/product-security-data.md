@@ -92,3 +92,20 @@ lo escribe; la regla de empresa oculta una plantilla de otra empresa; una
 regla de tarifa guarda la compañía y la moneda de su tarifa o de su
 plantilla.
 Anulación: retirar los dos archivos de `data` hace caer las pruebas.
+
+## Símbolos que cambia
+
+- `addons/product/__manifest__.py` (`data`), `security/product_security.xml`
+  y `security/ir.model.access.csv`;
+- `ProductDocument` (`_name`, `_description`, `_inherits`, `_order`);
+- `ProductPricelistItem.company_id`, `currency_id`, `save`,
+  `_compute_company_id` y `_compute_currency_id`;
+- la migración `0043_pricelist_item_company_currency`, que añade las dos
+  columnas y las rellena con el cómputo de la fuente
+  (`odoo19c: product_pricelist_item.py:170-183`).
+
+Pruebas: `tests/unit/product/test_product_security.py`. Control de
+anulación, medido: retirados los dos archivos de `data` (y purgadas de la
+base de prueba las filas que ya habían creado), caen exactamente las cinco
+pruebas que dependen de ellos (5 failed, 3 passed); sobreviven la cabecera
+del documento y los dos cómputos de la regla de tarifa.
