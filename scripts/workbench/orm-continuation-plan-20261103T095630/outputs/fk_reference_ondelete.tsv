@@ -285,10 +285,10 @@ product.template	addons/account/models/product.py:57	company_dependent	product.P
 product.template.attribute.value	-	-	product.ProductTemplateAttributeValue	line	restrict	CASCADE	a	True	sin contraparte en la fuente
 product.template.attribute.value	-	-	product.ProductTemplateAttributeValue	attribute_value	restrict	PROTECT	a	True	sin contraparte en la fuente
 product.product	addons/product/models/product_product.py:42	cascade	product.ProductProduct	product_tmpl_id	restrict	CASCADE	a	True	divergencia de atributo
-product.combo	addons/product/models/product_combo.py:14	set null (defecto)	product.ProductCombo	company	set null	CASCADE	a	True	divergencia de política
-product.combo.item	addons/product/models/product_combo_item.py:13	cascade	product.ProductComboItem	combo	restrict	CASCADE	a	True	divergencia de atributo
-product.combo.item	addons/product/models/product_combo_item.py:14	restrict	product.ProductComboItem	product	restrict	PROTECT	a	True	coherente
-product.combo.item	addons/product/models/product_combo_item.py:12	set null (defecto)	product.ProductComboItem	company	set null	CASCADE	a	True	divergencia de política
+product.combo	addons/product/models/product_combo.py:14	set null (defecto)	product.ProductCombo	company_id	set null	CASCADE	a	True	divergencia de política
+product.combo.item	addons/product/models/product_combo_item.py:13	cascade	product.ProductComboItem	combo_id	restrict	CASCADE	a	True	divergencia de atributo
+product.combo.item	addons/product/models/product_combo_item.py:14	restrict	product.ProductComboItem	product_id	restrict	PROTECT	a	True	coherente
+product.combo.item	addons/product/models/product_combo_item.py:12	set null (defecto)	product.ProductComboItem	company_id	set null	CASCADE	a	True	divergencia de política
 product.pricelist	addons/product/models/product_pricelist.py:36	restrict (defecto)	product.ProductPricelist	currency	set null	PROTECT	a	True	divergencia de atributo
 product.pricelist	addons/product/models/product_pricelist.py:43	set null (defecto)	product.ProductPricelist	company_id	set null	CASCADE	a	True	divergencia de política
 product.pricelist.item	addons/product/models/product_pricelist_item.py:19	cascade	product.ProductPricelistItem	pricelist	set null	CASCADE	a	True	divergencia de atributo

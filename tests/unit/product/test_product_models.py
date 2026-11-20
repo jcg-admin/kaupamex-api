@@ -217,7 +217,8 @@ class TestProductTemplateComboInvariants:
             product_tmpl_id=bebida_tmpl
         )
         combo = ProductCombo.objects.create(name='Bebida')
-        ProductComboItem.objects.create(combo=combo, product=bebida_variant)
+        ProductComboItem.objects.create(combo_id=combo,
+                                        product_id=bebida_variant)
         tmpl.combo_ids.add(combo)
         tmpl.check_combo_choices()  # no debe levantar
 
@@ -232,7 +233,8 @@ class TestProductTemplateComboInvariants:
             product_tmpl_id=bebida_tmpl
         )
         combo = ProductCombo.objects.create(name='Bebida')
-        ProductComboItem.objects.create(combo=combo, product=bebida_variant)
+        ProductComboItem.objects.create(combo_id=combo,
+                                        product_id=bebida_variant)
         tmpl.combo_ids.add(combo)
         with pytest.raises(ValidationError):
             tmpl.check_combo_choices()

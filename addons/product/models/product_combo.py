@@ -111,8 +111,9 @@ class ProductCombo(TimeStampedModel):
             'copy=False: al duplicar, el orden NO se hereda.'
         ),
     )
-    company = fields.Many2one(
+    company_id = fields.Many2one(
         ResCompany,
+        db_column='company_id',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -163,7 +164,7 @@ class ProductCombo(TimeStampedModel):
         la referencia necesita ``_get_main_company()``, que no está portado
         (ver el docstring del módulo).
         """
-        return getattr(self.company, 'currency', None)
+        return getattr(self.company_id, 'currency', None)
 
     @property
     def base_price(self):
@@ -204,15 +205,15 @@ class ProductCombo(TimeStampedModel):
         items = getattr(self, 'combo_item_ids', None)
         if items is None or self.pk is None:
             return
-        product_ids = [item.product_id for item in items.all()]
+        product_ids = [item.product_id_id for item in items.all()]
         if len(set(product_ids)) < len(product_ids):
             raise ValidationError(
                 'Una elección de combo no puede ofrecer el mismo producto '
                 'dos veces.'
             )
-        if self.company_id and any(
-            getattr(item, 'company_id', None)
-            and item.company_id != self.company_id
+        if self.company_id_id and any(
+            item.company_id_id
+            and item.company_id_id != self.company_id_id
             for item in items.all()
         ):
             raise ValidationError(

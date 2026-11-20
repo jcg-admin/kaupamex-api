@@ -82,8 +82,9 @@ class ProductComboItem(TimeStampedModel):
     _description = "Product Combo Item"
     _check_company_auto = True
 
-    combo = fields.Many2one(
+    combo_id = fields.Many2one(
         ProductCombo,
+        db_column='combo_id',
         null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='combo_item_ids',
@@ -93,8 +94,9 @@ class ProductComboItem(TimeStampedModel):
             'sus opciones (Odoo ondelete=cascade).'
         ),
     )
-    product = fields.Many2one(
+    product_id = fields.Many2one(
         ProductProduct,
+        db_column='product_id',
         null=False, on_delete=models.PROTECT,
         db_index=True,
         related_name='combo_item_ids',
@@ -115,8 +117,9 @@ class ProductComboItem(TimeStampedModel):
             'divergió a Monetary (ver el docstring del módulo).'
         ),
     )
-    company = fields.Many2one(
+    company_id = fields.Many2one(
         ResCompany,
+        db_column='company_id',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -132,12 +135,12 @@ class ProductComboItem(TimeStampedModel):
 
     class Meta:
         db_table = 'product_combo_item'
-        ordering = ['combo_id', 'id']
+        ordering = ['combo_id_id', 'id']
         verbose_name = 'Opción de combo'
         verbose_name_plural = 'Opciones de combo'
 
     def __str__(self):
-        return f'{self.combo} / {self.product}'
+        return f'{self.combo_id} / {self.product_id}'
 
     def save(self, *args, **kwargs):
         """Propaga la compañía de la elección — el ``precompute`` de la fuente.
@@ -148,8 +151,8 @@ class ProductComboItem(TimeStampedModel):
         paso. Aquí ocurre lo mismo: la columna se llena en el ``save()`` que
         crea la fila.
         """
-        if self.combo_id:
-            self.company_id = self.combo.company_id
+        if self.combo_id_id:
+            self.company_id_id = self.combo_id.company_id_id
         super().save(*args, **kwargs)
 
     # === DERIVADOS ========================================================
@@ -164,7 +167,7 @@ class ProductComboItem(TimeStampedModel):
         incluye ``extra_price``: aquel es el sobrecoste de **elegir** esta
         opción, éste es lo que la opción vale por sí sola.
         """
-        return self.product.lst_price
+        return self.product_id.lst_price
 
     @property
     def currency(self):
@@ -172,10 +175,10 @@ class ProductComboItem(TimeStampedModel):
 
         En la referencia ``product.product`` alcanza los campos de su ficha por
         ``_inherits`` (``product_product.py:19``); aquí la delegación es
-        explícita, igual que ``type``, ``uom`` y ``company`` de
+        explícita, igual que ``type``, ``uom_id`` y ``company_id`` de
         ``ProductProduct``.
         """
-        return getattr(self.product, 'currency', None)
+        return getattr(self.product_id, 'currency', None)
 
     # === INVARIANTES ======================================================
 
@@ -191,7 +194,7 @@ class ProductComboItem(TimeStampedModel):
         del módulo.
         """
         super().clean()
-        if self.product_id and self.product.type == TYPE_COMBO:
+        if self.product_id_id and self.product_id.type == TYPE_COMBO:
             raise ValidationError(
                 'Una elección de combo no puede ofrecer productos de tipo '
                 'combo.'

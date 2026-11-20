@@ -381,7 +381,7 @@ class ProductTemplate(ImageMixin, TimeStampedModel):
         for combo in combos.all():
             items = getattr(combo, 'combo_item_ids', None)
             if items is not None and any(
-                not item.product.sale_ok for item in items.all()
+                not item.product_id.sale_ok for item in items.all()
             ):
                 raise ValidationError(
                     'Un combo a la venta no puede ofrecer productos que no '
