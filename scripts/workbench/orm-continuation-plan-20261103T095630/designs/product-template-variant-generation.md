@@ -101,3 +101,15 @@ test_orm, account, mail, orm, purchase): 5550 passed, 39 skipped,
   (`odoo19c: addons/product/models/product_template.py:460-462`) sólo sigue
   el renombre del inverso a `attribute_line_ids`; su prueba es
   `tests/unit/product/test_product_models.py`.
+
+## Defecto destapado por F2 sobre `bdcab60c`
+
+`addons/product/models/product_template.py` deja ahora más plantillas con
+recómputo pendiente, y el lote de `purchase_method` llegó con dos
+registros: `_compute_purchase_method` de
+`addons/purchase/models/product.py` estaba escrito para un solo registro
+y lanzó `Expected singleton` en
+`tests/integration/sale/test_stock_product_quantities.py::test_a_service_carries_no_stock`.
+Se porta el cuerpo de `odoo19c: addons/purchase/models/product.py:22-28`:
+`default_get(['purchase_method'])` y el bucle por registro. La prueba que
+lo discrimina es la que falló en F2.
