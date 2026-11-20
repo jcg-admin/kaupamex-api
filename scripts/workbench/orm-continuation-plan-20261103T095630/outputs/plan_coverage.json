@@ -566,7 +566,8 @@
   "product-tmpl-id-0122",
   "product-template-uom-id-0122",
   "product-uom-source-names-0122",
-  "product-combo-source-names-0122"
+  "product-combo-source-names-0122",
+  "product-document-ir-attachment-id-0122"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
