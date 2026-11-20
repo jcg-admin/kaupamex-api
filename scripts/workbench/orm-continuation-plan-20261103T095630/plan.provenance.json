@@ -1333,6 +1333,13 @@
         "product-tmpl-id-0122"
       ],
       "writtenAt": "2026-11-20T06:19:34Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-template-uom-id-0122"
+      ],
+      "writtenAt": "2026-11-20T07:30:24Z"
     }
   ]
 }
