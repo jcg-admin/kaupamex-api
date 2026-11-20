@@ -99,8 +99,13 @@ def payment_term_domain(order):
     return models.Q(company__isnull=True) | models.Q(company=order.company)
 
 
-#: ≙ el mismo dominio, aplicado a la tarifa (``:191``).
-pricelist_domain = payment_term_domain
+#: ≙ el mismo dominio, aplicado a la tarifa (``:191``). Es otra función
+#: porque la tarifa nombra su compañía ``company_id``, como la fuente, y el
+#: plazo de pago todavía ``company``.
+def pricelist_domain(order):
+    """Las tarifas admisibles para ``order``."""
+    return (models.Q(company_id__isnull=True)
+            | models.Q(company_id=order.company))
 
 #: ≙
 #: ``domain="[('payment_type','=','inbound'), ('company_id','=',company_id)]"``
@@ -903,11 +908,12 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
 
         Cuerpo exacto: existe alguna tarifa activa de la empresa del pedido o
         sin empresa. El ``('company_id', 'in', (False, order.company_id.id))``
-        de la fuente es aquí ``company__isnull`` o ``company``: en este ORM el
-        ``False`` de un Many2one vacío se escribe ``None``.
+        de la fuente es aquí ``company_id__isnull`` o ``company_id``: en este
+        ORM el ``False`` de un Many2one vacío se escribe ``None``.
         """
         self.has_active_pricelist = value = ProductPricelist.objects.filter(
-            models.Q(company__isnull=True) | models.Q(company=self.company),
+            models.Q(company_id__isnull=True)
+            | models.Q(company_id=self.company),
             active=True,
         ).exists()
         return value

@@ -236,21 +236,22 @@ class TestTheFiveComputesCalculateWhatTheSourceCalculates:
         assert order.has_active_pricelist is False
 
     def test_a_pricelist_of_the_company_flips_the_flag(self, company):
-        ProductPricelist.objects.create(name='Tarifa NS976', company=company)
+        ProductPricelist.objects.create(
+            name='Tarifa NS976', company_id=company)
         order = SaleOrder.objects.create(company=company)
         assert order.has_active_pricelist is True
 
     def test_an_inactive_pricelist_does_not_count(self, company):
         """El control del caso anterior: sin ``active=True`` no cuenta."""
         ProductPricelist.objects.create(
-            name='Tarifa NS976 inactiva', company=company, active=False
+            name='Tarifa NS976 inactiva', company_id=company, active=False
         )
         order = SaleOrder.objects.create(company=company)
         assert order.has_active_pricelist is False
 
     def test_a_pricelist_of_another_company_does_not_count(self, company):
         other = ResCompany.objects.create(code='ns-976-b', name='Otra NS976')
-        ProductPricelist.objects.create(name='Tarifa ajena', company=other)
+        ProductPricelist.objects.create(name='Tarifa ajena', company_id=other)
         order = SaleOrder.objects.create(company=company)
         assert order.has_active_pricelist is False
 

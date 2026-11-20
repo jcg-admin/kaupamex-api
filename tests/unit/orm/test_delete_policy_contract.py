@@ -81,7 +81,7 @@ CORRECTED = {
     'mrp.MrpBom.product',
     'product.ProductCombo.company',
     'product.ProductComboItem.company',
-    'product.ProductPricelist.company',
+    'product.ProductPricelist.company_id',
     'product.ProductSupplierinfo.company',
     'product.ProductSupplierinfo.product',
     'product.ProductSupplierinfo.purchase_requisition_line',

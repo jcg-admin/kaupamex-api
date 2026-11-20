@@ -315,15 +315,11 @@ addons/payment/models/gateway_event.py::PaymentGatewayEvent.payment
 addons/payment/models/payment.py::Payment.sale_order
 addons/payment/models/refund.py::Refund.payment
 addons/payment/models/saved_card.py::SavedCard.user
-addons/product/models/product_attribute_value.py::ProductAttributeValue.attribute
-addons/product/models/product_category.py::ProductCategory.parent
 addons/product/models/product_combo.py::ProductCombo.company
 addons/product/models/product_combo_item.py::ProductComboItem.combo
 addons/product/models/product_combo_item.py::ProductComboItem.company
 addons/product/models/product_combo_item.py::ProductComboItem.product
 addons/product/models/product_document.py::ProductDocument.ir_attachment
-addons/product/models/product_pricelist.py::ProductPricelist.company
-addons/product/models/product_pricelist.py::ProductPricelist.currency
 addons/product/models/product_pricelist_item.py::ProductPricelistItem.base_pricelist
 addons/product/models/product_pricelist_item.py::ProductPricelistItem.categ
 addons/product/models/product_pricelist_item.py::ProductPricelistItem.pricelist
@@ -339,7 +335,6 @@ addons/product/models/product_supplierinfo.py::ProductSupplierinfo.product_uom
 addons/product/models/product_template.py::ProductTemplate.categ
 addons/product/models/product_template.py::ProductTemplate.company
 addons/product/models/product_template.py::ProductTemplate.uom
-addons/product/models/product_template_attribute_line.py::ProductTemplateAttributeLine.attribute
 addons/product/models/product_template_attribute_line.py::ProductTemplateAttributeLine.product_tmpl
 addons/product/models/product_template_attribute_value.py::ProductTemplateAttributeValue.attribute_value
 addons/product/models/product_template_attribute_value.py::ProductTemplateAttributeValue.line

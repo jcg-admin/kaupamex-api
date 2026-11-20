@@ -52,6 +52,17 @@ from addons.base.models.timestamped_mixin import TimeStampedModel
 class ProductPricelist(TimeStampedModel):
     """``product.pricelist`` — el contenedor de reglas de precio."""
 
+    #: ≙ la cabecera de ``odoo19c: addons/product/models/
+    #: product_pricelist.py:10-14``, verbatim. ``_inherit`` nombra la
+    #: extensión del hilo aunque la clase no herede ``MailThread``
+    #: (sucesor ``product-category-mail-0122``).
+    _name = 'product.pricelist'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
+    _description = "Pricelist"
+    _rec_names_search = ['name', 'currency_id']
+    #: ``Meta.ordering`` es su forma en Django; los dos conviven.
+    _order = "sequence, id, name"
+
     name = fields.Char(max_length=255, verbose_name='Nombre de la tarifa')
     active = fields.Boolean(
         default=True,
@@ -63,8 +74,12 @@ class ProductPricelist(TimeStampedModel):
         verbose_name='Secuencia',
         help_text='Desempate cuando varias tarifas encajan: gana la menor.',
     )
-    currency = fields.Many2one(
+    #: ≙ ``currency_id`` (``:36``) en forma C. La fuente lo exige con la
+    #: moneda de la compañía por defecto; aquí admite nulo hasta
+    #: ``pricelist-currency-required-0122``.
+    currency_id = fields.Many2one(
         ResCurrency,
+        db_column='currency_id',
         on_delete=models.PROTECT,
         null=True,
         blank=True,
@@ -72,8 +87,10 @@ class ProductPricelist(TimeStampedModel):
         verbose_name='Moneda',
         help_text='Moneda en que sus reglas expresan los importes.',
     )
-    company = fields.Many2one(
+    #: ≙ ``company_id`` (``:43``) en forma C.
+    company_id = fields.Many2one(
         ResCompany,
+        db_column='company_id',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -82,8 +99,13 @@ class ProductPricelist(TimeStampedModel):
         verbose_name='Compañía',
         help_text='Vacío = la tarifa sirve a todas las compañías.',
     )
-    country_groups = fields.Many2many(
+    #: ≙ ``country_group_ids`` (``:49-56``), con la tabla y las columnas
+    #: de la fuente.
+    country_group_ids = fields.Many2many(
         ResCountryGroup,
+        relation='res_country_group_pricelist_rel',
+        column1='pricelist_id',
+        column2='res_country_group_id',
         blank=True,
         related_name='pricelist_ids',
         verbose_name='Grupos de países',
