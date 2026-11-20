@@ -106,6 +106,21 @@ con `related_name='ptav_product_variant_ids'` (la rama de archivo de
 `0044_product_attribute_value_complete` (columnas nuevas, `sequence`,
 `related_name`, retirada de la restricción, `on_delete` de PTAV).
 
+Dos símbolos con nombre propio:
+
+- `ProductAttributeValue._used_template_names` es la expresión
+  `pav.pav_attribute_line_ids.product_tmpl_id.mapped('display_name')` que la
+  fuente escribe dos veces (`odoo19c: product_attribute_value.py:100-101` y
+  `:120-121`), con la semántica de `mapped` (sin repetir, en orden). La
+  prueban `test_a_used_value_is_not_deleted` y
+  `test_the_attribute_of_a_used_value_cannot_change`, que leen el nombre de
+  la plantilla en el mensaje.
+- La migración `0044_product_attribute_value_complete` lleva a la tabla los
+  campos de `odoo19c: product_attribute_value.py:19-58` y el `cascade` de
+  `product_template_attribute_value.py:27-30`; la prueban
+  `test_the_value_is_a_base_model_with_the_source_fields` y
+  `test_an_unused_value_is_deleted_with_its_template_values`.
+
 ## Pruebas
 
 `tests/unit/product/test_product_attribute_value_complete.py`: es
