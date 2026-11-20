@@ -572,7 +572,8 @@
   "attribute-line-source-relation-0122",
   "variant-combination-source-relation-0122",
   "many2many-column2-ondelete-0122",
-  "product-security-data-0397"
+  "product-security-data-0397",
+  "product-attribute-value-complete-0122"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
