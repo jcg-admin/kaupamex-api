@@ -1305,6 +1305,13 @@
         "product-pricelist-item-fk-names-0122"
       ],
       "writtenAt": "2026-11-20T02:45:23Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-supplierinfo-fk-names-0122"
+      ],
+      "writtenAt": "2026-11-20T03:31:31Z"
     }
   ]
 }
