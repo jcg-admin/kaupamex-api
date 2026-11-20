@@ -32,7 +32,6 @@ import sys
 
 import django
 from django.conf import settings
-from django.core.management import call_command
 from django.db import connections
 from django.db.migrations.loader import MigrationLoader
 
@@ -168,15 +167,33 @@ def main(argv=None):
 def prepare_database(name):
     """Aplica a ``name`` las migraciones pendientes; devuelve cuántas.
 
-    Usa el mismo alias que la verificación. ``migrate`` corre con sus señales
-    (``post_migrate``), como en la carga normal de la suite.
+    Las cuenta por el alias de la verificación, pero NO migra por él:
+    ``orm/routers.py::allow_migrate`` sólo admite ``default`` y
+    ``company_<N>_db``, y con ``False`` Django salta las operaciones y
+    registra la migración como aplicada (medido el 2026-11-20 sobre una base
+    de worker: ``0044`` con fecha nueva y el esquema intacto). Migra en un
+    subproceso con ``DB_QA_NAME=<name>``, donde la base es ``default`` y el
+    router la admite; ``migrate`` corre con sus señales (``post_migrate``),
+    como en la carga normal de la suite. Diseño:
+    ``scripts/workbench/orm-continuation-plan-20261103T095630/designs/
+    gate-preflight-migrate-through-default.md``.
     """
     connection = connection_for(name)
     pending = pending_migrations(connection)
     if pending:
-        call_command('migrate', database=connection.alias,
-                     interactive=False, verbosity=0)
+        migrate_through_default(name)
     return len(pending)
+
+
+def migrate_through_default(name):
+    """``manage.py migrate`` sobre ``name`` como base ``default``."""
+    subprocess.run(
+        [sys.executable, 'manage.py', 'migrate', '--noinput',
+         '--verbosity', '0'],
+        cwd=SRC, check=True,
+        env={**os.environ, 'DB_QA_NAME': name,
+             'DJANGO_SETTINGS_MODULE': os.environ['DJANGO_SETTINGS_MODULE']},
+    )
 
 
 if __name__ == '__main__':

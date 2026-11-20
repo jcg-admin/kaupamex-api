@@ -14,7 +14,7 @@ import subprocess
 import sys
 
 import pytest
-from django.db import connection, connections
+from django.db import connection, connections, router
 
 from addons.base.models import IrModelData, ResUsers
 
@@ -142,14 +142,29 @@ def test_the_aliases_a_test_registers_are_forgotten():
 def test_preparation_migrates_only_a_database_with_pending_migrations(
         monkeypatch, scoped_aliases):
     """Una revisión con migraciones nuevas es el caso normal: la
-    preparación las aplica; una base al día no recibe ``migrate``."""
+    preparación las aplica; una base al día no recibe ``migrate``. Y la
+    aplica con la base como ``default`` (``DB_QA_NAME``), el único alias de
+    dominio que el router deja migrar: por ``preflight_<nombre>`` Django
+    registraba la migración y saltaba sus operaciones."""
     calls = []
     pending = {'orm_a': ['purchase.0023_x'], 'orm_b': []}
     monkeypatch.setattr(gate_preflight, 'pending_migrations',
                         lambda connection: pending[connection.alias[10:]])
-    monkeypatch.setattr(gate_preflight, 'call_command',
-                        lambda *args, **kwargs: calls.append(
-                            kwargs['database']))
+    monkeypatch.setattr(
+        gate_preflight.subprocess, 'run',
+        lambda command, **kwargs: calls.append((command, kwargs)))
     assert gate_preflight.prepare_database('orm_a') == 1
     assert gate_preflight.prepare_database('orm_b') == 0
-    assert calls == ['preflight_orm_a']
+    [(command, kwargs)] = calls
+    assert command[1:3] == ['manage.py', 'migrate']
+    assert not any(arg.startswith('--database') for arg in command)
+    assert kwargs['env']['DB_QA_NAME'] == 'orm_a'
+    assert kwargs['cwd'] == gate_preflight.SRC
+    assert kwargs['check'] is True
+
+
+def test_the_router_refuses_to_migrate_on_the_preflight_alias():
+    """La premisa del arreglo: el alias de lectura no migra; ``default``
+    sí (``orm/routers.py::allow_migrate``)."""
+    assert router.allow_migrate('preflight_orm_a', 'product') is False
+    assert router.allow_migrate('default', 'product') is True
