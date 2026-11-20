@@ -103,3 +103,25 @@ cargaba. Las dos ramas nuevas comprueban `through is not None`.
 anulación: vaciar `_restrict_through_column` hace caer las tres; quitar
 sólo la rama del espejo hace caer exactamente `test_10` (1 failed, 2
 passed), que es la que depende del `restrict` del segundo extremo.
+
+## Dónde va el código nuevo, y por qué
+
+`check_python_style_increment.py` fija la huella de cada diagnóstico con
+`syntax_context`, que incluye el **índice del nodo en cada contenedor**.
+Insertar sentencias de módulo antes de otras corre el índice de todas las
+siguientes: el gate reatribuye su deuda heredada al cambio (en
+`fields_relational.py`, 20 diagnósticos) y trata como **cambiada** una
+supresión `# noqa` preexistente (`test_orm.py:1028`), que rehúsa con
+`ERROR`. No es un defecto del gate: está escrito para que mover una línea
+de ámbito invalide la comparación.
+
+Por eso `_MANY2MANY_ON_DELETE` y `_restrict_through_column` van al final
+de `src/orm/fields_relational.py` (sólo se leen en tiempo de llamada), y
+`TestOrmModelA`/`TestOrmModelB` al final de `test_orm.py`, después de la
+clase que lleva la supresión. El orden de las clases en el módulo no
+cambia el estado de migración (`makemigrations --check` sin cambios).
+
+## Alcance de la suite
+
+`src/orm/fields_relational.py` es mecanismo transversal: la regla de
+alcance pide la suite entera antes del commit, no el subconjunto derivado.
