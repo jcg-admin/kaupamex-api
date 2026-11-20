@@ -1432,6 +1432,13 @@
         "ptav-complete-0122"
       ],
       "writtenAt": "2026-11-20T22:00:45Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-template-variant-generation-0122"
+      ],
+      "writtenAt": "2026-11-20T23:08:45Z"
     }
   ]
 }
