@@ -28,6 +28,13 @@
         'sale_loyalty',  # el cupón aplicado en el carrito
         'website',  # el sitio que hospeda la tienda
     ],
+    # ≙ ``odoo19c: website_sale/__manifest__.py:13-17``: el CSV y los
+    # grupos; ``ir_rules.xml`` espera a ``website-sale-ir-rules-0397`` y el
+    # resto de ``data`` (vistas, datos de registro) no está portado.
+    'data': [
+        'security/ir.model.access.csv',
+        'security/res_groups.xml',
+    ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',
     'application': True,  # módulo vendible del catálogo L0
