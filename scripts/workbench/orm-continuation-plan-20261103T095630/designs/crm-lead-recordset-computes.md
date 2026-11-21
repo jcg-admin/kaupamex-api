@@ -61,3 +61,7 @@ escritos frente al recálculo. Es el hueco que cubren las tareas abiertas del
 ORM sobre `write` (anunciar los calculados escritos con `modified` y portar
 `_write`/`_write_multi`). La prueba de esta unidad escribe `name` en su
 lugar.
+
+La forma que se porta es la de `_check_won_validity` en la fuente
+(`odoo19c: addons/crm/models/crm_lead.py:263-266`): `for lead in self:` y el
+cuerpo sobre `lead`. Prueba: `tests/unit/crm/test_crm_lead_multi_record.py`.
