@@ -46,6 +46,13 @@ que la unidad del proveedor nunca llegaba a la línea de factura. La fuente lee
   `ProductSupplierinfo.save`.
 - `price` y `discount` siguen `Monetary`, con la razón de comparabilidad del
   docstring del módulo.
+- `ProductSupplierinfo.product_name`
+  (`odoo19c: addons/product/models/product_supplierinfo.py:17-19`),
+  `ProductSupplierinfo.product_code` (`:20-22`) y
+  `ProductSupplierinfo.delay` (`:51-53`) toman la etiqueta y la ayuda de la
+  fuente; sus columnas no cambian. Los mide
+  `test_the_template_and_unit_are_precomputed_from_the_variant`, que crea la
+  tarifa por el ORM con sus valores por defecto.
 - `res.partner` es aquí un modelo de Django: `_get_filtered_supplier` lee
   `active` sin `sudo()`, y sin empresa activa deja pasar sólo las tarifas de
   todas las empresas.
@@ -59,8 +66,11 @@ que la unidad del proveedor nunca llegaba a la línea de factura. La fuente lee
   - `AccountMoveLine` (`addons/account/models/account_move_line.py`) lee la
     unidad de la primera tarifa;
   - la extensión de `purchase` (`addons/purchase/models/product.py`) es de
-    instancia, como la fuente, y trata un `order_id` `None` igual que el
-    recordset vacío;
+    instancia, como la fuente
+    (`odoo19c: addons/purchase/models/product.py:151-154`), y trata un
+    `order_id` `None` igual que el recordset vacío;
+    `apply_purchase_product_extensions` la encadena ya sin `classmethod`, y la
+    mide `test_the_order_company_filters_the_sellers`;
   - los `seller_ids.all()` / `.exists()` de `purchase`, `purchase_stock` y
     `product` pasan a recordset.
 - **Migración 0058** `addons/product/migrations/0058_supplierinfo_basemodel.py`:
