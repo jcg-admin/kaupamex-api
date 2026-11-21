@@ -1565,6 +1565,13 @@
         "analytic-basemodel-0397"
       ],
       "writtenAt": "2026-11-21T18:18:36Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "analytic-account-plan-id-0397"
+      ],
+      "writtenAt": "2026-11-21T19:34:25Z"
     }
   ]
 }
