@@ -297,3 +297,20 @@ repuntadas a `_is_applicable_for` y `_compute_price`.
   (`:1167-1168`) y `_get_contextual_discount` (`:1175-1193`).
 
 Prueba: `tests/unit/product/test_product_pricelist_selection.py`.
+
+### Un defecto del ORM destapado por la etapa 4
+
+`_forward_get` (la lectura de un `Many2one`) construía el corecord en el
+entorno ambiental (`env()`), no en el del registro que lee. La fuente lo
+construye en `record.env` (`Many2one.convert_to_record`,
+`odoo19c: odoo/orm/fields_relational.py:354-358`, y
+`convert_to_record_multi`, `:360-364`), así que el valor hereda el contexto,
+el usuario y el `su`. Sin eso, `_get_contextual_price` de la variante
+(`odoo19c: addons/product/models/product_product.py:1170`) llegaba a la
+plantilla sin la clave `pricelist` del contexto y devolvía el precio de
+lista. El corecord vacío y el de varios registros también se construyen
+ahora en el entorno del registro.
+
+Pruebas: `tests/unit/orm/test_many2one_record_env.py` (contexto, `su` y
+valor vacío) y `tests/unit/product/test_product_pricelist_selection.py`
+(`test_the_contextual_price_and_discount_read_the_pricelist`).
