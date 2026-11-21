@@ -97,3 +97,24 @@ pasa a `bool(self.timesheets.filtered(lambda line: line.project))`;
 addon no tenía ninguna prueba; la nueva,
 `tests/unit/hr_timesheet/test_timesheet_recordset_readers.py`, falla en los
 tres antes del cambio con el `AttributeError` del recordset.
+
+## Porción `crm`
+
+`crm_lead.py`: `_compute_stage_id` (≙ `:353-357`) compara el equipo con
+`self.stage_id.team_ids.ids`; `_merge_get_fields_specific` (≙ `:1609-1618`),
+`_pls_get_lead_pls_values` (≙ `:2729-2811`) recorren `tag_ids` sin `.all()`;
+`prepare_pls_tooltip_data` (≙ `:2813-2890`) toma la etiqueta con
+`filtered(...)[:1]`. `crm_team.py`: `_compute_assignment_max` (≙ `:47-50`),
+`_compute_lead_all_assigned_month_count` (≙ `:70-74`),
+`_action_assign_leads` (≙ `:222-253`), `_assign_and_convert_leads`
+(≙ `:553-687`) y su `_assign_lead` interior recorren `crm_team_member_ids`
+sin `.all()`. Pruebas: `tests/unit/crm/test_crm_recordset_readers.py` y
+`tests/unit/crm/test_crm_team_recordset_readers.py`, rojas en los nueve
+sitios antes del cambio.
+
+Medido de paso: el bloque de cómputos y restricciones de `crm.lead` supone
+un solo registro (lo declara su comentario: «aquí una instancia **es** un
+registro»), y desde que es `BaseModel` un alta de dos iniciativas con etapa
+muere en `_check_won_validity` con `Expected singleton`. La fuente itera
+`for lead in self` (`odoo19c: addons/crm/models/crm_lead.py:263-266`). Es
+otra clase de defecto. Sucesor: `crm-lead-recordset-computes-0397`.
