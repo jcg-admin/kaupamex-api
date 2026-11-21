@@ -79,7 +79,7 @@ from addons.product.models.product_template import ProductTemplate
 from exceptions import ValidationError
 from orm.environments import env
 from tools.float_utils import float_round
-from tools.misc import format_datetime
+from tools.misc import format_amount, format_datetime, formatLang
 from tools.translate import _
 
 APPLIED_VARIANT = '0_product_variant'
@@ -319,14 +319,17 @@ class ProductPricelistItem(models.BaseModel, TimeStampedModel):
         min_display_digits='Product Price', default=0,
         help="Specify the maximum amount of margin over the base price.")
 
-    #: ≙ ``name`` (``:155-158``), etiqueta calculada no almacenada.
-    #: ``price`` y ``rule_tip`` (``:159-163``) son etiquetas de formulario
-    #: que dependen de ``formatLang``/``format_amount``: etapa 5 del
-    #: diseño ``product-pricelist-cluster``.
+    #: ≙ ``name``, ``price`` y ``rule_tip`` (``:155-163``): etiquetas
+    #: calculadas, no almacenadas.
     name = fields.Char(
         string="Name",
         compute='_compute_name',
         help="Explicit rule name for this pricelist line.")
+    price = fields.Char(
+        string="Price",
+        compute='_compute_price_label',
+        help="Explicit rule name for this pricelist line.")
+    rule_tip = fields.Char(compute='_compute_rule_tip')
 
     class Meta:
         db_table = 'product_pricelist_item'
@@ -378,6 +381,78 @@ class ProductPricelistItem(models.BaseModel, TimeStampedModel):
             else:
                 item.name = _("All Products")
 
+    def _get_price_label_base_str(self):
+        """This method allows you to extend it to other modules with other
+        options in the base field to return a different text — ≙
+        ``_get_price_label_base_str`` (``:198``).
+        """
+        self.ensure_one()
+        base_str = ""
+        if self.base == 'pricelist' and self.base_pricelist_id:
+            base_str = self.base_pricelist_id.display_name
+        elif self.base == 'standard_price':
+            base_str = _("product cost")
+        else:
+            base_str = _("sales price")
+        return base_str
+
+    @api.depends(
+        'compute_price', 'fixed_price', 'pricelist_id', 'percent_price',
+        'price_discount', 'price_markup', 'price_surcharge', 'base',
+        'base_pricelist_id',
+    )
+    def _compute_price_label(self):
+        """≙ ``_compute_price_label`` (``:216``)."""
+        for item in self:
+            if item.compute_price == 'fixed':
+                item.price = formatLang(
+                    item.env, item.fixed_price, dp="Product Price",
+                    currency_obj=item.currency_id)
+            elif item.compute_price == 'percentage':
+                percentage = self._get_integer(item.percent_price)
+                if item.base_pricelist_id:
+                    item.price = _(
+                        "%(percentage)s %% discount on %(pricelist)s",
+                        percentage=percentage,
+                        pricelist=item.base_pricelist_id.display_name
+                    )
+                else:
+                    item.price = _(
+                        "%(percentage)s %% discount on sales price",
+                        percentage=percentage
+                    )
+            else:
+                base_str = item._get_price_label_base_str()
+
+                extra_fee_str = ""
+                if item.price_surcharge > 0:
+                    extra_fee_str = _(
+                        "+ %(amount)s extra fee",
+                        amount=format_amount(
+                            item.env,
+                            abs(item.price_surcharge),
+                            currency=item.currency_id,
+                        ),
+                    )
+                elif item.price_surcharge < 0:
+                    extra_fee_str = _(
+                        "- %(amount)s rebate",
+                        amount=format_amount(
+                            item.env,
+                            abs(item.price_surcharge),
+                            currency=item.currency_id,
+                        ),
+                    )
+                discount_type, percentage = self._get_displayed_discount(item)
+                item.price = _(
+                    "%(percentage)s %% %(discount_type)s on %(base)s "
+                    "%(extra)s",
+                    percentage=percentage,
+                    discount_type=discount_type,
+                    base=base_str,
+                    extra=extra_fee_str,
+                )
+
     @api.depends('price_discount')
     def _compute_price_markup(self):
         """≙ ``_compute_price_markup`` (``:265-267``)."""
@@ -388,6 +463,58 @@ class ProductPricelistItem(models.BaseModel, TimeStampedModel):
         """≙ ``_inverse_price_markup`` (``:269-271``)."""
         for item in self:
             item.price_discount = -item.price_markup
+
+    @api.depends_context('lang')
+    @api.depends(
+        'base', 'compute_price', 'price_discount', 'price_markup',
+        'price_round', 'price_surcharge',
+    )
+    def _compute_rule_tip(self):
+        """≙ ``_compute_rule_tip`` (``:277``)."""
+        base_selection_vals = dict(
+            self._fields['base']._description_selection(self.env))
+        self.rule_tip = False
+        for item in self:
+            if item.compute_price != 'formula' or not item.base:
+                continue
+            base_amount = 100
+            discount = (item.price_discount if item.base != 'standard_price'
+                        else -item.price_markup)
+            discount_factor = (100 - discount) / 100
+            discounted_price = base_amount * discount_factor
+            if item.price_round:
+                discounted_price = float_round(
+                    discounted_price, precision_rounding=item.price_round)
+            surcharge = format_amount(item.env, item.price_surcharge,
+                                      item.currency_id)
+            discount_type, discount = self._get_displayed_discount(item)
+
+            item.rule_tip = _(
+                "%(base)s with a %(discount)s %% %(discount_type)s and "
+                "%(surcharge)s extra fee\n"
+                "Example: %(amount)s * %(discount_charge)s + "
+                "%(price_surcharge)s → %(total_amount)s",
+                base=base_selection_vals[item.base],
+                discount=discount,
+                discount_type=discount_type,
+                surcharge=surcharge,
+                amount=format_amount(item.env, 100, item.currency_id),
+                discount_charge=discount_factor,
+                price_surcharge=surcharge,
+                total_amount=format_amount(
+                    item.env, discounted_price + item.price_surcharge,
+                    item.currency_id),
+            )
+
+    def _get_integer(self, percentage):
+        """≙ ``_get_integer`` (``:306``)."""
+        return int(percentage) if percentage == int(percentage) else percentage
+
+    def _get_displayed_discount(self, item):
+        """≙ ``_get_displayed_discount`` (``:309``)."""
+        if item.base == 'standard_price':
+            return _("markup"), self._get_integer(item.price_markup)
+        return _("discount"), self._get_integer(item.price_discount)
 
     # === CONSTRAINT METHODS ===============================================
 
@@ -478,6 +605,117 @@ class ProductPricelistItem(models.BaseModel, TimeStampedModel):
                 raise ValidationError(_(
                     "Please specify the product variant for which this "
                     "rule should be applied"))
+
+    # === ONCHANGE METHODS =================================================
+
+    @api.onchange('base')
+    def _onchange_base(self):
+        """≙ ``_onchange_base`` (``:384``)."""
+        for item in self:
+            item.update({
+                'price_discount': 0.0,
+                'price_markup': 0.0,
+            })
+
+    @api.onchange('base_pricelist_id')
+    def _onchange_base_pricelist_id(self):
+        """≙ ``_onchange_base_pricelist_id`` (``:392``)."""
+        for item in self:
+            if item.compute_price == 'percentage':
+                item.base = ((bool(item.base_pricelist_id) and 'pricelist')
+                             or 'list_price')
+
+    @api.onchange('compute_price')
+    def _onchange_compute_price(self):
+        """≙ ``_onchange_compute_price`` (``:398``)."""
+        self.base_pricelist_id = False
+        if self.compute_price != 'fixed':
+            self.fixed_price = 0.0
+        if self.compute_price != 'percentage':
+            self.percent_price = 0.0
+        if self.compute_price != 'formula':
+            self.update({
+                'base': 'list_price',
+                'price_discount': 0.0,
+                'price_surcharge': 0.0,
+                'price_markup': 0.0,
+                'price_round': 0.0,
+                'price_min_margin': 0.0,
+                'price_max_margin': 0.0,
+            })
+
+    @api.onchange('display_applied_on')
+    def _onchange_display_applied_on(self):
+        """≙ ``_onchange_display_applied_on`` (``:416``)."""
+        for item in self:
+            if not (item.product_tmpl_id or item.categ_id):
+                item.update({'applied_on': '3_global'})
+            elif item.display_applied_on == '1_product':
+                item.update({
+                    'applied_on': '1_product',
+                    'categ_id': None,
+                })
+            elif item.display_applied_on == '2_product_category':
+                item.update({
+                    'product_id': None,
+                    'product_tmpl_id': None,
+                    'applied_on': '2_product_category',
+                    'product_uom_name': None,
+                })
+
+    @api.onchange('product_id')
+    def _onchange_product_id(self):
+        """≙ ``_onchange_product_id`` (``:434``)."""
+        has_product_id = self.filtered('product_id')
+        for item in has_product_id:
+            item.product_tmpl_id = item.product_id.product_tmpl_id
+        if self.env.context.get('default_applied_on', False) == '1_product':
+            # If a product variant is specified, apply on variants instead
+            # Reset if product variant is removed
+            has_product_id.update({'applied_on': '0_product_variant'})
+            (self - has_product_id).update({'applied_on': '1_product'})
+
+    @api.onchange('product_tmpl_id')
+    def _onchange_product_tmpl_id(self):
+        """≙ ``_onchange_product_tmpl_id`` (``:445``)."""
+        has_tmpl_id = self.filtered('product_tmpl_id')
+        for item in has_tmpl_id:
+            if (item.product_id
+                    and item.product_id.product_tmpl_id
+                    != item.product_tmpl_id):
+                item.product_id = None
+
+    @api.onchange('product_id', 'product_tmpl_id', 'categ_id')
+    def _onchange_rule_content(self):
+        """≙ ``_onchange_rule_content`` (``:452``)."""
+        if not self.env.context.get('default_applied_on', False):
+            # If we aren't coming from a specific product template/variant.
+            variants_rules = self.filtered(
+                lambda r: bool(r.product_id) and bool(r.product_tmpl_id)
+            )
+            template_rules = (self - variants_rules).filtered(
+                'product_tmpl_id')
+            category_rules = self.filtered(
+                lambda cat: bool(cat.categ_id) and cat.categ_id.name != 'All'
+            )
+            variants_rules.update({'applied_on': '0_product_variant'})
+            template_rules.update({'applied_on': '1_product'})
+            category_rules.update({'applied_on': '2_product_category'})
+            global_rules = (self - variants_rules - template_rules
+                            - category_rules)
+            global_rules.update({'applied_on': '3_global'})
+
+    @api.onchange('price_round')
+    def _onchange_price_round(self):
+        """≙ ``_onchange_price_round`` (``:469``)."""
+        if any(item.price_round and item.price_round < 0.0 for item in self):
+            raise ValidationError(_(
+                "The rounding method must be strictly positive."))
+
+    @api.onchange('date_start', 'date_end')
+    def _onchange_validity_period(self):
+        """≙ ``_onchange_validity_period`` (``:474``)."""
+        self._check_date_range()
 
     # === CRUD METHODS =====================================================
 

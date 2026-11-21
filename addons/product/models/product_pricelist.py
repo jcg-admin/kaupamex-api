@@ -40,6 +40,8 @@ import fields
 import models
 
 from addons.base.models.res_company import ResCompany
+from addons.base.models.ir_config_parameter import SystemParameter
+from addons.base.models.res_country import ResCountry
 from addons.base.models.res_country_group import ResCountryGroup
 from addons.base.models.res_currency import ResCurrency
 from addons.base.models.timestamped_mixin import TimeStampedModel
@@ -394,6 +396,85 @@ class ProductPricelist(models.BaseModel, MailThread, MailActivityMixin,
                 results[product_id][pricelist.id] = price
         return results
 
+    def _get_country_pricelist_multi(self, country_ids):
+        """≙ ``_get_country_pricelist_multi`` (``:288``): la tarifa de cada
+        país por sus grupos, con la de respaldo para los demás.
+
+        ``res.country`` e ``ir.config_parameter`` son todavía modelos de
+        Django (la app ``base`` está pendiente de ``BaseModel``): el país del
+        contexto se busca por su gestor y el parámetro con
+        ``SystemParameter.get_param``, las dos lecturas que la fuente hace con
+        ``search`` y ``get_param``.
+        """
+        def get_param_id(key):
+            string_value = SystemParameter.get_param(key, False)
+            try:
+                return int(string_value)
+            except (TypeError, ValueError, OverflowError):
+                return None
+
+        company = self.env.company
+        company_id = company.pk if company else False
+        pl_domain = self._get_partner_pricelist_multi_search_domain_hook(
+            company_id)
+
+        if (
+            (ctx_code := self.env.context.get('country_code'))
+            and (ctx_country := ResCountry.objects.filter(
+                code=ctx_code).first())
+        ):
+            if ctx_country.pk not in country_ids:
+                country_ids.append(ctx_country.pk)
+        else:
+            ctx_country = False
+
+        # get fallback pricelist when no pricelist for a given country
+        pl_fallback = (
+            self.search(pl_domain + [('country_group_ids', '=', False)],
+                        limit=1)
+            # save data in ir.config_parameter instead of ir.default for
+            # res.partner.property_product_pricelist
+            # otherwise the data will become the default value while
+            # creating without specifying the property_product_pricelist
+            # however if the property_product_pricelist is not specified
+            # the result of the previous line should have high priority
+            # when computing
+            or self.browse(get_param_id(
+                f'res.partner.property_product_pricelist_{company_id}'))
+            or self.browse(get_param_id(
+                'res.partner.property_product_pricelist'))
+            or self.search(pl_domain, limit=1)
+        )
+        result = {}
+        for country_id in country_ids:
+            pl = self.search([
+                *pl_domain,
+                ('country_group_ids.country_ids', '=', country_id),
+            ], limit=1)
+            result[country_id] = pl or pl_fallback
+        result[False] = result[ctx_country.pk] if ctx_country else pl_fallback
+        return result
+
+    def _get_partner_pricelist_multi_search_domain_hook(self, company_id):
+        """≙ ``_get_partner_pricelist_multi_search_domain_hook``
+        (``:377``)."""
+        return [
+            ('active', '=', True),
+            ('company_id', 'in', [company_id, False]),
+        ]
+
+    def _get_partner_pricelist_multi_filter_hook(self):
+        """≙ ``_get_partner_pricelist_multi_filter_hook`` (``:383``)."""
+        return self.filtered('active')
+
+    @api.model
+    def get_import_templates(self):
+        """≙ ``get_import_templates`` (``:387``)."""
+        return [{
+            'label': _('Import Template for Pricelists'),
+            'template': '/product/static/xls/product_pricelist.xls'
+        }]
+
     @api.ondelete(at_uninstall=False)
     def _unlink_except_used_as_rule_base(self):
         """≙ ``_unlink_except_used_as_rule_base`` (``odoo19c:
@@ -413,3 +494,13 @@ class ProductPricelist(models.BaseModel, MailThread, MailActivityMixin,
                 other_pricelists='\n'.join(
                     linked_items.pricelist_id.mapped('display_name')),
             ))
+
+    @api.readonly
+    def action_open_pricelist_report(self):
+        """≙ ``action_open_pricelist_report`` (``:408``)."""
+        self.ensure_one()
+        return {
+            'name': _("Pricelist Report Preview"),
+            'type': 'ir.actions.client',
+            'tag': 'generate_pricelist_report',
+        }
