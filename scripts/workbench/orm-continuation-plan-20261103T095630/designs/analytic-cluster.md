@@ -199,3 +199,35 @@ declara `company`, opcional y sin default.
 Prueba: `tests/unit/analytic/test_analytic_account_company_id.py` —símbolo,
 columna, default de la empresa del entorno, `currency_id` sobre ella y la
 coherencia de `clean` con las líneas.
+
+### Adenda de la unidad `company_id`: regresión de 1a en los saldos y `clean`
+
+Medido al escribir la prueba de `clean`: desde 1a (`d716736e`) la cuenta es
+`BaseModel` y su inverso `lines` devuelve un recordset, no un queryset.
+`credit`, `debit` (y por ellos `balance`) sumaban con
+`self.lines.filter(...).aggregate(...)` y `clean` comprobaba con
+`self.lines.exclude(...).exists()`: los cuatro morían con `AttributeError`
+en cuanto la cuenta tenía un apunte. Ninguna prueba consumidora creaba
+apuntes antes de leer saldos o validar, y por eso la suite de 1a quedó en
+verde. Sondeado: `type(account.lines)` es `AccountAnalyticLine`.
+
+Corrección en esta unidad: `AccountAnalyticAccount._lines_query` devuelve
+los apuntes como queryset del gestor del modelo de apuntes, con el mismo
+SQL de antes, y `credit`, `debit` y `clean` lo usan. La guarda de `clean`
+pasa de `company_id is not None` a la verdad del registro. Su conversión a
+`_check_company_consistency` (`odoo19c: addons/analytic/models/analytic_account.py:95-102`),
+y la suma con conversión de moneda de `_compute_debit_credit_balance`
+(`:162-203`), siguen siendo de la paridad de 1b.
+
+Búsqueda de la misma clase en el resto del árbol (`git grep` de
+`.lines`, `.analytic_lines`, `.analytic_accounts` y `.account_ids` seguidos
+de un método de queryset en `addons/` y `src/`): sólo estos tres sitios; el
+`.count()` de `AccountAnalyticPlan.account_count` corre sobre un modelo de
+Django y sigue siendo queryset.
+
+Símbolos de la unidad: `AccountAnalyticAccount.company_id`,
+`_default_company_id`, `_lines_query`, `clean`, `credit`, `debit` y la
+propiedad `currency` (`analytic_account.py`); la migración
+`0015_account_company_id` (`AlterField` + `RenameField`, que sólo vuelve a
+crear la misma restricción de FK). Prueba:
+`tests/unit/analytic/test_analytic_account_company_id.py`.
