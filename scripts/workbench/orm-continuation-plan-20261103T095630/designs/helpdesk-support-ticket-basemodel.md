@@ -26,3 +26,26 @@ devuelve un recordset.
 
 Prueba: `tests/unit/helpdesk/test_support_ticket_basemodel.py`, más
 `tests/integration/helpdesk/` y `tests/unit/orm/test_basemodel_reach.py`.
+
+## Lo que destapó el recorrido de consumidores
+
+Un `BaseModel` rechaza los atributos públicos que la clase no declara: es el
+`__slots__` de la fuente (`odoo19c: odoo/orm/models.py:362`). La cola
+administrativa ponía dos con `annotate()` sobre cada fila, y los dos fallaban
+al materializar el registro:
+
+- `replies_count` pasa a ser un campo calculado no almacenado del modelo,
+  con `_compute_replies_count`, que cuenta las respuestas de todo el
+  recordset con una sola consulta agrupada. Es la forma que la fuente da a
+  sus contadores; la vista de lista deja de anotar.
+- `first_response_at` sólo hacía falta como expresión de consulta: la
+  anotación de `_annotate_first_response` se llama ahora
+  `first_response_date`, y el export CSV
+  (`AdminSupportTicketExportCSVView.get`) lee sus filas con `.values()`, que
+  sigue siendo una sola consulta y no escribe nada sobre el registro. El
+  correo del comprador se lee por la columna del contacto
+  (`user__partner_id__email`), porque `email` de `res.users` se delega por
+  `_inherits` y no tiene columna propia.
+
+Pruebas: `tests/integration/helpdesk/test_support_endpoints.py` (cola, métricas
+y export) y `tests/unit/helpdesk/test_support_ticket_basemodel.py`.
