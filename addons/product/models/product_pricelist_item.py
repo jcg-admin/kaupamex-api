@@ -702,3 +702,35 @@ class ProductPricelistItem(models.BaseModel, TimeStampedModel):
                 price, currency, self.env.company, date, round=False))
 
         return price
+
+    def _compute_price_before_discount(self, *args, **kwargs):
+        """Compute the base price of the given rule, considering chained
+        pricelists — ≙ ``_compute_price_before_discount`` (``:661``).
+
+        :param product: recordset of product (product.product/
+            product.template)
+        :param float qty: quantity of products requested (in given uom)
+        :param uom: unit of measure (uom.uom record)
+        :param datetime date: date to use for price computation and currency
+            conversions
+        :param currency: currency in which the returned price must be
+            expressed
+
+        :returns: base price, expressed in provided pricelist currency
+        :rtype: float
+        """
+        pricelist_item = self
+        # Find the lowest pricelist rule whose pricelist is configured to
+        # show the discount to the customer.
+        while pricelist_item.base == 'pricelist':
+            rule_id = pricelist_item.base_pricelist_id._get_product_rule(
+                *args, **kwargs)
+            rule_pricelist_item = self.env['product.pricelist.item'].browse(
+                rule_id)
+            if (rule_pricelist_item
+                    and rule_pricelist_item.compute_price == 'percentage'):
+                pricelist_item = rule_pricelist_item
+            else:
+                break
+
+        return pricelist_item._compute_base_price(*args, **kwargs)

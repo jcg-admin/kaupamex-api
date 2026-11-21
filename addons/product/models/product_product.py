@@ -378,6 +378,41 @@ class ProductProduct(models.BaseModel, TimeStampedModel):
     # === PRECIO ===========================================================
 
     @api.onchange('lst_price')
+    def get_contextual_price(self):
+        """≙ ``get_contextual_price`` (``odoo19c: addons/product/models/
+        product_product.py:1167``)."""
+        return self._get_contextual_price()
+
+    def _get_contextual_price(self):
+        """≙ ``_get_contextual_price`` (``odoo19c: addons/product/models/
+        product_product.py:1170``)."""
+        # FIXME VFE this won't consider ptavs extra prices, since we rely on
+        # the template price
+        self.ensure_one()
+        return self.product_tmpl_id._get_contextual_price(self)
+
+    def _get_contextual_discount(self):
+        """≙ ``_get_contextual_discount`` (``odoo19c: addons/product/models/
+        product_product.py:1175``). ``_convert`` devuelve un ``Decimal``;
+        el descuento se calcula en ``float``, como la fuente."""
+        self.ensure_one()
+
+        pricelist = self.product_tmpl_id._get_contextual_pricelist()
+        if not pricelist:
+            # No pricelist = no discount
+            return 0.0
+
+        lst_price = float(self.currency_id._convert(
+            self.lst_price,
+            pricelist.currency_id,
+            self.env.company,
+            fields.Datetime.now(),
+            round=False
+        ))
+        if lst_price:
+            return (lst_price - self._get_contextual_price()) / lst_price
+        return 0.0
+
     def _get_attributes_extra_price(self):
         """≙ ``_get_attributes_extra_price`` (``odoo19c: addons/product/
         models/product_product.py:1096``)."""

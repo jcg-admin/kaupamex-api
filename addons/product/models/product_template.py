@@ -479,6 +479,26 @@ class ProductTemplate(models.BaseModel, ImageMixin, TimeStampedModel):
         """``uom_name`` — ``related='uom_id.name'`` en la referencia."""
         return getattr(self.uom_id, 'name', '')
 
+    def _get_contextual_price(self, product=None):
+        """≙ ``_get_contextual_price`` (``odoo19c: addons/product/models/
+        product_template.py:1537``): el precio de la tarifa del contexto."""
+        self.ensure_one()
+        pricelist = self._get_contextual_pricelist()
+        quantity = self.env.context.get('quantity', 1.0)
+        uom = self.env['uom.uom'].browse(self.env.context.get('uom'))
+        date = self.env.context.get('date')
+        return pricelist._get_product_price(product or self, quantity,
+                                            uom=uom, date=date)
+
+    def _get_contextual_pricelist(self):
+        """ Get the contextual pricelist — ≙ ``_get_contextual_pricelist``
+        (``odoo19c: addons/product/models/product_template.py:1545``).
+
+        This method is meant to be overriden in other standard modules.
+        """
+        return self.env['product.pricelist'].browse(
+            self.env.context.get('pricelist'))
+
     def _get_attributes_extra_price(self):
         """≙ ``_get_attributes_extra_price`` (``odoo19c: addons/product/
         models/product_template.py:732``)."""

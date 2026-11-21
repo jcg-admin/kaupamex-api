@@ -6647,13 +6647,19 @@ def _forward_get(self, instance, cls=None):
                 del fields_cache[self.field.cache_name]
     comodel = self.field.remote_field.model
     to_records = isinstance(comodel, type) and issubclass(comodel, BaseModel)
+    # ≙ ``Many2one.convert_to_record`` (``odoo19c: odoo/orm/
+    # fields_relational.py:354-358``): el corecord se construye en
+    # ``record.env``, así que hereda su contexto, su usuario y su ``su``.
+    # Una fila de Django sin ``BaseModel`` actúa en el ambiental.
+    record_env = (instance.env if isinstance(instance, BaseModel)
+                  else env())
     if ids is not None and not ids:
         # ≙ ``Field.__get__`` (``odoo19c: odoo/orm/fields.py:1659-1661``),
         # «null record -> return the null value for this field»: leído sobre
         # un recordset vacío, el valor nulo del campo, sin consultar la
         # base. Es el recordset vacío del comodelo, o ``None`` cuando el
         # comodelo es de Django y no tiene recordset.
-        return comodel._from_ids(env(), (), ()) if to_records else None
+        return comodel._from_ids(record_env, (), ()) if to_records else None
     if (ids and self.field.concrete
             and all(isinstance(id_, int) for id_ in ids)
             and self.field.attname not in instance.__dict__
@@ -6685,9 +6691,12 @@ def _forward_get(self, instance, cls=None):
         # ``None`` de Django, que es el contrato de sus consumidores.
         if (value is None and to_records
                 and isinstance(instance, BaseModel)):
-            return comodel._from_ids(env(), (), ())
+            return comodel._from_ids(record_env, (), ())
+        if (to_records and isinstance(instance, BaseModel)
+                and value is not None and value.env != record_env):
+            return value.with_env(record_env)
         return value
-    environment = env()
+    environment = record_env
     if not environment.su and hasattr(instance, '_has_field_access'):
         if not instance._has_field_access(self.field, 'read'):
             instance._check_field_access(self.field, 'read')
