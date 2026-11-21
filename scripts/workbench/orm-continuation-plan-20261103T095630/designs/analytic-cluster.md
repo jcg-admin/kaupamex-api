@@ -103,3 +103,34 @@ empresa explícita.
 El control de anulación de 1a retira el mixin de cada clase y exige que caiga
 `test_an_account_and_a_line_go_through_the_orm`, en
 `tests/unit/analytic/test_analytic_basemodel.py`.
+
+## 1b, primera unidad: `plan` de la cuenta pasa a `plan_id` (forma C)
+
+La fuente declara `plan_id = fields.Many2one('account.analytic.plan',
+required=True, index=True)` (`odoo19c: addons/analytic/models/analytic_account.py:38`)
+y su inverso `account_ids = fields.One2many('account.analytic.account',
+'plan_id')` (`odoo19c: addons/analytic/models/analytic_plan.py:58`). El puerto
+los declara `plan` y `related_name='accounts'`.
+
+Como en los precedentes de la forma C (`f61e2206`, `96e17d36`), la unidad es
+una FK:
+
+- `AccountAnalyticAccount.plan` se renombra `plan_id` con
+  `db_column='plan_id'`: la columna no cambia y la migración es un
+  `RenameField` sin SQL de datos. El inverso pasa a `account_ids`.
+- Lectores medidos por receptor (`git grep` de `.plan`, `plan=`, `plan__`,
+  `select_related('plan')` y `.accounts` sobre `addons/`, `src/` y `tests/`):
+  `analytic_account.py` (`Meta.ordering`, `root_plan` y `color`),
+  `analytic_distribution_model.py:124`, `analytic_mixin.py:331-354`,
+  `analytic_plan.py:226` (`account_count`), y los altas con `plan=` en
+  `tests/unit/analytic/` y `tests/unit/account/`.
+- La línea de `scripts/fk_naming_baseline.txt` de esta FK sale.
+
+El riesgo de la forma C es semántico, no de esquema: con `plan_id`
+declarado, `account.plan_id` deja de ser el entero y pasa a ser el registro.
+Se buscó `plan_id` leído como entero sobre una cuenta: el único uso es la
+cadena de `_order`, que nombra la columna. La red es la suite entera (F2).
+
+Prueba: `tests/unit/analytic/test_analytic_account_plan_id.py` —el símbolo,
+la columna, el inverso `account_ids` y `account_count` sobre él—, con las
+pruebas de `analytic`, `account` y `sale_timesheet` que crean cuentas.
