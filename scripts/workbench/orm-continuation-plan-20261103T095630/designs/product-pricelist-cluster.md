@@ -93,7 +93,7 @@ product_pricelist_item.py`):
 - `fixed_price`, `price_surcharge`, `price_min_margin` y `price_max_margin`
   pasan de `Monetary` a `Float`, como la fuente (`:117-153`).
 - `price_markup` almacenado con `_compute_price_markup` e
-  `_inverse_price_markup` (`:136-142`, `:262-269`).
+  `_inverse_price_markup` (`:136-142`, `:265-271`).
 - `name` con `_compute_name` (`:155-158`, `:184-196`).
 
 Queda para etapas posteriores, sin cambio de forma en esta: `clean` (lo
@@ -128,3 +128,44 @@ declararla `NOT NULL`) y `0060_pricelist_item_basemodel`.
 `classmethod`) y `_show_discount` recupera sus dos guardas
 (`if not self: return False` y `self.ensure_one()`), que con el ítem como
 `BaseModel` vuelven a poder dispararse.
+
+### Símbolos tocados en la etapa 1, con su prueba
+
+Además de los ya nombrados, cambian de forma: `_default_company_id` (el
+`default=lambda self: self.env.company` de `odoo19c:
+addons/product/models/product_pricelist.py:43-47`); los campos `Float`
+`fixed_price`, `percent_price`, `price_discount`, `price_round`,
+`price_surcharge`, `price_min_margin`, `price_max_margin` y la selección
+`compute_price` (`odoo19c: addons/product/models/product_pricelist_item.py:108-153`),
+con la cabecera `string`/`help`/`required` de la fuente; `product_uom_name`
+(`:87`); y `apply_sale_pricelist_item_extensions`, que cuelga
+`_is_discount_feature_enabled` sin `classmethod`
+(`odoo19c: addons/sale/models/product_pricelist_item.py:7-15`).
+`_readable_ids` sigue a `odoo19c: odoo/orm/models.py:5459`. Las migraciones
+`0059_pricelist_basemodel` y `0060_pricelist_item_basemodel` llevan el
+esquema a esos campos; la segunda termina con `ComputeStoredFields` para
+`company_id`, `currency_id` y `price_markup` (`odoo19c:
+odoo/orm/models.py:3220-3238`).
+
+Pruebas:
+
+- `tests/unit/product/test_product_pricelist_basemodel.py` — valores por
+  defecto de la tarifa, nombre para mostrar, copia con reglas y grupos de
+  países (`_readable_ids`), verificación de empresa en `write`, cabecera del
+  ítem, empresa y moneda calculadas, `_default_pricelist_id`, margen e
+  inverso, `_compute_name` y los `Float`.
+- `tests/unit/product/test_product_security.py` — empresa y moneda del ítem
+  con y sin tarifa (la verificación de empresa al final de `create`).
+- `tests/unit/product/test_product_pricelist_item_source_names.py` —
+  `item_ids` como `One2many`.
+- `tests/unit/orm/test_new_computed_columns_are_computed.py` — el
+  `ComputeStoredFields` de `0060_pricelist_item_basemodel`.
+- `tests/unit/orm/test_basemodel_reach.py` — `product` sale de las apps
+  pendientes de `BaseModel`.
+- `tests/integration/sale/test_sale_order_nonstored_fields.py` — la tarifa
+  global del pedido con su moneda obligatoria.
+
+`_show_discount` y `_is_discount_feature_enabled` no tienen consumidor ni
+prueba en el árbol (medido con `grep -rn` en `addons` y `tests`); su prueba
+es `tests/unit/sale/test_sale_pricelist_item_discount.py`, añadida en esta
+etapa.
