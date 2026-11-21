@@ -57,3 +57,49 @@ el puerto no tiene.
    `_compute_price_before_discount` y los `_get_contextual_*` de producto.
 5. Etiquetas, `onchange`, tarifas por país y cliente (con
    `property_product_pricelist` de `res.partner`), importación y acción.
+
+## Etapa 1 — anexo de implementación (2026-11-21)
+
+`product.pricelist` (`odoo19c: addons/product/models/product_pricelist.py`):
+
+- `ProductPricelist` pasa a `models.BaseModel` con `MailThread` y
+  `MailActivityMixin`, como la fuente (`:9-11`).
+- `_default_currency_id` (`:16`) y `default=lambda self: self.env.company`
+  (`:43-47`) como callables de módulo `_default_currency_id` y
+  `_default_company_id`.
+- `_base_domain_item_ids` (`:19`) y `_domain_item_ids` (`:25`).
+- `name` con `required=True` (`:28`; `translate` es TASK-GEN-0060), `currency_id` con su `default`,
+  `required=True` y `tracking=1` (`:36-41`), `company_id` con `tracking=5` (`:43`).
+- `item_ids` (`:58-64`) se declara como `One2many` con el dominio en lambda y
+  `copy=True`; la FK `pricelist_id` del ítem pasa a `related_name='+'`.
+- `_compute_display_name` (`:67`), `write` (`:72`, comprueba la empresa
+  de las reglas al cambiar la empresa) y `copy_data` (`:82`).
+
+`product.pricelist.item` (`odoo19c: addons/product/models/
+product_pricelist_item.py`):
+
+- `ProductPricelistItem` pasa a `models.BaseModel` con
+  `_check_company_auto = True` (`:12`); `check_company=True` en
+  `product_tmpl_id`, `product_id` y `base_pricelist_id` (`:80`, `:85`,
+  `:104`). Esto cierra la sucesora `pricelist-item-check-company-0397`.
+- `_default_pricelist_id` (`:14-17`) como callable de módulo.
+- `is_pricelist_required` con `_compute_is_pricelist_required` (`:28`,
+  `:167-168`).
+- `company_id` y `currency_id` almacenados con `_compute_company_id` y
+  `_compute_currency_id` (`:30-31`, `:170-182`); se retira el `save` que
+  los fijaba a mano.
+- `display_applied_on` (`:61-68`), `product_uom_name` y
+  `product_variant_count` como `related` (`:87-88`).
+- `fixed_price`, `price_surcharge`, `price_min_margin` y `price_max_margin`
+  pasan de `Monetary` a `Float`, como la fuente (`:117-153`).
+- `price_markup` almacenado con `_compute_price_markup` e
+  `_inverse_price_markup` (`:136-142`, `:262-269`).
+- `name` con `_compute_name` (`:155-158`, `:184-196`).
+
+Queda para etapas posteriores, sin cambio de forma en esta: `clean` (lo
+sustituyen las cinco `@api.constrains` de la etapa 2), `matches`/`compute`/
+`base_price_for` (etapa 3) y las etiquetas `price`/`rule_tip` con
+`_compute_price_label`/`_compute_rule_tip` (etapa 5).
+
+Migraciones: `0059_pricelist_basemodel` (rellena la moneda nula antes de
+declararla `NOT NULL`) y `0060_pricelist_item_basemodel`.
