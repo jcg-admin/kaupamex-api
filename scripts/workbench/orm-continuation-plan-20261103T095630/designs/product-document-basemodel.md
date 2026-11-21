@@ -38,7 +38,10 @@ leerlos iba al delegado, que en un registro nuevo es otro registro nuevo sin
 ellos. En la fuente el campo heredado es un `related` del propio modelo y su
 lectura devuelve la caché (`odoo19c: odoo/orm/models.py:6441-6460`). Ahora
 `src/orm/inherits.py` lee primero la caché propia cuando el registro es
-nuevo (`_cached_inherited_value`). Sin esto `_onchange_url` no podía ver la
+nuevo: `apply_inherits` instala el `__getattr__` de la delegación, que ahora
+consulta `_cached_inherited_value` antes de ir al delegado
+(`odoo19c: odoo/orm/models.py:6441-6460`). Su prueba es
+`test_an_invalid_url_is_refused_on_change`. Sin esto `_onchange_url` no podía ver la
 URL de un formulario.
 
 ## Premisas de prueba que cambian
