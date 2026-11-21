@@ -199,3 +199,4 @@ f2-93cd61a4	full-batch	93cd61a4	-	0	14353	0	0	8	-	14353 passed, 66 skipped, 8 xf
 f2-83ca66b3	full-batch	83ca66b3	-	0	14361	0	0	8	-	14361 passed, 66 skipped, 8 xfailed (baseline); covers a027495c and 83ca66b3	verde	product-variant-cluster-stage1-0122	f2-83ca66b3.log:a80ba4e188a4e66922ab5c6eba5dd822897b4471f77bd9bfa1f84e941b47890e
 f2-036426ae	full-batch	036426ae	-	0	14369	0	0	8	-	14369 passed, 66 skipped, 8 xfailed (baseline)	verde	ptav-complete-0122	f2-036426ae.log:eb65a394d4792c28ce666f95a6980cf648e5027ddb5795bd7b9dcb24f6a1f225
 f2-da64d4e6	full-batch	da64d4e6	-	0	14377	0	0	8	-	14377 passed, 66 skipped, 8 xfailed	verde	product-template-variant-generation-0122	f2-da64d4e6.log:20af72e7bf73e4e9f94a2d34becbbf7bc71de61c733d95db4c5d28ba198869ef
+f2-b122b9cc	full-batch	b122b9cc	-	0	14388	0	0	8	-	14388 passed, 66 skipped, 8 xfailed	verde	ptal-complete-0122	f2-b122b9cc.log:b5a0c2558ad7c74154ca08af80015725b45b39bda482c1c2b01dcb0de46db12c
