@@ -1474,6 +1474,13 @@
         "product-attribute-custom-value-basemodel-0397"
       ],
       "writtenAt": "2026-11-21T04:19:11Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-uom-basemodel-0397"
+      ],
+      "writtenAt": "2026-11-21T05:05:33Z"
     }
   ]
 }
