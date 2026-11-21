@@ -134,3 +134,29 @@ cadena de `_order`, que nombra la columna. La red es la suite entera (F2).
 Prueba: `tests/unit/analytic/test_analytic_account_plan_id.py` —el símbolo,
 la columna, el inverso `account_ids` y `account_count` sobre él—, con las
 pruebas de `analytic`, `account` y `sale_timesheet` que crean cuentas.
+
+### Adenda de la unidad `plan_id`: el orden por un comodelo de Django
+
+Medido al ejecutar la prueba: con `plan_id` declarado, la búsqueda ordena por
+`_order = 'plan_id, name asc'` (`odoo19c: addons/analytic/models/analytic_account.py:15`),
+y `_order_field_to_sql` desciende al `_order` del comodelo. `account.analytic.plan`
+sigue siendo un modelo de Django sin `_order`, y la búsqueda muere con
+`AttributeError`. En la fuente todo modelo tiene `_order`, con default `'id'`
+(`odoo19c: odoo/orm/models.py:434`); por eso `_order_field_to_sql`
+(`src/orm/models.py`) toma `'id'` cuando el comodelo de Django no declara el
+suyo. Prueba: `test_the_default_order_follows_the_plan_by_id`, con nombres
+de plan cuyo orden alfabético contradice el de `id`, en
+`tests/unit/analytic/test_analytic_account_plan_id.py`.
+
+**El plan escapó del programa de adopción.** El censo de
+`basemodel-adoption-0397` cuenta los modelos con `_name`, y el puerto de
+`account.analytic.plan` no declara ninguno de los atributos de clase de la
+fuente (`_name`, `_description`, `_parent_store`, `_rec_name`, `_order`,
+`odoo19c: addons/analytic/models/analytic_plan.py:14-18`). Declararlos no se
+puede en esta unidad: `_rec_name = 'complete_name'` exige que
+`complete_name` sea campo (es propiedad) y `_parent_store` exige el padre
+como `parent_id` (es `parent`). Se intentó y la carga de módulos falló con
+`Dependency field 'complete_name' not found`. Sucesor:
+`analytic-plan-basemodel-0397` —cabecera, `BaseModel`, `parent_id`,
+`complete_name`, `root_id` y los campos de la fuente del plan—, que precede
+a la etapa 2 (columnas por plan).
