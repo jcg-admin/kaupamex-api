@@ -591,7 +591,8 @@
   "product-attribute-custom-value-basemodel-0397",
   "product-uom-basemodel-0397",
   "product-category-basemodel-0397",
-  "product-price-currency-fields-0397"
+  "product-price-currency-fields-0397",
+  "product-combo-basemodel-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
