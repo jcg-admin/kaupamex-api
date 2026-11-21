@@ -353,3 +353,11 @@ sí va por el dominio del ORM, como en la fuente. `price` y `rule_tip` no se
 almacenan, así que no hay migración.
 
 Prueba: `tests/unit/product/test_product_pricelist_labels.py`.
+
+Los nueve `onchange` de 5a, uno por uno (`odoo19c: addons/product/models/
+product_pricelist_item.py`): `_onchange_base` (`:384`),
+`_onchange_base_pricelist_id` (`:392`), `_onchange_compute_price` (`:398`),
+`_onchange_display_applied_on` (`:416`), `_onchange_product_id` (`:434`),
+`_onchange_product_tmpl_id` (`:445`), `_onchange_rule_content` (`:452`),
+`_onchange_price_round` (`:469`) y `_onchange_validity_period` (`:474`).
+Prueba: `tests/unit/product/test_product_pricelist_labels.py`.
