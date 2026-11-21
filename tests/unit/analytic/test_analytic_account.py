@@ -23,7 +23,7 @@ class TestDisplayName:
 
     def test_name_only(self):
         acct = AccountAnalyticAccount(
-            name='Campaña Q3', plan=_plan(1, 'Marketing')
+            name='Campaña Q3', plan_id=_plan(1, 'Marketing')
         )
         assert str(acct) == 'Campaña Q3'
 
@@ -31,14 +31,14 @@ class TestDisplayName:
         acct = AccountAnalyticAccount(
             name='Campaña Q3',
             code='CMP-Q3',
-            plan=_plan(1, 'Marketing'),
+            plan_id=_plan(1, 'Marketing'),
         )
         assert str(acct) == '[CMP-Q3] Campaña Q3'
 
     def test_with_partner_appends_partner_name(self):
         acct = AccountAnalyticAccount(
             name='Campaña Q3',
-            plan=_plan(1, 'Marketing'),
+            plan_id=_plan(1, 'Marketing'),
             partner=ResPartner(pk=1, name='Acme Corp'),
         )
         assert str(acct) == 'Campaña Q3 - Acme Corp'
@@ -47,7 +47,7 @@ class TestDisplayName:
         acct = AccountAnalyticAccount(
             name='Campaña Q3',
             code='CMP-Q3',
-            plan=_plan(1, 'Marketing'),
+            plan_id=_plan(1, 'Marketing'),
             partner=ResPartner(pk=1, name='Acme Corp'),
         )
         assert str(acct) == '[CMP-Q3] Campaña Q3 - Acme Corp'
@@ -61,10 +61,10 @@ class TestRelatedProperties:
         root = _plan(1, 'Marketing', color=3)
         child = AccountAnalyticPlan(pk=2, name='Digital', color=5)
         child.parent = root
-        acct = AccountAnalyticAccount(name='Ads', plan=child)
+        acct = AccountAnalyticAccount(name='Ads', plan_id=child)
         assert acct.root_plan is root
 
     def test_color_delegates_to_plan_color(self):
         plan = _plan(1, 'Marketing', color=7)
-        acct = AccountAnalyticAccount(name='Ads', plan=plan)
+        acct = AccountAnalyticAccount(name='Ads', plan_id=plan)
         assert acct.color == 7

@@ -106,7 +106,6 @@ addons/account_update_tax_tags/models/account_move_line_tax_link.py::AccountMove
 addons/account_update_tax_tags/models/account_move_line_tax_link.py::AccountMoveLineTaxRepartition.repartition_line
 addons/analytic/models/analytic_account.py::AccountAnalyticAccount.company
 addons/analytic/models/analytic_account.py::AccountAnalyticAccount.partner
-addons/analytic/models/analytic_account.py::AccountAnalyticAccount.plan
 addons/analytic/models/analytic_distribution_model.py::AccountAnalyticDistributionModel.company
 addons/analytic/models/analytic_distribution_model.py::AccountAnalyticDistributionModel.partner
 addons/analytic/models/analytic_line.py::AccountAnalyticLine.company

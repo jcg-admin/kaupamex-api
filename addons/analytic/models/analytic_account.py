@@ -72,10 +72,11 @@ class AccountAnalyticAccount(
         help_text='Odoo code.',
     )
     active = fields.Boolean(default=True, verbose_name='Activo')
-    plan = fields.Many2one(
+    plan_id = fields.Many2one(
         'analytic.AccountAnalyticPlan',
         null=False, on_delete=models.PROTECT,
-        related_name='accounts',
+        db_column='plan_id',
+        related_name='account_ids',
         verbose_name='Plan',
         help_text=(
             'Odoo plan_id (requerido). on_delete=PROTECT: un plan con '
@@ -103,7 +104,7 @@ class AccountAnalyticAccount(
 
     class Meta:
         db_table = 'account_analytic_account'
-        ordering = ['plan', 'name']
+        ordering = ['plan_id', 'name']
         verbose_name = 'Cuenta analítica'
         verbose_name_plural = 'Cuentas analíticas'
 
@@ -141,12 +142,12 @@ class AccountAnalyticAccount(
         """
         Odoo ``root_plan_id`` (``related="plan_id.root_id", store=True``).
         """
-        return self.plan.root
+        return self.plan_id.root
 
     @property
     def color(self):
         """Odoo ``color`` (``related='plan_id.color'``)."""
-        return self.plan.color
+        return self.plan_id.color
 
     @property
     def currency(self):

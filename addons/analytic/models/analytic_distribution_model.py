@@ -121,7 +121,7 @@ class AccountAnalyticDistributionModel(AnalyticMixin, TimeStampedModel):
         applied_plans = set(vals.get('related_root_plan_ids') or ())
         for model in applicable_models:
             current_plans = {
-                account.plan.root.pk
+                account.plan_id.root.pk
                 for account in model.distribution_analytic_account_ids
             }
             if current_plans and not (applied_plans & current_plans):

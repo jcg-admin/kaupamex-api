@@ -4569,7 +4569,10 @@ class OrderMixin:
                 coorder = 'id'
                 sql_field = self._field_to_sql(alias, fname, query)
             else:
-                coorder = comodel._order
+                # ``_order`` por defecto de la fuente: ``'id'``
+                # (``odoo19c: odoo/orm/models.py:434``). Un comodelo de Django
+                # sin ``_order`` declarado ordena como lo haría allí.
+                coorder = getattr(comodel, '_order', 'id')
                 sql_field = self._field_to_sql(alias, field_name, query)
 
             if coorder == 'id':

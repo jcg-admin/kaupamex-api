@@ -35,7 +35,7 @@ def test_an_account_and_a_line_go_through_the_orm():
     company = ResCompany.objects.create(code='abm-1a', name='ABM')
     with sudo():
         [account] = env()['account.analytic.account'].create(
-            [{'name': 'ABM Cuenta', 'plan': plan.pk}])
+            [{'name': 'ABM Cuenta', 'plan_id': plan.pk}])
         [line] = env()['account.analytic.line'].create(
             [{'name': 'ABM Apunte', 'account': account.id, 'amount': 5,
               'company': company.pk}])

@@ -328,12 +328,12 @@ class AnalyticMixin(models.Model):
             account_ids = [int(aid) for aid in old_key.split(',') if aid]
             accounts = AccountAnalyticAccount.objects.filter(
                 pk__in=account_ids,
-            ).select_related('plan')
+            ).select_related('plan_id')
             remaining_key = tuple(
                 sorted(
                     account.pk
                     for account in accounts
-                    if account.plan.root.pk not in root_plan_ids_to_update
+                    if account.plan_id.root.pk not in root_plan_ids_to_update
                 )
             )
             if remaining_key:
@@ -346,12 +346,12 @@ class AnalyticMixin(models.Model):
             account_ids = [int(aid) for aid in new_key.split(',') if aid]
             accounts = AccountAnalyticAccount.objects.filter(
                 pk__in=account_ids,
-            ).select_related('plan')
+            ).select_related('plan_id')
             remaining_key = tuple(
                 sorted(
                     account.pk
                     for account in accounts
-                    if account.plan.root.pk in root_plan_ids_to_update
+                    if account.plan_id.root.pk in root_plan_ids_to_update
                 )
             )
             if remaining_key:

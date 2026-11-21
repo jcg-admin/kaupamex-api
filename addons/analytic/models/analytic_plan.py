@@ -44,7 +44,7 @@ Lo que NO se porta — **el sistema de columna dinámica por plan**
     ``account`` (ver ``analytic_line.py``) en vez de una columna por plan
     raíz. Un ``AccountAnalyticAccount`` sigue perteneciendo a un
     ``AccountAnalyticPlan`` (jerárquico), pero la línea no distingue "en qué
-    plan" están sus cuentas más que a través de ``account.plan``.
+    plan" están sus cuentas más que a través de ``account.plan_id``.
 
     También quedan fuera ``action_view_analytical_accounts`` /
     ``action_view_children_plans`` (acciones de ventana del cliente web de
@@ -223,7 +223,7 @@ class AccountAnalyticPlan(models.RecordLoaderMixin, models.Model):
     def account_count(self):
         """Cuentas directas de este plan (Odoo ``account_count``, no
         ``all_account_count`` recursivo — ver docstring del módulo)."""
-        return self.accounts.count()
+        return self.account_ids.count()
 
     @property
     def children_count(self):

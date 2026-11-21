@@ -79,7 +79,7 @@ def analytic_account():
     nueva."""
     plan = AccountAnalyticPlan.objects.create(name='Plan')
     return AccountAnalyticAccount.objects.create(
-        name='Cuenta analitica', plan=plan
+        name='Cuenta analitica', plan_id=plan
     )
 
 

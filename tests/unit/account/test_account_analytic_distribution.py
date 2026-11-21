@@ -64,12 +64,12 @@ def plan():
 
 @pytest.fixture
 def cost_center(plan):
-    return AccountAnalyticAccount.objects.create(name='Centro A', plan=plan)
+    return AccountAnalyticAccount.objects.create(name='Centro A', plan_id=plan)
 
 
 @pytest.fixture
 def other_center(plan):
-    return AccountAnalyticAccount.objects.create(name='Centro B', plan=plan)
+    return AccountAnalyticAccount.objects.create(name='Centro B', plan_id=plan)
 
 
 def make_line(company, journal, account, move_type, state, distribution):
@@ -159,7 +159,7 @@ class TestTheSearchOverTheJson:
         casaria con la 12. Este caso cae bajo esa implementacion y pasa bajo
         la de la fuente.
         """
-        one = AccountAnalyticAccount.objects.create(name='Uno', plan=plan)
+        one = AccountAnalyticAccount.objects.create(name='Uno', plan_id=plan)
         # La clave se CONSTRUYE para que la contencion este garantizada:
         # ``f'{pk}{pk}'`` contiene el id buscado como subcadena y, como
         # ELEMENTO del arreglo, es un numero distinto. Dejarla al azar de los

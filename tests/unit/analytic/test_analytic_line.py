@@ -20,7 +20,7 @@ from addons.analytic.models import (
 
 def _account(pk=1, name='Cuenta', plan_name='Plan'):
     plan = AccountAnalyticPlan(pk=pk, name=plan_name)
-    return AccountAnalyticAccount(pk=pk, name=name, plan=plan)
+    return AccountAnalyticAccount(pk=pk, name=name, plan_id=plan)
 
 
 class TestAccountRequired:
