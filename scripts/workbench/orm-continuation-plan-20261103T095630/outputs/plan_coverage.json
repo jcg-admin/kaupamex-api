@@ -602,7 +602,8 @@
   "product-pricelist-stage5a-labels-0397",
   "helpdesk-support-ticket-basemodel-0397",
   "analytic-basemodel-0397",
-  "analytic-account-plan-id-0397"
+  "analytic-account-plan-id-0397",
+  "analytic-account-company-id-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
