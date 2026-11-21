@@ -78,12 +78,27 @@ class TestWhatTheBuyerWroteIsStored:
 class TestTheNameHasNoColumn:
 
     def test_the_name_prefixes_the_attribute_value(self, attribute_value):
-        """≙ ``_compute_name`` (``odoo19c: :20-25``)."""
+        """≙ ``_compute_name`` (``odoo19c: :19-25``): el ``display_name``
+        del valor, que lleva delante el atributo."""
         custom = ProductAttributeCustomValue.objects.create(
             custom_product_template_attribute_value_id=attribute_value,
             custom_value='  Para Yemayá  ',
         )
-        assert custom.name == f'{attribute_value}: Para Yemayá'
+        assert custom.name == (
+            f'{attribute_value.display_name}: Para Yemayá')
+        assert custom.name.startswith(
+            f'{attribute_value.attribute_id.name}: ')
+
+    def test_the_name_is_computed_for_every_record(self, attribute_value):
+        """El cómputo recorre el recordset, como la fuente."""
+        first, second = (ProductAttributeCustomValue.objects.create(
+            custom_product_template_attribute_value_id=attribute_value,
+            custom_value=text) for text in ('Uno', 'Dos'))
+        records = first | second
+        records._compute_name()
+        assert [record.name for record in records] == [
+            f'{attribute_value.display_name}: Uno',
+            f'{attribute_value.display_name}: Dos']
 
     def test_the_name_takes_no_column(self):
         """Es un campo del modelo, como en ``_fields`` de la fuente, pero sin

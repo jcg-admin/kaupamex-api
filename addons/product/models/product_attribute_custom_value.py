@@ -49,7 +49,7 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class ProductAttributeCustomValue(TimeStampedModel):
+class ProductAttributeCustomValue(models.BaseModel, TimeStampedModel):
     """``product.attribute.custom.value`` — el texto libre de una opción."""
 
     _name = 'product.attribute.custom.value'
@@ -60,7 +60,7 @@ class ProductAttributeCustomValue(TimeStampedModel):
         'product.ProductTemplateAttributeValue',
         null=False, on_delete=models.PROTECT,
         db_column='custom_product_template_attribute_value_id',
-        related_name='custom_values',
+        related_name='+',
         verbose_name='Valor del atributo',
         help_text=(
             'Odoo custom_product_template_attribute_value_id. El valor '
@@ -90,20 +90,15 @@ class ProductAttributeCustomValue(TimeStampedModel):
     @api.depends('custom_product_template_attribute_value_id.name',
                  'custom_value')
     def _compute_name(self):
-        """≙ ``_compute_name`` (``odoo19c: :20-25``).
-
-        Cuerpo fiel: el nombre es el texto que el comprador escribió, y si el
-        valor de atributo tiene nombre para mostrar, se antepone separado por
-        dos puntos. La fuente lee ``display_name``; aquí el equivalente es el
-        ``__str__`` del valor, que es lo que ese ``display_name`` produce.
-        La dependencia es la de la fuente (``:19``).
-        """
-        name = (self.custom_value or '').strip()
-        value = self.custom_product_template_attribute_value_id
-        if value is not None and str(value):
-            name = f'{value}: {name}'
-        self.name = name
-        return name
+        """≙ ``_compute_name`` (``odoo19c: :19-25``): el texto del
+        comprador, precedido del nombre para mostrar del valor de atributo."""
+        for record in self:
+            name = (record.custom_value or '').strip()
+            if record.custom_product_template_attribute_value_id.display_name:
+                name = "%s: %s" % (
+                    record.custom_product_template_attribute_value_id
+                    .display_name, name)
+            record.name = name
 
     def __str__(self) -> str:
         return self.name
