@@ -180,8 +180,9 @@ etapa.
 - `write` (`:510-522`): la misma limpieza cuando se escribe `applied_on`.
 - Las cinco restricciones como `@api.constrains`, verbatim:
   `_check_base_pricelist_id` (`:316-319`), `_check_pricelist_recursion`
-  (`:321-352`, búsqueda en profundidad con `_read_group` sobre
-  `base_pricelist_id`), `_check_date_range` (`:354-364`, fin estrictamente
+  (`:321-352`, búsqueda en profundidad con su función interna `dfs_path`
+  (`odoo19c: addons/product/models/product_pricelist_item.py:323-343`) y
+  `_read_group` sobre `base_pricelist_id`), `_check_date_range` (`:354-364`, fin estrictamente
   posterior al inicio), `_check_margin` (`:366-369`) y
   `_check_product_consistency` (`:371-381`).
 - Se retira `clean`: sus tres comprobaciones son las de
