@@ -594,7 +594,8 @@
   "product-price-currency-fields-0397",
   "product-combo-basemodel-0397",
   "product-document-basemodel-0397",
-  "product-supplierinfo-basemodel-0397"
+  "product-supplierinfo-basemodel-0397",
+  "product-pricelist-stage1-basemodel-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
