@@ -92,7 +92,12 @@ Las citas se pasan a la línea `def` antes de commitear.
    la alcanza por `_inherits`, y `_first_field_name` sólo miraba campos
    propios. Ahora acepta también un nombre delegado (el
    `'company_id' in self` de la fuente cuenta los campos `inherited`), y
-   `_field_attname` lo nombra tal cual en el dominio. Se retira la propiedad
+   `_field_attname` lo nombra tal cual en el dominio. Lo consumen
+   `CheckCompanyMixin._check_company_domain`
+   (`odoo19c: odoo/orm/models.py:3997-4007`) y
+   `check_company_domain_parent_of` (`odoo19c: odoo/orm/models.py:169-185`),
+   que construyen el dominio con ese nombre; su prueba es
+   `test_an_option_of_another_company_is_refused`. Se retira la propiedad
    `ProductProduct.company_id`, que ocultaba la delegación igual que
    `list_price`.
 
