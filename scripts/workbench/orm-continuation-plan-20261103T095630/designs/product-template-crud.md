@@ -97,3 +97,19 @@ la copia del alta, el vaciado de `combo_ids` y la rama de `uom_id` tiran
 sus casos; devolver el lado inverso a Django tira el de `combo_ids` y los
 dos del ORM. Subconjunto derivado (product, sale, purchase, stock,
 test_orm, orm): 5039 passed, 39 skipped, 8 xfailed.
+
+Símbolos por nombre, todos en `addons/product/models/product_template.py`
+y probados en `tests/unit/product/test_template_crud.py`:
+`ProductTemplate._compute_standard_price` (`odoo19c:
+addons/product/models/product_template.py:309-314`),
+`ProductTemplate._set_standard_price` (`:316-317`),
+`ProductTemplate._search_standard_price` (`:319-320`),
+`ProductTemplate._compute_volume` (`:322-324`),
+`ProductTemplate._set_volume` (`:326-327`),
+`ProductTemplate._compute_weight` (`:329-331`),
+`ProductTemplate._set_weight` (`:333-334`),
+`ProductTemplate._compute_barcode` (`:339-341`),
+`ProductTemplate._search_barcode` (`:343-347`),
+`ProductTemplate._set_barcode` (`:349-350`),
+`ProductTemplate._compute_default_code` (`:436-438`) y
+`ProductTemplate._set_default_code` (`:440-441`).
