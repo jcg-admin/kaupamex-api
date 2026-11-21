@@ -1502,6 +1502,13 @@
         "product-combo-basemodel-0397"
       ],
       "writtenAt": "2026-11-21T09:13:55Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-document-basemodel-0397"
+      ],
+      "writtenAt": "2026-11-21T10:02:48Z"
     }
   ]
 }
