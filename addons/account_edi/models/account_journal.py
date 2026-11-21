@@ -24,12 +24,11 @@ Cinco símbolos de la referencia — los 5 con contraparte real
      - propiedad no-almacenada (``compute`` sin ``store=True`` en la
        referencia — DEC-SALE-01, mismo criterio que ``account_payment``)
    * - ``write`` (override)
-     - portado (mecanismo distinto)
-     - la referencia intercepta ``vals.get('edi_format_ids')`` dentro de
-       ``write()``; aquí el M2M se escribe fuera de ``save()``
-       (``journal.edi_format_ids.set(...)``/``.remove(...)``), así que el
-       punto de intercepción real es la señal ``m2m_changed`` sobre el
-       ``through`` del M2M — ver ``_guard_edi_format_removal`` abajo
+     - portado
+     - ``write(self, previous, vals)`` instalado con ``extend_model(...,
+       overrides=)``: bloquea si quedan documentos pendientes de un formato
+       con web-service y borra los pendientes de los demás
+       (``odoo19c: :25-41``)
    * - ``_compute_compatible_edi_ids``
      - portado
      - función de módulo ``compute_compatible_edi_ids(journal)``
@@ -39,38 +38,30 @@ Cinco símbolos de la referencia — los 5 con contraparte real
        ``ARRAY_AGG``) se sustituye por un ``.values_list()`` agrupado en
        Python — ver su docstring
 
-``write`` → ``m2m_changed``, no ``save()``
-================================================
+``write``, donde lo pone la fuente
+==================================
 
-Django escribe un M2M **fuera** del ciclo ``save()``: ``journal.
-edi_format_ids.set([...])`` opera directo sobre la tabla ``through``, sin
-pasar por ``AccountJournal.save()``. Colgar un guard en ``save()`` (como
-``chain_method`` haría con cualquier otro método) no vería nunca ese cambio.
-El punto de intercepción correcto — y el único que Django ofrece para esto —
-es la señal ``django.db.models.signals.m2m_changed`` sobre
-``AccountEdiFormat.journals.through``, en ``action='pre_remove'``: dispara
-**antes** de que la fila del ``through`` se borre, exactamente cuando la
-referencia comprueba antes de dejar completar el ``write()``. Mismo patrón
-que ``account_payment/models/account_journal.py::_unlink_except_linked_to_
-payment_provider`` ya usa para ``pre_delete`` — aquí el evento es de M2M, no
-de fila, pero la forma (``@receiver`` + ``raise`` bloquea) es idéntica.
+La versión anterior interceptaba la desactivación con un receptor
+``m2m_changed`` en ``pre_remove``, porque el M2M se escribía con
+``journal.edi_format_ids.set(...)``, fuera de ``save()``. Esa premisa caducó:
+``AccountJournal`` es ``BaseModel`` y este mismo módulo escribe el M2M con
+``write({'edi_format_ids': [Command.set(...)]})``; ninguna parte del árbol
+llama al manager. El receptor, además, sólo bloqueaba: los documentos
+pendientes de un formato sin web-service sobrevivían, y la fuente los borra
+(``:39-41``). Ver ``designs/account-edi-journal-write.md``.
 
-**Divergencia declarada**: la señal cablea sobre CUALQUIER escritura del M2M
-—no distingue "el usuario intentó desactivar por la UI" de "un script
-administrativo reasigna todo"—, que es exactamente lo que el ``write()`` de
-la referencia tampoco distingue (intercepta el diccionario completo de
-``vals``, no una intención). Mismo alcance, mecanismo distinto.
+La escritura y su verificación comparten la transacción del llamador, como en
+la fuente: el ``UserError`` la deshace allí.
 """
 
 import fields
 import models
-from django.db.models.signals import m2m_changed
-from django.dispatch import receiver
 
 from addons.account.models.account_journal import AccountJournal
 from addons.account_edi.models.account_edi_document import AccountEdiDocument
 from addons.account_edi.models.account_edi_format import AccountEdiFormat
 from exceptions import UserError
+from orm.model_classes import extend_model
 from tools.translate import _
 
 
@@ -124,66 +115,42 @@ def compute_edi_format_ids(journal):
     journal.write({'edi_format_ids': [fields.Command.set(sorted(ids))]})
 
 
-@receiver(
-    m2m_changed,
-    sender=AccountEdiFormat.journals.through,
-    dispatch_uid='account_edi.guard_edi_format_removal',
-)
-def _guard_edi_format_removal(
-    sender, instance, action, reverse, pk_set, **kwargs
-):
+def write(self, previous, vals):
     """≙ ``write`` (``odoo19c: account_edi/models/account_journal.py:25-41``).
 
-    No se borra un ``account.edi.format`` de ``journal.edi_format_ids`` si
-    quedan documentos ``to_send``/``to_cancel`` de un formato que necesita
-    web-service — sin importar de qué lado se disparó el cambio
-    (``journal.edi_format_ids.remove(f)`` o ``edi_format.journals.remove(j)``,
-    mismo ``through``, mismo receptor, ``reverse`` distingue el lado).
+    ``previous`` es el ``write`` de ``account`` (``super().write(vals)`` de la
+    fuente). Si ``vals`` no toca ``edi_format_ids`` sólo delega.
     """
-    if action != 'pre_remove':
-        return
-
-    if reverse:
-        # instance = AccountEdiFormat; pk_set = ids de AccountJournal.
-        journal_ids = pk_set
-        edi_format_ids = [instance.pk]
-    else:
-        # instance = AccountJournal; pk_set = ids de AccountEdiFormat.
-        journal_ids = [instance.pk]
-        edi_format_ids = pk_set
-
-    documents = AccountEdiDocument.objects.filter(
-        move_id__journal_id__in=journal_ids,
-        edi_format_id__in=edi_format_ids,
-        state__in=('to_cancel', 'to_send'),
-    ).select_related('edi_format_id')
-    blocking = [d for d in documents if d.edi_format_id._needs_web_services()]
-    if blocking:
-        names = ', '.join(
-            sorted(
-                {
-                    d.edi_format_id.name or d.edi_format_id.code
-                    for d in blocking
-                }
-            )
-        )
+    if not vals.get('edi_format_ids'):
+        return previous(vals)
+    old_edi_format_ids = self.edi_format_ids
+    res = previous(vals)
+    diff_edi_format_ids = old_edi_format_ids - self.edi_format_ids
+    documents = self.env['account.edi.document'].search([
+        ('move_id.journal_id', 'in', self.ids),
+        ('edi_format_id', 'in', diff_edi_format_ids.ids),
+        ('state', 'in', ('to_cancel', 'to_send')),
+    ])
+    if documents.filtered(lambda d: d.edi_format_id._needs_web_services()):
         raise UserError(
             _(
                 'Cannot deactivate (%s) on this journal because not all '
                 'documents are synchronized'
             )
-            % names
+            % ', '.join(documents.edi_format_id.mapped('display_name'))
         )
+    if documents:
+        documents.unlink()
+    return res
 
 
 def apply_account_edi_extensions():
     """≙ ``_inherit = 'account.journal'`` de ``account_edi``.
 
     ``compatible_edi_ids`` se cuelga como propiedad no-almacenada
-    (DEC-SALE-01); el guard de ``write`` se conecta al importar este módulo
-    (``@receiver``), no aquí — igual que ``account_payment/models/
-    account_journal.py``.
+    (DEC-SALE-01); ``write`` extiende el de ``account`` por ``overrides=``.
     """
+    extend_model('account.journal', overrides={'write': write})
     if not hasattr(AccountJournal, 'compatible_edi_ids'):
         setattr(
             AccountJournal,
