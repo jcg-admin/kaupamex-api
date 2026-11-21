@@ -629,24 +629,26 @@ class CrmLead(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
     # ------------------------------------------------------------
     # COMPUTES / ONCHANGES / CONSTRAINTS
     #
-    # Divergencia de forma, declarada una vez para todo el bloque: allá
-    # ``self`` es un *recordset* y cada cómputo itera ``for lead in self``;
-    # aquí una instancia **es** un registro, así que el cuerpo del bucle se
-    # aplica a ``self``. Los que sí necesitan un conjunto (fusión, scoring,
-    # ``_handle_won_lost``) son ``classmethod`` y reciben el queryset
-    # explícito. ------------------------------------------------------------
+    # Como en la fuente, ``self`` es un *recordset* y los cómputos, las
+    # restricciones, los onchanges y los inversos que el ORM despacha iteran
+    # ``for lead in self``. Los que respaldan una propiedad de un solo
+    # registro devuelven su valor y no los invoca el ORM. Los que necesitan
+    # un conjunto (fusión, scoring, ``_handle_won_lost``) son
+    # ``classmethod`` y reciben el queryset explícito. ---------------------
 
     @api.constrains('probability', 'stage_id')
     def _check_won_validity(self):
         """≙ ``_check_won_validity`` (:262-266)."""
-        if self.stage_id and self.stage_id.is_won and self.probability != 100:
-            raise ValidationError(
-                _(
-                    (
-                        'A lead in a Won stage cannot be lost. Move it to '
-                        'another stage first.')
+        for lead in self:
+            if (lead.stage_id and lead.stage_id.is_won
+                    and lead.probability != 100):
+                raise ValidationError(
+                    _(
+                        (
+                            'A lead in a Won stage cannot be lost. Move it to '
+                            'another stage first.')
+                    )
                 )
-            )
 
     @api.depends('company_id')
     def _compute_user_company_ids(self):
@@ -700,22 +702,24 @@ class CrmLead(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
         Al cambiar el vendedor se recalcula el equipo, salvo que el actual ya
         lo tenga como miembro o como líder.
         """
-        if not self.user_id_id:
-            return
-        user = self.user_id
-        if self.team_id and (
-            self.team_id.member_ids.filter(pk=user.pk).exists()
-            or self.team_id.user_id_id == user.pk
-        ):
-            return
-        field_name = (
-            'use_leads' if self.type == self.TYPE_LEAD else 'use_opportunities'
-        )
-        team = CrmTeam._get_default_team_id(
-            user_id=user.pk, domain={field_name: True}
-        )
-        if team is not None and self.team_id_id != team.pk:
-            self.team_id = team
+        for lead in self:
+            if not lead.user_id_id:
+                continue
+            user = lead.user_id
+            if lead.team_id and (
+                lead.team_id.member_ids.filter(pk=user.pk).exists()
+                or lead.team_id.user_id_id == user.pk
+            ):
+                continue
+            field_name = (
+                'use_leads' if lead.type == lead.TYPE_LEAD
+                else 'use_opportunities'
+            )
+            team = CrmTeam._get_default_team_id(
+                user_id=user.pk, domain={field_name: True}
+            )
+            if team is not None and lead.team_id_id != team.pk:
+                lead.team_id = team
 
     @api.depends('user_id', 'team_id', 'partner_id')
     def _compute_company_id(self):
@@ -735,42 +739,43 @@ class CrmLead(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
         lo que la fuente hace cuando el cliente no tiene empresa. Ver
         :ref:`h-api-1034`.
         """
-        proposal = self.company_id
+        for lead in self:
+            proposal = lead.company_id
 
-        if proposal:
-            # la empresa no está entre las del responsable
-            if self.user_id_id and not self.user_id.company_ids.filter(
-                    pk=proposal.pk).exists():
-                proposal = None
-            # incoherente con la del equipo
-            elif self.team_id and self.team_id.company_id_id \
-                    and proposal.pk != self.team_id.company_id_id:
-                proposal = None
-            # equipo sin empresa y sin responsable
-            elif (
-                self.team_id
-                and not self.team_id.company_id_id
-                and not self.user_id_id
-            ):
-                proposal = None
-            # sin equipo y sin responsable: se vacía y que la asignación
-            # decida, salvo que el cliente traiga la suya
-            elif not self.team_id_id and not self.user_id_id and (
-                    not self.partner_id_id
-                    or getattr(self._partner_company(), 'pk', None)
-                    != proposal.pk):
-                proposal = None
+            if proposal:
+                # la empresa no está entre las del responsable
+                if lead.user_id_id and not lead.user_id.company_ids.filter(
+                        pk=proposal.pk).exists():
+                    proposal = None
+                # incoherente con la del equipo
+                elif lead.team_id and lead.team_id.company_id_id \
+                        and proposal.pk != lead.team_id.company_id_id:
+                    proposal = None
+                # equipo sin empresa y sin responsable
+                elif (
+                    lead.team_id
+                    and not lead.team_id.company_id_id
+                    and not lead.user_id_id
+                ):
+                    proposal = None
+                # sin equipo y sin responsable: se vacía y que la asignación
+                # decida, salvo que el cliente traiga la suya
+                elif not lead.team_id_id and not lead.user_id_id and (
+                        not lead.partner_id_id
+                        or getattr(lead._partner_company(), 'pk', None)
+                        != proposal.pk):
+                    proposal = None
 
-        # propuesta nueva por orden: equipo > responsable > cliente
-        if not proposal:
-            if self.team_id and self.team_id.company_id_id:
-                self.company_id = self.team_id.company_id
-            elif self.user_id_id:
-                self.company_id = self.user_id.company_id
-            elif self.partner_id_id:
-                self.company_id = self._partner_company()
-            else:
-                self.company_id = None
+            # propuesta nueva por orden: equipo > responsable > cliente
+            if not proposal:
+                if lead.team_id and lead.team_id.company_id_id:
+                    lead.company_id = lead.team_id.company_id
+                elif lead.user_id_id:
+                    lead.company_id = lead.user_id.company_id
+                elif lead.partner_id_id:
+                    lead.company_id = lead._partner_company()
+                else:
+                    lead.company_id = None
 
     def _partner_company(self):
         """La empresa del cliente, o ``None`` mientras #110 no la porte.
@@ -786,25 +791,28 @@ class CrmLead(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
     @api.depends('team_id', 'type')
     def _compute_stage_id(self):
         """≙ ``_compute_stage_id`` (:353-357)."""
-        if not self.stage_id_id or (
-            self.team_id_id
-            and self.stage_id.team_ids
-            and self.team_id_id not in self.stage_id.team_ids.ids
-        ):
-            stage = self._stage_find(domain={'fold': False})
-            self.stage_id = stage
+        for lead in self:
+            if not lead.stage_id_id or (
+                lead.team_id_id
+                and lead.stage_id.team_ids
+                and lead.team_id_id not in lead.stage_id.team_ids.ids
+            ):
+                stage = lead._stage_find(domain={'fold': False})
+                lead.stage_id = stage
 
     @api.depends('user_id')
     def _compute_date_open(self):
         """≙ ``_compute_date_open`` (:359-363)."""
-        if not self.date_open and self.user_id_id:
-            self.date_open = record_transaction_now(self)
+        for lead in self:
+            if not lead.date_open and lead.user_id_id:
+                lead.date_open = record_transaction_now(lead)
 
     @api.depends('stage_id')
     def _compute_date_last_stage_update(self):
         """≙ ``_compute_date_last_stage_update`` (:365-369)."""
-        if not self.date_last_stage_update:
-            self.date_last_stage_update = record_transaction_now(self)
+        for lead in self:
+            if not lead.date_last_stage_update:
+                lead.date_last_stage_update = record_transaction_now(lead)
 
     #: ``create_date`` de la fuente es ``create_date`` aqui — la columna de
     #: auditoria de ``TimeStampedModel``. El decorador la nombraba con el
@@ -814,21 +822,23 @@ class CrmLead(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
     def _compute_day_open(self):
         """≙ ``_compute_day_open`` (:371-380) — días entre alta y
         asignación."""
-        if not (self.date_open and self.create_date):
-            self.day_open = None
-            return
-        date_create = self.create_date.replace(microsecond=0)
-        self.day_open = abs((self.date_open - date_create).days)
+        for lead in self:
+            if not (lead.date_open and lead.create_date):
+                lead.day_open = None
+                continue
+            date_create = lead.create_date.replace(microsecond=0)
+            lead.day_open = abs((lead.date_open - date_create).days)
 
     #: Misma correccion que en ``_compute_day_open``: ``create_date`` no
     #: existe aqui; la columna es ``create_date``.
     @api.depends('create_date', 'date_closed')
     def _compute_day_close(self):
         """≙ ``_compute_day_close`` (:382-390) — días entre alta y cierre."""
-        if not (self.date_closed and self.create_date):
-            self.day_close = None
-            return
-        self.day_close = abs((self.date_closed - self.create_date).days)
+        for lead in self:
+            if not (lead.date_closed and lead.create_date):
+                lead.day_close = None
+                continue
+            lead.day_close = abs((lead.date_closed - lead.create_date).days)
 
     @classmethod
     def _get_rotting_depends_fields(cls):
@@ -849,8 +859,9 @@ class CrmLead(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
     @api.depends('partner_id')
     def _compute_name(self):
         """≙ ``_compute_name`` (:402-406)."""
-        if not self.name and self.partner_id_id and self.partner_id.name:
-            self.name = _("%s's opportunity") % self.partner_id.name
+        for lead in self:
+            if not lead.name and lead.partner_id_id and lead.partner_id.name:
+                lead.name = _("%s's opportunity") % lead.partner_id.name
 
     @api.depends('partner_id', 'partner_name')
     def _compute_commercial_partner_id(self):
@@ -892,62 +903,67 @@ class CrmLead(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
         Cambiar la entidad comercial desliga al contacto para que el usuario no
         arrastre correo y teléfono del anterior.
         """
-        commercial = self.commercial_partner_id
-        of_the_partner = (
-            self.partner_id.commercial_partner_id
-            if self.partner_id_id
-            else None
-        )
-        if self.partner_id_id and commercial and \
-                commercial.pk != (of_the_partner.pk if of_the_partner
-                                  else None):
-            self.partner_id = None
-            self.email_from = ''
-            self.phone = ''
-        if not self.name and commercial:
-            self.name = _("%s's opportunity") % commercial.name
+        for lead in self:
+            commercial = lead.commercial_partner_id
+            of_the_partner = (
+                lead.partner_id.commercial_partner_id
+                if lead.partner_id_id
+                else None
+            )
+            if lead.partner_id_id and commercial and \
+                    commercial.pk != (of_the_partner.pk if of_the_partner
+                                      else None):
+                lead.partner_id = None
+                lead.email_from = ''
+                lead.phone = ''
+            if not lead.name and commercial:
+                lead.name = _("%s's opportunity") % commercial.name
 
     @api.depends('partner_id')
     def _compute_contact_name(self):
         """≙ ``_compute_contact_name`` (:440-446)."""
-        if not self.partner_id_id:
-            self.contact_name = ''
-            return
-        for key, value in self._prepare_contact_name_from_partner(
-            self.partner_id
-        ).items():
-            setattr(self, key, value)
+        for lead in self:
+            if not lead.partner_id_id:
+                lead.contact_name = ''
+                continue
+            for key, value in lead._prepare_contact_name_from_partner(
+                lead.partner_id
+            ).items():
+                setattr(lead, key, value)
 
     @api.depends('partner_id')
     def _compute_partner_name(self):
         """≙ ``_compute_partner_name`` (:448-454)."""
-        if not self.partner_id_id:
-            self.partner_name = ''
-            return
-        for key, value in self._prepare_partner_name_from_partner(
-            self.partner_id
-        ).items():
-            setattr(self, key, value)
+        for lead in self:
+            if not lead.partner_id_id:
+                lead.partner_name = ''
+                continue
+            for key, value in lead._prepare_partner_name_from_partner(
+                lead.partner_id
+            ).items():
+                setattr(lead, key, value)
 
     @api.depends('partner_id')
     def _compute_function(self):
         """≙ ``_compute_function`` (:456-461)."""
-        if not self.function or (
-            self.partner_id_id and self.partner_id.function
-        ):
-            self.function = (
-                self.partner_id.function if self.partner_id_id else ''
-            ) or ''
+        for lead in self:
+            if not lead.function or (
+                lead.partner_id_id and lead.partner_id.function
+            ):
+                lead.function = (
+                    lead.partner_id.function if lead.partner_id_id else ''
+                ) or ''
 
     @api.depends('partner_id')
     def _compute_website(self):
         """≙ ``_compute_website`` (:463-468)."""
-        if not self.website or (
-            self.partner_id_id and self.partner_id.website
-        ):
-            self.website = (
-                self.partner_id.website if self.partner_id_id else ''
-            ) or ''
+        for lead in self:
+            if not lead.website or (
+                lead.partner_id_id and lead.partner_id.website
+            ):
+                lead.website = (
+                    lead.partner_id.website if lead.partner_id_id else ''
+                ) or ''
 
     @api.depends('partner_id')
     def _compute_lang_id(self):
@@ -955,12 +971,13 @@ class CrmLead(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
 
         El idioma se fuerza al del cliente, borrando cualquier valor previo.
         """
-        if not self.partner_id_id:
-            return
-        code = self.partner_id.lang
-        self.lang_id = (
-            ResLang.objects.filter(code=code).first() if code else None
-        )
+        for lead in self:
+            if not lead.partner_id_id:
+                continue
+            code = lead.partner_id.lang
+            lead.lang_id = (
+                ResLang.objects.filter(code=code).first() if code else None
+            )
 
     @api.depends('lang_id')
     def _compute_lang_active_count(self):
@@ -1001,28 +1018,31 @@ class CrmLead(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
     @api.depends('partner_id')
     def _compute_partner_address_values(self):
         """≙ ``_compute_partner_address_values`` (:490-494)."""
-        if not self.partner_id_id:
-            return
-        for key, value in self._prepare_address_values_from_partner(
-            self.partner_id
-        ).items():
-            setattr(self, key, value)
+        for lead in self:
+            if not lead.partner_id_id:
+                continue
+            for key, value in lead._prepare_address_values_from_partner(
+                lead.partner_id
+            ).items():
+                setattr(lead, key, value)
 
     @api.depends('partner_id.email')
     def _compute_email_from(self):
         """≙ ``_compute_email_from`` (:496-500)."""
-        if (
-            self.partner_id_id
-            and self.partner_id.email
-            and self._get_partner_email_update()
-        ):
-            self.email_from = self.partner_id.email
+        for lead in self:
+            if (
+                lead.partner_id_id
+                and lead.partner_id.email
+                and lead._get_partner_email_update()
+            ):
+                lead.email_from = lead.partner_id.email
 
     def _inverse_email_from(self):
         """≙ ``_inverse_email_from`` (:502-505)."""
-        if self._get_partner_email_update(force_void=False):
-            self.partner_id.email = self.email_from
-            self.partner_id.save(update_fields=['email'])
+        for lead in self:
+            if lead._get_partner_email_update(force_void=False):
+                lead.partner_id.email = lead.email_from
+                lead.partner_id.save(update_fields=['email'])
 
     @api.depends('email_normalized')
     def _compute_email_domain_criterion(self):
@@ -1034,29 +1054,32 @@ class CrmLead(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
         sea un proveedor genérico, en cuyo caso no discrimina nada y se deja
         vacío (que es lo que aquella función hace con su lista de gratuitos).
         """
-        if not self.email_normalized:
-            self.email_domain_criterion = ''
-            return
-        _local, _sep, domain = self.email_normalized.partition('@')
-        self.email_domain_criterion = (
-            '' if domain in FREE_EMAIL_DOMAINS else domain
-        )
+        for lead in self:
+            if not lead.email_normalized:
+                lead.email_domain_criterion = ''
+                continue
+            _local, _sep, domain = lead.email_normalized.partition('@')
+            lead.email_domain_criterion = (
+                '' if domain in FREE_EMAIL_DOMAINS else domain
+            )
 
     @api.depends('partner_id.phone')
     def _compute_phone(self):
         """≙ ``_compute_phone`` (:515-519)."""
-        if (
-            self.partner_id_id
-            and self.partner_id.phone
-            and self._get_partner_phone_update()
-        ):
-            self.phone = self.partner_id.phone
+        for lead in self:
+            if (
+                lead.partner_id_id
+                and lead.partner_id.phone
+                and lead._get_partner_phone_update()
+            ):
+                lead.phone = lead.partner_id.phone
 
     def _inverse_phone(self):
         """≙ ``_inverse_phone`` (:521-524)."""
-        if self._get_partner_phone_update(force_void=False):
-            self.partner_id.phone = self.phone
-            self.partner_id.save(update_fields=['phone'])
+        for lead in self:
+            if lead._get_partner_phone_update(force_void=False):
+                lead.partner_id.phone = lead.phone
+                lead.partner_id.save(update_fields=['phone'])
 
     @api.depends('phone', 'country_id.code')
     def _compute_phone_state(self):
@@ -1067,31 +1090,33 @@ class CrmLead(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
         teléfono con al menos siete dígitos y sin caracteres ajenos al formato
         internacional es ``correct``; cualquier otro, ``incorrect``.
         """
-        if not self.phone:
-            self.phone_state = None
-            return
-        digits = [c for c in self.phone if c.isdigit()]
-        foreign_chars = [
-            c for c in self.phone if not (c.isdigit() or c in ' +-().')
-        ]
-        self.phone_state = (
-            'correct'
-            if len(digits) >= 7 and not foreign_chars
-            else 'incorrect'
-        )
+        for lead in self:
+            if not lead.phone:
+                lead.phone_state = None
+                continue
+            digits = [c for c in lead.phone if c.isdigit()]
+            foreign_chars = [
+                c for c in lead.phone if not (c.isdigit() or c in ' +-().')
+            ]
+            lead.phone_state = (
+                'correct'
+                if len(digits) >= 7 and not foreign_chars
+                else 'incorrect'
+            )
 
     @api.depends('email_from')
     def _compute_email_state(self):
         """≙ ``_compute_email_state`` (:539-549)."""
-        if not self.email_from:
-            self.email_state = None
-            return
-        state = 'incorrect'
-        for email in email_normalize_all(self.email_from):
-            if email:
-                state = 'correct'
-                break
-        self.email_state = state
+        for lead in self:
+            if not lead.email_from:
+                lead.email_state = None
+                continue
+            state = 'incorrect'
+            for email in email_normalize_all(lead.email_from):
+                if email:
+                    state = 'correct'
+                    break
+            lead.email_state = state
 
     @api.depends('probability', 'automated_probability')
     def _compute_is_automated_probability(self):
@@ -1119,42 +1144,46 @@ class CrmLead(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
     @api.depends('expected_revenue', 'probability')
     def _compute_prorated_revenue(self):
         """≙ ``_compute_prorated_revenue`` (:568-571)."""
-        self.prorated_revenue = round(
-            float(self.expected_revenue or 0.0)
-            * float(self.probability or 0)
-            / 100.0,
-            2,
-        )
+        for lead in self:
+            lead.prorated_revenue = round(
+                float(lead.expected_revenue or 0.0)
+                * float(lead.probability or 0)
+                / 100.0,
+                2,
+            )
 
     @api.depends('recurring_revenue', 'recurring_plan.number_of_months')
     def _compute_recurring_revenue_monthly(self):
         """≙ ``_compute_recurring_revenue_monthly`` (:573-576)."""
-        months = (
-            self.recurring_plan.number_of_months
-            if self.recurring_plan_id
-            else 0
-        )
-        self.recurring_revenue_monthly = float(
-            self.recurring_revenue or 0.0
-        ) / (months or 1)
+        for lead in self:
+            months = (
+                lead.recurring_plan.number_of_months
+                if lead.recurring_plan_id
+                else 0
+            )
+            lead.recurring_revenue_monthly = float(
+                lead.recurring_revenue or 0.0
+            ) / (months or 1)
 
     @api.depends('recurring_revenue_monthly', 'probability')
     def _compute_recurring_revenue_monthly_prorated(self):
         """≙ ``_compute_recurring_revenue_monthly_prorated`` (:578-581)."""
-        self.recurring_revenue_monthly_prorated = (
-            float(self.recurring_revenue_monthly or 0.0)
-            * float(self.probability or 0)
-            / 100.0
-        )
+        for lead in self:
+            lead.recurring_revenue_monthly_prorated = (
+                float(lead.recurring_revenue_monthly or 0.0)
+                * float(lead.probability or 0)
+                / 100.0
+            )
 
     @api.depends('recurring_revenue', 'probability')
     def _compute_recurring_revenue_prorated(self):
         """≙ ``_compute_recurring_revenue_prorated`` (:583-586)."""
-        self.recurring_revenue_prorated = (
-            float(self.recurring_revenue or 0.0)
-            * float(self.probability or 0)
-            / 100.0
-        )
+        for lead in self:
+            lead.recurring_revenue_prorated = (
+                float(lead.recurring_revenue or 0.0)
+                * float(lead.probability or 0)
+                / 100.0
+            )
 
     @api.depends('calendar_event_ids', 'calendar_event_ids.start')
     def _compute_meeting_display(self):
@@ -1192,16 +1221,17 @@ class CrmLead(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
     @api.depends('active', 'probability', 'stage_id')
     def _compute_won_status(self):
         """≙ ``_compute_won_status`` (:612-620)."""
-        if (
-            self.probability == 100
-            and self.stage_id_id
-            and self.stage_id.is_won
-        ):
-            self.won_status = 'won'
-        elif not self.active and self.probability == 0:
-            self.won_status = 'lost'
-        else:
-            self.won_status = 'pending'
+        for lead in self:
+            if (
+                lead.probability == 100
+                and lead.stage_id_id
+                and lead.stage_id.is_won
+            ):
+                lead.won_status = 'won'
+            elif not lead.active and lead.probability == 0:
+                lead.won_status = 'lost'
+            else:
+                lead.won_status = 'pending'
 
     @api.depends('email_domain_criterion', 'email_normalized', 'partner_id',
                  'phone_sanitized')
@@ -1318,9 +1348,10 @@ class CrmLead(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
         ``mail.thread.phone``, ausente aquí. Se construye el mecanismo mínimo:
         anteponer el prefijo del país cuando el número no lo trae.
         """
-        if not self.phone:
-            return
-        self.phone = self._phone_format(self.phone) or self.phone
+        for lead in self:
+            if not lead.phone:
+                continue
+            lead.phone = lead._phone_format(lead.phone) or lead.phone
 
     # ------------------------------------------------------------
     # SINCRONIZACIÓN CON EL CLIENTE
