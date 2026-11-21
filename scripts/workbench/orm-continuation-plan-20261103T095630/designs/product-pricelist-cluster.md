@@ -269,3 +269,31 @@ Pruebas: `tests/unit/product/test_product_pricelist_rule_price.py`, con
 `tests/unit/product/test_product_template_categ_id.py` y
 `tests/unit/product/test_product_pricelist_item_source_names.py`
 repuntadas a `_is_applicable_for` y `_compute_price`.
+
+## Etapa 4 — selección de reglas y recursión
+
+`odoo19c: addons/product/models/product_pricelist.py`:
+
+- Los cuatro envoltorios `_get_products_price` (`:90`), `_get_product_price`
+  (`:112`), `_get_product_price_rule` (`:131`) y `_get_product_rule`
+  (`:150`) sobre `_compute_price_rule` (`:169-237`): moneda de destino,
+  fecha por defecto `fields.Datetime.now()`, cantidad en la unidad del
+  producto con `_compute_quantity(..., raise_if_failure=False)`, la primera
+  regla aplicable en el orden del modelo y el precio con
+  `_compute_price`.
+- `_get_applicable_rules` (`:239`) y `_get_applicable_rules_domain`
+  (`:248-265`), con `parent_of` sobre la categoría.
+- `_price_get` (`:268`) y `_compute_price_rule_multi` (`:274-287`).
+
+`odoo19c: addons/product/models/product_pricelist_item.py`:
+
+- `_compute_price_before_discount` (`:661-684`) y, por la rama
+  `base='pricelist'` de `_compute_base_price`, la recursión entre tarifas.
+
+`odoo19c: addons/product/models/product_template.py` y `product_product.py`:
+
+- `_get_contextual_price` (`:1537-1543`, `:1170-1173`),
+  `_get_contextual_pricelist` (`:1545-1550`), `get_contextual_price`
+  (`:1167-1168`) y `_get_contextual_discount` (`:1175-1193`).
+
+Prueba: `tests/unit/product/test_product_pricelist_selection.py`.
