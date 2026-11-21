@@ -1530,6 +1530,13 @@
         "product-pricelist-stage2-integrity-0397"
       ],
       "writtenAt": "2026-11-21T13:24:58Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-pricelist-stage3-rule-price-0397"
+      ],
+      "writtenAt": "2026-11-21T14:28:58Z"
     }
   ]
 }
