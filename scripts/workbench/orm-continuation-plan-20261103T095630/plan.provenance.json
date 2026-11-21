@@ -1446,6 +1446,13 @@
         "ptal-complete-0122"
       ],
       "writtenAt": "2026-11-21T00:19:03Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-template-crud-0122"
+      ],
+      "writtenAt": "2026-11-21T01:21:09Z"
     }
   ]
 }
