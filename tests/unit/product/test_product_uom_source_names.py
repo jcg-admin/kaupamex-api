@@ -34,8 +34,12 @@ def _packaging(barcode, **values):
 
 
 def test_the_name_joins_the_barcode_and_the_variant():
+    """≙ ``_compute_display_name`` (``odoo19c: product_uom.py:28-32``): el
+    código y la variante, sólo con ``show_variant_name``."""
     packaging = _packaging('PU-0001')
-    assert str(packaging) == f'PU-0001 para: {packaging.product_id}'
+    shown = packaging.with_context(show_variant_name=True)
+    assert shown.display_name == (
+        f'PU-0001 for: {packaging.product_id.display_name}')
 
 
 def test_without_a_company_the_active_one_is_taken():

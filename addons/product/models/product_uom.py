@@ -18,24 +18,21 @@ también que ningún ``product.product`` use ya ese código. Se portan las dos
 mitades, y esto **cierra** la que ``product_product.py`` dejó anotada como
 pendiente de este archivo.
 
-Qué NO se porta, con su medición
-================================
-
-- **``_compute_display_name`` con ``show_variant_name``**: cambia el nombre
-  visible según una clave de contexto del cliente web de Odoo. El nombre
-  compuesto —``código para: variante``— sí se porta como propiedad; lo que no
-  se porta es que dependa del contexto de la petición.
+Diseño: ``scripts/workbench/orm-continuation-plan-20261103T095630/designs/
+product-uom-basemodel.md``.
 """
 
+import api
 import fields
 import models
-from django.core.exceptions import ValidationError
 
 from addons.base.models.res_company import ResCompany
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.product.models.product_product import ProductProduct
 from addons.uom.models.uom_uom import Uom
+from exceptions import ValidationError
 from orm.environments import env
+from tools.translate import _
 
 
 def _default_company():
@@ -45,7 +42,7 @@ def _default_company():
     return env().company
 
 
-class ProductUom(TimeStampedModel):
+class ProductUom(models.BaseModel, TimeStampedModel):
     """``product.uom`` — variante + unidad adicional, con su código propio."""
 
     #: ≙ la cabecera de la fuente
@@ -71,7 +68,8 @@ class ProductUom(TimeStampedModel):
         verbose_name='Producto',
     )
     barcode = fields.Char(
-        max_length=64, db_index=True, verbose_name='Código de barras'
+        index='btree_not_null', required=True, copy=False, max_length=64,
+        verbose_name='Código de barras',
     )
     company_id = fields.Many2one(
         ResCompany,
@@ -89,29 +87,37 @@ class ProductUom(TimeStampedModel):
         verbose_name = 'Empaquetado de producto'
         verbose_name_plural = 'Empaquetados de producto'
         constraints = [
-            # ``_barcode_uniq``: un código sólo puede asignarse a un
-            # empaquetado. La otra mitad —que tampoco lo use una variante— no
-            # cabe en una constraint de tabla; va en ``clean()``.
+            # ≙ ``_barcode_uniq`` (``odoo19c: :18``): un código sólo puede
+            # asignarse a un empaquetado. La otra mitad —que tampoco lo use
+            # una variante— es ``_check_barcode_uniqueness``.
             models.UniqueConstraint(
-                fields=['barcode'], name='product_uom_barcode_uniq'
+                fields=['barcode'], name='product_uom_barcode_uniq',
+                violation_error_message=(
+                    'A barcode can only be assigned to one packaging.'),
             ),
         ]
 
     def __str__(self):
-        return f'{self.barcode} para: {self.product_id}'
+        return self.display_name or self.barcode or ''
 
-    def clean(self):
-        """``_check_barcode_uniqueness`` — el código no lo usa ya una variante.
+    @api.constrains('barcode')
+    def _check_barcode_uniqueness(self):
+        """≙ ``_check_barcode_uniqueness`` (``odoo19c:
+        addons/product/models/product_uom.py:20-26``).
 
-        Cierra la mitad que ``product_product.py`` dejó pendiente de este
-        archivo. Ver el docstring del módulo: con GS1 el espacio de códigos es
-        uno solo, así que comprobar sólo esta tabla dejaría pasar una colisión
-        que el lector de códigos no puede desambiguar.
-        """
-        super().clean()
-        if not self.barcode:
-            return
-        if ProductProduct.objects.filter(barcode=self.barcode).exists():
-            raise ValidationError(
-                'Una variante de producto ya usa ese código de barras.'
-            )
+        With GS1 nomenclature, products and packagings use the same pattern.
+        Therefore, we need to ensure the uniqueness between products'
+        barcodes and packagings' ones."""
+        domain = [('barcode', 'in', [
+            b for b in self.mapped('barcode') if b])]
+        if self.env['product.product'].search_count(domain, limit=1):
+            raise ValidationError(_("A product already uses the barcode"))
+
+    def _compute_display_name(self):
+        """≙ ``_compute_display_name`` (``:28-32``): con
+        ``show_variant_name`` en el contexto, el código y la variante."""
+        if not self.env.context.get('show_variant_name'):
+            return super()._compute_display_name()
+        for record in self:
+            record.display_name = (
+                f"{record.barcode} for: {record.product_id.display_name}")
