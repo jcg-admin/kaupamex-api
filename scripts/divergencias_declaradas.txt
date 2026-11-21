@@ -1240,6 +1240,8 @@ product/models/product_template.py::ProductTemplate::_get_default_uom_id
 # product_tag.py:12-16,25,32`): misma divergencia, a nivel de modulo, sin
 # `self`, leyendo el contexto del entorno activo.
 product/models/product_tag.py::ProductTag::_get_default_template_id
+#
+# Su gemelo para la variante (`odoo19c: product_tag.py:15-16,32`).
 product/models/product_tag.py::ProductTag::_get_default_variant_id
 #
 # ---- 13. `create` de `certificate` — DIVERGENCIA DE MECANISMO -----------
