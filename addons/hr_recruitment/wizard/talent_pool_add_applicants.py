@@ -24,13 +24,14 @@ Porte símbolo por símbolo — 2 de 2 (forma)
 Divergencia declarada
 ========================
 
-``Command.link``/``self.env['hr.applicant'].copy()`` → manager M2M
-Django (``.add()``) y ``HrApplicant.objects.create()`` reconstruyendo los
-``vals`` (mismo criterio que ``job_add_applicants.py`` de este addon —
-sin recordset ``copy()`` en este ORM).
+``self.env['hr.applicant'].copy()`` → ``HrApplicant.objects.create()``
+reconstruyendo los ``vals`` (mismo criterio que ``job_add_applicants.py`` de
+este addon — sin recordset ``copy()`` en este ORM). Los enlaces con bolsas y
+categorías sí son los de la fuente: ``Command.link`` escrito con ``write``,
+porque los dos lados son ``BaseModel`` y sus Many2many son recordsets.
 """
 
-from orm.commands import Command
+import fields
 from orm.models_transient import TransientModel
 
 
@@ -52,9 +53,11 @@ class TalentPoolAddApplicants(TransientModel):
         for applicant in applicants:
             if applicant.talent_pools.exists():
                 for pool in talent_pools:
-                    pool.write({'talents': [Command.link(applicant.id)]})
+                    pool.write({'talents': [
+                        fields.Command.link(applicant.id)]})
                 for categ in categories:
-                    applicant.write({'categs': [Command.link(categ.pk)]})
+                    applicant.write({'categs': [
+                        fields.Command.link(categ.pk)]})
                 talents.append(applicant)
             else:
                 HrApplicant = type(applicant)
@@ -68,9 +71,11 @@ class TalentPoolAddApplicants(TransientModel):
                     job=None,
                 )
                 for pool in talent_pools:
-                    pool.write({'talents': [Command.link(talent.id)]})
+                    pool.write({'talents': [
+                        fields.Command.link(talent.id)]})
                 for categ in list(applicant.categs) + list(categories):
-                    talent.write({'categs': [Command.link(categ.pk)]})
+                    talent.write({'categs': [
+                        fields.Command.link(categ.pk)]})
                 talent.pool_applicant = talent
                 talent.save(update_fields=['pool_applicant'])
                 applicant.pool_applicant = talent
