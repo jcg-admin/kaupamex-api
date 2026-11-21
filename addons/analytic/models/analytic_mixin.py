@@ -24,7 +24,8 @@ no sólo de forma): en la referencia, la clave ``__update__`` de
 ``new_distribution`` lleva **nombres de columna** de los planes que cambian
 (``x_plan3_id``, ...) porque cada plan raíz tiene su propia columna. Sin ese
 sistema (ver ``analytic_plan.py``), no hay nombres de columna que enumerar.
-Aquí ``__update__`` lleva **PKs de plan raíz** (``AccountAnalyticPlan.root``)
+Aquí ``__update__`` lleva **PKs de plan raíz**
+(``AccountAnalyticPlan.root_id``)
 en su lugar — mismo propósito (marcar qué planes se están redistribuyendo
 intencionalmente), mismo álgebra de razones, distinto identificador.
 
@@ -333,7 +334,8 @@ class AnalyticMixin(models.Model):
                 sorted(
                     account.pk
                     for account in accounts
-                    if account.plan_id.root.pk not in root_plan_ids_to_update
+                    if account.plan_id.root_id.pk
+                    not in root_plan_ids_to_update
                 )
             )
             if remaining_key:
@@ -351,7 +353,7 @@ class AnalyticMixin(models.Model):
                 sorted(
                     account.pk
                     for account in accounts
-                    if account.plan_id.root.pk in root_plan_ids_to_update
+                    if account.plan_id.root_id.pk in root_plan_ids_to_update
                 )
             )
             if remaining_key:

@@ -162,7 +162,7 @@ class AccountAnalyticAccount(
         """
         Odoo ``root_plan_id`` (``related="plan_id.root_id", store=True``).
         """
-        return self.plan_id.root
+        return self.plan_id.root_id
 
     @property
     def color(self):

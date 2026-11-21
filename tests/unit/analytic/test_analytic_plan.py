@@ -3,10 +3,12 @@
 **Por qué la mayoría de estos tests NO usan ``pytest.mark.django_db``.**
 No es que falte la tabla —``analytic`` entra en ``LOCAL_APPS`` por el grafo
 de addons y tiene sus cinco migraciones aplicadas—, sino que la lógica que
-ejercen es **Python pura**: cycle-detection, ``complete_name``/``root`` y
-``_get_score`` no tocan la base. Construir árboles en memoria (instancias
-sin persistir, con ``pk`` explícito donde la jerarquía lo necesita) los mide
-igual y sin el costo de la transacción por test.
+ejercen es **Python pura**: cycle-detection y ``_get_score`` no tocan la
+base. ``complete_name``, ``root_id`` y los contadores son campos del ORM desde
+la etapa A y se miden con base en ``test_analytic_plan_basemodel.py``.
+Construir árboles en memoria (instancias sin persistir, con ``pk`` explícito
+donde la jerarquía lo necesita) los mide igual y sin el costo de la
+transacción por test.
 
 > **Corregido:** este docstring afirmaba que el addon *"no está en
 > ``INSTALLED_APPS`` ni tiene migración"* y que *"sin tabla, cualquier
@@ -29,34 +31,8 @@ from addons.analytic.models import (
 def _plan(pk, name, parent=None, **kwargs):
     plan = AccountAnalyticPlan(pk=pk, name=name, **kwargs)
     if parent is not None:
-        plan.parent = parent
+        plan.parent_id = parent
     return plan
-
-
-class TestHierarchy:
-    def test_complete_name_joins_ancestors_with_slash(self):
-        root = _plan(1, 'Marketing')
-        child = _plan(2, 'Digital', parent=root)
-        grandchild = _plan(3, 'SEM', parent=child)
-        assert grandchild.complete_name == 'Marketing / Digital / SEM'
-
-    def test_complete_name_of_root_is_its_own_name(self):
-        root = _plan(1, 'Marketing')
-        assert root.complete_name == 'Marketing'
-
-    def test_root_property_returns_topmost_ancestor(self):
-        root = _plan(1, 'Marketing')
-        child = _plan(2, 'Digital', parent=root)
-        grandchild = _plan(3, 'SEM', parent=child)
-        assert grandchild.root is root
-        assert child.root is root
-        assert root.root is root
-
-    def test_account_count_and_children_count_default_zero_unsaved(self):
-        # Sin pk persistido no hay filas relacionadas reales; el acceso
-        # requeriria DB (reverse FK manager) — no se ejercen aquí.
-        plan = AccountAnalyticPlan(name='Solo')
-        assert plan.name == 'Solo'
 
 
 class TestHierarchyCycleProtection:
@@ -66,18 +42,18 @@ class TestHierarchyCycleProtection:
 
     def test_self_as_own_parent_is_rejected(self):
         plan = _plan(1, 'A')
-        plan.parent = plan
+        plan.parent_id = plan
         with pytest.raises(ValidationError) as exc:
             plan.clean()
-        assert exc.value.message_dict['parent'] == ['ANALYTIC_PLAN_CYCLE']
+        assert exc.value.message_dict['parent_id'] == ['ANALYTIC_PLAN_CYCLE']
 
     def test_indirect_cycle_is_rejected(self):
         root = _plan(1, 'A')
         child = _plan(2, 'B', parent=root)
-        root.parent = child  # A -> B -> A
+        root.parent_id = child  # A -> B -> A
         with pytest.raises(ValidationError) as exc:
             child.clean()
-        assert exc.value.message_dict['parent'] == ['ANALYTIC_PLAN_CYCLE']
+        assert exc.value.message_dict['parent_id'] == ['ANALYTIC_PLAN_CYCLE']
 
     def test_normal_hierarchy_does_not_raise(self):
         root = _plan(1, 'A')

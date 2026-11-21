@@ -36,15 +36,15 @@ def test_the_plan_inverse_is_account_ids_and_feeds_the_count():
         assert first.plan_id.pk == plan.pk
         assert env()['account.analytic.account'].search(
             [('plan_id', '=', plan.pk)]) == first | second
-    assert set(plan.account_ids.values_list('pk', flat=True)) == {
-        first.id, second.id}
-    assert plan.account_count == 2
+        assert set(plan.account_ids.ids) == {first.id, second.id}
+        assert plan.account_count == 2
 
 
 def test_the_default_order_follows_the_plan_by_id():
     """``_order = 'plan_id, name asc'`` (``analytic_account.py:15``): el
-    plan es un modelo de Django sin ``_order``, así que se ordena por el
-    default de la fuente, ``'id'`` (``odoo19c: odoo/orm/models.py:434``)."""
+    orden del plan es su ``_order``, ``'sequence asc, id'``
+    (``odoo19c: addons/analytic/models/analytic_plan.py:18``); con la misma
+    secuencia decide el ``id``."""
     first_plan = AccountAnalyticPlan.objects.create(name='PID Zeta')
     second_plan = AccountAnalyticPlan.objects.create(name='PID Alfa')
     with sudo():

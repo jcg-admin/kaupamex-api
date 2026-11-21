@@ -2,25 +2,30 @@
 ``analytic``).
 
 Adaptación fiel de Odoo analytic/models/analytic_plan.py (odoo-tools@622ddc2a,
-odoo19c:, LGPL-3), con un recorte deliberado y documentado.
+odoo19c:, LGPL-3), por etapas. Inventario y etapas:
+``scripts/workbench/orm-continuation-plan-20261103T095630/designs/
+analytic-plan-basemodel.md``.
 
-Lo que SÍ se porta (estructura + jerarquía):
-    ``name``, ``description``, ``parent``/``parent_path`` (jerarquía árbol,
-    igual patrón que ``hr.HrDepartment``), ``color``, ``sequence``,
-    ``default_applicability`` y el modelo ``account.analytic.applicability``
-    completo (incluyendo ``_get_score``, que es Python puro).
+Etapa A (portada): ``BaseModel`` con la cabecera de la fuente
+(``_parent_store``, ``_rec_name = 'complete_name'``, ``_order``), ``name``,
+``description``, ``parent_id``/``children_ids``/``parent_path``,
+``complete_name`` almacenado y recursivo, ``root_id`` con búsqueda,
+``children_count``, ``account_count``, ``all_account_count``, ``color``,
+``sequence`` y ``default_applicability``.
 
-Lo que NO se porta — **el sistema de columna dinámica por plan**
-(``_column_name``, ``_strict_column_name``, ``_sync_plan_column``,
-``_sync_all_plan_column``, ``_find_plan_column``, ``_find_related_field``,
-``_hierarchy_name``, ``unlink`` override, ``get_relevant_plans``,
-``_get_all_plans``/``__get_all_plans``, ``_is_subplan_field_used``):
+Pendiente, con su etapa en el diseño — **el sistema de columna dinámica por
+plan** (etapa B: ``_column_name``, ``_strict_column_name``,
+``_sync_plan_column``, ``_sync_all_plan_column``, ``_find_plan_column``,
+``_find_related_field``, ``_auto_init``, los inversos de ``name`` y
+``parent_id``), ``account.analytic.applicability`` sobre ``BaseModel``
+(etapa C) y los métodos por verificar uno a uno (etapa D: ``_hierarchy_name``,
+``unlink``, ``get_relevant_plans``, ``_get_all_plans``/``__get_all_plans``,
+``_is_subplan_field_used``, ``create``, ``write``, ``_onchange_parent_id``):
 
     En la referencia, cada plan raíz agrega una **columna nueva** a
     ``account.analytic.line`` (``x_planN_id``) vía ``ir.model.fields`` +
     DDL en caliente — un mecanismo de meta-programación de esquema que Django
-    no tiene como característica del ORM. Reimplementarlo exigiría un
-    generador de migraciones a medida, fuera del alcance de este corte.
+    no tiene como característica del ORM. Construirlo es la etapa B.
 
     **Corrección 2026-08-06 — el DDL en caliente NO es la barrera.** Una
     redacción previa decía *"las migraciones son estáticas, generadas por
@@ -46,10 +51,9 @@ Lo que NO se porta — **el sistema de columna dinámica por plan**
     ``AccountAnalyticPlan`` (jerárquico), pero la línea no distingue "en qué
     plan" están sus cuentas más que a través de ``account.plan_id``.
 
-    También quedan fuera ``action_view_analytical_accounts`` /
-    ``action_view_children_plans`` (acciones de ventana del cliente web de
-    Odoo, sin análogo en esta API) y ``_onchange_parent_id`` (onchange de
-    formulario, sin análogo en DRF).
+    ``action_view_analytical_accounts`` / ``action_view_children_plans``
+    devuelven acciones de ventana del cliente web; se verifican en la etapa D
+    junto con ``_onchange_parent_id``.
 
 ``company_dependent`` en ``default_applicability`` — construido (tarea #129)
 =============================================================================
@@ -86,10 +90,12 @@ from random import randint
 
 from django.core.exceptions import ValidationError
 
+import api
 import fields
 import models
 
 from addons.base.models import _reject_hierarchy_cycle
+from orm.models import _parent_store_update
 
 #: Compartido entre ``AccountAnalyticPlan.default_applicability`` y
 #: ``AccountAnalyticApplicability.applicability`` — misma enumeración que la
@@ -121,9 +127,18 @@ def _default_color():
     return randint(1, 11)
 
 
-class AccountAnalyticPlan(models.RecordLoaderMixin, models.Model):
+class AccountAnalyticPlan(models.BaseModel, models.RecordLoaderMixin):
     """``account.analytic.plan`` — árbol de planes analíticos (sin columna
     dinámica; ver docstring del módulo)."""
+
+    #: ≙ la cabecera de ``odoo19c: addons/analytic/models/
+    #: analytic_plan.py:14-18``, verbatim. ``Meta.ordering`` es su forma en
+    #: Django; los dos conviven.
+    _name = 'account.analytic.plan'
+    _description = 'Analytic Plans'
+    _parent_store = True
+    _rec_name = 'complete_name'
+    _order = 'sequence asc, id'
 
     name = fields.Char(
         max_length=255,
@@ -135,12 +150,15 @@ class AccountAnalyticPlan(models.RecordLoaderMixin, models.Model):
         default='',
         verbose_name='Descripción',
     )
-    parent = fields.Many2one(
+    #: ≙ ``parent_id`` (``:29-36``) con su columna explícita; el
+    #: ``related_name`` es ``children_ids`` (``:43-47``).
+    parent_id = fields.Many2one(
         'self',
+        db_column='parent_id',
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        related_name='children',
+        related_name='children_ids',
         verbose_name='Plan padre',
         help_text='Odoo parent_id (ondelete=cascade).',
     )
@@ -150,6 +168,24 @@ class AccountAnalyticPlan(models.RecordLoaderMixin, models.Model):
         default='',
         db_index=True,
     )
+    #: ≙ ``complete_name`` (``:52-57``): almacenado y recursivo.
+    complete_name = fields.Char(
+        'Complete Name', compute='_compute_complete_name', recursive=True,
+        store=True, max_length=1024, blank=True, null=True)
+    #: ≙ ``root_id`` (``:38-42``): calculado, sin columna, con búsqueda.
+    root_id = fields.Many2one(
+        'self', store=False, compute='_compute_root_id',
+        search='_search_root_id', on_delete=models.SET_NULL,
+        related_name='+')
+    children_count = fields.Integer(
+        'Children Plans Count', compute='_compute_children_count',
+        store=False)
+    account_count = fields.Integer(
+        'Analytic Accounts Count', compute='_compute_analytic_account_count',
+        store=False)
+    all_account_count = fields.Integer(
+        'All Analytic Accounts Count',
+        compute='_compute_all_analytic_account_count', store=False)
     color = fields.Integer(default=_default_color, verbose_name='Color')
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
     default_applicability = fields.Selection(
@@ -169,67 +205,97 @@ class AccountAnalyticPlan(models.RecordLoaderMixin, models.Model):
         verbose_name_plural = 'Planes analíticos'
 
     def __str__(self):
-        return self.name
+        return self.complete_name or self.name or ''
 
     def clean(self):
         super().clean()
-        _reject_hierarchy_cycle(self, 'parent', 'ANALYTIC_PLAN_CYCLE')
-
-    def _compute_parent_path(self):
-        """Ruta materializada del ancestro, terminada en ``/``.
-
-        Espeja el patrón a mano de ``hr.HrDepartment`` (no el flag
-        ``_parent_store`` que la referencia da vía ORM).
-        """
-        if self.parent_id is None:
-            return f'{self.pk}/'
-        return f'{self.parent.parent_path}{self.pk}/'
+        _reject_hierarchy_cycle(self, 'parent_id', 'ANALYTIC_PLAN_CYCLE')
 
     def save(self, *args, **kwargs):
+        """Mantiene la ruta materializada en el camino de Django.
+
+        ``objects.create`` y ``save()`` no pasan por ``create``/``write`` del
+        ORM, que son quienes mantienen el árbol de un ``BaseModel`` con
+        ``_parent_store``. Mismo patrón que ``product.category``: una fila que
+        cambia de padre delega en :func:`orm.models._parent_store_update`.
         """
-        Mantiene la ruta materializada, que en la referencia mantiene el ORM.
-        """
+        stored = (type(self)._base_manager.filter(pk=self.pk)
+                  .values_list('parent_id', 'parent_path').first()
+                  if self.pk is not None else None)
         super().save(*args, **kwargs)
-        path = self._compute_parent_path()
-        if path != self.parent_path:
-            self.parent_path = path
-            super().save(update_fields=['parent_path'])
+        if stored and stored[1] and stored[0] != self.parent_id_id:
+            _parent_store_update(self)
+        else:
+            path = (f'{self.parent_id.parent_path}{self.pk}/'
+                    if self.parent_id else f'{self.pk}/')
+            if path != self.parent_path:
+                self.parent_path = path
+                super().save(update_fields=['parent_path'])
 
-    @property
-    def complete_name(self):
-        """``[abuelo] / [padre] / [self]`` — fiel a ``_compute_complete_name``
-        (odoo19c: líneas 139-145), iterativo en vez de recursivo por nodo."""
-        names = []
-        node = self
-        seen = set()
-        while node is not None and node.pk not in seen:
-            names.append(node.name)
-            seen.add(node.pk)
-            node = node.parent
-        return ' / '.join(reversed(names))
+    @api.depends('parent_id', 'parent_path')
+    def _compute_root_id(self):
+        """≙ ``_compute_root_id`` (``:129-132``)."""
+        for plan in self.sudo():
+            plan.root_id = (int(plan.parent_path[:-1].split('/')[0])
+                            if plan.parent_path else plan)
 
-    @property
-    def root(self):
-        """Plan raíz del árbol — análogo de ``root_id`` (odoo19c: líneas
-        129-132), usado por ``AnalyticMixin._merge_distribution``."""
-        node = self
-        seen = set()
-        while node.parent_id is not None and node.pk not in seen:
-            seen.add(node.pk)
-            node = node.parent
-        return node
+    def _search_root_id(self, operator, value):
+        """≙ ``_search_root_id`` (``:134-137``)."""
+        if operator != '=':
+            return NotImplemented
+        return [('parent_path', '=like', f'{value}/%')]
 
-    @property
-    def account_count(self):
-        """Cuentas directas de este plan (Odoo ``account_count``, no
-        ``all_account_count`` recursivo — ver docstring del módulo)."""
-        return self.account_ids.count()
+    @api.depends('name', 'parent_id.complete_name')
+    def _compute_complete_name(self):
+        """≙ ``_compute_complete_name`` (``:139-145``)."""
+        for plan in self:
+            if plan.parent_id:
+                plan.complete_name = '%s / %s' % (
+                    plan.parent_id.complete_name, plan.name)
+            else:
+                plan.complete_name = plan.name
 
-    @property
-    def children_count(self):
-        """≙ ``children_count`` / ``_compute_children_count``
-        (``:48``, ``:180-182``)."""
-        return self.children.count()
+    @api.depends('account_ids')
+    def _compute_analytic_account_count(self):
+        """≙ ``_compute_analytic_account_count`` (``:147-150``)."""
+        for plan in self:
+            plan.account_count = len(plan.account_ids)
+
+    @api.depends('account_ids', 'children_ids')
+    def _compute_all_analytic_account_count(self):
+        """≙ ``_compute_all_analytic_account_count`` (``:152-178``)."""
+        if not self.ids:
+            self.all_account_count = 0
+            return
+        self.env.cr.execute("""
+            SELECT parent.id,
+                   array_agg(child.id) as children_ids
+              FROM account_analytic_plan parent
+              JOIN account_analytic_plan child
+                ON child.parent_path LIKE parent.parent_path || '%%'
+             WHERE parent.id IN %s
+          GROUP BY parent.id
+        """, [tuple(self.ids)])
+        all_children_ids = dict(self.env.cr.fetchall())
+
+        plans_count = dict(
+            self.env['account.analytic.account']._read_group(
+                domain=[('plan_id', 'child_of', self.ids)],
+                aggregates=['id:count'],
+                groupby=['plan_id'],
+            )
+        )
+        plans_count = {k.id: v for k, v in plans_count.items()}
+        for plan in self:
+            plan.all_account_count = sum(
+                plans_count.get(child_id, 0)
+                for child_id in all_children_ids.get(plan.id, []))
+
+    @api.depends('children_ids')
+    def _compute_children_count(self):
+        """≙ ``_compute_children_count`` (``:180-182``)."""
+        for plan in self:
+            plan.children_count = len(plan.children_ids)
 
 
 class AccountAnalyticApplicability(models.RecordLoaderMixin, models.Model):
