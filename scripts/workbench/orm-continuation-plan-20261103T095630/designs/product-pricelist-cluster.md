@@ -200,3 +200,23 @@ Prueba: `tests/unit/product/test_product_pricelist_integrity.py` — cada
 restricción con su caso que la viola y su caso válido, la recursión directa
 e indirecta, la deducción de plantilla e inferencia de alcance en `create`,
 la limpieza en `create` y `write`, y la guarda de borrado.
+
+### Dos ajustes destapados por la guarda de borrado
+
+- `base_pricelist_id` (`odoo19c: addons/product/models/product_pricelist_item.py:104`)
+  no declara `ondelete`, así que toma el valor por defecto de un `Many2one`
+  no obligatorio, `'set null'` (`odoo19c: odoo/orm/fields_relational.py:282`).
+  El puerto lo tenía en `PROTECT`, y eso impedía borrar juntas la tarifa base y
+  la derivada aunque la guarda lo admite. Migración
+  `0061_pricelist_item_base_set_null`.
+- `_run_ondelete_on_delete` llamaba a cada método `@api.ondelete` registro a
+  registro. La fuente lo llama una vez con el recordset entero
+  (`odoo19c: odoo/orm/models.py:4205-4208`, `func(self)`), y una guarda que
+  mira el conjunto —como `_unlink_except_used_as_rule_base`, que excluye las
+  reglas de las tarifas que se borran a la vez— sólo es correcta así. Para un
+  `BaseModel` se pasa el recordset; un modelo de Django sigue recibiendo la
+  instancia.
+
+Prueba: `tests/unit/product/test_product_pricelist_integrity.py`
+(`test_deleting_both_pricelists_together_is_allowed` y
+`test_a_pricelist_used_as_a_base_cannot_be_deleted`).
