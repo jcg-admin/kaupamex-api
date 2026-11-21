@@ -36,7 +36,7 @@ def test_the_document_delegates_to_its_attachment():
 
 def test_deleting_the_document_deletes_its_attachment():
     attachment = _attachment('manual.pdf')
-    ProductDocument.objects.create(ir_attachment_id=attachment).delete()
+    ProductDocument.objects.create(ir_attachment_id=attachment).unlink()
     assert not IrAttachment.objects.filter(pk=attachment.pk).exists()
 
 

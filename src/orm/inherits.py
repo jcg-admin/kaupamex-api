@@ -155,6 +155,31 @@ def _check_delegate_access(delegate, operation='read'):
         rows.check_access(operation)
 
 
+_MISSING = object()
+
+
+def _cached_inherited_value(record, name, default=None):
+    """El valor de un campo heredado en la caché de un registro nuevo.
+
+    ``new()`` escribe los valores en la caché del registro
+    (``_update_cache``); en la fuente el campo heredado es un ``related``
+    del propio modelo, y leerlo devuelve lo que la caché tenga
+    (``odoo19c: odoo/orm/models.py:6441-6460``). Aquí la lectura iría al
+    delegado, que en un registro nuevo es otro registro nuevo sin esos
+    valores; por eso un registro nuevo lee primero su propia caché.
+    """
+    ids = getattr(record, '_ids', None)
+    fields = getattr(type(record), '_fields', None)
+    if (not ids or len(ids) != 1 or ids[0]
+            or not fields or name not in fields):
+        return default
+    field = fields[name]
+    cache = field._get_cache(record.env)
+    if ids[0] not in cache:
+        return default
+    return field.convert_to_record(cache[ids[0]], record)
+
+
 class DelegatedFieldNames:
     """``_inherits_fields``: el mapa ``nombre → FK`` de la delegación,
     resuelto tarde.
@@ -258,6 +283,9 @@ def apply_inherits(delegant_cls, delegate_model, fk_name):
         # propiedades propias del delegante nunca llegan aquí.
         fk = type(self)._inherits_fields.get(name)
         if fk is not None:
+            cached = _cached_inherited_value(self, name, _MISSING)
+            if cached is not _MISSING:
+                return cached
             try:
                 # La clave de ``_inherits`` puede ser el ``attname`` de la FK
                 # (``product_tmpl_id``), que en Django da el entero; el
