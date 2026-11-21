@@ -55,3 +55,9 @@ Pruebas: `tests/unit/product/test_product_tag_basemodel.py` (6 casos).
 Anulación: la unión, la búsqueda, la copia y el valor por defecto tiran su
 caso; devolver `browse` a la clase tira los cuatro que crean por el ORM.
 Subconjunto derivado: 5054 passed, 39 skipped, 8 xfailed.
+
+## Defecto destapado por F2 sobre `11160e88`
+
+`tests/unit/scripts/test_divergencias_declaradas.py` exige un motivo encima
+de cada entrada de `scripts/divergencias_declaradas.txt`; la segunda entrada
+de `product.tag` iba pegada a la primera. Se añade su línea de motivo.
