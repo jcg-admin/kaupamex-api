@@ -30,10 +30,9 @@ de un solo registro (`_compute_user_company_ids`, `_compute_company_currency`,
 `_compute_potential_lead_duplicates`, `_compute_partner_email_update`,
 `_compute_partner_phone_update`, `_compute_is_partner_visible`). Ningún campo
 los declara con `compute=`, así que el ORM no los invoca con recordsets;
-quedan como están. Los otros 27 asignan, y son los que el ORM despacha: los
-23 de `compute='_compute_…'`, `_check_won_validity` y los onchanges
-`_onchange_commercial_partner_id` y `_onchange_phone_validation`, más
-`_compute_team_id`… (la lista exacta la produce el AST, abajo).
+quedan como están. Los otros 27 asignan, y son los que el ORM despacha:
+los cómputos de campo, `_check_won_validity` y los dos onchanges. La lista
+exacta, con los inversos que se sumaron al ejecutar, está en «Símbolos».
 
 ## Cambio
 
@@ -47,3 +46,18 @@ declaraba «aquí una instancia **es** un registro» se reescribe.
 Prueba: `tests/unit/crm/test_crm_lead_multi_record.py` —alta de dos y
 `write` de dos para un campo de cada cómputo almacenado, y la restricción
 sobre dos—, roja antes del cambio.
+
+## Símbolos y lo que destapó la ejecución
+
+Al ejecutar, los inversos `_inverse_email_from` y `_inverse_phone`
+(`inverse='…'`, despachados por `determine_inverse` con el recordset)
+fallaron igual y se suman. Los 29 métodos de `CrmLead` que cambian, medidos
+por diferencia de AST contra el archivo anterior: `_check_won_validity`, `_compute_company_id`, `_compute_contact_name`, `_compute_date_last_stage_update`, `_compute_date_open`, `_compute_day_close`, `_compute_day_open`, `_compute_email_domain_criterion`, `_compute_email_from`, `_compute_email_state`, `_compute_function`, `_compute_lang_id`, `_compute_name`, `_compute_partner_address_values`, `_compute_partner_name`, `_compute_phone`, `_compute_phone_state`, `_compute_prorated_revenue`, `_compute_recurring_revenue_monthly`, `_compute_recurring_revenue_monthly_prorated`, `_compute_recurring_revenue_prorated`, `_compute_stage_id`, `_compute_team_id`, `_compute_website`, `_compute_won_status`, `_inverse_email_from`, `_inverse_phone`, `_onchange_commercial_partner_id`, `_onchange_phone_validation`.
+
+Medido de paso, y no es de esta unidad: un `write` de `partner_name` sobre
+una iniciativa sin cliente se pierde, también con un solo registro. El
+cómputo lo vuelve a vaciar porque el `write` por fila no protege los campos
+escritos frente al recálculo. Es el hueco que cubren las tareas abiertas del
+ORM sobre `write` (anunciar los calculados escritos con `modified` y portar
+`_write`/`_write_multi`). La prueba de esta unidad escribe `name` en su
+lugar.
