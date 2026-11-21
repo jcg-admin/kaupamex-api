@@ -1488,6 +1488,13 @@
         "product-category-basemodel-0397"
       ],
       "writtenAt": "2026-11-21T07:09:01Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-price-currency-fields-0397"
+      ],
+      "writtenAt": "2026-11-21T08:08:22Z"
     }
   ]
 }
