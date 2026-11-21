@@ -60,12 +60,6 @@ Qué NO se porta, con su medición
 - **El hilo de mensajes de ``_inherit``** — el atributo se declara verbatim,
   pero ``mail.thread`` no está cableado sobre la variante, mismo criterio que
   ``product_template.py``.
-- **``price_extra`` / ``lst_price``** como columnas: en la referencia son
-  ``compute`` sin ``store``. Aquí son propiedades — ``price_extra`` suma el
-  extra de los valores de atributo, y ``lst_price`` es el precio de la ficha
-  más ese extra. La conversión de unidad que ``lst_price`` hace por contexto
-  (``depends_context=('uom',)``) **no** se porta: este archivo no conoce el
-  contexto de la petición, y la conversión ya la sabe hacer ``Uom``.
 - **``code`` / ``partner_ref``** — **cerrados**, con un cambio de forma. La
   referencia los declara ``compute`` con
   ``@api.depends_context('partner_id')``:
@@ -107,6 +101,7 @@ from addons.base.models import DecimalPrecision
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.product.models.product_document import ProductDocument
 from addons.product.models.product_template import ProductTemplate
+from addons.uom.models.uom_uom import Uom
 from addons.product.models.product_template_attribute_value import (
     ProductTemplateAttributeValue,
 )
@@ -196,6 +191,33 @@ class ProductProduct(models.BaseModel, TimeStampedModel):
         related_name='ptav_product_variant_ids',
         ondelete='restrict',
         verbose_name='Valores de atributo',
+    )
+    #: ≙ ``price_extra`` (``odoo19c: addons/product/models/
+    #: product_product.py:25-28``): calculado, sin columna. Monetary y no
+    #: Float porque suma ``price_extra`` de los valores de atributo, que ya
+    #: es Monetary.
+    price_extra = fields.Monetary(
+        'Variant Price Extra', compute='_compute_product_price_extra',
+        store=False,
+        help="This is the sum of the extra price of all attributes",
+    )
+    #: ≙ ``lst_price`` (``:30-33``): calculado con inverso, sin columna.
+    lst_price = fields.Monetary(
+        'Sales Price', compute='_compute_product_lst_price',
+        inverse='_set_product_lst_price', store=False,
+        help=("The sale price is managed from the product template. Click "
+              "on the 'Configure Variants' button to set the extra "
+              "attribute prices."),
+    )
+    #: ``currency_id`` y ``cost_currency_id`` llegan en la referencia por
+    #: ``_inherits``; aquí se declaran ``related`` a la ficha.
+    currency_id = fields.Many2one(
+        'base.ResCurrency', related='product_tmpl_id.currency_id',
+        store=False, related_name='+',
+    )
+    cost_currency_id = fields.Many2one(
+        'base.ResCurrency', related='product_tmpl_id.cost_currency_id',
+        store=False, related_name='+',
     )
     # Los tres que la variante SOBREESCRIBE — el valor de la ficha no aplica.
     standard_price = fields.Monetary(
@@ -316,25 +338,6 @@ class ProductProduct(models.BaseModel, TimeStampedModel):
         return self.product_tmpl_id.sale_ok
 
     @property
-    def currency(self):
-        """La moneda de la ficha — misma delegación por ``_inherits``.
-
-        La lee ``ProductComboItem.currency``, que en la referencia es
-        ``related='product_id.currency_id'``.
-        """
-        return getattr(self.product_tmpl_id, 'currency', None)
-
-    @property
-    def list_price(self):
-        """El precio de catálogo de la ficha, **sin** el extra de la variante.
-
-        El precio que se cobra es ``lst_price``, que suma el extra. Se
-        conservan los dos nombres de la referencia porque distinguen
-        exactamente eso.
-        """
-        return self.product_tmpl_id.list_price
-
-    @property
     def is_product_variant(self):
         """``_compute_is_product_variant`` — aquí siempre verdadero.
 
@@ -382,27 +385,56 @@ class ProductProduct(models.BaseModel, TimeStampedModel):
 
     # === PRECIO ===========================================================
 
-    @property
-    def price_extra(self):
-        """``_compute_product_price_extra`` — suma del extra de los atributos.
+    @api.onchange('lst_price')
+    def _set_product_lst_price(self):
+        """≙ ``_set_product_lst_price``
+        (``odoo19c: product_product.py:309-316``).
 
-        Un valor de atributo puede encarecer la variante (talla XXL, madera
-        noble). Es la suma, no el máximo: los extras se acumulan.
+        El inverso de ``lst_price``: el precio que se escribe en la variante
+        se lleva a la ficha restándole el extra de sus atributos, convertido
+        primero desde la unidad del contexto cuando la hay.
         """
-        return sum(
-            (getattr(value, 'price_extra', 0) or 0)
-            for value in self.product_template_attribute_value_ids
-        )
+        for product in self:
+            uom_id = self.env.context.get('uom')
+            if uom_id:
+                value = Uom.objects.get(pk=uom_id)._compute_price(
+                    product.lst_price, product.uom_id)
+            else:
+                value = product.lst_price
+            value -= product.price_extra
+            product.write({'list_price': value})
 
-    @property
-    def lst_price(self):
-        """
-        ``_compute_product_lst_price`` — precio de catálogo **más** el extra.
+    @api.depends('product_template_attribute_value_ids.price_extra')
+    def _compute_product_price_extra(self):
+        """≙ ``_compute_product_price_extra``
+        (``odoo19c: product_product.py:319-321``).
 
-        La conversión de unidad que la referencia hace por contexto no se
-        porta; ver el docstring del módulo.
+        La suma, no el máximo: los extras de los atributos se acumulan.
         """
-        return self.list_price + self.price_extra
+        for product in self:
+            product.price_extra = sum(
+                product.product_template_attribute_value_ids.mapped(
+                    'price_extra'))
+
+    @api.depends('product_tmpl_id.list_price', 'price_extra')
+    @api.depends_context('uom')
+    def _compute_product_lst_price(self):
+        """≙ ``_compute_product_lst_price``
+        (``odoo19c: product_product.py:325-335``).
+
+        Precio de la ficha más el extra; con una unidad en el contexto, el
+        precio de la ficha se convierte antes a esa unidad.
+        """
+        to_uom = None
+        if 'uom' in self.env.context:
+            to_uom = Uom.objects.get(pk=self.env.context['uom'])
+        for product in self:
+            if to_uom:
+                list_price = product.uom_id._compute_price(
+                    product.list_price, to_uom)
+            else:
+                list_price = product.list_price
+            product.lst_price = list_price + product.price_extra
 
     # === IDENTIFICACIÓN ANTE UN PROVEEDOR =================================
     # ``_compute_product_code`` y ``_compute_partner_ref`` de la referencia,

@@ -78,9 +78,8 @@ En Django una FK da exactamente **un** ``related_name``, así que el gemelo no
 puede existir como campo. Se conserva como **propiedad alias** sobre el mismo
 conjunto: el nombre sigue disponible para quien lo llame, y el docstring dice
 que no filtra nada — que es la verdad de la fuente, no una simplificación.
-- **``_compute_currency_id`` / ``_compute_cost_currency_id``**: la moneda sale
-  de la compañía. Se porta como propiedad; la de coste puede diferir cuando la
-  compañía valora en otra divisa, y eso lo resuelve ``stock_account``.
+- **``currency_id`` / ``cost_currency_id``**: campos calculados sin columna,
+  como en la fuente. La moneda de ``res.company`` se llama aquí ``currency``.
 - **La generación de variantes** (``_create_variant_ids``, ~200 líneas): crea
   el producto cartesiano de las líneas de atributo y sincroniza altas y bajas.
   Entra con ``product_product.py``, que es donde vive el modelo que crea.
@@ -244,6 +243,17 @@ class ProductTemplate(models.BaseModel, ImageMixin, TimeStampedModel):
             'que este producto se puede vender. La fuente excluye la '
             'unidad base por dominio; aquí lo hace quien las consume.'
         ),
+    )
+    #: ≙ ``currency_id`` (``odoo19c: addons/product/models/
+    #: product_template.py:88-89``): calculado, sin columna.
+    currency_id = fields.Many2one(
+        'base.ResCurrency', 'Currency', compute='_compute_currency_id',
+        store=False, related_name='+',
+    )
+    #: ≙ ``cost_currency_id`` (``:90-91``): calculado, sin columna.
+    cost_currency_id = fields.Many2one(
+        'base.ResCurrency', 'Cost Currency',
+        compute='_compute_cost_currency_id', store=False, related_name='+',
     )
     list_price = fields.Monetary(
         max_digits=16,
@@ -426,30 +436,39 @@ class ProductTemplate(models.BaseModel, ImageMixin, TimeStampedModel):
 
     # === DERIVADOS ========================================================
 
-    @property
-    def currency(self):
-        """``_compute_currency_id`` (``odoo19c: product_template.py:257-260``).
+    @api.depends('company_id')
+    def _compute_currency_id(self):
+        """≙ ``_compute_currency_id``
+        (``odoo19c: product_template.py:257-260``).
 
         La moneda de la compañía del producto o, sin compañía, la de la
-        compañía principal: ``template.company_id.sudo().currency_id.id or
-        main_company.currency_id.id``.
+        compañía principal. La moneda de ``res.company`` se llama aquí
+        ``currency``; la principal la resuelve ``ResCompany.get_main_company``.
         """
-        company = self.company_id or ResCompany.get_main_company()
-        return getattr(company, 'currency', None)
+        main_company = ResCompany.get_main_company()
+        main_currency = getattr(main_company, 'currency', None)
+        for template in self:
+            company = template.company_id
+            template.currency_id = (
+                (company.currency if company else None) or main_currency
+            )
 
-    @property
-    def cost_currency(self):
-        """
-        ``_compute_cost_currency_id`` — la moneda en que se expresa el coste.
+    @api.depends('company_id')
+    @api.depends_context('company')
+    def _compute_cost_currency_id(self):
+        """≙ ``_compute_cost_currency_id``
+        (``odoo19c: product_template.py:264-267``).
 
-        ≙ ``odoo19c: product_template.py:262-266``: la de la compañía del
-        producto o, sin compañía, la de la empresa **activa**
-        (``@api.depends_context('company')``), no la principal.
+        La de la compañía del producto o, sin compañía, la de la empresa
+        **activa**, no la principal.
         """
-        if self.company_id is not None:
-            return self.company_id.currency
-        company = env().company
-        return company.currency if company is not None else None
+        env_company = self.env.company
+        env_currency = env_company.currency if env_company else None
+        for template in self:
+            company = template.company_id
+            template.cost_currency_id = (
+                (company.currency if company else None) or env_currency
+            )
 
     @property
     def uom_name(self):

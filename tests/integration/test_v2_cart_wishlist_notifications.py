@@ -73,7 +73,7 @@ def wishlist_item(db, user, product_f2):
     return WishlistItem.objects.create(
         user=user,
         product=product_f2,
-        price_at_add=product_f2.lst_price,
+        price_at_add=product_f2.sudo().lst_price,
     )
 
 

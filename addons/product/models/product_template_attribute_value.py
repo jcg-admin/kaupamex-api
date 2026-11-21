@@ -15,9 +15,8 @@ Portados todos los campos y métodos. ``exclude_for`` (``:44-49``) es el
 inverso que declara ``product.template.attribute.exclusion``.
 
 ``currency_id`` (``odoo19c:
-addons/product/models/product_template_attribute_value.py:42``) es
-``related`` a la moneda de la plantilla, que allí es todavía la propiedad
-``currency``: se lee por ella.
+addons/product/models/product_template_attribute_value.py:41``) es
+``related`` a ``currency_id`` de la plantilla, como en la fuente.
 """
 
 from decimal import Decimal
@@ -83,6 +82,13 @@ class ProductTemplateAttributeValue(models.BaseModel, TimeStampedModel):
     #: ≙ ``product_tmpl_id`` y ``attribute_id`` (``:51-54``): ``related``
     #: almacenados e indexados, que la búsqueda por plantilla o por atributo
     #: lee sin pasar por la línea.
+    #: ≙ ``currency_id`` (``odoo19c: addons/product/models/
+    #: product_template_attribute_value.py:41``).
+    currency_id = fields.Many2one(
+        'base.ResCurrency',
+        related='attribute_line_id.product_tmpl_id.currency_id',
+        store=False, related_name='+',
+    )
     product_tmpl_id = fields.Many2one(
         'product.ProductTemplate',
         related='attribute_line_id.product_tmpl_id',
@@ -130,12 +136,6 @@ class ProductTemplateAttributeValue(models.BaseModel, TimeStampedModel):
     def __str__(self) -> str:
         extra = f' (+{self.price_extra})' if self.price_extra else ''
         return f'{self.product_attribute_value_id.name}{extra}'
-
-    @property
-    def currency_id(self):
-        """≙ ``currency_id`` de la fuente, ``related`` a la moneda de la
-        plantilla, que allí es todavía la propiedad ``currency``."""
-        return self.attribute_line_id.product_tmpl_id.currency
 
     @api.constrains('attribute_line_id', 'product_attribute_value_id')
     def _check_valid_values(self):

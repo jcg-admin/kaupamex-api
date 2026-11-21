@@ -130,7 +130,12 @@ def add_item_to_draft(order, product, quantity=1):
     if quantity > available:
         raise DraftOrderError('Stock insuficiente.', 'INSUFFICIENT_STOCK')
 
-    unit_price = product.lst_price
+    # El carrito de la referencia opera como superusuario: ``request.cart``
+    # devuelve ``order_sudo`` y ``_cart_add`` corre sobre él
+    # (``odoo19c: addons/website_sale/controllers/cart.py:113-123``). Leer
+    # ``lst_price`` atraviesa la delegación de ``_inherits`` hacia la ficha,
+    # que comprueba el acceso de quien lee.
+    unit_price = product.sudo().lst_price
 
     with transaction.atomic():
         line, created = order.order_line.get_or_create(

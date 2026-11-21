@@ -42,7 +42,7 @@ def test_the_variant_delegates_company_id_to_its_template(variant, company):
 
 def test_the_cost_currency_is_the_one_of_the_product_company(
         variant, company):
-    assert variant.product_tmpl_id.cost_currency == company.currency
+    assert variant.product_tmpl_id.cost_currency_id == company.currency
 
 
 def test_a_new_lot_takes_the_company_of_the_product(variant, company):

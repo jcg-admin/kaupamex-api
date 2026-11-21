@@ -49,9 +49,10 @@ def test_the_delegation_is_wired_on_the_template_key():
     assert getattr(field, 'delegate', False) is True
     # Lo que la ficha tiene y la variante no define, se delega.
     assert 'sequence' in ProductProduct._inherits_fields
-    # Lo que la variante define por su cuenta gana: ``list_price`` es su
-    # propiedad (precio de la ficha más el extra de atributos).
-    assert 'list_price' not in ProductProduct._inherits_fields
+    # ``list_price`` llega de la ficha, como en la fuente; lo que la variante
+    # define por su cuenta gana: ``lst_price`` es su campo calculado.
+    assert ProductProduct._inherits_fields['list_price'] == 'product_tmpl_id'
+    assert 'lst_price' not in ProductProduct._inherits_fields
 
 
 @pytest.mark.django_db

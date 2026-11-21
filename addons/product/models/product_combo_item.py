@@ -178,7 +178,7 @@ class ProductComboItem(TimeStampedModel):
         explícita, igual que ``type``, ``uom_id`` y ``company_id`` de
         ``ProductProduct``.
         """
-        return getattr(self.product_id, 'currency', None)
+        return self.product_id.currency_id
 
     # === INVARIANTES ======================================================
 

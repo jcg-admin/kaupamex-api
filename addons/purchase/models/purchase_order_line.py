@@ -849,10 +849,8 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                     line_taxes,
                     line.company_id,
                 )
-                # ``cost_currency_id`` es aquí la propiedad ``cost_currency``
-                # de la plantilla.
                 line._reset_price_unit(
-                    product.product_tmpl_id.cost_currency._convert(
+                    product.product_tmpl_id.cost_currency_id._convert(
                         price_unit, line.currency_id, line.company_id,
                         line.date_order or timezone.localdate(), False))
             else:

@@ -403,7 +403,7 @@ class ProductPricelistItem(TimeStampedModel):
         tasa de la fecha que corresponda (ver el docstring del módulo).
         """
         if self.base == BASE_STANDARD_PRICE:
-            return float(product.standard_price or 0), product.cost_currency
+            return float(product.standard_price or 0), product.cost_currency_id
         if self.base == BASE_PRICELIST and self.base_pricelist_id:
             # La recursión completa la resuelve el selector de reglas; aquí se
             # declara el punto de entrada en vez de duplicarlo.
@@ -411,7 +411,7 @@ class ProductPricelistItem(TimeStampedModel):
                 'Una regla basada en otra tarifa la resuelve el selector de '
                 'reglas de product_pricelist, no esta regla.'
             )
-        return float(product.lst_price or 0), product.currency
+        return float(product.lst_price or 0), product.currency_id
 
     def compute(self, product, quantity=1, to_uom=None):
         """``_compute_price`` — el precio unitario según esta regla.
