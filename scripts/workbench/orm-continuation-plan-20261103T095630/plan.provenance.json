@@ -1516,6 +1516,13 @@
         "product-supplierinfo-basemodel-0397"
       ],
       "writtenAt": "2026-11-21T11:04:49Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-pricelist-stage1-basemodel-0397"
+      ],
+      "writtenAt": "2026-11-21T12:26:40Z"
     }
   ]
 }
