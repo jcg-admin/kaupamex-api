@@ -1481,6 +1481,13 @@
         "product-uom-basemodel-0397"
       ],
       "writtenAt": "2026-11-21T05:05:33Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-category-basemodel-0397"
+      ],
+      "writtenAt": "2026-11-21T07:09:01Z"
     }
   ]
 }

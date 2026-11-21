@@ -205,3 +205,4 @@ f2-4c99edb6	full-batch	4c99edb6	-	0	14407	0	0	8	-	14407 passed, 66 skipped, 8 xf
 f2-fe3351a0	full-batch	fe3351a0	-	0	14413	0	0	8	-	14413 passed, 66 skipped, 8 xfailed	verde	product-tag-basemodel-0397	f2-fe3351a0.log:17384a4fc2a93a9439012772cf174deca8dcfbd5c14bba987f9d37323e0a2d6c
 f2-4d74496b	full-batch	4d74496b	-	0	14414	0	0	8	-	14414 passed, 66 skipped, 8 xfailed	verde	product-attribute-custom-value-basemodel-0397	f2-4d74496b.log:e67a64177f515d99f03862a4327cfddff82e4a4e203932b6d6afff91d9d120ac
 f2-e140dc99	full-batch	e140dc99	-	0	14419	0	0	8	-	14419 passed, 66 skipped, 8 xfailed	verde	product-uom-basemodel-0397	f2-e140dc99.log:04dd94178c038023721f1e16da7be30c0e669c6cde725718b05dfbddc774454d
+f2-4d09e8d1	full-batch	4d09e8d1	-	0	14428	0	0	8	-	14428 passed, 66 skipped, 8 xfailed in 1225.06s; EXIT=0	verde	product-category-basemodel-0397	f2-4d09e8d1.log:1aa204b6ef5235907a7894e62e87562405106fa548e3e05bf312e3208acd110f
