@@ -18,6 +18,16 @@ from addons.product.models import (
     ProductUom)
 from addons.product.models.product_pricelist_item import COMPUTE_FIXED
 from addons.uom.models import Uom
+from addons.base.models.res_currency import ResCurrency
+
+
+def _pricelist_currency():
+    """La moneda obligatoria de una tarifa
+    (``odoo19c: addons/product/models/product_pricelist.py:36-41``)."""
+    currency, _ = ResCurrency.objects.get_or_create(
+        name='MXN', defaults={'symbol': '$'})
+    return currency
+
 
 pytestmark = pytest.mark.django_db
 
@@ -43,6 +53,7 @@ def test_a_fixed_rule_converts_its_price_to_the_requested_unit():
                                               uom_id=unit)
     variant = ProductProduct.objects.create(product_tmpl_id=template)
     rule = ProductPricelistItem.objects.create(
-        pricelist_id=ProductPricelist.objects.create(name='Tarifa ptu'),
+        pricelist_id=ProductPricelist.objects.create(
+            currency_id=_pricelist_currency(), name='Tarifa ptu'),
         compute_price=COMPUTE_FIXED, fixed_price=1)
     assert rule.compute(variant, to_uom=dozen) == pytest.approx(12.0)

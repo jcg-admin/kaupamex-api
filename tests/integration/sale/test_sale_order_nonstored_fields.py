@@ -29,6 +29,16 @@ from addons.product.models.product_pricelist import ProductPricelist
 from addons.sale.models import SaleOrder, SaleOrderLine
 from tests.factories.product_factory import make_category, make_product
 from tests.factories.user_factory import UserFactory
+from addons.base.models.res_currency import ResCurrency
+
+
+def _pricelist_currency():
+    """La moneda obligatoria de una tarifa
+    (``odoo19c: addons/product/models/product_pricelist.py:36-41``)."""
+    currency, _ = ResCurrency.objects.get_or_create(
+        name='MXN', defaults={'symbol': '$'})
+    return currency
+
 
 pytestmark = pytest.mark.django_db
 
@@ -237,6 +247,7 @@ class TestTheFiveComputesCalculateWhatTheSourceCalculates:
 
     def test_a_pricelist_of_the_company_flips_the_flag(self, company):
         ProductPricelist.objects.create(
+            currency_id=_pricelist_currency(),
             name='Tarifa NS976', company_id=company)
         order = SaleOrder.objects.create(company=company)
         assert order.has_active_pricelist is True
@@ -244,6 +255,7 @@ class TestTheFiveComputesCalculateWhatTheSourceCalculates:
     def test_an_inactive_pricelist_does_not_count(self, company):
         """El control del caso anterior: sin ``active=True`` no cuenta."""
         ProductPricelist.objects.create(
+            currency_id=_pricelist_currency(),
             name='Tarifa NS976 inactiva', company_id=company, active=False
         )
         order = SaleOrder.objects.create(company=company)
@@ -251,14 +263,18 @@ class TestTheFiveComputesCalculateWhatTheSourceCalculates:
 
     def test_a_pricelist_of_another_company_does_not_count(self, company):
         other = ResCompany.objects.create(code='ns-976-b', name='Otra NS976')
-        ProductPricelist.objects.create(name='Tarifa ajena', company_id=other)
+        ProductPricelist.objects.create(
+            currency_id=_pricelist_currency(), name='Tarifa ajena',
+            company_id=other)
         order = SaleOrder.objects.create(company=company)
         assert order.has_active_pricelist is False
 
     def test_a_pricelist_without_company_counts_for_everyone(self, company):
         """``('company_id', 'in', (False, ...))`` de la fuente: la tarifa sin
         empresa sirve a cualquiera."""
-        ProductPricelist.objects.create(name='Tarifa global NS976')
+        ProductPricelist.objects.create(
+            currency_id=_pricelist_currency(), name='Tarifa global NS976',
+            company_id=None)
         order = SaleOrder.objects.create(company=company)
         assert order.has_active_pricelist is True
 

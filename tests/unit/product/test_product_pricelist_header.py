@@ -12,12 +12,24 @@ la tabla y las columnas del Many2many leídas en la base.
 mensajes, que el diseño declara con su sucesor.
 """
 import pytest
+
+from orm.commands import Command
 from django.db import connection
 
 from addons.base.models.res_company import ResCompany
 from addons.base.models.res_country_group import ResCountryGroup
 from addons.product.models import ProductPricelist
 from addons.sale.models.sale_order import pricelist_domain
+from addons.base.models.res_currency import ResCurrency
+
+
+def _pricelist_currency():
+    """La moneda obligatoria de una tarifa
+    (``odoo19c: addons/product/models/product_pricelist.py:36-41``)."""
+    currency, _ = ResCurrency.objects.get_or_create(
+        name='MXN', defaults={'symbol': '$'})
+    return currency
+
 
 pytestmark = pytest.mark.django_db
 
@@ -50,8 +62,9 @@ def test_the_country_groups_use_the_source_table_and_columns():
 
 def test_an_assigned_group_lives_in_the_source_table():
     group = ResCountryGroup.objects.create(name='Grupo pl-hdr')
-    pricelist = ProductPricelist.objects.create(name='Tarifa pl-hdr')
-    pricelist.country_group_ids.add(group)
+    pricelist = ProductPricelist.objects.create(
+        currency_id=_pricelist_currency(), name='Tarifa pl-hdr')
+    pricelist.write({'country_group_ids': [Command.link(group.pk)]})
     with connection.cursor() as cr:
         cr.execute(
             'SELECT res_country_group_id FROM res_country_group_pricelist_rel'
@@ -65,11 +78,15 @@ def test_the_sale_order_domain_admits_own_and_shared_pricelists():
     sale_order.py:189``)."""
     own_company = ResCompany.objects.create(code='pl-hdr-a', name='Propia')
     other_company = ResCompany.objects.create(code='pl-hdr-b', name='Ajena')
-    own = ProductPricelist.objects.create(name='pl-hdr propia',
-                                          company_id=own_company)
-    shared = ProductPricelist.objects.create(name='pl-hdr compartida')
-    ProductPricelist.objects.create(name='pl-hdr ajena',
-                                    company_id=other_company)
+    own = ProductPricelist.objects.create(
+        currency_id=_pricelist_currency(), name='pl-hdr propia',
+        company_id=own_company)
+    shared = ProductPricelist.objects.create(
+        currency_id=_pricelist_currency(), name='pl-hdr compartida',
+        company_id=None)
+    ProductPricelist.objects.create(
+        currency_id=_pricelist_currency(), name='pl-hdr ajena',
+        company_id=other_company)
 
     class _Order:
         company = own_company

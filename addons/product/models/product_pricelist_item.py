@@ -71,6 +71,7 @@ Qué NO se porta, con su medición
   últimos son etiquetas calculadas para el formulario de Odoo.
 """
 
+import api
 import fields
 import models
 from django.core.exceptions import ValidationError
@@ -84,6 +85,7 @@ from addons.product.models.product_product import ProductProduct
 from addons.product.models.product_template import ProductTemplate
 from orm.environments import env
 from tools.float_utils import float_round
+from tools.translate import _
 
 APPLIED_VARIANT = '0_product_variant'
 APPLIED_PRODUCT = '1_product'
@@ -120,172 +122,216 @@ COMPUTE_PRICE_CHOICES = [
 ]
 
 
-class ProductPricelistItem(TimeStampedModel):
+def _default_pricelist_id():
+    """≙ ``_default_pricelist_id`` (``odoo19c: addons/product/models/
+    product_pricelist_item.py:14-17``): la primera tarifa sin empresa o de
+    la empresa activa. Callable de módulo: un ``default`` de Django no
+    recibe ``self``."""
+    company = env().company
+    pricelist = env()['product.pricelist'].search([
+        '|', ('company_id', '=', False),
+        ('company_id', '=', company.pk if company is not None else False),
+    ], limit=1)
+    return pricelist.id or None
+
+
+class ProductPricelistItem(models.BaseModel, TimeStampedModel):
     """``product.pricelist.item`` — una regla dentro de una tarifa."""
 
     #: ≙ la cabecera de la fuente
     #: (``odoo19c: addons/product/models/product_pricelist_item.py:9-12``).
-    #: ``_check_company_auto = True`` (``:12``) y los ``check_company=True``
-    #: de ``product_tmpl_id``, ``product_id`` y ``base_pricelist_id``
-    #: (``:80``, ``:85``, ``:104``) son la unidad sucesora
-    #: ``pricelist-item-check-company-0397``.
     _name = 'product.pricelist.item'
     _description = "Pricelist Rule"
     _order = "applied_on, min_quantity desc, categ_id desc, id desc"
+    _check_company_auto = True
 
-    #: ≙ ``pricelist_id`` (``odoo19c: addons/product/models/
-    #: product_pricelist_item.py:19``) en forma C.
+    #: ≙ ``pricelist_id`` (``:19-26``). ``required=False`` como la fuente:
+    #: los flujos estándar no manejan reglas sin tarifa, algunos módulos sí.
     pricelist_id = fields.Many2one(
         ProductPricelist,
+        string="Pricelist",
         db_column='pricelist_id',
         on_delete=models.CASCADE, null=True, blank=True,
         db_index=True,
-        related_name='item_ids',
-        verbose_name='Tarifa',
+        default=_default_pricelist_id,
+        related_name='+',
     )
-    applied_on = fields.Selection(
-        max_length=32,
-        choices=APPLIED_ON_CHOICES,
-        default=APPLIED_GLOBAL,
-        verbose_name='Se aplica a',
-        help_text=(
-            'El prefijo numérico ES la precedencia — ver el docstring '
-            'del módulo.'
-        ),
-    )
-    categ_id = fields.Many2one(
-        ProductCategory,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='pricelist_item_ids',
-        db_column='categ_id',
-        verbose_name='Categoría',
-    )
-    #: ≙ ``product_tmpl_id`` (``:77``) en forma C.
-    product_tmpl_id = fields.Many2one(
-        ProductTemplate,
-        db_column='product_tmpl_id',
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='pricelist_rule_ids',
-        verbose_name='Producto',
-    )
-    #: ≙ ``product_id`` (``:82``) en forma C.
-    product_id = fields.Many2one(
-        ProductProduct,
-        db_column='product_id',
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='pricelist_rule_ids',
-        verbose_name='Variante',
-    )
-    min_quantity = fields.Float(
-        default=0,
-        verbose_name='Cantidad mínima',
-        help_text=(
-            'A igual alcance gana la regla de mínimo mayor: la más exigente.'
-        ),
-    )
-    date_start = fields.Datetime(
-        null=True, blank=True, verbose_name='Fecha de inicio'
-    )
-    date_end = fields.Datetime(
-        null=True, blank=True, verbose_name='Fecha de fin'
-    )
-    base = fields.Selection(
-        max_length=32,
-        choices=BASE_CHOICES,
-        default=BASE_LIST_PRICE,
-        verbose_name='Basado en',
-    )
-    #: ≙ ``base_pricelist_id`` (``:104``) en forma C.
-    base_pricelist_id = fields.Many2one(
-        ProductPricelist,
-        db_column='base_pricelist_id',
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        related_name='derived_item_ids',
-        verbose_name='Otra tarifa',
-    )
-    compute_price = fields.Selection(
-        max_length=16,
-        choices=COMPUTE_PRICE_CHOICES,
-        default=COMPUTE_FIXED,
-        db_index=True,
-        verbose_name='Cálculo del precio',
-    )
-    fixed_price = fields.Monetary(
-        max_digits=16, decimal_places=2, default=0, verbose_name='Precio fijo'
-    )
-    percent_price = fields.Float(default=0, verbose_name='Descuento (%)')
-    price_discount = fields.Float(
-        default=0, verbose_name='Descuento de fórmula (%)'
-    )
-    price_markup = fields.Float(
-        default=0,
-        verbose_name='Margen sobre coste (%)',
-        help_text=(
-            'Se usa EN LUGAR del descuento cuando la base es el coste; '
-            'la fórmula lo aplica como descuento negativo.'
-        ),
-    )
-    price_round = fields.Float(
-        default=0,
-        verbose_name='Redondeo',
-        help_text='Se aplica ANTES del recargo — ver el docstring del módulo.',
-    )
-    price_surcharge = fields.Monetary(
-        max_digits=16, decimal_places=2, default=0, verbose_name='Recargo'
-    )
-    price_min_margin = fields.Monetary(
-        max_digits=16,
-        decimal_places=2,
-        default=0,
-        verbose_name='Margen mínimo',
-        help_text='Se mide contra la BASE, no contra el precio en curso.',
-    )
-    price_max_margin = fields.Monetary(
-        max_digits=16,
-        decimal_places=2,
-        default=0,
-        verbose_name='Margen máximo',
-        help_text='Se mide contra la BASE, no contra el precio en curso.',
-    )
+    #: ≙ ``is_pricelist_required`` (``:28``).
+    is_pricelist_required = fields.Boolean(
+        compute='_compute_is_pricelist_required')
 
-    #: ≙ ``company_id`` (``:31``): ``compute='_compute_company_id',
-    #: store=True``. Se fija en :meth:`save`, como el ``precompute`` de
-    #: ``product.combo.item``.
+    #: ≙ ``company_id`` (``:30``).
     company_id = fields.Many2one(
         ResCompany,
+        compute='_compute_company_id', store=True,
         db_column='company_id',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        editable=False,
+        on_delete=models.SET_NULL, null=True, blank=True,
         related_name='pricelist_item_ids',
-        verbose_name='Compañía',
-        help_text='La de la tarifa o, sin ella, la de la plantilla.',
     )
-    #: ≙ ``currency_id`` (``:32``): ``compute='_compute_currency_id',
-    #: store=True``. Se fija en :meth:`save`.
+    #: ≙ ``currency_id`` (``:31``).
     currency_id = fields.Many2one(
         ResCurrency,
+        compute='_compute_currency_id', store=True,
         db_column='currency_id',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        editable=False,
+        on_delete=models.SET_NULL, null=True, blank=True,
         related_name='pricelist_item_ids',
-        verbose_name='Moneda',
-        help_text=(
-            'La de la tarifa, o la de la compañía, o la de la compañía '
-            'del entorno.'
-        ),
     )
+
+    date_start = fields.Datetime(
+        string="Start Date", null=True, blank=True,
+        help="Starting datetime for the pricelist item validation\n"
+             "The displayed value depends on the timezone set in your "
+             "preferences.")
+    date_end = fields.Datetime(
+        string="End Date", null=True, blank=True,
+        help="Ending datetime for the pricelist item validation\n"
+             "The displayed value depends on the timezone set in your "
+             "preferences.")
+
+    min_quantity = fields.Float(
+        string="Min. Quantity",
+        default=0,
+        digits='Product Unit',
+        help="For the rule to apply, bought/sold quantity must be greater "
+             "than or equal to the minimum quantity specified in this "
+             "field.\nExpressed in the default unit of measure of the "
+             "product.")
+
+    applied_on = fields.Selection(
+        selection=APPLIED_ON_CHOICES,
+        string="Apply On",
+        default=APPLIED_GLOBAL,
+        required=True,
+        max_length=32,
+        help="Pricelist Item applicable on selected option")
+
+    #: ≙ ``display_applied_on`` (``:61-68``).
+    display_applied_on = fields.Selection(
+        selection=[
+            ('1_product', "Product"),
+            ('2_product_category', "Category"),
+        ],
+        default='1_product',
+        required=True,
+        max_length=32,
+        help="Pricelist Item applicable on selected option")
+
+    categ_id = fields.Many2one(
+        ProductCategory,
+        string="Category",
+        on_delete=models.CASCADE, null=True, blank=True,
+        db_column='categ_id',
+        related_name='pricelist_item_ids',
+        help="Specify a product category if this rule only applies to "
+             "products belonging to this category or its children "
+             "categories. Keep empty otherwise.")
+    product_tmpl_id = fields.Many2one(
+        ProductTemplate,
+        string="Product",
+        on_delete=models.CASCADE, null=True, blank=True,
+        check_company=True, db_index=True,
+        db_column='product_tmpl_id',
+        related_name='pricelist_rule_ids',
+        help="Specify a template if this rule only applies to one product "
+             "template. Keep empty otherwise.")
+    product_id = fields.Many2one(
+        ProductProduct,
+        string="Variant",
+        on_delete=models.CASCADE, null=True, blank=True,
+        check_company=True, db_index=True,
+        domain="[('product_tmpl_id', '=', product_tmpl_id)]",
+        db_column='product_id',
+        related_name='pricelist_rule_ids',
+        help="Specify a product if this rule only applies to one product. "
+             "Keep empty otherwise.")
+    #: ≙ ``product_uom_name`` (``:87``): ``related='product_tmpl_id.
+    #: uom_name'``, y ``uom_name`` es a su vez ``related='uom_id.name'``
+    #: (``odoo19c: addons/product/models/product_template.py``); aquí la
+    #: plantilla lo expone como propiedad, así que se recorre la cadena.
+    product_uom_name = fields.Char(related='product_tmpl_id.uom_id.name')
+    #: ≙ ``product_variant_count`` (``:88``).
+    product_variant_count = fields.Integer(
+        related='product_tmpl_id.product_variant_count')
+
+    base = fields.Selection(
+        selection=BASE_CHOICES,
+        string="Based on",
+        default=BASE_LIST_PRICE,
+        required=True,
+        max_length=32,
+        help="Base price for computation.\n"
+             "Sales Price: The base price will be the Sales Price.\n"
+             "Cost Price: The base price will be the cost price.\n"
+             "Other Pricelist: Computation of the base price based on "
+             "another Pricelist.")
+    base_pricelist_id = fields.Many2one(
+        ProductPricelist,
+        string='Other Pricelist',
+        check_company=True,
+        db_column='base_pricelist_id',
+        on_delete=models.PROTECT, null=True, blank=True,
+        related_name='derived_item_ids',
+    )
+
+    compute_price = fields.Selection(
+        selection=COMPUTE_PRICE_CHOICES,
+        help="Use the discount rules and activate the discount settings"
+             " in order to show discount to customer.",
+        db_index=True, default=COMPUTE_FIXED, required=True,
+        max_length=16,
+    )
+
+    fixed_price = fields.Float(
+        string="Fixed Price", min_display_digits='Product Price', default=0)
+    percent_price = fields.Float(
+        string="Percentage Price", default=0,
+        help="You can apply a mark-up by setting a negative discount.")
+
+    price_discount = fields.Float(
+        string="Price Discount",
+        default=0,
+        digits=(16, 2),
+        help="You can apply a mark-up by setting a negative discount.")
+    price_round = fields.Float(
+        string="Price Rounding",
+        min_display_digits='Product Price', default=0,
+        help="Sets the price so that it is a multiple of this value.\n"
+             "Rounding is applied after the discount and before the "
+             "surcharge.\nTo have prices that end in 9.99, round off to "
+             "10.00 and set an extra at -0.01")
+    price_surcharge = fields.Float(
+        string="Extra Fee",
+        min_display_digits='Product Price', default=0,
+        help="Specify the fixed amount to add or subtract (if negative) to "
+             "the amount calculated with the discount.")
+
+    #: ≙ ``price_markup`` (``:136-142``): almacenado, calculado desde
+    #: ``price_discount`` y con inverso que lo escribe de vuelta.
+    price_markup = fields.Float(
+        string="Markup",
+        digits=(16, 2),
+        compute='_compute_price_markup',
+        inverse='_inverse_price_markup',
+        store=True,
+        help="You can apply a mark-up on the cost")
+
+    price_min_margin = fields.Float(
+        string="Min. Price Margin",
+        min_display_digits='Product Price', default=0,
+        help="Specify the minimum amount of margin over the base price.")
+    price_max_margin = fields.Float(
+        string="Max. Price Margin",
+        min_display_digits='Product Price', default=0,
+        help="Specify the maximum amount of margin over the base price.")
+
+    #: ≙ ``name`` (``:155-158``), etiqueta calculada no almacenada.
+    #: ``price`` y ``rule_tip`` (``:159-163``) son etiquetas de formulario
+    #: que dependen de ``formatLang``/``format_amount``: etapa 5 del
+    #: diseño ``product-pricelist-cluster``.
+    name = fields.Char(
+        string="Name",
+        compute='_compute_name',
+        help="Explicit rule name for this pricelist line.")
 
     class Meta:
         db_table = 'product_pricelist_item'
@@ -293,37 +339,60 @@ class ProductPricelistItem(TimeStampedModel):
         verbose_name = 'Regla de tarifa'
         verbose_name_plural = 'Reglas de tarifa'
 
-    def __str__(self):
-        return f'{self.pricelist_id_id}/{self.applied_on}#{self.pk}'
+    # === COMPUTE METHODS ==================================================
 
-    def save(self, *args, **kwargs):
-        """Calcula los dos almacenados antes de escribir la fila.
+    def _compute_is_pricelist_required(self):
+        """≙ ``_compute_is_pricelist_required`` (``:167-168``)."""
+        self.is_pricelist_required = True
 
-        ≙ ``_compute_company_id`` y ``_compute_currency_id``
-        (``odoo19c: addons/product/models/product_pricelist_item.py:
-        170-183``), verbatim en su orden de precedencia.
-        """
-        self.company_id = self._compute_company_id()
-        self.currency_id = self._compute_currency_id()
-        super().save(*args, **kwargs)
-
+    @api.depends('pricelist_id.company_id', 'product_tmpl_id')
     def _compute_company_id(self):
-        """La compañía de la tarifa o, sin ella, la de la plantilla."""
-        return ((self.pricelist_id and self.pricelist_id.company_id)
-                or (self.product_tmpl_id and self.product_tmpl_id.company_id)
-                or None)
+        """≙ ``_compute_company_id`` (``:170-173``)."""
+        for item in self:
+            item.company_id = (item.pricelist_id.company_id
+                               or item.product_tmpl_id.company_id)
 
+    @api.depends('pricelist_id.currency_id', 'company_id')
     def _compute_currency_id(self):
-        """La moneda de la tarifa, la de la compañía o la del entorno.
+        """≙ ``_compute_currency_id`` (``:175-182``).
 
         ``res.company`` guarda su moneda en ``currency`` (su sucesor de
-        nombre es ``res-company-currency-id``); ``currency_id`` es allí el
-        id escalar, no el registro.
+        nombre es ``res-company-currency-id``).
         """
-        return ((self.pricelist_id and self.pricelist_id.currency_id)
-                or (self.company_id and self.company_id.currency)
-                or (env().company and env().company.currency)
-                or None)
+        env_company = self.env.company
+        for item in self:
+            item_company = item.company_id
+            item.currency_id = (
+                item.pricelist_id.currency_id
+                or (item_company.currency if item_company else None)
+                or (env_company.currency if env_company else None)
+            )
+
+    @api.depends('applied_on', 'categ_id', 'product_tmpl_id', 'product_id')
+    def _compute_name(self):
+        """≙ ``_compute_name`` (``:184-196``)."""
+        for item in self:
+            if item.categ_id and item.applied_on == APPLIED_CATEGORY:
+                item.name = _("Category: %s", item.categ_id.display_name)
+            elif item.product_tmpl_id and item.applied_on == APPLIED_PRODUCT:
+                item.name = item.product_tmpl_id.display_name
+            elif item.product_id and item.applied_on == APPLIED_VARIANT:
+                item.name = _("Variant: %s", item.product_id.display_name)
+            elif item.display_applied_on == '2_product_category':
+                item.name = _("All Categories")
+            else:
+                item.name = _("All Products")
+
+    @api.depends('price_discount')
+    def _compute_price_markup(self):
+        """≙ ``_compute_price_markup`` (``:265-267``)."""
+        for item in self:
+            item.price_markup = -item.price_discount
+
+    def _inverse_price_markup(self):
+        """≙ ``_inverse_price_markup`` (``:269-271``)."""
+        for item in self:
+            item.price_discount = -item.price_markup
 
     def clean(self):
         """El alcance declarado y el campo que lo concreta tienen que casar.

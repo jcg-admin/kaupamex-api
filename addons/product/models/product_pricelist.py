@@ -26,20 +26,16 @@ La lista ordena por ``sequence, id, name``; el **item** ordena por
 distintas y la segunda es la que decide qué precio sale — está documentada en
 ``product_pricelist_item.py``, que es su sitio.
 
-Qué NO se porta, con su medición
-================================
+La selección de la regla y el precio
+====================================
 
-- **``_get_product_price`` y su familia** (``_compute_price_rule``,
-  ``_get_products_price``…): seleccionan la regla aplicable y delegan el
-  cálculo en el item. La **selección** depende de resolver el producto, su
-  categoría y su plantilla contra cada regla; se porta en
-  ``product_pricelist_item.py`` como ``matches`` y ``best_rule_for``, que es
-  donde están los datos que decide.
-- **``_get_partner_pricelist_multi``**: elige la lista de un cliente cruzando
-  su país con los grupos de países. Depende de ``res.partner.country``, que
-  existe, y del escaparate, que no está en este addon.
+``_get_product_price`` y su familia seleccionan la regla aplicable y delegan
+el cálculo en el item. Se portan en las etapas 3 y 4 del diseño
+``product-pricelist-cluster.md``; hasta entonces el precio de venta es
+``lst_price``.
 """
 
+import api
 import fields
 import models
 
@@ -47,15 +43,32 @@ from addons.base.models.res_company import ResCompany
 from addons.base.models.res_country_group import ResCountryGroup
 from addons.base.models.res_currency import ResCurrency
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from addons.mail.models import MailActivityMixin, MailThread
+from orm.environments import env
+from tools.translate import _
 
 
-class ProductPricelist(TimeStampedModel):
+def _default_currency_id():
+    """≙ ``_default_currency_id``
+    (``odoo19c: addons/product/models/product_pricelist.py:16-17``): la
+    moneda de la empresa activa. Callable de módulo: un ``default`` de
+    Django no recibe ``self``."""
+    company = env().company
+    return company.currency_id if company is not None else None
+
+
+def _default_company_id():
+    """≙ ``default=lambda self: self.env.company`` (``:43-47``)."""
+    company = env().company
+    return company.pk if company is not None else None
+
+
+class ProductPricelist(models.BaseModel, MailThread, MailActivityMixin,
+                       TimeStampedModel):
     """``product.pricelist`` — el contenedor de reglas de precio."""
 
     #: ≙ la cabecera de ``odoo19c: addons/product/models/
-    #: product_pricelist.py:10-14``, verbatim. ``_inherit`` nombra la
-    #: extensión del hilo aunque la clase no herede ``MailThread``
-    #: (sucesor ``product-category-mail-0122``).
+    #: product_pricelist.py:10-14``, verbatim.
     _name = 'product.pricelist'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _description = "Pricelist"
@@ -63,7 +76,18 @@ class ProductPricelist(TimeStampedModel):
     #: ``Meta.ordering`` es su forma en Django; los dos conviven.
     _order = "sequence, id, name"
 
-    name = fields.Char(max_length=255, verbose_name='Nombre de la tarifa')
+    def _base_domain_item_ids(self):
+        return [
+            '|', ('product_tmpl_id', '=', None),
+            ('product_tmpl_id.active', '=', True),
+            '|', ('product_id', '=', None), ('product_id.active', '=', True),
+        ]
+
+    def _domain_item_ids(self):
+        return self._base_domain_item_ids()
+
+    name = fields.Char(string="Pricelist Name", required=True,
+                       max_length=255)
     active = fields.Boolean(
         default=True,
         verbose_name='Activa',
@@ -74,18 +98,15 @@ class ProductPricelist(TimeStampedModel):
         verbose_name='Secuencia',
         help_text='Desempate cuando varias tarifas encajan: gana la menor.',
     )
-    #: ≙ ``currency_id`` (``:36``) en forma C. La fuente lo exige con la
-    #: moneda de la compañía por defecto; aquí admite nulo hasta
-    #: ``pricelist-currency-required-0122``.
+    #: ≙ ``currency_id`` (``:36-41``).
     currency_id = fields.Many2one(
         ResCurrency,
+        default=_default_currency_id,
+        required=True,
+        tracking=1,
         db_column='currency_id',
-        on_delete=models.PROTECT,
-        null=True,
-        blank=True,
+        null=False, on_delete=models.PROTECT,
         related_name='pricelist_ids',
-        verbose_name='Moneda',
-        help_text='Moneda en que sus reglas expresan los importes.',
     )
     #: ≙ ``company_id`` (``:43``) en forma C.
     company_id = fields.Many2one(
@@ -95,6 +116,8 @@ class ProductPricelist(TimeStampedModel):
         null=True,
         blank=True,
         db_index=True,
+        default=_default_company_id,
+        tracking=5,
         related_name='pricelist_ids',
         verbose_name='Compañía',
         help_text='Vacío = la tarifa sirve a todas las compañías.',
@@ -115,6 +138,16 @@ class ProductPricelist(TimeStampedModel):
         ),
     )
 
+    #: ≙ ``item_ids`` (``odoo19c: addons/product/models/
+    #: product_pricelist.py:58-64``); el dominio va como lambda para que
+    #: las extensiones de ``_domain_item_ids`` surtan efecto.
+    item_ids = fields.One2many(
+        comodel_name='product.pricelist.item',
+        inverse_name='pricelist_id',
+        string="Pricelist Rules",
+        domain=lambda self: self._domain_item_ids(),
+        copy=True)
+
     class Meta:
         db_table = 'product_pricelist'
         ordering = ['sequence', 'id', 'name']
@@ -123,3 +156,28 @@ class ProductPricelist(TimeStampedModel):
 
     def __str__(self):
         return self.name
+
+    @api.depends('currency_id')
+    def _compute_display_name(self):
+        for pricelist in self:
+            pricelist_name = pricelist.name and pricelist.name or _('New')
+            pricelist.display_name = (
+                f'{pricelist_name} ({pricelist.currency_id.name})')
+
+    def write(self, vals):
+        res = super().write(vals)
+
+        # Make sure that there is no multi-company issue in the existing
+        # rules after the company change.
+        if 'company_id' in vals and len(self) == 1:
+            self.item_ids._check_company()
+
+        return res
+
+    def copy_data(self, default=None):
+        default = dict(default or {})
+        vals_list = super().copy_data(default=default)
+        if 'name' not in default:
+            for pricelist, vals in zip(self, vals_list):
+                vals['name'] = _("%s (copy)", pricelist.name)
+        return vals_list

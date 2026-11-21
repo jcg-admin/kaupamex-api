@@ -13,10 +13,13 @@ regla de variante y de producto, que compara ids.
 """
 import pytest
 
+from addons.base.models.res_currency import ResCurrency
+
 from addons.product.models import (
     ProductPricelist, ProductPricelistItem, ProductProduct, ProductTemplate)
 from addons.product.models.product_pricelist_item import (
     APPLIED_PRODUCT, APPLIED_VARIANT)
+from orm.environments import env
 
 pytestmark = pytest.mark.django_db
 
@@ -35,7 +38,10 @@ def variant():
 
 @pytest.fixture
 def pricelist():
-    return ProductPricelist.objects.create(name='Tarifa pli-src')
+    currency, _ = ResCurrency.objects.get_or_create(
+        name='MXN', defaults={'symbol': '$'})
+    return ProductPricelist.objects.create(name='Tarifa pli-src',
+                                           currency_id=currency)
 
 
 def test_a_variant_rule_matches_its_variant_only(variant, pricelist):
@@ -56,7 +62,7 @@ def test_a_product_rule_matches_the_variants_of_its_template(
     assert rule.matches(variant)
 
 
-def test_the_rule_names_its_pricelist_by_id(pricelist):
-    rule = ProductPricelistItem.objects.create(pricelist_id=pricelist)
-    assert str(rule).startswith(f'{pricelist.pk}/')
-    assert list(pricelist.item_ids.all()) == [rule]
+def test_the_pricelist_lists_its_rules(pricelist):
+    rule = env()['product.pricelist.item'].create(
+        [{'pricelist_id': pricelist.pk}])
+    assert pricelist.item_ids == rule

@@ -15,6 +15,16 @@ from addons.product.models import (
     ProductCategory, ProductPricelist, ProductPricelistItem, ProductProduct,
     ProductTemplate)
 from addons.product.models.product_pricelist_item import APPLIED_CATEGORY
+from addons.base.models.res_currency import ResCurrency
+
+
+def _pricelist_currency():
+    """La moneda obligatoria de una tarifa
+    (``odoo19c: addons/product/models/product_pricelist.py:36-41``)."""
+    currency, _ = ResCurrency.objects.get_or_create(
+        name='MXN', defaults={'symbol': '$'})
+    return currency
+
 
 pytestmark = pytest.mark.django_db
 
@@ -40,7 +50,8 @@ def test_a_category_rule_reaches_the_products_of_its_branch():
     stranger = ProductTemplate.objects.create(name='Fuera ptc',
                                               categ_id=other)
     rule = ProductPricelistItem.objects.create(
-        pricelist_id=ProductPricelist.objects.create(name='Tarifa ptc'),
+        pricelist_id=ProductPricelist.objects.create(
+            currency_id=_pricelist_currency(), name='Tarifa ptc'),
         applied_on=APPLIED_CATEGORY, categ_id=root)
     assert rule.matches(template)
     assert not rule.matches(stranger)

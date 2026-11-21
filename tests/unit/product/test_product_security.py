@@ -24,11 +24,11 @@ from addons.base.models import IrModelData, ResCompany
 from addons.product.models import (
     ProductDocument,
     ProductPricelist,
-    ProductPricelistItem,
     ProductTemplate,
 )
 from exceptions import AccessError
-from orm.environments import company_scope, sudo
+from orm.environments import company_scope, env, sudo
+
 
 pytestmark = pytest.mark.django_db
 
@@ -80,7 +80,9 @@ def test_a_pricelist_item_stores_the_pricelist_company_and_currency(
     pricelist = ProductPricelist.objects.create(
         name='Tarifa psec', company_id=company,
         currency_id=company.currency)
-    item = ProductPricelistItem.objects.create(pricelist_id=pricelist)
+    with sudo():
+        item = env()['product.pricelist.item'].create(
+            [{'pricelist_id': pricelist.pk}])
     assert item.company_id == company
     assert item.currency_id == company.currency
 
@@ -89,8 +91,10 @@ def test_a_pricelist_item_without_pricelist_takes_the_template_company(
         company):
     template = ProductTemplate.objects.create(
         name='Plantilla psec3', company_id=company)
-    item = ProductPricelistItem.objects.create(
-        applied_on='1_product', product_tmpl_id=template)
+    with sudo():
+        item = env()['product.pricelist.item'].create(
+            [{'applied_on': '1_product', 'product_tmpl_id': template.pk,
+              'pricelist_id': False}])
     assert item.company_id == company
     assert item.currency_id == company.currency
 

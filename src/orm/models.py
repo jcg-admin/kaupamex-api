@@ -1864,7 +1864,9 @@ class CheckCompanyMixin:
         que la fuente hace en ``create``.
         """
         super().save(*args, **kwargs)
-        if self._check_company_auto:
+        # Dentro de ``create`` la fila aún no tiene sus calculados ni sus
+        # inversos: ``create`` verifica al final, como la fuente.
+        if self._check_company_auto and not ORM_CREATE_INSERTING.get():
             update_fields = kwargs.get('update_fields')
             self._check_company(
                 None if update_fields is None else list(update_fields))
@@ -6815,8 +6817,10 @@ def _copies(field):
 def _readable_ids(field, value):
     """Los ids que el usuario puede leer de un valor ``Many2many``: el
     recordset de un comodelo ``BaseModel``, o el gestor de Django de uno que
-    no lo es."""
-    if hasattr(value, '_filtered_access'):
+    no lo es. Se discrimina por ``_ids``: el gestor relacionado de
+    Django también expone ``_filtered_access`` (lo hereda de
+    :class:`AccessQuerySet`) y devuelve un ``QuerySet`` sin ``ids``."""
+    if hasattr(value, '_ids'):
         return value._filtered_access('read').ids
     rows = AccessQuerySet(model=field.related_model).filter(
         pk__in=value.values_list('pk', flat=True))

@@ -8,11 +8,13 @@ descuento como línea aparte en el presupuesto?** No es una propiedad de la
 regla — es una bandera de configuración de la instalación, encendida por el
 grupo ``sale.group_discount_per_so_line``.
 
-- ``_is_discount_feature_enabled`` (``:6-8``) — ``@api.model``, así que aquí
-  es ``classmethod``: pregunta por la instalación, no por una regla concreta.
+- ``_is_discount_feature_enabled`` (``:6-8``) — ``@api.model``: pregunta por
+  la instalación, no por una regla concreta.
 - ``_show_discount`` (``:10-15``) — de instancia. Verdadero sólo si la
   funcionalidad está encendida **y** esta regla calcula por porcentaje.
 """
+
+import api
 
 from addons.base.models.res_groups import ResGroups
 from addons.product.models.product_pricelist_item import COMPUTE_PERCENTAGE
@@ -28,27 +30,27 @@ _inherit = 'product.pricelist.item'
 GROUP_DISCOUNT_PER_SO_LINE = 'sale.group_discount_per_so_line'
 
 
-def _is_discount_feature_enabled(cls):
+@api.model
+def _is_discount_feature_enabled(self):
     """≙ ``_is_discount_feature_enabled`` (``odoo19c: :6-8``).
 
-    ``@api.model`` allá, ``classmethod`` aquí: la pregunta es por la
-    instalación, no por una regla. El interruptor lo lee ``ResGroups`` desde
-    el superusuario — ver su ``_is_feature_enabled``.
+    La pregunta es por la instalación, no por una regla. El interruptor lo
+    lee ``ResGroups`` desde el superusuario — ver su
+    ``_is_feature_enabled``.
     """
     return ResGroups._is_feature_enabled(GROUP_DISCOUNT_PER_SO_LINE)
 
 
 def _show_discount(self):
-    """≙ ``_show_discount`` (``odoo19c: :10-15``).
+    """≙ ``_show_discount`` (``odoo19c: :10-15``), con sus dos guardas:
+    el recordset vacío no muestra descuento y más de uno es un error."""
+    if not self:
+        return False
 
-    La guarda ``if not self: return False`` de la fuente protege contra el
-    recordset vacío, que aquí no existe: ``self`` es siempre una instancia. El
-    ``ensure_one()`` que la sigue tampoco tiene destinatario por la misma
-    razón. Es divergencia de mecanismo —el recordset frente a la instancia—,
-    no símbolo omitido: las dos guardas dejan de poder fallar.
-    """
+    self.ensure_one()
+
     return (
-        type(self)._is_discount_feature_enabled()
+        self._is_discount_feature_enabled()
         and self.compute_price == COMPUTE_PERCENTAGE
     )
 
@@ -62,9 +64,7 @@ def apply_sale_pricelist_item_extensions():
         'product',
         'ProductPricelistItem',
         metodos={
-            '_is_discount_feature_enabled': classmethod(
-                _is_discount_feature_enabled
-            ),
+            '_is_discount_feature_enabled': _is_discount_feature_enabled,
             '_show_discount': _show_discount,
         },
     )
