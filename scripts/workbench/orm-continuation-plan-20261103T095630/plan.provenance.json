@@ -1572,6 +1572,13 @@
         "analytic-account-plan-id-0397"
       ],
       "writtenAt": "2026-11-21T19:34:25Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "analytic-account-company-id-0397"
+      ],
+      "writtenAt": "2026-11-21T20:23:18Z"
     }
   ]
 }
