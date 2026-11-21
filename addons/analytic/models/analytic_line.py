@@ -153,9 +153,10 @@ class AnalyticPlanFieldsMixin(models.Model):
 
 
 class AccountAnalyticLine(
+    models.BaseModel,
+    models.CheckCompanyMixin,
     AnalyticPlanFieldsMixin,
     models.RecordLoaderMixin,
-    models.Model,
 ):
     """``account.analytic.line`` — apunte analítico (Odoo ``analytic``)."""
 

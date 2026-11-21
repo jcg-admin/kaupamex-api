@@ -47,7 +47,6 @@ NAMED = _named_models_by_app()
 #: paraguas ``basemodel-adoption-0397`` está cumplido.
 PENDING = {
     'account',
-    'analytic',
     'base',
     'sale',
     'stock',

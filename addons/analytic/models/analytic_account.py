@@ -34,9 +34,10 @@ from addons.mail.models import MailThread
 
 
 class AccountAnalyticAccount(
+    models.BaseModel,
+    models.CheckCompanyMixin,
     MailThread,
     models.RecordLoaderMixin,
-    models.Model,
 ):
     """``account.analytic.account`` — cuenta analítica (centro de costo)."""
 
