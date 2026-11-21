@@ -41,3 +41,17 @@ relevantes, aplicabilidad, `unlink`, columnas dinámicas, `create`/`write`).
 `BaseModel` con la cabecera de la fuente; `complete_name` se almacena y se
 recalcula al renombrar el padre; `root_id` y su búsqueda; los contadores sobre
 un recordset de dos planes; `parent_path` lo mantiene el ORM al mover un plan.
+
+## Símbolos de la etapa A, con su referencia y su prueba
+
+Prueba de todos: `tests/unit/analytic/test_analytic_plan_basemodel.py`.
+
+| Símbolo | Referencia |
+|---|---|
+| `AccountAnalyticPlan._compute_root_id` | `odoo19c: addons/analytic/models/analytic_plan.py:129-132` |
+| `AccountAnalyticPlan._search_root_id` | `odoo19c: addons/analytic/models/analytic_plan.py:134-137` |
+| `AccountAnalyticPlan._compute_complete_name` | `odoo19c: addons/analytic/models/analytic_plan.py:139-145` |
+| `AccountAnalyticPlan._compute_analytic_account_count` | `odoo19c: addons/analytic/models/analytic_plan.py:147-150` |
+| `AccountAnalyticPlan._compute_all_analytic_account_count` | `odoo19c: addons/analytic/models/analytic_plan.py:152-178` |
+| `AccountAnalyticPlan._compute_children_count` | `odoo19c: addons/analytic/models/analytic_plan.py:180-182` |
+| `0016_plan_parent_id_complete_name` (renombre y relleno) | `odoo19c: addons/analytic/models/analytic_plan.py:29-57` |
