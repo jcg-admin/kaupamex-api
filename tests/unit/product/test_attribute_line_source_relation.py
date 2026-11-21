@@ -37,5 +37,5 @@ def test_the_attribute_and_the_value_reach_their_lines():
         product_tmpl_id=ProductTemplate.objects.create(name='Polo alsr'),
         attribute_id=attribute)
     line.write({'value_ids': [Command.set([record.id for record in [small]])]})
-    assert list(attribute.attribute_line_ids.all()) == [line]
+    assert list(attribute.attribute_line_ids) == [line]
     assert list(small.pav_attribute_line_ids) == [line]

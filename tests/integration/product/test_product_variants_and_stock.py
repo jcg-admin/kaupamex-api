@@ -93,7 +93,7 @@ class TestCartesianCombinations:
         tmpl_b = ProductTemplate.objects.create(name='Eleke B')
         _line(tmpl_a, color, valores)
         _line(tmpl_b, color, [valores[0]])
-        assert color.attribute_line_ids.count() == 2
+        assert len(color.attribute_line_ids) == 2
         assert len(valores[0].pav_attribute_line_ids) == 2
 
 

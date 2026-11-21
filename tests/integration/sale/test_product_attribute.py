@@ -64,7 +64,7 @@ def test_attribute_is_reusable_across_products(db):
     _line(pa, color, [red, blue])
     _line(pb, color, [red])
     # El mismo atributo Color se usa en dos productos distintos.
-    assert color.attribute_line_ids.count() == 2
+    assert len(color.attribute_line_ids) == 2
     assert len(red.pav_attribute_line_ids) == 2
 
 
