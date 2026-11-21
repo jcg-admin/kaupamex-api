@@ -1586,6 +1586,13 @@
         "basemodel-reverse-queryset-0397"
       ],
       "writtenAt": "2026-11-21T22:17:52Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "crm-lead-recordset-computes-0397"
+      ],
+      "writtenAt": "2026-11-21T23:31:55Z"
     }
   ]
 }

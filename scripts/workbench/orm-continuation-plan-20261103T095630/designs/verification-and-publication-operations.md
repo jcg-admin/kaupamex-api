@@ -103,3 +103,12 @@ Forma del worktree de gate desde ahora:
 `git worktree add --detach $S/gate-<rev>/kaupamex-api <rev>`, con `src/.env` y
 `.env` copiados, y el nivel 3 lanzado con `THYROX_ROOT=/home/user/thyrox
 THYROX_CLONE_PREFIX=kaupamex-`.
+
+**Worktree de implementación como hermano (2026-11-21).** Durante una F2 la
+unidad siguiente se prepara en `git worktree add -b wt/<unidad>
+/home/user/kaupamex-api-<sufijo> HEAD`. Al ser hermano de los clones,
+`repo_of` le da la clave `THYROX_WORKBENCH_API_<SUFIJO>` (medido:
+`kaupamex-api-wt-edi` → `THYROX_WORKBENCH_API_WT_EDI`), y su `pre-commit`
+rehúsa mientras el `.env` del worktree no la declare; `src/.env` se enlaza
+desde el clon porque los gates importan la configuración. Antes de esta nota
+el caso se redescubrió en lugar de leerse aquí.
