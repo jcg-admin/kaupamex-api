@@ -29,7 +29,7 @@ La premisa era que el M2M se escribe fuera de `save()`
 
 | Contrato | Clase |
 |---|---|
-| bloqueo por documentos pendientes de un formato con web-service | SATISFIED (por señal) |
+| bloqueo por documentos pendientes de un formato con web-service | ABSENT por la vía de `write` (medido, ver abajo) |
 | borrado de los pendientes de un formato sin web-service | ABSENT |
 | punto de intercepción `write` | DIVERGENT (señal declarada como divergencia) |
 
@@ -58,3 +58,12 @@ La premisa era que el M2M se escribe fuera de `save()`
 
 Control de anulación: sin el override, cae el caso del borrado y el del
 bloqueo.
+
+## Medición del control de anulación (2026-11-21)
+
+Con el módulo de `630ceca4` (receptor `m2m_changed`, sin override) y la
+suite nueva: `2 failed, 2 passed`. Caen el borrado **y el bloqueo**: una
+escritura por `write({'edi_format_ids': [Command.set(...)]})` no llega al
+receptor en `pre_remove`, así que la fila «SATISFIED (por señal)» del
+inventario heredado era falsa — la prosa la afirmaba y nada la medía. Con el
+override: `10 passed` en `tests/unit/account_edi`.

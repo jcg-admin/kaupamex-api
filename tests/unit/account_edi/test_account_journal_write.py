@@ -64,7 +64,11 @@ def test_removing_a_web_service_format_with_pending_documents_fails(setup):
 def test_removing_a_plain_format_deletes_its_pending_documents(setup):
     journal, ws, plain, move = setup
     pending = _document(move, plain, 'to_send')
-    cancelling = _document(move, plain, 'to_cancel')
+    with sudo():
+        other_move = AccountMove.objects.create(
+            move_type='entry', date=timezone.now().date(),
+            journal=journal, company=journal.company)
+    cancelling = _document(other_move, plain, 'to_cancel')
     with sudo():
         journal.write({'edi_format_ids': [fields.Command.set([ws.pk])]})
         assert set(journal.edi_format_ids.ids) == {ws.pk}
