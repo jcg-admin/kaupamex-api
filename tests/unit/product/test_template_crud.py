@@ -101,9 +101,8 @@ def test_the_cost_search_goes_through_the_variants():
 
 
 def test_leaving_the_combo_type_clears_the_combo_choices():
-    template = _template(type='combo')
     combo = ProductCombo.objects.create(name='Combo CRUD')
-    template.write({'combo_ids': [Command.set([combo.pk])]})
+    template = _template(type='combo', combo_ids=[Command.set([combo.pk])])
     template.write({'type': 'consu'})
     template.invalidate_recordset()
     assert not template.combo_ids.exists()

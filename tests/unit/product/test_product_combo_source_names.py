@@ -5,13 +5,12 @@
 ``scripts/workbench/orm-continuation-plan-20261103T095630/designs/
 product-combo-source-names.md``.
 
-*Métrica:* el nombre y la columna de los cuatro campos, la compañía que la
-opción hereda de su elección y la validación de compañía de la elección.
-*Ciega a:* ``currency_id`` de las dos clases, que el puerto expone como
-propiedad ``currency``.
+*Métrica:* el nombre y la columna de los cuatro campos y la compañía que la
+opción hereda de su elección. La validación de compañía la mide
+``test_product_combo_basemodel.py``.
+*Ciega a:* ``currency_id`` de las dos clases, que no tienen columna.
 """
 import pytest
-from django.core.exceptions import ValidationError
 
 from addons.base.models.res_company import ResCompany
 from addons.product.models import (
@@ -42,14 +41,3 @@ def test_an_option_takes_the_company_of_its_choice():
                                            product_id=_variant('Agua pc'))
     item.refresh_from_db()
     assert item.company_id == company
-
-
-def test_a_choice_rejects_options_of_another_company():
-    company = ResCompany.objects.create(name='Empresa pc2')
-    other = ResCompany.objects.create(name='Otra pc2')
-    combo = ProductCombo.objects.create(name='Postre pc2', company_id=company)
-    item = ProductComboItem.objects.create(combo_id=combo,
-                                           product_id=_variant('Flan pc2'))
-    ProductComboItem.objects.filter(pk=item.pk).update(company_id=other)
-    with pytest.raises(ValidationError):
-        combo.clean()

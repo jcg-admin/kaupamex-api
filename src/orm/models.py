@@ -101,7 +101,7 @@ from orm.environments import (
 from orm.commands import (_DJANGO_X2MANY_GET, Command, ManyToManyLink,
                           ManyToManySet,
                           One2manyChild, apply_many2many_commands,
-                          apply_one2many_commands,
+                          apply_one2many_commands, comodel_records,
                           is_command_list, related_manager)
 from orm import registry
 from orm.domains import Domain, to_q
@@ -1529,7 +1529,26 @@ def _first_field_name(model, candidates):
         except FieldDoesNotExist:
             continue
         return name
+    # ``'company_id' in self`` cuenta también los campos que llegan por
+    # ``_inherits``: en la fuente son campos ``inherited`` del modelo.
+    inherited = getattr(model, '_inherits_fields', None) or {}
+    for name in candidates:
+        if name in inherited:
+            return name
     return None
+
+
+def _field_attname(model, name):
+    """La columna con que se nombra ``name`` en un dominio sobre ``model``.
+
+    Un campo propio se nombra por su ``attname``; uno que llega por
+    ``_inherits`` no tiene columna aquí y se nombra tal cual, que es como lo
+    resuelve el dominio a través del delegado.
+    """
+    try:
+        return model._meta.get_field(name).attname
+    except FieldDoesNotExist:
+        return name
 
 
 def active_field_name(cls):
@@ -1699,7 +1718,7 @@ class CheckCompanyMixin:
         name = _first_field_name(cls, COMPANY_FIELD_NAMES)
         if name is None:
             return None
-        fname = cls._meta.get_field(name).attname
+        fname = _field_attname(cls, name)
         if not companies:
             return Domain(fname, '=', False)
         if isinstance(companies, unquote):
@@ -1933,7 +1952,7 @@ def check_company_domain_parent_of(cls, companies):
     name = _first_field_name(cls, COMPANY_FIELD_NAMES)
     if name is None:
         return None
-    fname = cls._meta.get_field(name).attname
+    fname = _field_attname(cls, name)
     if isinstance(companies, str):
         return ['|', (fname, '=', False), (fname, 'parent_of', companies)]
     if not _company_ids(companies):
@@ -5972,7 +5991,10 @@ def _run_precompute_field(instance, name, pending, done, chain):
                 and other.compute not in done):
             _run_precompute_field(instance, head, pending, done, chain)
     done.add(field.compute)
-    getattr(instance, field.compute)()
+    # ``compute`` es el nombre de un método o, en un ``related=``, el
+    # invocable ``_compute_related`` del campo: ``determine`` despacha las
+    # dos formas, como en ``_invoke_compute_method``.
+    determine(field.compute, instance)
 
 
 def _add_precomputed_values(self):
@@ -10224,19 +10246,10 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
         a
         list or a recordset (if ``func`` return recordsets). — ≙ ``:6127``
 
-        Dos divergencias, las dos con sucesor acuñado y ninguna de contrato:
+        Una divergencia, con sucesor acuñado y sin efecto de contrato:
 
         * ``records.fetch([field_name])`` sobre ``PREFETCH_MAX`` — ``fetch`` no
           está portado (``odoo19c: :3775-3818``). Tarea **TASK-API-0399**.
-        * la rama **relacional** devuelve allá ``getter(records)`` con el
-          recordset de N: ``_Relational.__get__``
-          (``odoo19c: odoo/orm/fields_relational.py:42-46``) delega en la base
-          sólo con ``len(records._ids) <= 1`` y con N ids arma la unión por su
-          cuenta, sin caer en la guarda de tamaño de ``Field.__get__``
-          (``:1653-1661``). Aquí :class:`~orm.fields.FieldDescriptor` tiene
-          la guarda de tamaño y **no** la rama multi-registro: con N ids
-          levanta ``ensure_one`` en vez de devolver la unión. Tarea
-          **TASK-API-0401** (extender la guarda al acceso llano).
         """
         if not func:
             return self                 # support for an empty path of fields
@@ -10254,17 +10267,15 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
                     "TASK-API-0399")
             field = records._fields[field_name]
             if field.relational:
-                # La fuente devuelve ``getter(records)`` y deja la unión a
-                # ``_Relational.__get__`` (``fields_relational.py:42-46``).
-                # Nuestro descriptor no tiene esa rama multi-registro: sobre N
-                # ids cae en la guarda de tamaño y levanta ``ensure_one``, así
-                # que la unión no se puede expresar todavía. Se rehúsa sin
-                # condición hasta TASK-API-0401.
-                raise NotImplementedError(
-                    f"mapped() relacional sobre {field.name!r} exige la rama "
-                    "multi-registro de _Relational.__get__ (odoo19c: "
-                    "odoo/orm/fields_relational.py:42-46) — tarea "
-                    "TASK-API-0401")
+                # ≙ ``getter(records)``: la unión la arma la rama de varios
+                # registros de ``_Relational.__get__``
+                # (``fields_relational.py:42-79``), que aquí es
+                # :meth:`_read_field` → :meth:`_read_relational_multi`.
+                # Sin registros la fuente devuelve el comodelo vacío; el nulo
+                # de lectura de este stack es ``None``.
+                if not records:
+                    return comodel_records(records.env, field.related_model)
+                return records._read_field(field)
             return [record._read_field(field) for record in records]
 
         if self:

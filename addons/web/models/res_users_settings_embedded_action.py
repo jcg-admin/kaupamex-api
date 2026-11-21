@@ -23,7 +23,8 @@ capas de la referencia y no se funden en una.
 Medición símbolo-por-símbolo (``re.findall(r'^\\s{4}def (\\w+)', ref)`` + el
 nodo ``class:``, mismo criterio que ``porte-completo-no-parcial.md``): **1**
 clase + **4** métodos (``_check_embedded_actions_order``,
-``_check_embedded_actions_visibility``, ``_check_embedded_actions_field_format``,
+``_check_embedded_actions_visibility``,
+``_check_embedded_actions_field_format``,
 ``_embedded_action_settings_format``). **5 portados, 0 ausentes.**
 
 Divergencias de mecanismo declaradas
@@ -34,8 +35,7 @@ Divergencias de mecanismo declaradas
   (``embedded_actions_order``, ``embedded_actions_visibility``) son sobre
   campos **propios escalares** (``Char``), así que caben en ``clean()`` sin
   el problema de "PK todavía no existe" que sí bloquea a un constrains sobre
-  una relación (contraste: ``product/models/product_combo.py``, que declara
-  ``check_has_items()`` aparte por esa razón). Se decoran con
+  una relación en un modelo de Django. Se decoran con
   ``@api.constrains`` (documental, igual que
   ``account/models/account_move.py::_check_balanced``) y se invocan desde
   ``clean()``.

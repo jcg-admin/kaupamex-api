@@ -50,9 +50,8 @@ Qué NO se porta, con su medición
   ``report_paperformat.report_ids`` (H-API-164): ``product_tag_ids`` desde
   ``product_tag.py``, ``pricelist_rule_ids`` desde
   ``product_pricelist_item.py``, ``product_variant_ids`` desde
-  ``product_product.py``, ``seller_ids`` desde ``product_supplierinfo.py`` y
-  ``combo_ids`` desde ``product_combo.py`` —que declara el M2M de su lado con
-  el nombre de la fuente, sin tocar este archivo—.
+  ``product_product.py`` y ``seller_ids`` desde ``product_supplierinfo.py``.
+  ``combo_ids`` sí se declara aquí, como en la fuente.
 
   La predicción falló **dos veces**, y en direcciones distintas:
 
@@ -93,7 +92,6 @@ import models
 from django.apps import apps
 from django.core.exceptions import ValidationError
 from orm.domains import Domain
-from orm.environments import env
 
 from addons.base.models.image_mixin import ImageMixin
 from addons.base.models.ir_config_parameter import SystemParameter
@@ -184,6 +182,18 @@ class ProductTemplate(models.BaseModel, ImageMixin, TimeStampedModel):
         choices=TYPE_CHOICES,
         default=TYPE_CONSU,
         verbose_name='Tipo de producto',
+    )
+    #: ≙ ``combo_ids`` (``odoo19c: addons/product/models/
+    #: product_template.py:66-70``): las elecciones del menú.
+    combo_ids = fields.Many2many(
+        'product.ProductCombo',
+        relation='product_combo_product_template_rel',
+        column1='product_template_id',
+        column2='product_combo_id',
+        string="Combo Choices",
+        check_company=True,
+        blank=True,
+        related_name='+',
     )
     service_tracking = fields.Selection(
         max_length=16,
@@ -387,8 +397,7 @@ class ProductTemplate(models.BaseModel, ImageMixin, TimeStampedModel):
         apuntar al combo. La confusión entre ambas reglas produjo H-API-190.
 
         Método y no ``clean()``: ``attribute_line_ids`` es una relación
-        inversa, y Django persiste el padre antes que sus hijos. Mismo
-        motivo que ``check_combo_choices`` y ``ProductCombo.check_has_items``.
+        inversa, y Django persiste el padre antes que sus hijos.
         """
         if self.type != TYPE_COMBO:
             return
@@ -399,42 +408,31 @@ class ProductTemplate(models.BaseModel, ImageMixin, TimeStampedModel):
                 'elecciones, no variaciones de un artículo.'
             )
 
-    def check_combo_choices(self):
-        """Las dos invariantes de la referencia sobre ``combo_ids``.
+    @api.constrains('type', 'combo_ids')
+    def _check_combo_ids_not_empty(self):
+        """≙ ``_check_combo_ids_not_empty``
+        (``odoo19c: product_template.py:490-493``)."""
+        for template in self:
+            if template.type == 'combo' and not template.combo_ids:
+                raise ValidationError(_(
+                    "A combo product must contain at least 1 combo choice."))
 
-        - ``_check_combo_ids_not_empty``: un producto de tipo combo tiene que
-          ofrecer al menos una elección. Un menú sin elecciones no es un menú.
-        - ``_check_sale_combo_ids``: si el combo se vende, **todo** producto
-          ofrecido dentro de él tiene que ser vendible. Lo contrario permite
-          armar un menú cuyo cliente elige algo que no está a la venta, y el
-          error aparecería al confirmar el pedido, lejos de su causa.
-
-        **Método, no ``clean()``**, por la misma razón que
-        ``ProductCombo.check_has_items``: ``combo_ids`` es un M2M, y Django no
-        deja poblarlo antes de que el registro exista. Exigirlo en ``clean()``
-        haría imposible crear un producto combo. Se invoca tras adjuntar las
-        elecciones.
-        """
-        if self.type != TYPE_COMBO:
-            return
-        combos = getattr(self, 'combo_ids', None)
-        if combos is None or not combos.exists():
-            raise ValidationError(
-                'Un producto combo debe ofrecer al menos una elección.'
-            )
-        if not self.sale_ok:
-            return
-        for combo in combos.all():
-            items = getattr(combo, 'combo_item_ids', None)
-            if items is not None and any(
-                not item.product_id.sale_ok for item in items.all()
-            ):
-                raise ValidationError(
-                    'Un combo a la venta no puede ofrecer productos que no '
-                    'están a la venta.'
+    @api.constrains('type', 'combo_ids', 'sale_ok')
+    def _check_sale_combo_ids(self):
+        """≙ ``_check_sale_combo_ids``
+        (``odoo19c: product_template.py:496-507``)."""
+        for template in self:
+            if (
+                template.type == 'combo'
+                and template.sale_ok
+                and any(
+                    not product.sale_ok for product in
+                    template.combo_ids.combo_item_ids.product_id
                 )
-
-    # === DERIVADOS ========================================================
+            ):
+                raise ValidationError(_(
+                    "A sellable combo product can only contain sellable "
+                    "products."))
 
     @api.depends('company_id')
     def _compute_currency_id(self):

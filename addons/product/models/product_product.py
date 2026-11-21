@@ -305,12 +305,6 @@ class ProductProduct(models.BaseModel, TimeStampedModel):
         return self.product_tmpl_id.type
 
     @property
-    def company_id(self):
-        """La compañía de la ficha (``company_id`` delegado por
-        ``_inherits``)."""
-        return self.product_tmpl_id.company_id
-
-    @property
     def product_document_ids(self):
         """Los documentos de esta variante (``product_product.py:81-85``).
 
@@ -329,9 +323,8 @@ class ProductProduct(models.BaseModel, TimeStampedModel):
     def sale_ok(self):
         """Si la ficha se puede vender (``product_template.py:116``).
 
-        Faltaba, y **dos** consumidores ya la invocaban sobre la variante:
-        ``ProductTemplate.check_combo_choices()`` (``item.product.sale_ok``) y
-        el ``_check_sale_combo_ids`` que aquel porta. En la referencia la
+        La lee sobre la variante ``ProductTemplate._check_sale_combo_ids``
+        (``combo_item_ids.product_id``). En la referencia la
         variante la alcanza por ``_inherits`` (``product_product.py:19``);
         aquí la delegación es explícita. Ver H-API-191.
         """

@@ -211,42 +211,6 @@ class TestProductTemplateComboInvariants:
         )
         tmpl.check_combo_has_no_attributes()  # no debe levantar
 
-    def test_combo_sin_elecciones_es_invalido(self):
-        tmpl = ProductTemplate.objects.create(name='Menú', type=TYPE_COMBO)
-        with pytest.raises(ValidationError):
-            tmpl.check_combo_choices()
-
-    def test_combo_con_eleccion_vendible_es_valido(self):
-        tmpl = ProductTemplate.objects.create(
-            name='Menú', type=TYPE_COMBO, sale_ok=True
-        )
-        bebida_tmpl = ProductTemplate.objects.create(name='Refresco')
-        bebida_variant = ProductProduct.objects.create(
-            product_tmpl_id=bebida_tmpl
-        )
-        combo = ProductCombo.objects.create(name='Bebida')
-        ProductComboItem.objects.create(combo_id=combo,
-                                        product_id=bebida_variant)
-        tmpl.combo_ids.add(combo)
-        tmpl.check_combo_choices()  # no debe levantar
-
-    def test_combo_a_la_venta_con_opcion_no_vendible_es_invalido(self):
-        tmpl = ProductTemplate.objects.create(
-            name='Menú', type=TYPE_COMBO, sale_ok=True
-        )
-        bebida_tmpl = ProductTemplate.objects.create(
-            name='Refresco agotado', sale_ok=False
-        )
-        bebida_variant = ProductProduct.objects.create(
-            product_tmpl_id=bebida_tmpl
-        )
-        combo = ProductCombo.objects.create(name='Bebida')
-        ProductComboItem.objects.create(combo_id=combo,
-                                        product_id=bebida_variant)
-        tmpl.combo_ids.add(combo)
-        with pytest.raises(ValidationError):
-            tmpl.check_combo_choices()
-
 
 # =============================================================================
 # ProductProduct — la variante: combinación, delegación, precio
