@@ -56,4 +56,5 @@ def test_a_fixed_rule_converts_its_price_to_the_requested_unit():
         pricelist_id=ProductPricelist.objects.create(
             currency_id=_pricelist_currency(), name='Tarifa ptu'),
         compute_price=COMPUTE_FIXED, fixed_price=1)
-    assert rule.compute(variant, to_uom=dozen) == pytest.approx(12.0)
+    assert rule._compute_price(variant, 1.0, dozen, None) == pytest.approx(
+        12.0)

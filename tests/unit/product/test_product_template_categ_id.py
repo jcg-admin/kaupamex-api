@@ -53,5 +53,5 @@ def test_a_category_rule_reaches_the_products_of_its_branch():
         pricelist_id=ProductPricelist.objects.create(
             currency_id=_pricelist_currency(), name='Tarifa ptc'),
         applied_on=APPLIED_CATEGORY, categ_id=root)
-    assert rule.matches(template)
-    assert not rule.matches(stranger)
+    assert rule._is_applicable_for(template, 1.0)
+    assert not rule._is_applicable_for(stranger, 1.0)

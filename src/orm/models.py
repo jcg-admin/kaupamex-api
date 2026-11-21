@@ -10143,7 +10143,11 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
             # environment
             return self
 
-        company_id = int(company)
+        # ``res.company`` es todavía un modelo de Django (la app ``base`` está
+        # pendiente de ``BaseModel``): su instancia no tiene ``__int__``, y
+        # ``self.env.company`` la devuelve así.
+        company_id = (company.pk if not hasattr(company, '_ids')
+                      and hasattr(company, '_meta') else int(company))
         allowed_company_ids = self.env.context.get('allowed_company_ids') or []
         if allowed_company_ids and company_id == allowed_company_ids[0]:
             return self

@@ -51,24 +51,18 @@ El resto del ``_order`` —``min_quantity desc, categ_id desc, id desc``— sigu
 el mismo principio: a igual alcance, gana la regla de cantidad mínima mayor
 (la más exigente), y luego la categoría más profunda.
 
-Qué NO se porta, con su medición
-================================
+Lo que queda para etapas posteriores
+====================================
 
-- **La conversión de moneda** dentro de ``_compute_base_price``
-  (``src_currency._convert(...)``): necesita la tasa vigente en una fecha, que
-  vive en ``res.currency.rate``. ``ResCurrencyRate`` **está** portado, pero el
-  conversor con fecha y compañía no; el cálculo devuelve el precio en la
-  moneda del producto y **declara** cuál es, en vez de convertir mal.
-- **La conversión de unidad** (``product_uom._compute_price(p, uom)``):
-  ``Uom._compute_price`` sí está portado, así que se **usa** cuando el llamador
-  pasa la unidad destino; lo que no se porta es sacarla del contexto de la
-  petición, que este archivo no conoce.
-- **``base='pricelist'`` recursivo**: una regla puede basarse en **otra
-  tarifa**. Se porta el campo y el caso se resuelve delegando en la tarifa
-  base a través del llamador; la recursión completa exige el selector de
-  reglas de ``product_pricelist.py``, y montarla aquí duplicaría esa lógica.
-- **``_compute_price_before_discount`` / ``name`` / ``price``**: los dos
-  últimos son etiquetas calculadas para el formulario de Odoo.
+- La rama ``base='pricelist'`` de ``_compute_base_price`` llama a
+  ``base_pricelist_id._get_product_price`` como la fuente; ese método y la
+  selección de reglas son la etapa 4 del diseño ``product-pricelist-cluster``,
+  junto con ``_compute_price_before_discount``.
+- Las etiquetas ``price`` y ``rule_tip`` y los ``onchange`` son la etapa 5.
+
+La conversión de moneda **sí** se porta: ``ResCurrency._convert`` existe, y
+``_compute_base_price`` convierte con él como la fuente. La conversión de
+unidad usa ``Uom._compute_price`` con la unidad que recibe el método.
 """
 
 import api
@@ -96,10 +90,10 @@ APPLIED_GLOBAL = '3_global'
 #: el ``_order`` del modelo empieza por este campo, así que el orden
 #: alfabético pone primero lo más específico. Verbatim de la fuente.
 APPLIED_ON_CHOICES = [
-    (APPLIED_VARIANT, 'Variante de producto'),
-    (APPLIED_PRODUCT, 'Producto'),
-    (APPLIED_CATEGORY, 'Categoría de producto'),
-    (APPLIED_GLOBAL, 'Todos los productos'),
+    (APPLIED_GLOBAL, "All Products"),
+    (APPLIED_CATEGORY, "Product Category"),
+    (APPLIED_PRODUCT, "Product"),
+    (APPLIED_VARIANT, "Product Variant"),
 ]
 
 BASE_LIST_PRICE = 'list_price'
@@ -107,9 +101,9 @@ BASE_STANDARD_PRICE = 'standard_price'
 BASE_PRICELIST = 'pricelist'
 #: ``base`` — sobre qué se calcula, verbatim.
 BASE_CHOICES = [
-    (BASE_LIST_PRICE, 'Precio de venta'),
-    (BASE_STANDARD_PRICE, 'Coste'),
-    (BASE_PRICELIST, 'Otra tarifa'),
+    (BASE_LIST_PRICE, 'Sales Price'),
+    (BASE_STANDARD_PRICE, 'Cost'),
+    (BASE_PRICELIST, 'Other Pricelist'),
 ]
 
 COMPUTE_FIXED = 'fixed'
@@ -117,9 +111,9 @@ COMPUTE_PERCENTAGE = 'percentage'
 COMPUTE_FORMULA = 'formula'
 #: ``compute_price`` — cómo se calcula, verbatim.
 COMPUTE_PRICE_CHOICES = [
-    (COMPUTE_PERCENTAGE, 'Descuento'),
-    (COMPUTE_FORMULA, 'Fórmula'),
-    (COMPUTE_FIXED, 'Precio fijo'),
+    (COMPUTE_PERCENTAGE, "Discount"),
+    (COMPUTE_FORMULA, "Formula"),
+    (COMPUTE_FIXED, "Fixed Price"),
 ]
 
 
@@ -537,105 +531,174 @@ class ProductPricelistItem(models.BaseModel, TimeStampedModel):
                 vals.update({'categ_id': None})
         return super().write(vals)
 
-    # === APLICABILIDAD ====================================================
+    # === BUSINESS METHODS =================================================
 
-    def matches(self, product, quantity=0, date=None):
-        """¿Esta regla aplica a ``product`` en esta cantidad y fecha?
+    def _is_applicable_for(self, product, qty_in_product_uom):
+        """Check whether the current rule is valid for the given product &
+        qty — ≙ ``_is_applicable_for`` (``:526``).
 
-        Comprueba las tres condiciones que la referencia usa al seleccionar:
-        alcance, cantidad mínima y ventana de fechas. La **precedencia** entre
-        reglas que aplican la da el ``ordering``, no este método.
+        Note: self.ensure_one()
+
+        :param product: product record (product.product/product.template)
+        :param float qty_in_product_uom: quantity, expressed in product UoM
+        :returns: Whether rules is valid or not
+        :rtype: bool
         """
-        if quantity < self.min_quantity:
-            return False
-        if date is not None:
-            if self.date_start and date < self.date_start:
-                return False
-            if self.date_end and date > self.date_end:
-                return False
+        self.ensure_one()
+        product.ensure_one()
+        res = True
 
-        if self.applied_on == APPLIED_GLOBAL:
-            return True
-        if self.applied_on == APPLIED_VARIANT:
-            return getattr(product, 'pk', None) == self.product_id_id
-        if self.applied_on == APPLIED_PRODUCT:
-            tmpl = getattr(product, 'product_tmpl_id_id', None) or getattr(
-                product, 'pk', None
-            )
-            return tmpl == self.product_tmpl_id_id
-        if self.applied_on == APPLIED_CATEGORY:
-            categ = getattr(product, 'categ_id', None)
-            # Una regla de categoría alcanza a toda la rama, no sólo al nodo:
-            # la ruta materializada de ``product.category`` lo resuelve sin
-            # subir la cadena.
-            if not categ or not self.categ_id:
-                return False
-            return categ.parent_path.startswith(self.categ_id.parent_path)
-        return False
+        is_product_template = product._name == 'product.template'
+        if self.min_quantity and qty_in_product_uom < self.min_quantity:
+            res = False
 
-    # === CÁLCULO ==========================================================
+        elif self.applied_on == "2_product_category":
+            if not product.categ_id or (
+                product.categ_id != self.categ_id
+                and not product.categ_id.parent_path.startswith(
+                    self.categ_id.parent_path)
+            ):
+                res = False
+        # Applied on a specific product template/variant
+        elif is_product_template:
+            if (self.applied_on == "1_product"
+                    and product.id != self.product_tmpl_id.id):
+                res = False
+            elif self.applied_on == "0_product_variant" and not (
+                product.product_variant_count == 1
+                and product.product_variant_id.id == self.product_id.id
+            ):
+                # product self acceptable on template if has only one variant
+                res = False
+        elif (
+            self.applied_on == "1_product"
+            and product.product_tmpl_id.id != self.product_tmpl_id.id
+        ) or (
+            self.applied_on == "0_product_variant"
+            and product.id != self.product_id.id
+        ):
+            res = False
 
-    def base_price_for(self, product):
-        """``_compute_base_price`` — el precio sobre el que calcula la regla.
+        return res
 
-        Devuelve ``(precio, moneda)``. La conversión de moneda **no** se hace
-        aquí: se declara en cuál está para que el llamador convierta con la
-        tasa de la fecha que corresponda (ver el docstring del módulo).
+    def _compute_price(self, product, quantity, uom, date, currency=None,
+                       **kwargs):
+        """Compute the unit price of a product in the context of a pricelist
+        application — ≙ ``_compute_price`` (``:570``).
+
+        Note: self and self.ensure_one()
+
+        :param product: recordset of product (product.product/
+            product.template)
+        :param float quantity: quantity of products requested (in given uom)
+        :param uom: unit of measure (uom.uom record)
+        :param datetime date: date to use for price computation and currency
+            conversions
+        :param currency: currency (for the case where self is empty)
+        :param dict kwargs: unused parameters available for overrides
+
+        :returns: price according to pricelist rule or the product price,
+            expressed in the param currency, the pricelist currency or the
+            company currency
+        :rtype: float
+
+        ``res.currency`` es todavía un modelo de Django (la app ``base`` está
+        pendiente de ``BaseModel``): una instancia es un único registro por
+        construcción, así que su ``ensure_one`` no tiene a quién comprobar.
+        La moneda de la empresa vive en ``currency`` (sucesor de nombre
+        ``res-company-currency-id``).
         """
-        if self.base == BASE_STANDARD_PRICE:
-            return float(product.standard_price or 0), product.cost_currency_id
-        if self.base == BASE_PRICELIST and self.base_pricelist_id:
-            # La recursión completa la resuelve el selector de reglas; aquí se
-            # declara el punto de entrada en vez de duplicarlo.
-            raise NotImplementedError(
-                'Una regla basada en otra tarifa la resuelve el selector de '
-                'reglas de product_pricelist, no esta regla.'
-            )
-        return float(product.lst_price or 0), product.currency_id
+        self and self.ensure_one()  # self is at most one record
+        product.ensure_one()
+        uom.ensure_one()
 
-    def compute(self, product, quantity=1, to_uom=None):
-        """``_compute_price`` — el precio unitario según esta regla.
+        company = self.env.company
+        currency = (currency or self.currency_id
+                    or (company.currency if company else None))
 
-        Los cinco pasos del modo ``formula``, en el orden de la fuente. Ver el
-        docstring del módulo: el orden **es** el algoritmo, y los márgenes se
-        miden contra la base, no contra el precio en curso.
+        # Pricelist specific values are specified according to product UoM
+        # and must be multiplied according to the factor between uoms
+        product_uom = product.uom_id
+        if product_uom != uom:
+            def convert(p):
+                return product_uom._compute_price(p, uom)
+        else:
+            def convert(p):
+                return p
+
+        if self.compute_price == 'fixed':
+            price = convert(self.fixed_price)
+        elif self.compute_price == 'percentage':
+            base_price = self._compute_base_price(
+                product, quantity, uom, date, currency, **kwargs)
+            price = (base_price
+                     - (base_price * (self.percent_price / 100))) or 0.0
+        elif self.compute_price == 'formula':
+            base_price = self._compute_base_price(
+                product, quantity, uom, date, currency, **kwargs)
+            # complete formula
+            price_limit = base_price
+            discount = (self.price_discount if self.base != 'standard_price'
+                        else -self.price_markup)
+            price = base_price - (base_price * (discount / 100))
+            if self.price_round:
+                price = float_round(price,
+                                    precision_rounding=self.price_round)
+
+            if self.price_surcharge:
+                price += convert(self.price_surcharge)
+
+            if self.price_min_margin:
+                price = max(price,
+                            price_limit + convert(self.price_min_margin))
+
+            if self.price_max_margin:
+                price = min(price,
+                            price_limit + convert(self.price_max_margin))
+        else:  # empty self, or extended pricelist price computation logic
+            price = self._compute_base_price(
+                product, quantity, uom, date, currency, **kwargs)
+
+        return price
+
+    def _compute_base_price(self, product, quantity, uom, date, currency,
+                            **kwargs):
+        """Compute the base price for a given rule — ≙
+        ``_compute_base_price`` (``:628``).
+
+        :param product: recordset of product (product.product/
+            product.template)
+        :param float quantity: quantity of products requested (in given uom)
+        :param uom: unit of measure (uom.uom record)
+        :param datetime date: date to use for price computation and currency
+            conversions
+        :param currency: currency in which the returned price must be
+            expressed
+
+        :returns: base price, expressed in provided pricelist currency
+        :rtype: float
+
+        ``_convert`` devuelve un ``Decimal``; el precio se mantiene ``float``,
+        como el de la fuente.
         """
-
-        def convert(amount):
-            """Los importes de la regla van en la unidad del producto."""
-            product_uom = getattr(product, 'uom_id', None)
-            if to_uom is None or product_uom is None or product_uom == to_uom:
-                return float(amount)
-            return product_uom._compute_price(float(amount), to_uom)
-
-        if self.compute_price == COMPUTE_FIXED:
-            return convert(self.fixed_price)
-
-        base_price, _currency = self.base_price_for(product)
-
-        if self.compute_price == COMPUTE_PERCENTAGE:
-            return (
-                base_price - (base_price * (self.percent_price / 100)) or 0.0
+        rule_base = self.base or 'list_price'
+        if rule_base == 'pricelist' and self.base_pricelist_id:
+            price = self.base_pricelist_id._get_product_price(
+                product, quantity, currency=self.base_pricelist_id.currency_id,
+                uom=uom, date=date, **kwargs
             )
+            src_currency = self.base_pricelist_id.currency_id
+        elif rule_base == "standard_price":
+            src_currency = product.cost_currency_id
+            price = product._price_compute(
+                rule_base, uom=uom, date=date)[product.id]
+        else:  # list_price
+            src_currency = product.currency_id
+            price = product._price_compute(
+                rule_base, uom=uom, date=date)[product.id]
 
-        # === formula ===
-        price_limit = base_price  # 1. la base, antes de tocarla
-        discount = (
-            self.price_discount
-            if self.base != BASE_STANDARD_PRICE
-            else -self.price_markup  # sobre coste se marca al alza
-        )
-        price = base_price - (base_price * (discount / 100))  # 2. descuento
-
-        if self.price_round:  # 3. redondeo, ANTES del recargo
-            price = float_round(price, precision_rounding=self.price_round)
-
-        if self.price_surcharge:  # 4. recargo
-            price += convert(self.price_surcharge)
-
-        if self.price_min_margin:  # 5. márgenes contra la BASE
-            price = max(price, price_limit + convert(self.price_min_margin))
-        if self.price_max_margin:
-            price = min(price, price_limit + convert(self.price_max_margin))
+        if src_currency != currency:
+            price = float(src_currency._convert(
+                price, currency, self.env.company, date, round=False))
 
         return price

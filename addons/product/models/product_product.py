@@ -378,6 +378,54 @@ class ProductProduct(models.BaseModel, TimeStampedModel):
     # === PRECIO ===========================================================
 
     @api.onchange('lst_price')
+    def _get_attributes_extra_price(self):
+        """≙ ``_get_attributes_extra_price`` (``odoo19c: addons/product/
+        models/product_product.py:1096``)."""
+        self.ensure_one()
+
+        return self.price_extra + self.env.context.get(
+            'no_variant_attributes_price_extra', 0)
+
+    def _price_compute(self, price_type, uom=None, currency=None,
+                       company=None, date=False):
+        """≙ ``_price_compute`` (``odoo19c: addons/product/models/
+        product_product.py:1101``): el precio de ``price_type`` por
+        variante, en la unidad y la moneda pedidas."""
+        company = company or self.env.company
+        date = date or fields.Date.context_today(self)
+
+        self = self.with_company(company)
+        if price_type == 'standard_price':
+            # standard_price field can only be seen by users in
+            # base.group_user. Thus, in order to compute the sale price from
+            # the cost for users not in this group. We fetch the standard
+            # price as the superuser
+            self = self.sudo()
+
+        prices = dict.fromkeys(self.ids, 0.0)
+        for product in self:
+            # ``Monetary`` es aquí un ``DecimalField``: el precio se lleva a
+            # ``float``, el tipo con que la fuente lo calcula.
+            price = float(product[price_type] or 0.0)
+            price_currency = product.currency_id
+            if price_type == 'standard_price':
+                price_currency = product.cost_currency_id
+            elif price_type == 'list_price':
+                price += product._get_attributes_extra_price()
+
+            if uom:
+                price = product.uom_id._compute_price(price, uom)
+
+            # Convert from current user company currency to asked one
+            # This is right cause a field cannot be in more than one currency
+            if currency:
+                price = price_currency._convert(price, currency, company,
+                                                date)
+
+            prices[product.id] = price
+
+        return prices
+
     def _set_product_lst_price(self):
         """≙ ``_set_product_lst_price``
         (``odoo19c: product_product.py:309-316``).

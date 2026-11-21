@@ -8,8 +8,9 @@ product-pricelist-item-source-names.md``.
 
 *Métrica:* el nombre y la columna de cada campo, y la aplicabilidad de una
 regla de variante y de producto, que compara ids.
-*Ciega a:* la selección entre reglas de varias tarifas, que vive en
-``best_rule_for`` y no cambia con el nombre.
+*Ciega a:* la selección entre reglas de varias tarifas
+(``_compute_price_rule``, etapa 4 del diseño
+``product-pricelist-cluster``), que no cambia con el nombre.
 """
 import pytest
 
@@ -50,8 +51,8 @@ def test_a_variant_rule_matches_its_variant_only(variant, pricelist):
     rule = ProductPricelistItem.objects.create(
         pricelist_id=pricelist, applied_on=APPLIED_VARIANT,
         product_id=variant)
-    assert rule.matches(variant)
-    assert not rule.matches(other)
+    assert rule._is_applicable_for(variant, 1.0)
+    assert not rule._is_applicable_for(other, 1.0)
 
 
 def test_a_product_rule_matches_the_variants_of_its_template(
@@ -59,7 +60,7 @@ def test_a_product_rule_matches_the_variants_of_its_template(
     rule = ProductPricelistItem.objects.create(
         pricelist_id=pricelist, applied_on=APPLIED_PRODUCT,
         product_tmpl_id=variant.product_tmpl_id)
-    assert rule.matches(variant)
+    assert rule._is_applicable_for(variant, 1.0)
 
 
 def test_the_pricelist_lists_its_rules(pricelist):
