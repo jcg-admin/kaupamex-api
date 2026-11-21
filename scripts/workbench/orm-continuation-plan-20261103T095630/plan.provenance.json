@@ -1460,6 +1460,13 @@
         "product-attribute-basemodel-0397"
       ],
       "writtenAt": "2026-11-21T02:17:32Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-tag-basemodel-0397"
+      ],
+      "writtenAt": "2026-11-21T03:41:09Z"
     }
   ]
 }
