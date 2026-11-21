@@ -339,3 +339,17 @@ res_partner.py`: `property_product_pricelist`,
 `BaseModel` en la app `base`. Sucesora: `product-partner-pricelist-0397`.
 
 Prueba: `tests/unit/product/test_product_pricelist_labels.py`.
+
+### 5a — dos modelos de Django en `_get_country_pricelist_multi`
+
+`res.country` e `ir.config_parameter` siguen siendo modelos de Django (la
+app `base` está pendiente de `BaseModel`), y `env[...]` devuelve su clase,
+sin `search` ni `get_param` de recordset. El país del contexto se busca con
+su gestor (`ResCountry.objects.filter(code=...)`) y el parámetro con
+`SystemParameter.get_param`; son las dos lecturas que la fuente hace en
+`odoo19c: addons/product/models/product_pricelist.py:290` y `:300`. La
+búsqueda de la tarifa por grupo de país (`country_group_ids.country_ids`)
+sí va por el dominio del ORM, como en la fuente. `price` y `rule_tip` no se
+almacenan, así que no hay migración.
+
+Prueba: `tests/unit/product/test_product_pricelist_labels.py`.
