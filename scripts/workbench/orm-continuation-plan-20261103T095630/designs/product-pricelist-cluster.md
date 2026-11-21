@@ -314,3 +314,28 @@ ahora en el entorno del registro.
 Pruebas: `tests/unit/orm/test_many2one_record_env.py` (contexto, `su` y
 valor vacío) y `tests/unit/product/test_product_pricelist_selection.py`
 (`test_the_contextual_price_and_discount_read_the_pricelist`).
+
+## Etapa 5 — etiquetas, `onchange`, tarifa por país, importación y acción
+
+Se parte en dos, por una dependencia medida:
+
+**5a, ahora.** `odoo19c: addons/product/models/product_pricelist_item.py`:
+`price` y `rule_tip` (`:159-163`) con `_compute_price_label` (`:216`),
+`_get_price_label_base_str` (`:198`), `_compute_rule_tip` (`:277`),
+`_get_integer` (`:306`) y `_get_displayed_discount` (`:309`); los nueve
+`onchange` (`:383-477`). `odoo19c: addons/product/models/product_pricelist.py`:
+`_get_country_pricelist_multi` (`:288-330`),
+`_get_partner_pricelist_multi_search_domain_hook` (`:377`),
+`_get_partner_pricelist_multi_filter_hook` (`:383`),
+`get_import_templates` (`:387`) y `action_open_pricelist_report`
+(`:408`).
+
+**5b, sucesora.** `_get_partner_pricelist_multi` (`:334-375`) y la extensión
+de `res.partner` de `product` (`odoo19c: addons/product/models/
+res_partner.py`: `property_product_pricelist`,
+`specific_property_product_pricelist` y su cómputo/inverso). Recorre
+`res.partner` como recordset (`browse`, `grouped('country_id')`), y
+`res.partner` sigue siendo un modelo de Django: depende de la adopción de
+`BaseModel` en la app `base`. Sucesora: `product-partner-pricelist-0397`.
+
+Prueba: `tests/unit/product/test_product_pricelist_labels.py`.
