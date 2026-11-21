@@ -1558,6 +1558,13 @@
         "helpdesk-support-ticket-basemodel-0397"
       ],
       "writtenAt": "2026-11-21T17:31:39Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "analytic-basemodel-0397"
+      ],
+      "writtenAt": "2026-11-21T18:18:36Z"
     }
   ]
 }
