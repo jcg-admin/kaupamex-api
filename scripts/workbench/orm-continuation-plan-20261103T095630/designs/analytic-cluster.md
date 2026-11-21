@@ -56,3 +56,26 @@ producción a `objects.create` ni `annotate` sobre estos modelos.
    agrupado (`_read_group_select`, `_read_group_postprocess_aggregate`).
 4. Vista: `default_get`, `fields_get`, `_get_view`, `_patch_view`,
    `web_read`.
+
+## La etapa 1 se parte en dos
+
+La paridad de campos exige los nombres de la fuente en las FK
+(`plan_id`, `company_id`, `partner_id`, `account_id` de
+`odoo19c: addons/analytic/models/analytic_account.py:38-67` y
+`analytic_line.py:16`), y el puerto los declara como `plan`, `company`,
+`partner` y `account`, con muchos consumidores. Renombrar y adoptar
+`BaseModel` a la vez mezcla dos riesgos, así que:
+
+- **1a**: `AccountAnalyticAccount` y `AccountAnalyticLine` heredan de
+  `models.BaseModel` delante de sus mixins, como el resto del programa
+  (`odoo19c: odoo/orm/models.py:334`, `:7046`, `:7049`), y `analytic` sale de
+  las apps pendientes. Se verifican los enganches de los consumidores:
+  `chain_method` sobre `save`/`clean`
+  (`addons/account/models/account_analytic_line.py`), el receptor
+  `pre_save` de `hr_timesheet` y las propiedades colgadas.
+- **1b**: los nombres de la fuente y la paridad de campos que el resto de
+  esta etapa enumera.
+
+Prueba de 1a: `tests/unit/analytic/test_analytic_basemodel.py`, con
+`tests/unit/orm/test_basemodel_reach.py` y las pruebas de `analytic`,
+`account` y `sale_timesheet` que tocan los dos modelos.
