@@ -9,8 +9,11 @@ import logging
 from datetime import timedelta
 
 from django.apps import apps
+import fields
+import models
 from django.conf import settings
-from django.db import models, transaction
+from django.db import transaction
+from django.db.models import Count
 from django.utils import timezone
 
 from addons.base.models import SoftDeleteModel, TimeStampedModel
@@ -29,7 +32,8 @@ AUTO_CLOSE_BODY = (
 
 
 class SupportTicket(
-    MailThread, MailActivityMixin, TimeStampedModel, SoftDeleteModel
+    models.BaseModel, MailThread, MailActivityMixin, TimeStampedModel,
+    SoftDeleteModel
 ):
     """Ticket de soporte. UC-SUPP-01.
 
@@ -98,6 +102,12 @@ class SupportTicket(
         default=Priority.NORMAL,
     )
     order_id = models.PositiveIntegerField(null=True, blank=True)
+    #: Cuántas respuestas tiene el ticket: un contador calculado y no
+    #: almacenado, la forma que la fuente da a sus contadores (los de
+    #: ``mail.thread``, p. ej.). Antes lo ponía ``annotate()`` sobre cada
+    #: fila; un ``BaseModel`` no acepta atributos públicos que la clase no
+    #: declara (``odoo19c: odoo/orm/models.py:362``, ``__slots__``).
+    replies_count = fields.Integer(compute='_compute_replies_count')
 
     class Meta:
         db_table = 'support_ticket'
@@ -111,6 +121,17 @@ class SupportTicket(
 
     def __str__(self):
         return f'#{self.pk} {self.subject} ({self.status})'
+
+    def _compute_replies_count(self):
+        """Una sola consulta agrupada para todo el recordset."""
+        reply_model = apps.get_model('helpdesk', 'SupportTicketReply')
+        counts = dict(
+            reply_model.objects.filter(ticket__in=self.ids)
+            .values('ticket').annotate(total=Count('id'))
+            .values_list('ticket', 'total')
+        )
+        for ticket in self:
+            ticket.replies_count = counts.get(ticket.id, 0)
 
     # ------------------------------------------------------------------
     # Cierre por inactividad — el método que el cron invoca (UC-NOT-08)

@@ -100,7 +100,7 @@ def _get_ticket_for_user(ticket_id, user):
 
 
 def _annotate_first_response(qs):
-    """Anota ``first_response_at``: create_date de la primera respuesta de
+    """Anota ``first_response_date``: create_date de la primera respuesta de
     staff no interna de cada ticket. UC-SUPP-05 (T-009) — metrica de
     tiempo-medio-de-primera-respuesta y columna de export CSV.
 
@@ -120,7 +120,7 @@ def _annotate_first_response(qs):
         .order_by('create_date', 'id')
         .values('create_date')[:1]
     )
-    return qs.annotate(first_response_at=Subquery(first_staff_reply_qs))
+    return qs.annotate(first_response_date=Subquery(first_staff_reply_qs))
 
 
 def _apply_admin_filters(qs, params):
@@ -500,7 +500,7 @@ class AdminSupportTicketListView(APIView):
         responses={200: AdminSupportTicketListSerializer(many=True)},
     )
     def get(self, request):
-        qs = SupportTicket.objects.all().annotate(replies_count=Count('replies'))
+        qs = SupportTicket.objects.all()
         qs, error = _apply_admin_filters(qs, request.query_params)
         if error is not None:
             return error
@@ -512,13 +512,13 @@ class AdminSupportTicketListView(APIView):
         # agregacion de Django (Avg sobre una expresion de duracion), del
         # tiempo entre la apertura del ticket y su primera respuesta de staff
         # no interna. Tickets sin ninguna respuesta de staff se excluyen del
-        # promedio (first_response_at es NULL para ellos).
+        # promedio (first_response_date es NULL para ellos).
         avg_first_response = (
             _annotate_first_response(all_tickets)
-            .filter(first_response_at__isnull=False)
+            .filter(first_response_date__isnull=False)
             .annotate(
                 response_time=ExpressionWrapper(
-                    F('first_response_at') - F('create_date'),
+                    F('first_response_date') - F('create_date'),
                     output_field=DurationField(),
                 )
             )
@@ -602,17 +602,24 @@ class AdminSupportTicketExportCSVView(APIView):
             'id', 'asunto', 'estado', 'prioridad', 'categoria',
             'comprador_email', 'create_date', 'primera_respuesta',
         ])
-        for ticket in qs:
+        # Filas como diccionarios: la anotación no tiene receptor sobre un
+        # registro de ``BaseModel``, y así el export sigue siendo una sola
+        # consulta.
+        rows = qs.values(
+            'pk', 'subject', 'status', 'priority', 'category',
+            'user__partner_id__email', 'create_date', 'first_response_date',
+        )
+        for row in rows:
             writer.writerow([
-                ticket.pk,
-                ticket.subject,
-                ticket.status,
-                ticket.priority,
-                ticket.category,
-                ticket.user.email if ticket.user_id else '',
-                ticket.create_date.isoformat(),
-                ticket.first_response_at.isoformat()
-                if ticket.first_response_at else '',
+                row['pk'],
+                row['subject'],
+                row['status'],
+                row['priority'],
+                row['category'],
+                row['user__partner_id__email'] or '',
+                row['create_date'].isoformat(),
+                row['first_response_date'].isoformat()
+                if row['first_response_date'] else '',
             ])
 
         response = HttpResponse(buf.getvalue(), content_type='text/csv')
