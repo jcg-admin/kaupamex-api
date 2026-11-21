@@ -18,9 +18,12 @@ redundantes: resuelven preguntas distintas.
   por eso, y por eso hay que **repropagarlo a los descendientes** cuando
   cambia el nombre de un padre: si no, media rama queda con el nombre viejo.
 
-Aquí los dos se mantienen en ``save()``, mismo patrón que ``uom_uom.py`` ya
-usa para su ``factor`` y su ``parent_path`` — y por la misma razón: Django no
-recalcula en cadena.
+Los dos los mantiene el ORM, como en la fuente: ``parent_path`` por
+``_parent_store`` en ``create``/``write`` de un ``BaseModel`` (y en ``save()``
+para el camino de Django, como ``hr.department``), y ``complete_name`` como
+cálculo almacenado y recursivo que el ORM recalcula también en los hijos.
+Diseño: ``scripts/workbench/orm-continuation-plan-20261103T095630/designs/
+product-category-basemodel.md``.
 
 ``product_count`` cuenta la rama, no el nodo
 ============================================
@@ -31,43 +34,28 @@ categories"*, y su código hace **lo contrario**: recorre
 que está mal, no el cálculo — se porta el cálculo, se corrige la ayuda, y se
 deja anotado para que nadie lo "arregle" al revés más tarde.
 
-Es un ``compute`` sin ``store`` → propiedad derivada aquí.
+Es un ``compute`` sin ``store``, declarado como en la fuente.
 
-Qué NO se porta, con su medición
-================================
-
-- **El hilo de ``mail.thread``**: la cabecera lo declara verbatim, pero la
-  clase no hereda ``MailThread`` (seguidores, registro de cambios). Junto con
-  ``name_create``, ``copy_data`` y el ``display_name`` según
-  ``hierarchical_naming``, depende de llevar el modelo a ``BaseModel``:
-  sucesor ``product-category-mail-0122``.
-- **``product_properties_definition``** (``PropertiesDefinition``): el esquema
-  de propiedades libres que heredan los productos de la categoría. Se porta
-  el campo —es ``JSONField`` en este árbol— pero **no** la maquinaria que lo
-  aplica a los productos, que vive en ``product_template.py``.
+``name`` no lleva el índice ``trigram`` de la fuente: ``db_index`` es un
+B-tree; el índice de trigramas espera a que el vocabulario lo exprese.
 """
 
+import api
 import fields
 import models
-from django.apps import apps
-from django.core.exceptions import ValidationError
 
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from addons.mail.models import MailThread
+from exceptions import ValidationError
+from orm.models import _parent_store_update
+from tools.translate import _
 
-#: Separador de los tramos del nombre completo, verbatim de la fuente.
-COMPLETE_NAME_SEPARATOR = ' / '
 
-
-class ProductCategory(TimeStampedModel):
+class ProductCategory(models.BaseModel, MailThread, TimeStampedModel):
     """``product.category`` — una categoría dentro del árbol."""
 
     #: ≙ la cabecera de ``odoo19c: addons/product/models/
-    #: product_category.py:9-15``, verbatim. ``_inherit`` nombra la
-    #: extensión de ``mail.thread`` aunque el hilo de mensajes sobre la
-    #: categoría no esté cableado (sucesor ``product-category-mail-0122``).
-    #: ``_parent_store`` en un modelo que no es ``BaseModel`` no activa el
-    #: mantenimiento del núcleo: ``parent_path`` lo calcula ``save()``,
-    #: como en ``uom.uom``; lo que sí habilita es ``child_of`` por ruta.
+    #: product_category.py:9-15``, verbatim; el hilo lo da ``MailThread``.
     _name = 'product.category'
     _inherit = ['mail.thread']
     _description = "Product Category"
@@ -77,18 +65,10 @@ class ProductCategory(TimeStampedModel):
     #: ``Meta.ordering`` es su forma en Django; los dos conviven.
     _order = 'complete_name'
 
-    name = fields.Char(max_length=255, db_index=True, verbose_name='Nombre')
+    name = fields.Char('Name', required=True, max_length=255, db_index=True)
     complete_name = fields.Char(
-        max_length=1024,
-        blank=True,
-        default='',
-        db_index=True,
-        verbose_name='Nombre completo',
-        help_text=(
-            'Ruta legible "Padre / Hijo". Almacenado y repropagado a '
-            'los descendientes al renombrar un padre.'
-        ),
-    )
+        'Complete Name', compute='_compute_complete_name', recursive=True,
+        store=True, max_length=1024, blank=True, null=True, db_index=True)
     #: ≙ ``parent_id`` (``odoo19c: addons/product/models/
     #: product_category.py:21``) en forma C: el nombre de la fuente, con su
     #: columna explícita.
@@ -117,16 +97,12 @@ class ProductCategory(TimeStampedModel):
             'un LIKE en vez de N consultas.'
         ),
     )
-    product_properties_definition = fields.Json(
-        default=list,
-        blank=True,
-        verbose_name='Propiedades del producto',
-        help_text=(
-            'Esquema de propiedades libres que heredan los productos de '
-            'esta categoría. La maquinaria que lo aplica vive en '
-            'product_template.'
-        ),
-    )
+    product_count = fields.Integer(
+        '# Products', compute='_compute_product_count', store=False,
+        help="The number of products under this category (Does not consider"
+             " the children categories)")
+    product_properties_definition = fields.PropertiesDefinition(
+        'Product Properties', null=True, blank=True)
 
     class Meta:
         db_table = 'product_category'
@@ -135,78 +111,78 @@ class ProductCategory(TimeStampedModel):
         verbose_name_plural = 'Categorías de producto'
 
     def __str__(self):
-        return self.complete_name or self.name
-
-    def clean(self):
-        """
-        ``_check_category_recursion`` — no se admiten categorías cíclicas.
-        """
-        super().clean()
-        seen = set()
-        node = self.parent_id
-        while node is not None:
-            if node.pk == self.pk or node.pk in seen:
-                raise ValidationError(
-                    'No se pueden crear categorías recursivas.'
-                )
-            seen.add(node.pk)
-            node = node.parent_id
-
-    def build_complete_name(self):
-        """
-        ``_compute_complete_name`` — ``Padre / Hijo``, o el nombre a secas.
-        """
-        if self.parent_id is not None:
-            parent_name = self.parent_id.complete_name or self.parent_id.name
-            return f'{parent_name}{COMPLETE_NAME_SEPARATOR}{self.name}'
-        return self.name
+        return self.complete_name or self.name or ''
 
     def save(self, *args, **kwargs):
-        """
-        Mantiene ``complete_name`` y ``parent_path``, y repropaga a los hijos.
+        """Mantiene la ruta materializada en el camino de Django.
 
-        Los dos son ``store=True`` en la referencia y su ORM los recalcula en
-        cadena. Django no, así que la repropagación es explícita: sin ella,
-        renombrar un padre deja media rama con el nombre viejo y el árbol
-        mintiendo en cada lectura.
+        ``objects.create`` y ``save()`` no pasan por ``create``/``write``
+        del ORM, que son quienes mantienen el árbol de un ``BaseModel`` con
+        ``_parent_store``. Mismo patrón que ``hr.department``: una fila que
+        cambia de padre delega en :func:`orm.models._parent_store_update`.
         """
-        self.complete_name = self.build_complete_name()
+        stored = (type(self)._base_manager.filter(pk=self.pk)
+                  .values_list('parent_id', 'parent_path').first()
+                  if self.pk is not None else None)
         super().save(*args, **kwargs)
+        if stored and stored[1] and stored[0] != self.parent_id_id:
+            _parent_store_update(self)
+        else:
+            path = (f'{self.parent_id.parent_path}{self.pk}/'
+                    if self.parent_id else f'{self.pk}/')
+            if path != self.parent_path:
+                self.parent_path = path
+                super().save(update_fields=['parent_path'])
 
-        parent_path = (
-            f'{self.parent_id.parent_path}{self.pk}/'
-            if self.parent_id is not None
-            else f'{self.pk}/'
-        )
-        if self.parent_path != parent_path:
-            self.parent_path = parent_path
-            super().save(update_fields=['parent_path'])
+    @api.depends('name', 'parent_id.complete_name')
+    def _compute_complete_name(self):
+        """≙ ``_compute_complete_name`` (``odoo19c:
+        addons/product/models/product_category.py:28-34``)."""
+        for category in self:
+            if category.parent_id:
+                category.complete_name = '%s / %s' % (
+                    category.parent_id.complete_name, category.name)
+            else:
+                category.complete_name = category.name
 
-        for child in self.child_id.all():
-            child.save()
+    def _compute_product_count(self):
+        """≙ ``_compute_product_count`` (``:36-43``): cuenta toda la rama,
+        aunque el ``help`` de la fuente diga lo contrario."""
+        read_group_res = self.env['product.template']._read_group(
+            [('categ_id', 'child_of', self.ids)], ['categ_id'], ['__count'])
+        group_data = {categ.id: count for categ, count in read_group_res}
+        for categ in self:
+            product_count = 0
+            for sub_categ_id in categ.search(
+                    [('id', 'child_of', categ.ids)]).ids:
+                product_count += group_data.get(sub_categ_id, 0)
+            categ.product_count = product_count
 
-    @property
-    def product_count(self):
-        """``_compute_product_count`` — productos de **toda la rama**.
+    @api.constrains('parent_id')
+    def _check_category_recursion(self):
+        """≙ ``_check_category_recursion`` (``:45-48``)."""
+        if self._has_cycle():
+            raise ValidationError(_('You cannot create recursive categories.'))
 
-        La ayuda de la referencia dice que no cuenta las hijas; su código sí
-        las cuenta (``child_of``). Se porta el código — ver el docstring del
-        módulo.
+    @api.model
+    def name_create(self, name):
+        """≙ ``name_create`` (``:50-53``)."""
+        category = self.create({'name': name})
+        return category.id, category.display_name
 
-        Resuelve ``ProductTemplate`` por el registro de apps. Antes leía un
-        atributo de clase ``_product_template_model`` que **nada fijaba** en
-        todo el árbol, así que el contador devolvía 0 incluso con productos
-        reales: era un gancho de cableado escrito cuando ``product.template``
-        aún no estaba portado. Hoy lo está, y vive en este mismo addon.
-        Ver H-API-217.
+    @api.depends_context('hierarchical_naming')
+    def _compute_display_name(self):
+        """≙ ``_compute_display_name`` (``:55-60``)."""
+        if self.env.context.get('hierarchical_naming', True):
+            return super()._compute_display_name()
+        for record in self:
+            record.display_name = record.name
 
-        Lo diferido es la **resolución** (``get_model``), no el import:
-        ``django.apps`` es el registro y se importa arriba. Misma resolución
-        que ``_partner_model()`` en ``base/models/res_users.py``, corregida en
-        ambos sitios (ver H-API-221).
-        """
-        template_model = apps.get_model('product', 'ProductTemplate')
-        branch = type(self).objects.filter(
-            parent_path__startswith=self.parent_path
-        )
-        return template_model.objects.filter(categ_id__in=branch).count()
+    def copy_data(self, default=None):
+        """≙ ``copy_data`` (``:62-68``): la copia lleva «(copy)»."""
+        default = dict(default or {})
+        vals_list = super().copy_data(default=default)
+        if 'name' not in default:
+            for category, vals in zip(self, vals_list):
+                vals['name'] = _("%s (copy)", category.name)
+        return vals_list

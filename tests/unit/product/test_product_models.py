@@ -24,6 +24,8 @@ from datetime import date
 from decimal import Decimal
 
 import pytest
+
+from exceptions import UserError
 from django.core.exceptions import ValidationError
 
 from addons.base.models import ResPartner
@@ -79,18 +81,19 @@ class TestProductCategory:
         hijo.refresh_from_db()
         assert hijo.complete_name == 'Collares Sagrados / Elekes'
 
-    def test_clean_rechaza_categoria_como_su_propio_padre(self):
+    def test_write_rejects_category_as_its_own_parent(self):
+        """≙ la guarda del árbol al escribir el padre (``_parent_store``
+        y ``_check_category_recursion``, ``odoo19c: product_category.py:
+        45-48``); ``clean()`` ya no la lleva."""
         cat = ProductCategory.objects.create(name='Collares')
-        cat.parent_id = cat
-        with pytest.raises(ValidationError):
-            cat.clean()
+        with pytest.raises(UserError):
+            cat.write({'parent_id': cat.id})
 
-    def test_clean_rechaza_ciclo_indirecto(self):
+    def test_write_rejects_indirect_cycle(self):
         a = ProductCategory.objects.create(name='A')
         b = ProductCategory.objects.create(name='B', parent_id=a)
-        a.parent_id = b
-        with pytest.raises(ValidationError):
-            a.clean()
+        with pytest.raises(UserError):
+            a.write({'parent_id': b.id})
 
     def test_product_count_cuenta_los_de_la_categoria(self):
         cat = ProductCategory.objects.create(name='Collares')

@@ -144,7 +144,7 @@ def _get_category_account(self, field_name):
     hacia abajo.
     """
     categ = self.categ_id
-    while categ is not None:
+    while categ:
         cuenta = getattr(categ, field_name, None)
         if cuenta is not None:
             return cuenta

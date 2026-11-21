@@ -49,4 +49,4 @@ def test_the_tree_is_kept_through_parent_id():
                                            parent_id=root)
     assert child.complete_name == 'Raiz cat-hdr / Hija cat-hdr'
     assert child.parent_path == f'{root.pk}/{child.pk}/'
-    assert list(root.child_id.all()) == [child]
+    assert list(root.child_id) == [child]

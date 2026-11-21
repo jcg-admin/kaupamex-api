@@ -3254,8 +3254,6 @@ tests/unit/product/test_product_models.py::proveedor
 tests/unit/product/test_product_models.py::rojo
 tests/unit/product/test_product_models.py::talla
 tests/unit/product/test_product_models.py::test_clean_permite_combo_con_variante
-tests/unit/product/test_product_models.py::test_clean_rechaza_categoria_como_su_propio_padre
-tests/unit/product/test_product_models.py::test_clean_rechaza_ciclo_indirecto
 tests/unit/product/test_product_models.py::test_combo_a_la_venta_con_opcion_no_vendible_es_invalido
 tests/unit/product/test_product_models.py::test_combo_con_costo_propio_es_invalido
 tests/unit/product/test_product_models.py::test_combo_con_eleccion_vendible_es_valido

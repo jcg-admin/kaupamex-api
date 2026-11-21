@@ -248,7 +248,7 @@ def parent_route_ids(self):
     """
     StockRoute = apps.get_model('stock', 'StockRoute')
     inherited, current = set(), self.parent_id
-    while current is not None:
+    while current:
         inherited.update(current.route_ids.values_list('pk', flat=True))
         current = current.parent_id
     own = set(self.route_ids.values_list('pk', flat=True))
@@ -961,7 +961,7 @@ def filter_has_routes(cls, products):
             salida.append(product)
             continue
         categoria = getattr(product, 'categ_id', None)
-        if categoria is not None and categoria.total_route_ids.exists():
+        if categoria and categoria.total_route_ids.exists():
             salida.append(product)
     return salida
 
@@ -1177,7 +1177,7 @@ def get_total_routes(self):
     StockRoute = apps.get_model('stock', 'StockRoute')
     ids = set(self.route_ids.values_list('pk', flat=True))
     category = self.categ_id
-    if category is not None:
+    if category:
         ids |= set(category.total_route_ids.values_list('pk', flat=True))
     return StockRoute.objects.filter(pk__in=ids)
 

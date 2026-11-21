@@ -388,7 +388,7 @@ class ProductPricelistItem(TimeStampedModel):
             # Una regla de categoría alcanza a toda la rama, no sólo al nodo:
             # la ruta materializada de ``product.category`` lo resuelve sin
             # subir la cadena.
-            if categ is None or self.categ_id is None:
+            if not categ or not self.categ_id:
                 return False
             return categ.parent_path.startswith(self.categ_id.parent_path)
         return False

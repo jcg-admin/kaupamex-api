@@ -704,10 +704,10 @@ class StockLocation(models.DefaultGetMixin, TimeStampedModel):
 
         categorias = []
         categs = {p.categ_id for p in universo
-                  if getattr(p, 'categ_id', None) is not None}
+                  if getattr(p, 'categ_id', None)}
         categ = next(iter(categs)) if len(categs) == 1 else None
         propia = categ
-        while categ is not None:
+        while categ:
             categorias.append(categ)
             categ = categ.parent_id
 
