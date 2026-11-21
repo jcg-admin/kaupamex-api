@@ -583,7 +583,8 @@
   "res-users-default-groups-0485",
   "product-variant-cluster-stage1-0122",
   "ptav-complete-0122",
-  "product-template-variant-generation-0122"
+  "product-template-variant-generation-0122",
+  "ptal-complete-0122"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
