@@ -118,3 +118,58 @@ registro»), y desde que es `BaseModel` un alta de dos iniciativas con etapa
 muere en `_check_won_validity` con `Expected singleton`. La fuente itera
 `for lead in self` (`odoo19c: addons/crm/models/crm_lead.py:263-266`). Es
 otra clase de defecto. Sucesor: `crm-lead-recordset-computes-0397`.
+
+## Porciones `hr`, `hr_fleet`, `hr_skills`, `project_hr_skills`
+
+`hr_employee.py` `_get_version_periods` (≙ `odoo19c: addons/hr/models/hr_employee.py:1594-1624`)
+ordena `versions` con `sorted(..., key=date_version)`; `res_users.py`
+`category` (≙ `category_ids`) devuelve el recordset del empleado o uno vacío
+de `hr.employee.category`; `_first_employee` (`resource.py` y
+`hr_skills/models/resource_resource.py`) y `_compute_calendar_id`
+(`resource_calendar_leaves.py`, ≙ `:14-33`) toman el primer empleado del
+inverso del mixin o `None`. `hr_fleet`: `_compute_license_plate` (≙
+`odoo19c: addons/hr_fleet/models/employee.py:32-38`) usa `mapped`, y
+`_determine_responsible` toma `car_ids[:1]`. `hr_skills/models/hr_employee.py`:
+`_compute_current_employee_skill_ids`, `_compute_skill_ids` (escribe
+`skill_ids` con un comando 6), `_compute_certification_ids` (`filtered`) y
+`get_internal_resume_lines` (≙ `:25-41`, `:143-186`); `hr_skill_level.py`
+`save` (≙ `:29-40`) desmarca con un UPDATE por el gestor del modelo;
+`hr_skill_type.py` `_compute_levels_count` usa `len`; `hr_employee_public.py`
+`resume_line_ids` y `employee_skill_ids` (≙ `:9-11`) y
+`project_hr_skills/models/res_users.py` `employee_skill_ids` (≙ `:8`) devuelven
+el recordset del empleado. Pruebas: `tests/unit/hr/test_hr_recordset_readers.py`
+y `tests/unit/hr_skills/test_skill_recordset_readers.py`, rojas antes del
+cambio en todos sus sitios.
+
+## Porción `hr_recruitment`
+
+`talent_pool_count` (≙ `odoo19c: addons/hr_recruitment/models/hr_applicant.py:154-215`)
+y `talent_count` (≙ `hr_talent_pool.py:45-50`) usan `len`;
+`add_applicants_to_pool` (≙ `wizard/talent_pool_add_applicants.py:22-49`)
+enlaza bolsas y categorías con `Command.link`, como la fuente, y recorre
+`categs` sin `.all()`. Prueba: `tests/unit/hr_recruitment/test_recruitment_recordset_readers.py`.
+
+## Porciones `purchase_requisition`, `stock` y `website_sale`
+
+`action_cancel`, `action_done`, `save` y `delete` de la línea de acuerdo
+(≙ `odoo19c: addons/purchase_requisition/models/purchase_requisition.py`,
+`write` `:231-241`, `unlink` `:243-246`) usan `supplier_info_ids.unlink()` y
+`.write({'price': ...})`. `StockMove.allowed_uom_ids` (≙
+`_compute_allowed_uom_ids`) lee `uom_ids.ids` y la unidad de cada proveedor.
+`CategoryTreeSerializer.get_children` ordena `child_id.sorted('name')`.
+Pruebas: `tests/unit/purchase_requisition/test_requisition_recordset_readers.py`,
+`tests/unit/stock/test_stock_move_allowed_uom_ids.py` y
+`tests/unit/website_sale/test_category_tree_serializer.py`.
+
+## Ampliación del inventario: métodos de Many2many
+
+El primer patrón omitía `set`, `add`, `remove` y `clear`, que tampoco existen
+en `BaseModel`. Con ellos aparecieron 20 líneas más: las cuatro del asistente
+de bolsas (tratadas arriba) y `_compute_skill_ids` (tratada); el resto tienen
+dueño de Django (`account.account`, `digest`, `res.groups`, `res.users`,
+`l10n_mx`) y su gestor es válido, o son prosa. La prosa de
+`addons/account_edi/models/account_journal.py:28-32` y `:140` dice que el M2M
+de formatos se escribe con `.set`/`.remove`, y `account.journal` ya es
+`BaseModel`: es una afirmación caducada. Sucesor:
+`account-edi-journal-prose-0397`, junto al guardián de `m2m_changed` que esa
+prosa describe.
