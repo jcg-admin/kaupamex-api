@@ -35,3 +35,35 @@ el almacenamiento `jsonb` de los campos traducibles es TASK-GEN-0060.
 Pruebas que crean atributos con `display_type` fuera de los tres valores
 actuales, o `multi` con variantes (la restricción lo rehúsa); lecturas de
 `sequence` por defecto 10.
+
+## Implementación (2026-11-21)
+
+`addons/product/models/product_attribute.py`: `ProductAttribute` deriva de
+`(models.BaseModel, TimeStampedModel)` con los campos de la fuente y
+`ProductAttribute._compute_number_related_products`
+(`odoo19c: addons/product/models/product_attribute.py:75-86`),
+`ProductAttribute._compute_products` (`:88-99`),
+`ProductAttribute._onchange_display_type` (`:103-106`),
+`ProductAttribute.write` (`:110-134`),
+`ProductAttribute._unlink_except_used_on_product` (`:136-145`),
+`ProductAttribute.action_archive` (`:149-155`),
+`ProductAttribute.action_open_product_template_attribute_lines`
+(`:157-165`) y `ProductAttribute._without_no_variant_attributes`
+(`:167-168`); `_check_multi_checkbox_no_variant` (`:14-17`) es un
+`CheckConstraint` de `Meta`. **Migración 0051**
+`addons/product/migrations/0051_attribute_basemodel.py`: campos nuevos,
+alteraciones, la restricción y `ComputeStoredFields` de
+`product_tmpl_ids`.
+
+Pruebas: `tests/unit/product/test_product_attribute_basemodel.py`
+(9 casos). Premisas: `attribute_line_ids` es ahora un recordset, no un
+gestor de Django, y
+`tests/integration/product/test_product_variants_and_stock.py`,
+`tests/integration/sale/test_product_attribute.py` y
+`tests/unit/product/test_attribute_line_source_relation.py` lo leen con
+`len()` y la iteración del recordset.
+
+Anulación: productos, conteo (tira también las tres guardas que lo leen),
+guarda de `write`, guarda de borrado, guarda de archivado, `onchange` y la
+herramienta tiran sus casos. Subconjunto derivado: 5045 passed + los 3
+premisas corregidas (19 passed), 8 xfailed.
