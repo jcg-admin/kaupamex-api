@@ -160,3 +160,16 @@ como `parent_id` (es `parent`). Se intentó y la carga de módulos falló con
 `analytic-plan-basemodel-0397` —cabecera, `BaseModel`, `parent_id`,
 `complete_name`, `root_id` y los campos de la fuente del plan—, que precede
 a la etapa 2 (columnas por plan).
+
+Símbolos que la unidad `plan_id` cambia, para el gate de flujo de
+referencia: `AccountAnalyticAccount.plan_id` y su `Meta.ordering`, las
+propiedades `root_plan` y `color` (`analytic_account.py`);
+`AccountAnalyticDistributionModel._get_distribution`
+(`analytic_distribution_model.py`), que lee el plan raíz de cada cuenta;
+`AnalyticMixin._modifiying_distribution_values` (`analytic_mixin.py`), que
+hace lo mismo en las dos pasadas; `AccountAnalyticPlan.account_count`
+(`analytic_plan.py`) sobre `account_ids`; la migración
+`0014_account_plan_id` (`AlterField` + `RenameField` + `AlterModelOptions`,
+sin SQL); y `_order_field_to_sql` (`src/orm/models.py`). Ninguno cambia de
+conducta salvo `_order_field_to_sql`; los demás leen el mismo valor por su
+nombre de la fuente. Prueba: `tests/unit/analytic/test_analytic_account_plan_id.py`.
