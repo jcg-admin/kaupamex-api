@@ -169,3 +169,34 @@ Pruebas:
 prueba en el árbol (medido con `grep -rn` en `addons` y `tests`); su prueba
 es `tests/unit/sale/test_sale_pricelist_item_discount.py`, añadida en esta
 etapa.
+
+## Etapa 2 — integridad
+
+`odoo19c: addons/product/models/product_pricelist_item.py`:
+
+- `create` (`:479-508`): deduce `product_tmpl_id` de `product_id`, infiere
+  `applied_on` cuando no viene y limpia los campos de alcance que no le
+  corresponden, para que las búsquedas posteriores sean coherentes.
+- `write` (`:510-522`): la misma limpieza cuando se escribe `applied_on`.
+- Las cinco restricciones como `@api.constrains`, verbatim:
+  `_check_base_pricelist_id` (`:316-319`), `_check_pricelist_recursion`
+  (`:321-352`, búsqueda en profundidad con `_read_group` sobre
+  `base_pricelist_id`), `_check_date_range` (`:354-364`, fin estrictamente
+  posterior al inicio), `_check_margin` (`:366-369`) y
+  `_check_product_consistency` (`:371-381`).
+- Se retira `clean`: sus tres comprobaciones son las de
+  `_check_product_consistency`, `_check_base_pricelist_id` y
+  `_check_date_range`, que en la fuente corren en cada escritura del ORM y
+  no sólo en `full_clean` (medido: ningún consumidor llama a `full_clean`
+  ni a `clean` de la regla).
+
+`odoo19c: addons/product/models/product_pricelist.py`:
+
+- `_unlink_except_used_as_rule_base` (`:393-405`) con
+  `@api.ondelete(at_uninstall=False)`: una tarifa que otra usa como base
+  no se borra.
+
+Prueba: `tests/unit/product/test_product_pricelist_integrity.py` — cada
+restricción con su caso que la viola y su caso válido, la recursión directa
+e indirecta, la deducción de plantilla e inferencia de alcance en `create`,
+la limpieza en `create` y `write`, y la guarda de borrado.
