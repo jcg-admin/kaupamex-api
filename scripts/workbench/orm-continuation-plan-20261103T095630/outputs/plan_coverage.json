@@ -585,7 +585,8 @@
   "ptav-complete-0122",
   "product-template-variant-generation-0122",
   "ptal-complete-0122",
-  "product-template-crud-0122"
+  "product-template-crud-0122",
+  "product-attribute-basemodel-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
