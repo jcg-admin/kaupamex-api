@@ -103,3 +103,28 @@ sustituyen las cinco `@api.constrains` de la etapa 2), `matches`/`compute`/
 
 Migraciones: `0059_pricelist_basemodel` (rellena la moneda nula antes de
 declararla `NOT NULL`) y `0060_pricelist_item_basemodel`.
+
+### Dos defectos del ORM destapados por la etapa 1
+
+- `orm.models._readable_ids` (la rama de `copy_data` para `Many2many`,
+  ≙ `odoo19c: odoo/orm/models.py:5459`,
+  `record[name]._filtered_access('read').ids`) distinguía el recordset por
+  `hasattr(value, '_filtered_access')`. El gestor relacionado de Django
+  también expone ese método (lo hereda de `AccessQuerySet`) y devuelve un
+  `QuerySet` sin `ids`, así que copiar una tarifa con `country_group_ids`
+  (comodelo Django) fallaba. Se discrimina por `_ids`, como ya hace
+  `_x2many_records`.
+- `CheckCompanyMixin.save` verificaba la empresa justo tras el `INSERT`.
+  Dentro de `BaseModel.create` la fila aún no tiene sus calculados
+  almacenados (aquí, el `company_id` del ítem), y la fuente verifica una sola
+  vez al final de `create` (`odoo19c: odoo/orm/models.py:4744`). El `save`
+  omite la verificación mientras `ORM_CREATE_INSERTING` está activo; `create`
+  la hace al final, como ya hacía.
+
+### La extensión de `sale` pasa a recordset
+
+`odoo19c: addons/sale/models/product_pricelist_item.py:7-15`:
+`_is_discount_feature_enabled` vuelve a ser `@api.model` (era
+`classmethod`) y `_show_discount` recupera sus dos guardas
+(`if not self: return False` y `self.ensure_one()`), que con el ítem como
+`BaseModel` vuelven a poder dispararse.
