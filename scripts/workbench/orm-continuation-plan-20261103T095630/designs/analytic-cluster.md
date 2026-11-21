@@ -173,3 +173,29 @@ hace lo mismo en las dos pasadas; `AccountAnalyticPlan.account_count`
 sin SQL); y `_order_field_to_sql` (`src/orm/models.py`). Ninguno cambia de
 conducta salvo `_order_field_to_sql`; los demás leen el mismo valor por su
 nombre de la fuente. Prueba: `tests/unit/analytic/test_analytic_account_plan_id.py`.
+
+## 1b, segunda unidad: `company` de la cuenta pasa a `company_id` con su default
+
+La fuente declara `company_id = fields.Many2one('res.company',
+default=lambda self: self.env.company)`
+(`odoo19c: addons/analytic/models/analytic_account.py:61`). El puerto lo
+declara `company`, opcional y sin default.
+
+- `AccountAnalyticAccount.company` se renombra `company_id` en forma C
+  (`db_column='company_id'`, columna sin cambio) y gana
+  `default=_default_company_id`, la forma que ya usa
+  `addons/product/models/product_pricelist.py` (`env().company`, su `pk`
+  o `None`). Migración `0015_account_company_id`: `AlterField` +
+  `RenameField`, sin SQL de datos.
+- Lectores medidos por receptor (`git grep` de `company=`, `.company`,
+  `company__` y `'company'` sobre los archivos que nombran la cuenta):
+  `AccountAnalyticAccount.clean` lee `self.company_id` como entero y filtra
+  `lines.exclude(company_id=...)`, que Django acepta con el registro; la
+  propiedad `currency_id` lee `self.company.currency`. Ningún alta de cuenta
+  pasa `company=`. El `related_name='analytic_accounts'` no tiene lectores.
+- La línea de `scripts/fk_naming_baseline.txt` de esta FK sale, y la fila del
+  censo de `ondelete` se renombra como en la unidad `plan_id`.
+
+Prueba: `tests/unit/analytic/test_analytic_account_company_id.py` —símbolo,
+columna, default de la empresa del entorno, `currency_id` sobre ella y la
+coherencia de `clean` con las líneas.
