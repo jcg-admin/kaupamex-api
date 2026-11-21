@@ -85,3 +85,15 @@ reescritura con la API del recordset de la fuente (`filtered`, `mapped`,
 el sitio es una agregación SQL), citando en cada sitio la línea de la fuente
 que porta. El dueño que atribuyó el subagente se verifica leyendo cada
 sitio antes de tocarlo: es testimonio, no medida.
+
+## Porción `hr_timesheet`
+
+`has_timesheet` (`addons/hr_timesheet/models/hr_employee.py`,
+≙ `_compute_has_timesheet`, `odoo19c: hr_timesheet/models/hr_employee.py:13-29`)
+pasa a `bool(self.timesheets.filtered(lambda line: line.project))`;
+`_effective_hours` (`project_project.py`, ≙ `_compute_remaining_hours`,
+`:68-79`) y `effective_hours` (`project_task.py`, ≙
+`_compute_effective_hours`, `:83-92`) suman `mapped('unit_amount')`. El
+addon no tenía ninguna prueba; la nueva,
+`tests/unit/hr_timesheet/test_timesheet_recordset_readers.py`, falla en los
+tres antes del cambio con el `AttributeError` del recordset.
