@@ -315,7 +315,7 @@ account.analytic.applicability	addons/analytic/models/analytic_plan.py:411	set n
 account.analytic.applicability	addons/analytic/models/analytic_plan.py:427	set null (defecto)	analytic.AccountAnalyticApplicability	company	set null	SET_NULL	a	True	coherente
 account.analytic.applicability	addons/account/models/account_analytic_plan.py:24	set null (defecto)	analytic.AccountAnalyticApplicability	product_categ	set null	SET_NULL	a	True	coherente
 mail.thread	-	-	analytic.AccountAnalyticAccount	plan_id	restrict	PROTECT	a	True	sin contraparte en la fuente
-mail.thread	-	-	analytic.AccountAnalyticAccount	company	set null	SET_NULL	a	True	sin contraparte en la fuente
+mail.thread	-	-	analytic.AccountAnalyticAccount	company_id	set null	SET_NULL	a	True	sin contraparte en la fuente
 mail.thread	-	-	analytic.AccountAnalyticAccount	partner	set null	SET_NULL	a	True	sin contraparte en la fuente
 account.analytic.line	-	-	analytic.AccountAnalyticLine	account	set null	PROTECT	a	True	sin contraparte en la fuente
 account.analytic.line	addons/analytic/models/analytic_line.py:189	set null (defecto)	analytic.AccountAnalyticLine	product_uom	set null	SET_NULL	a	True	coherente

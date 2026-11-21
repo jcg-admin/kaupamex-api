@@ -31,6 +31,13 @@ import fields
 import models
 
 from addons.mail.models import MailThread
+from orm.environments import env
+
+
+def _default_company_id():
+    """≙ ``default=lambda self: self.env.company`` (``:61-65``)."""
+    company = env().company
+    return company.pk if company is not None else None
 
 
 class AccountAnalyticAccount(
@@ -84,11 +91,13 @@ class AccountAnalyticAccount(
             'ondelete explícito aquí; PROTECT es la adaptación segura).'
         ),
     )
-    company = fields.Many2one(
+    company_id = fields.Many2one(
         'base.ResCompany',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        db_column='company_id',
+        default=_default_company_id,
         related_name='analytic_accounts',
         verbose_name='Empresa',
     )
@@ -120,16 +129,27 @@ class AccountAnalyticAccount(
             name = f'{name} - {self.partner.name}'
         return name
 
+    def _lines_query(self):
+        """Los apuntes de la cuenta como queryset de Django.
+
+        Desde que la cuenta es ``BaseModel``, su inverso ``lines`` devuelve
+        un recordset, que no tiene ``filter`` ni ``aggregate``. La suma y la
+        comprobación de empresa siguen siendo la misma consulta SQL de antes.
+        """
+        line_model = self._meta.get_field('lines').related_model
+        return line_model.objects.filter(account_id=self.pk)
+
     def clean(self):
         """Fiel a ``_check_company_consistency`` (odoo19c: líneas 95-102),
         simplificado a igualdad directa de compañía (sin ``child_of`` de
         sucursales — ver docstring del módulo)."""
         super().clean()
-        if self.pk is not None and self.company_id is not None:
-            if self.lines.exclude(company_id=self.company_id).exists():
+        if self.pk is not None and self.company_id:
+            if self._lines_query().exclude(
+                    company_id=self.company_id.pk).exists():
                 raise ValidationError(
                     {
-                        'company': (
+                        'company_id': (
                             'ANALYTIC_ACCOUNT_COMPANY_MISMATCH_WITH_LINES'
                         ),
                     }
@@ -152,7 +172,7 @@ class AccountAnalyticAccount(
     @property
     def currency(self):
         """Odoo ``currency_id`` (``related="company_id.currency_id"``)."""
-        return self.company.currency if self.company_id else None
+        return self.company_id.currency if self.company_id else None
 
     # -- balance/debit/credit — Odoo _compute_debit_credit_balance ----------
 
@@ -166,14 +186,15 @@ class AccountAnalyticAccount(
         línea, sin conversión de tipo de cambio (fuera de alcance de este
         corte — no hay infraestructura de fx invocada desde este addon).
         """
-        total = self.lines.filter(amount__gte=0).aggregate(
+        total = self._lines_query().filter(amount__gte=0).aggregate(
             total=Sum('amount')
         )['total']
         return total if total is not None else Decimal('0.00')
 
     @property
     def debit(self):
-        total = self.lines.filter(amount__lt=0).aggregate(total=Sum('amount'))[
+        total = self._lines_query().filter(amount__lt=0).aggregate(
+            total=Sum('amount'))[
             'total'
         ]
         return -total if total is not None else Decimal('0.00')
