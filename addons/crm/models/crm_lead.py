@@ -788,8 +788,8 @@ class CrmLead(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
         """≙ ``_compute_stage_id`` (:353-357)."""
         if not self.stage_id_id or (
             self.team_id_id
-            and self.stage_id.team_ids.exists()
-            and not self.stage_id.team_ids.filter(pk=self.team_id_id).exists()
+            and self.stage_id.team_ids
+            and self.team_id_id not in self.stage_id.team_ids.ids
         ):
             stage = self._stage_find(domain={'fold': False})
             self.stage_id = stage
@@ -2307,7 +2307,7 @@ class CrmLead(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
                 default=False,
             ),
             'tag_ids': lambda fname, leads: [
-                t for lead in leads for t in lead.tag_ids.all()
+                t for lead in leads for t in lead.tag_ids
             ],
             'lost_reason_id': lambda fname, leads: (
                 None
@@ -3556,7 +3556,7 @@ class CrmLead(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
                 if value or field in ('email_state', 'phone_state'):
                     lead_values.append((field, value))
             if use_tags:
-                for tag in lead.tag_ids.all():
+                for tag in lead.tag_ids:
                     lead_values.append(('tag_id', tag.pk))
             leads_values_dict[lead.pk] = {
                 'values': lead_values, 'team_id': lead.team_id_id or 0}
@@ -3602,7 +3602,7 @@ class CrmLead(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
                 if value == 'correct' and round(score, 2) < 0.50:
                     continue
             if field == 'tag_id':
-                tag = self.tag_ids.filter(pk=value).first()
+                tag = self.tag_ids.filtered(lambda t: t.id == value)[:1]
                 sorted_scores_with_name.append(
                     (score, field, tag.name if tag else str(value),
                      tag.color if tag else False))

@@ -81,8 +81,6 @@ sin análogo), ``action_view_subtask_timesheet`` (acción de UI),
 ``_get_portal_total_hours_dict`` (portal).
 """
 
-import models
-
 from addons.project.models import ProjectTask
 
 
@@ -95,7 +93,7 @@ def allow_timesheets(self):
 def effective_hours(self):
     """≙ ``effective_hours``/``_compute_effective_hours`` (``odoo19c:
     :40, 83-92``)."""
-    total = self.timesheets.aggregate(total=models.Sum('unit_amount'))['total']
+    total = sum(self.timesheets.mapped('unit_amount'))
     return round(total, 2) if total else 0.0
 
 

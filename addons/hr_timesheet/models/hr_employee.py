@@ -36,11 +36,12 @@ Símbolo (línea)                      Desenlace
 La referencia usa una subconsulta SQL cruda (``EXISTS(SELECT 1 FROM
 account_analytic_line WHERE project_id IS NOT NULL AND employee_id = e.id)``)
 para evitar cargar recordsets completos. Aquí es una propiedad Python que
-consulta con el ORM (``.timesheets.filter(project__isnull=False).exists()``)
-— usa el índice de la FK ``employee`` de ``account.analytic.line``
-(colgada por ``models/hr_timesheet.py`` de este mismo addon, ``related_name=
-'timesheets'``), semánticamente idéntico (``EXISTS`` vs ``.exists()``,
-mismo plan de ejecución esperado en PostgreSQL).
+recorre el inverso ``timesheets`` (FK ``employee`` de
+``account.analytic.line``, colgada por ``models/hr_timesheet.py``):
+``self.timesheets.filtered(lambda line: line.project)``. El empleado y el
+apunte son ``BaseModel``, así que el inverso es un recordset y no un
+gestor; el resultado es el mismo que el ``EXISTS``, pero carga los partes
+del empleado en vez de detenerse en el primero.
 """
 
 from addons.hr.models import HrEmployee
@@ -49,7 +50,7 @@ from addons.hr.models import HrEmployee
 def has_timesheet(self):
     """≙ ``has_timesheet``/``_compute_has_timesheet`` (``odoo19c:
     hr_timesheet/models/hr_employee.py:13-29``). Ver docstring del módulo."""
-    return self.timesheets.filter(project__isnull=False).exists()
+    return bool(self.timesheets.filtered(lambda line: line.project))
 
 
 def apply_hr_timesheet_hr_employee_extensions():

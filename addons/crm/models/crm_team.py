@@ -207,7 +207,7 @@ def _compute_assignment_max(self):
     """≙ ``_compute_assignment_max`` (``:47-50``) — la capacidad del equipo es
     la suma de la de sus miembros."""
     return sum(m.assignment_max or 0
-               for m in self.crm_team_member_ids.all())
+               for m in self.crm_team_member_ids)
 
 
 def _compute_assignment_enabled(self):
@@ -241,7 +241,7 @@ def _compute_lead_unassigned_count(self):
 def _compute_lead_all_assigned_month_count(self):
     """≙ la primera mitad de ``_compute_lead_all_assigned_month_count``
     (``:70-74``) — lo asignado a sus miembros en los últimos 30 días."""
-    return sum(m.lead_month_count for m in self.crm_team_member_ids.all())
+    return sum(m.lead_month_count for m in self.crm_team_member_ids)
 
 
 def _compute_lead_all_assigned_month_exceeded(self):
@@ -364,7 +364,7 @@ def _action_assign_leads(cls, teams, force_quota=False, creation_delta_days=7):
         raise UserError(_(
             'El reparto automático de iniciativas y oportunidades está '
             'limitado a los responsables o administradores'))
-    miembros = [m for team in teams for m in team.crm_team_member_ids.all()]
+    miembros = [m for team in teams for m in team.crm_team_member_ids]
     logger.info(
         '### START Lead Assignment (%d teams, %d sales persons, '
         'force daily quota: %s)',
@@ -633,7 +633,7 @@ def _assign_and_convert_leads(cls, teams, force_quota=False):
     teams_with_members = [t for t in teams if t.crm_team_member_ids.exists()]
     if not teams_with_members:
         return result_data
-    all_members = [m for t in teams for m in t.crm_team_member_ids.all()]
+    all_members = [m for t in teams for m in t.crm_team_member_ids]
     quota_per_member = {
         m.pk: m._get_assignment_quota(force_quota=force_quota)
         for m in all_members
@@ -669,7 +669,7 @@ def _assign_and_convert_leads(cls, teams, force_quota=False):
     for team in teams_with_members:
         leads_to_assign = leads_per_team.get(team.pk, [])
         members_to_assign = sorted(
-            (m for m in team.crm_team_member_ids.all()
+            (m for m in team.crm_team_member_ids
              if not m.assignment_optout and quota_per_member.get(m.pk, 0) > 0),
             key=lambda m: (quota_per_member.get(m.pk, 0), random.random()),
             reverse=True)

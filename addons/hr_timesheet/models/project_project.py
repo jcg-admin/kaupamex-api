@@ -99,8 +99,6 @@ la compañía usa "Días". Documentado, no oculto.
 """
 
 import fields
-import models
-
 from addons.project.models import Project
 
 
@@ -114,7 +112,7 @@ def _effective_hours(self):
     """≙ ``effective_hours``/``_compute_remaining_hours`` (``odoo19c:
     hr_timesheet/models/project_project.py:35, 68-79``), sin UOM — ver
     docstring del módulo."""
-    total = self.timesheets.aggregate(total=models.Sum('unit_amount'))['total']
+    total = sum(self.timesheets.mapped('unit_amount'))
     return round(total, 2) if total else 0.0
 
 
