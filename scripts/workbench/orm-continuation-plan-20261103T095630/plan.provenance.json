@@ -1544,6 +1544,13 @@
         "product-pricelist-stage4-selection-0397"
       ],
       "writtenAt": "2026-11-21T15:30:12Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-pricelist-stage5a-labels-0397"
+      ],
+      "writtenAt": "2026-11-21T16:30:46Z"
     }
   ]
 }
