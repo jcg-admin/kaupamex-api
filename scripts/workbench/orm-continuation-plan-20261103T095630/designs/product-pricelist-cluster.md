@@ -361,3 +361,6 @@ product_pricelist_item.py`): `_onchange_base` (`:384`),
 `_onchange_product_tmpl_id` (`:445`), `_onchange_rule_content` (`:452`),
 `_onchange_price_round` (`:469`) y `_onchange_validity_period` (`:474`).
 Prueba: `tests/unit/product/test_product_pricelist_labels.py`.
+`_get_country_pricelist_multi` lleva su función interna `get_param_id`
+(`odoo19c: addons/product/models/product_pricelist.py:289-294`), que lee el
+parámetro con `SystemParameter.get_param`.
