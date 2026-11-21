@@ -221,3 +221,29 @@ la limpieza en `create` y `write`, y la guarda de borrado.
 Prueba: `tests/unit/product/test_product_pricelist_integrity.py`
 (`test_deleting_both_pricelists_together_is_allowed` y
 `test_a_pricelist_used_as_a_base_cannot_be_deleted`).
+
+## Etapa 3 — precio de una regla
+
+`odoo19c: addons/product/models/product_pricelist_item.py`:
+
+- `_is_applicable_for` (`:526-568`) sustituye a `matches`: cantidad mínima,
+  categoría por `parent_path`, plantilla o variante, y la variante aceptable
+  sobre una plantilla de una sola variante.
+- `_compute_price` (`:570-626`) sustituye a `compute`: `self` es como mucho
+  un registro (vacío = precio base), conversión de unidad con
+  `product_uom._compute_price` y moneda de destino
+  `currency or self.currency_id or self.env.company.currency_id`.
+- `_compute_base_price` (`:628-659`) sustituye a `base_price_for`: base
+  `pricelist` por `base_pricelist_id._get_product_price` (etapa 4), coste o
+  precio de lista por `product._price_compute`, y conversión con
+  `src_currency._convert(price, currency, self.env.company, date,
+  round=False)`.
+
+`odoo19c: addons/product/models/product_template.py` y `product_product.py`:
+
+- `_get_attributes_extra_price` (`:732-735`, `:1096-1099`) y
+  `_price_compute` (`:737-768`, `:1101-1130`) en plantilla y variante.
+
+Consumidores que se repuntan: `tests/unit/product/test_product_template_uom_id.py`,
+`tests/unit/product/test_product_template_categ_id.py`,
+`tests/unit/product/test_product_pricelist_item_source_names.py`.
