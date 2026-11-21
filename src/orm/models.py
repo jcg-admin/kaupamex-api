@@ -6201,8 +6201,16 @@ def _run_ondelete_on_delete(self, objs, source=None, *args, **kwargs):
     if source is None and model is not None and registry.ondelete_methods(
             model):
         at_uninstall = bool(get_context().get('module_uninstall'))
-        for instance in objs:
-            _run_ondelete_checks(instance, at_uninstall=at_uninstall)
+        if hasattr(model, '_from_ids'):
+            # Un ``BaseModel`` recibe el recordset entero, como ``func(self)``
+            # en la fuente: una guarda que mira el conjunto (borrar dos
+            # registros que se refieren entre sí) necesita verlos juntos.
+            ids = tuple(instance.pk for instance in objs)
+            _run_ondelete_checks(model._from_ids(env(), ids, ids),
+                                 at_uninstall=at_uninstall)
+        else:
+            for instance in objs:
+                _run_ondelete_checks(instance, at_uninstall=at_uninstall)
     return _DJANGO_COLLECT(self, objs, source, *args, **kwargs)
 
 

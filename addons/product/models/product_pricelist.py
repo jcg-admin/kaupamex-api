@@ -44,6 +44,7 @@ from addons.base.models.res_country_group import ResCountryGroup
 from addons.base.models.res_currency import ResCurrency
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.mail.models import MailActivityMixin, MailThread
+from exceptions import UserError
 from orm.environments import env
 from tools.translate import _
 
@@ -181,3 +182,23 @@ class ProductPricelist(models.BaseModel, MailThread, MailActivityMixin,
             for pricelist, vals in zip(self, vals_list):
                 vals['name'] = _("%s (copy)", pricelist.name)
         return vals_list
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_except_used_as_rule_base(self):
+        """≙ ``_unlink_except_used_as_rule_base`` (``odoo19c:
+        addons/product/models/product_pricelist.py:394``): una tarifa que
+        otra usa como base no se borra, salvo que se borren juntas."""
+        linked_items = self.env['product.pricelist.item'].sudo().search([
+            ('base', '=', 'pricelist'),
+            ('base_pricelist_id', 'in', self.ids),
+            ('pricelist_id', 'not in', self.ids),
+        ])
+        if linked_items:
+            raise UserError(_(
+                'You cannot delete pricelist(s):\n(%(pricelists)s)\nThey are '
+                'used within pricelist(s):\n%(other_pricelists)s',
+                pricelists='\n'.join(
+                    linked_items.base_pricelist_id.mapped('display_name')),
+                other_pricelists='\n'.join(
+                    linked_items.pricelist_id.mapped('display_name')),
+            ))

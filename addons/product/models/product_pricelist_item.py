@@ -74,7 +74,6 @@ Qué NO se porta, con su medición
 import api
 import fields
 import models
-from django.core.exceptions import ValidationError
 
 from addons.base.models.res_company import ResCompany
 from addons.base.models.res_currency import ResCurrency
@@ -83,8 +82,10 @@ from addons.product.models.product_category import ProductCategory
 from addons.product.models.product_pricelist import ProductPricelist
 from addons.product.models.product_product import ProductProduct
 from addons.product.models.product_template import ProductTemplate
+from exceptions import ValidationError
 from orm.environments import env
 from tools.float_utils import float_round
+from tools.misc import format_datetime
 from tools.translate import _
 
 APPLIED_VARIANT = '0_product_variant'
@@ -269,7 +270,7 @@ class ProductPricelistItem(models.BaseModel, TimeStampedModel):
         string='Other Pricelist',
         check_company=True,
         db_column='base_pricelist_id',
-        on_delete=models.PROTECT, null=True, blank=True,
+        on_delete=models.SET_NULL, null=True, blank=True,
         related_name='derived_item_ids',
     )
 
@@ -394,37 +395,147 @@ class ProductPricelistItem(models.BaseModel, TimeStampedModel):
         for item in self:
             item.price_discount = -item.price_markup
 
-    def clean(self):
-        """El alcance declarado y el campo que lo concreta tienen que casar.
+    # === CONSTRAINT METHODS ===============================================
 
-        La referencia lo resuelve ocultando campos en el formulario; aquí se
-        valida, que es la versión de servidor: una regla ``1_product`` sin
-        producto no se aplica a nada y es indistinguible de una global mal
-        guardada.
-        """
-        super().clean()
-        required = {
-            APPLIED_VARIANT: ('product_id', 'una variante'),
-            APPLIED_PRODUCT: ('product_tmpl_id', 'un producto'),
-            APPLIED_CATEGORY: ('categ_id', 'una categoría'),
-        }.get(self.applied_on)
-        if required and not getattr(self, required[0], None):
-            raise ValidationError(
-                'Una regla con alcance %s debe indicar %s.'
-                % (self.applied_on, required[1])
+    @api.constrains('base_pricelist_id', 'base')
+    def _check_base_pricelist_id(self):
+        """≙ ``_check_base_pricelist_id`` (``:317``)."""
+        if any(item.base == 'pricelist' and not item.base_pricelist_id
+               for item in self):
+            raise ValidationError(_(
+                'A pricelist item with "Other Pricelist" as base must have '
+                'a base_pricelist_id.'))
+
+    @api.constrains('base_pricelist_id', 'pricelist_id', 'base')
+    def _check_pricelist_recursion(self):
+        """≙ ``_check_pricelist_recursion`` (``:322``)."""
+        def dfs_path(from_pl, to_pl, path, seen):
+            if (from_pl, to_pl) in seen:
+                # If another pricelist rule from the same pricelist has the
+                # same target, there is no need to test that path again.
+                return path.browse()
+
+            if to_pl in path:
+                return path + to_pl
+
+            seen.add((from_pl, to_pl))
+            pricelist_based_items = self.env[
+                "product.pricelist.item"]._read_group(
+                domain=[("pricelist_id", "=", to_pl.id),
+                        ("base", "=", "pricelist")],
+                groupby=["base_pricelist_id"],
+                aggregates=["id:recordset"],
             )
-        if self.base == BASE_PRICELIST and not self.base_pricelist_id:
-            raise ValidationError(
-                'Una regla basada en otra tarifa debe indicar cuál.'
-            )
-        if (
-            self.date_start
-            and self.date_end
-            and self.date_start > self.date_end
-        ):
-            raise ValidationError(
-                'La fecha de inicio no puede ser posterior a la de fin.'
-            )
+            new_path = path + to_pl
+            for pricelist, _to_items in pricelist_based_items:
+                if res := dfs_path(to_pl, pricelist, new_path, seen):
+                    return res
+            return path.browse()
+
+        seen = set()
+        for item in self:
+            # Skip validation for rules not based on other pricelists.
+            if (item.base != "pricelist" or not item.base_pricelist_id
+                    or not item.pricelist_id):
+                continue
+            if path := dfs_path(item.pricelist_id, item.base_pricelist_id,
+                                item.pricelist_id, seen):
+                raise ValidationError(_(
+                    "Recursive pricelist rules detected: %s",
+                    " ⇒ ".join(path.mapped("name"))))
+
+    @api.constrains('date_start', 'date_end')
+    def _check_date_range(self):
+        """≙ ``_check_date_range`` (``:355``)."""
+        for item in self:
+            if (item.date_start and item.date_end
+                    and item.date_start >= item.date_end):
+                raise ValidationError(_(
+                    '%(item_name)s: end date (%(end_date)s) should be after '
+                    'start date (%(start_date)s)',
+                    item_name=item.display_name,
+                    end_date=format_datetime(self.env, item.date_end),
+                    start_date=format_datetime(self.env, item.date_start),
+                ))
+        return True
+
+    @api.constrains('price_min_margin', 'price_max_margin')
+    def _check_margin(self):
+        """≙ ``_check_margin`` (``:367``)."""
+        if any(item.price_min_margin > item.price_max_margin
+               for item in self):
+            raise ValidationError(_(
+                'The minimum margin should be lower than the maximum '
+                'margin.'))
+
+    @api.constrains('product_id', 'product_tmpl_id', 'categ_id')
+    def _check_product_consistency(self):
+        """≙ ``_check_product_consistency`` (``:372``)."""
+        for item in self:
+            if item.applied_on == APPLIED_CATEGORY and not item.categ_id:
+                raise ValidationError(_(
+                    "Please specify the category for which this rule "
+                    "should be applied"))
+            if item.applied_on == APPLIED_PRODUCT and not item.product_tmpl_id:
+                raise ValidationError(_(
+                    "Please specify the product for which this rule should "
+                    "be applied"))
+            if item.applied_on == APPLIED_VARIANT and not item.product_id:
+                raise ValidationError(_(
+                    "Please specify the product variant for which this "
+                    "rule should be applied"))
+
+    # === CRUD METHODS =====================================================
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        """≙ ``create`` (``:480``)."""
+        for values in vals_list:
+            if values.get('product_id') and not values.get('product_tmpl_id'):
+                # Deduce product template from product variant if not
+                # specified. Ensures that the pricelist rule is properly
+                # configured and displayed in the UX even in case of
+                # partial/incomplete data (mostly for imports).
+                values['product_tmpl_id'] = self.env['product.product'].browse(
+                    values.get('product_id')
+                ).product_tmpl_id.id
+
+            if not values.get('applied_on'):
+                values['applied_on'] = (
+                    APPLIED_VARIANT if values.get('product_id') else
+                    APPLIED_PRODUCT if values.get('product_tmpl_id') else
+                    APPLIED_CATEGORY if values.get('categ_id') else
+                    APPLIED_GLOBAL
+                )
+
+            # Ensure item consistency for later searches.
+            applied_on = values['applied_on']
+            if applied_on == APPLIED_GLOBAL:
+                values.update({'product_id': None, 'product_tmpl_id': None,
+                               'categ_id': None})
+            elif applied_on == APPLIED_CATEGORY:
+                values.update({'product_id': None, 'product_tmpl_id': None})
+            elif applied_on == APPLIED_PRODUCT:
+                values.update({'product_id': None, 'categ_id': None})
+            elif applied_on == APPLIED_VARIANT:
+                values.update({'categ_id': None})
+        return super().create(vals_list)
+
+    def write(self, vals):
+        """≙ ``write`` (``:510``)."""
+        if vals.get('applied_on', False):
+            # Ensure item consistency for later searches.
+            applied_on = vals['applied_on']
+            if applied_on == APPLIED_GLOBAL:
+                vals.update({'product_id': None, 'product_tmpl_id': None,
+                             'categ_id': None})
+            elif applied_on == APPLIED_CATEGORY:
+                vals.update({'product_id': None, 'product_tmpl_id': None})
+            elif applied_on == APPLIED_PRODUCT:
+                vals.update({'product_id': None, 'categ_id': None})
+            elif applied_on == APPLIED_VARIANT:
+                vals.update({'categ_id': None})
+        return super().write(vals)
 
     # === APLICABILIDAD ====================================================
 
