@@ -1025,18 +1025,25 @@ def _uom_change_is_blocked(product, to_uom):
     return sorted(ajenas)
 
 
-def _update_uom(self, to_uom):
-    """≙ ``_update_uom`` (``odoo19c: :770-794``)."""
+def _update_uom(self, previous, to_uom_id):
+    """≙ ``_update_uom`` (``odoo19c: :770-794``): veta el cambio si ya hay
+    movimientos o líneas en otra unidad, pasa los demás a la nueva y sigue
+    con la cadena (``super()._update_uom``)."""
     StockMove = apps.get_model('stock', 'StockMove')
     StockMoveLine = apps.get_model('stock', 'StockMoveLine')
-    ajenas = _uom_change_is_blocked(self, to_uom)
-    if ajenas:
-        raise UserError(
-            _('Ya se usaron otras unidades de medida para este producto, así '
-              'que el cambio de unidad no puede hacerse. Si quiere cambiarla, '
-              'archive el producto y cree uno nuevo.'))
-    StockMove.objects.filter(product=self).update(product_uom=to_uom)
-    StockMoveLine.objects.filter(product=self).update(product_uom=to_uom)
+    uom_pk = getattr(to_uom_id, 'pk', to_uom_id)
+    for product in self:
+        ajenas = _uom_change_is_blocked(product, to_uom_id)
+        if ajenas:
+            raise UserError(
+                _('Ya se usaron otras unidades de medida para este producto, '
+                  'así que el cambio de unidad no puede hacerse. Si quiere '
+                  'cambiarla, archive el producto y cree uno nuevo.'))
+        StockMove.objects.filter(product=product).update(
+            product_uom_id=uom_pk)
+        StockMoveLine.objects.filter(product=product).update(
+            product_uom_id=uom_pk)
+    return previous(to_uom_id)
 
 
 def _trigger_uom_warning(self):
@@ -1341,7 +1348,6 @@ def apply_stock_product_extensions():
         ('_quantity_for', _quantity_for),
         ('get_components', get_components),
         ('_get_quantity_in_progress', _get_quantity_in_progress),
-        ('_update_uom', _update_uom),
         ('_trigger_uom_warning', _trigger_uom_warning),
         ('_onchange_tracking', _onchange_tracking),
     ):
@@ -1351,3 +1357,4 @@ def apply_stock_product_extensions():
     # addons/stock/models/product.py:747-751``): ``super()`` con las
     # variantes sin lotes.
     wrap_method(ProductProduct, '_filter_to_unlink', _filter_to_unlink)
+    wrap_method(ProductProduct, '_update_uom', _update_uom)

@@ -691,3 +691,9 @@ class ProductProduct(models.BaseModel, TimeStampedModel):
                     # Note: this can still fail if something is preventing
                     # from archiving.
                     self.write({'active': False})
+
+    def _update_uom(self, to_uom_id):
+        """≙ ``_update_uom`` (``odoo19c: addons/product/models/
+        product_product.py:1194-1197``): gancho del cambio de unidad de la
+        plantilla; ``stock`` y ``purchase`` lo extienden."""
+        return True

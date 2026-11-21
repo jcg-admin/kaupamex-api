@@ -6318,8 +6318,11 @@ def _many2many_descriptor_set(self, instance, value):
     ``records.write({name: value})``. Django prohíbe la asignación directa
     sobre el lado directo de un muchos-a-muchos (``TypeError``); aquí, sobre
     una fila ya guardada que sabe escribirse, se entrega a ``write``, que
-    interpreta los comandos y comprueba la empresa. El lado inverso y la fila
-    sin guardar conservan la conducta de Django.
+    interpreta los comandos y comprueba la empresa. El lado inverso también
+    se entrega a ``write`` cuando el registro es un ``BaseModel``: en la
+    fuente ese lado es un campo más del modelo (``product.template.combo_ids``,
+    ``odoo19c: addons/product/models/product_template.py:604-606``). La fila
+    sin guardar y el registro de Django conservan la conducta de Django.
 
     Las otras dos ramas de ``Field.__set__`` (``:1820-1832``), para un
     ``BaseModel``: la fila en cómputo (protegida) y la de ``new()`` escriben
@@ -6348,12 +6351,18 @@ def _many2many_descriptor_set(self, instance, value):
                 field.write(instance, value)
                 instance.modified([field.name])
             return
-    if not self.reverse and hasattr(instance, 'write') and _saved(instance):
+    if (isinstance(instance, BaseModel) if self.reverse
+            else hasattr(instance, 'write')) and _saved(instance):
         if hasattr(value, '_ids'):
             # ≙ ``convert_to_write`` (``fields_relational.py:671-710``): un
             # recordset del comodelo se escribe como ``Command.set``.
             value = [Command.set(list(value._ids))]
-        instance.write({field.name: value})
+        # El lado inverso se nombra por su accesor: es el nombre con que el
+        # modelo que lo recibe lo declara (``combo_ids`` en
+        # ``product.template``), y ``write`` ya interpreta sus comandos.
+        name = (self.rel.get_accessor_name() if self.reverse
+                else field.name)
+        instance.write({name: value})
         return
     _DJANGO_MANY2MANY_SET(self, instance, value)
 

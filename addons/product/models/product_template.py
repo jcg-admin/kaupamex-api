@@ -78,14 +78,6 @@ En Django una FK da exactamente **un** ``related_name``, así que el gemelo no
 puede existir como campo. Se conserva como **propiedad alias** sobre el mismo
 conjunto: el nombre sigue disponible para quien lo llame, y el docstring dice
 que no filtra nada — que es la verdad de la fuente, no una simplificación.
-- **``standard_price`` como ``compute``/``inverse``/``search``**: su valor
-  sale de la valoración AVCO del inventario, que vive en ``stock_account``.
-  Aquí se porta como **columna** —es el dato que alguien escribe cuando no hay
-  valoración— y se declara que el cálculo automático no está.
-- **``barcode`` con ``compute``/``inverse``/``search``**: el código de barras
-  de la plantilla es el de su variante única. Se porta la **derivación**
-  (propiedad), no el ``search`` — que en la referencia traduce el filtro a la
-  tabla de variantes con su motor de dominios.
 - **``_compute_currency_id`` / ``_compute_cost_currency_id``**: la moneda sale
   de la compañía. Se porta como propiedad; la de coste puede diferir cuando la
   compañía valora en otra divisa, y eso lo resuelve ``stock_account``.
@@ -263,19 +255,25 @@ class ProductTemplate(models.BaseModel, ImageMixin, TimeStampedModel):
             'ver el docstring del módulo.'
         ),
     )
+    #: ≙ ``standard_price`` (``odoo19c: addons/product/models/
+    #: product_template.py:100-106``): el de la variante única, sin columna.
     standard_price = fields.Monetary(
+        compute='_compute_standard_price',
+        inverse='_set_standard_price',
+        search='_search_standard_price',
+        store=False,
         max_digits=16,
         decimal_places=2,
-        default=0,
         verbose_name='Coste',
-        help_text=(
-            'Valor del producto. En la referencia lo calcula la '
-            'valoración AVCO del inventario; aquí es columna, y el '
-            'cálculo automático no está portado.'
-        ),
     )
-    volume = fields.Float(default=0, verbose_name='Volumen')
-    weight = fields.Float(default=0, verbose_name='Peso')
+    #: ≙ ``volume`` y ``weight`` (``:108-113``): los de la variante única,
+    #: almacenados.
+    volume = fields.Float(
+        compute='_compute_volume', inverse='_set_volume', store=True,
+        default=0, verbose_name='Volumen')
+    weight = fields.Float(
+        compute='_compute_weight', inverse='_set_weight', store=True,
+        default=0, verbose_name='Peso')
     sale_ok = fields.Boolean(default=True, verbose_name='Se puede vender')
     purchase_ok = fields.Boolean(default=True, verbose_name='Se puede comprar')
     active = fields.Boolean(
@@ -284,12 +282,26 @@ class ProductTemplate(models.BaseModel, ImageMixin, TimeStampedModel):
         help_text='Desmarcar oculta el producto sin borrarlo.',
     )
     color = fields.Integer(default=0, verbose_name='Índice de color')
+    #: ≙ ``default_code`` (``:153-155``): el de la variante única,
+    #: almacenado.
     default_code = fields.Char(
+        compute='_compute_default_code',
+        inverse='_set_default_code',
+        store=True,
         max_length=64,
         blank=True,
-        default='',
+        null=True,
         db_index=True,
         verbose_name='Referencia interna',
+    )
+    #: ≙ ``barcode`` (``:152``): el de la variante única, sin columna.
+    barcode = fields.Char(
+        compute='_compute_barcode',
+        inverse='_set_barcode',
+        search='_search_barcode',
+        store=False,
+        max_length=64,
+        verbose_name='Código de barras',
     )
     is_favorite = fields.Boolean(default=False, verbose_name='Favorito')
     has_configurable_attributes = fields.Boolean(
@@ -505,17 +517,6 @@ class ProductTemplate(models.BaseModel, ImageMixin, TimeStampedModel):
         return self.seller_ids
 
     @property
-    def barcode(self):
-        """``_compute_barcode`` — el código de barras de la variante única."""
-        # ≙ ``_compute_template_field_from_variant_field('barcode')``
-        # (``odoo19c: :269-290``): el de la variante única, o vacío.
-        variants = self.product_variant_ids
-        if not variants and self.env.context.get('active_test', True):
-            # Sin variantes activas, se reintenta sin ``active_test``.
-            return self.with_context(active_test=False).barcode
-        return variants.barcode if len(variants) == 1 else ''
-
-    @property
     def properties_definition(self):
         """El esquema de ``product_properties``, heredado de la categoría.
 
@@ -608,16 +609,22 @@ class ProductTemplate(models.BaseModel, ImageMixin, TimeStampedModel):
     @api.model_create_multi
     def create(self, vals_list):
         """≙ ``create`` (``:567-583``): genera las variantes de cada plantilla
-        salvo con ``create_product_product=False`` en el contexto.
-
-        La copia a la primera variante de los campos que comparten plantilla
-        y variante (``_get_related_fields_variant_template``, ``:575-581``)
-        espera a que esos campos dejen de ser propiedades en la plantilla
-        (sucesor ``product-template-crud-0122``).
+        salvo con ``create_product_product=False`` en el contexto, y copia a
+        la variante creada los campos que comparten plantilla y variante.
         """
         templates = super().create(vals_list)
         if self.env.context.get("create_product_product", True):
             templates._create_variant_ids()
+
+        # This is needed to set given values to first variant after creation
+        for template, vals in zip(templates, vals_list):
+            related_vals = {}
+            for field_name in self._get_related_fields_variant_template():
+                if vals.get(field_name) and not template[field_name]:
+                    related_vals[field_name] = vals[field_name]
+            if related_vals:
+                template.write(related_vals)
+
         return templates
 
     def write(self, vals):
@@ -625,10 +632,19 @@ class ProductTemplate(models.BaseModel, ImageMixin, TimeStampedModel):
         cambiar las líneas o al reactivar una plantilla sin variantes, y
         archiva las variantes al archivar la plantilla.
 
-        La conversión de unidad (``:586-588``), la invalidación de imágenes
-        (``:597-603``) y ``combo_ids`` (``:604-606``) son del sucesor
-        ``product-template-crud-0122``.
+        También el cambio de unidad de las variantes (``:586-588``) y
+        ``combo_ids`` al dejar de ser combo (``:604-606``). La invalidación de
+        las imágenes de la variante (``:597-603``) espera a que la variante
+        las declare (sucesor ``product-variant-images-0122``).
         """
+        if 'uom_id' in vals:
+            # ``filtered(...).product_variant_ids`` sobre varias plantillas
+            # espera la rama multi-registro de los relacionales
+            # (TASK-API-0401): se recorre plantilla a plantilla.
+            for template in self.filtered(
+                    lambda template: template.uom_id.id != vals['uom_id']):
+                template.product_variant_ids.with_context(
+                    skip_uom_conversion=True)._update_uom(vals['uom_id'])
         res = super().write(vals)
         if (self.env.context.get("create_product_product", True)
                 and 'attribute_line_ids' in vals
@@ -642,6 +658,9 @@ class ProductTemplate(models.BaseModel, ImageMixin, TimeStampedModel):
             for template in self.with_context(active_test=False):
                 template.product_variant_ids.write(
                     {'active': vals.get('active')})
+        for product_template in self:
+            if "type" in vals and vals.get("type") != "combo":
+                product_template.combo_ids = False
         return res
 
     def _create_variant_ids(self):
@@ -898,3 +917,103 @@ class ProductTemplate(models.BaseModel, ImageMixin, TimeStampedModel):
         # True.
         return isinstance(next(self._filter_combinations_impossible_by_config(
             [combination], ignore_no_variant), False), models.BaseModel)
+
+    # === CAMPOS LEÍDOS DE LA VARIANTE ÚNICA ===============================
+    # ≙ ``odoo19c: addons/product/models/product_template.py:269-351,
+    # 436-442,509-511``. Diseño: ``designs/product-template-crud.md``.
+
+    def _compute_template_field_from_variant_field(self, fname,
+                                                   default=False):
+        """≙ ``_compute_template_field_from_variant_field`` (``:269-290``):
+        el valor de la variante única, o ``default`` con varias o ninguna.
+        """
+        for template in self:
+            variant_count = len(template.product_variant_ids)
+            if variant_count == 1:
+                template[fname] = template.product_variant_ids[fname]
+            elif (variant_count == 0
+                    and self.env.context.get("active_test", True)):
+                # If the product has no active variants, retry without the
+                # active_test.
+                template_ctx = template.with_context(active_test=False)
+                template_ctx._compute_template_field_from_variant_field(
+                    fname, default=default)
+            else:
+                template[fname] = default
+
+    def _set_product_variant_field(self, fname):
+        """≙ ``_set_product_variant_field`` (``:292-310``): propaga el valor
+        a la variante única, o a la única archivada."""
+        for template in self:
+            count = len(template.product_variant_ids)
+            if count == 1:
+                template.product_variant_ids[fname] = template[fname]
+            elif count == 0:
+                archived_variants = self.with_context(
+                    active_test=False).product_variant_ids
+                if len(archived_variants) == 1:
+                    archived_variants[fname] = template[fname]
+
+    @api.depends_context('company')
+    @api.depends('product_variant_ids.standard_price')
+    def _compute_standard_price(self):
+        """≙ ``_compute_standard_price`` (``:311-314``)."""
+        # Depends on force_company context because standard_price is
+        # company_dependent on the product_product.
+        self._compute_template_field_from_variant_field('standard_price')
+
+    def _set_standard_price(self):
+        """≙ ``_set_standard_price`` (``:316-317``)."""
+        self._set_product_variant_field('standard_price')
+
+    def _search_standard_price(self, operator, value):
+        """≙ ``_search_standard_price`` (``:319-320``)."""
+        return [('product_variant_ids.standard_price', operator, value)]
+
+    @api.depends('product_variant_ids.volume')
+    def _compute_volume(self):
+        """≙ ``_compute_volume`` (``:322-324``)."""
+        self._compute_template_field_from_variant_field('volume')
+
+    def _set_volume(self):
+        """≙ ``_set_volume`` (``:326-327``)."""
+        self._set_product_variant_field('volume')
+
+    @api.depends('product_variant_ids.weight')
+    def _compute_weight(self):
+        """≙ ``_compute_weight`` (``:329-331``)."""
+        self._compute_template_field_from_variant_field('weight')
+
+    def _set_weight(self):
+        """≙ ``_set_weight`` (``:333-334``)."""
+        self._set_product_variant_field('weight')
+
+    @api.depends('product_variant_ids.barcode')
+    def _compute_barcode(self):
+        """≙ ``_compute_barcode`` (``:339-341``)."""
+        self._compute_template_field_from_variant_field('barcode')
+
+    def _search_barcode(self, operator, value):
+        """≙ ``_search_barcode`` (``:343-347``)."""
+        subquery = self.with_context(active_test=False)._search([
+            ('product_variant_ids.barcode', operator, value),
+        ])
+        return [('id', 'in', subquery)]
+
+    def _set_barcode(self):
+        """≙ ``_set_barcode`` (``:349-350``)."""
+        self._set_product_variant_field('barcode')
+
+    @api.depends('product_variant_ids.default_code')
+    def _compute_default_code(self):
+        """≙ ``_compute_default_code`` (``:436-438``)."""
+        self._compute_template_field_from_variant_field('default_code')
+
+    def _set_default_code(self):
+        """≙ ``_set_default_code`` (``:440-441``)."""
+        self._set_product_variant_field('default_code')
+
+    def _get_related_fields_variant_template(self):
+        """≙ ``_get_related_fields_variant_template`` (``:509-511``)."""
+        return ['barcode', 'default_code', 'standard_price', 'volume',
+                'weight', 'product_properties']
