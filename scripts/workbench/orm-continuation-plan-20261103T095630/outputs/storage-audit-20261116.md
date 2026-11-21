@@ -249,3 +249,26 @@ referencia contra la que asentarse. No se inventó una ni se retiró la clave
 `obligations` para pasar la guarda. La unidad queda implementada y
 verificada, sin asiento del controlador; si cuenta para `TASK-API-0485`, que
 sigue `in_progress`, lo decide el ejecutor.
+
+## 14. Inventario de bases con reclamo y retención (2026-11-21T22:52:39)
+
+Instrucción 4.5.0: cada base declara propietario, reclamo, propósito y
+retención. Medido en sólo lectura (`sudo -u postgres psql`,
+`pg_database_size`, `pg_stat_activity`, `mtime` de `PG_VERSION`), con
+el subconjunto derivado de `crm-lead-recordset-computes-0397` en curso: no se
+toca ninguna base.
+
+| Base(s) | Propietario | Reclamo | Propósito | Retención |
+|---|---|---|---|---|
+| `orm_x2hokp_qa`, `_qa_gw0..3` | orm_x2hokp | **activo**: subconjunto derivado en curso (1 sesión en cada `_gw`) | `--reuse-db` y `-n 4` | permanente; nunca dos reconstrucciones a la vez |
+| `orm_x2hokp_qa_gw4`, `_qa_gw5` | orm_x2hokp | ninguno vivo | creadas 2026-11-21 05:18:15 y 05:18:22: forma de un `-n 6`; ejecución de origen **no demostrada** | se conservan; ningún flujo actual las usa (`gate_preflight --workers 4`) |
+| `orm_bootstrap_{1276…,276b…,b424…}`, `company_*_db` (5) | orm_x2hokp | ninguno | ejecuciones interrumpidas de `run_multidb_isolation.py` (§11) | se conservan; directiva de no eliminar |
+| `orm_x2hokp_dev*`, `_t41_*`, `_preserve`, `_probe`, `orm_refproc_*` | orm_x2hokp | ninguno | bases de trabajo y del entorno de referencia aislado (`reference-environment-isolated-20261106T071536`) | se conservan hasta conciliación |
+
+Respecto de §3, ya no están `orm_bootstrap_e8ebda1641f3` ni
+`company_49412820869611_db` (el gate que las declaraba las retiró), y
+aparecen `_qa_gw4`/`_qa_gw5`. No se crea ni se borra ninguna base en este pase.
+
+*Métrica:* filas de `pg_database` que no son plantilla, con su tamaño y sus sesiones.
+*Ciega a:* qué proceso creó una base que no dejó registro de intención. Para
+`_gw4`/`_gw5` la columna de origen es una inferencia por nombre y por hora.
