@@ -247,3 +247,25 @@ Prueba: `tests/unit/product/test_product_pricelist_integrity.py`
 Consumidores que se repuntan: `tests/unit/product/test_product_template_uom_id.py`,
 `tests/unit/product/test_product_template_categ_id.py`,
 `tests/unit/product/test_product_pricelist_item_source_names.py`.
+
+### Tres ajustes de la etapa 3
+
+- Las etiquetas de `APPLIED_ON_CHOICES`, `BASE_CHOICES` y
+  `COMPUTE_PRICE_CHOICES` pasan a las de la fuente
+  (`odoo19c: addons/product/models/product_pricelist_item.py:51-58`,
+  `:90-96`, `:106-114`), con el orden de `applied_on` de la fuente. La prosa
+  heredada decía «verbatim» sobre etiquetas traducidas: era falso. Migración
+  `0062_pricelist_item_choice_labels`.
+- `with_company` (`odoo19c: odoo/orm/models.py:5991`) hacía `int(company)`;
+  `res.company` sigue siendo un modelo de Django y su instancia no tiene
+  `__int__`, así que se toma su `pk`. `_price_compute` lo llama con
+  `self.env.company`.
+- `_price_compute` lleva el precio a `float`: el `Monetary` de este ORM es
+  un `DecimalField`, y la fuente calcula en `float`. `_compute_base_price`
+  hace lo mismo con el `Decimal` que devuelve `_convert`.
+
+Pruebas: `tests/unit/product/test_product_pricelist_rule_price.py`, con
+`tests/unit/product/test_product_template_uom_id.py`,
+`tests/unit/product/test_product_template_categ_id.py` y
+`tests/unit/product/test_product_pricelist_item_source_names.py`
+repuntadas a `_is_applicable_for` y `_compute_price`.
