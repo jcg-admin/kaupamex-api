@@ -1453,6 +1453,13 @@
         "product-template-crud-0122"
       ],
       "writtenAt": "2026-11-21T01:21:09Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "product-attribute-basemodel-0397"
+      ],
+      "writtenAt": "2026-11-21T02:17:32Z"
     }
   ]
 }
