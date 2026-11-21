@@ -394,7 +394,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                 continue
             seller_uoms = [
                 seller.product_uom_id
-                for seller in product.product_tmpl_id.seller_ids.all()
+                for seller in product.product_tmpl_id.seller_ids
                 if seller.product_uom_id and seller.product_id_id in {
                     None, product.pk}]
             units = [product.uom_id, *product.product_tmpl_id.uom_ids,
@@ -830,7 +830,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
             if not seller:
                 partner = line.order_id.partner_id
                 unavailable_seller = [
-                    info for info in product.product_tmpl_id.seller_ids.all()
+                    info for info in product.product_tmpl_id.seller_ids
                     if partner is not None
                     and info.partner_id_id == partner.pk]
                 if (not unavailable_seller and line.price_unit
@@ -885,7 +885,7 @@ class PurchaseOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                 or timezone.localdate())
         partner = self.order_id.partner_id
         seller_min_qty = sorted(
-            (info for info in self.product_id.product_tmpl_id.seller_ids.all()
+            (info for info in self.product_id.product_tmpl_id.seller_ids
              if partner is not None and info.partner_id_id == partner.pk
              and (not info.product_id
                   or info.product_id_id == self.product_id.pk)

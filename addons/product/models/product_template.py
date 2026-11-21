@@ -265,6 +265,12 @@ class ProductTemplate(models.BaseModel, ImageMixin, TimeStampedModel):
         'base.ResCurrency', 'Cost Currency',
         compute='_compute_cost_currency_id', store=False, related_name='+',
     )
+    #: ≙ ``product_variant_count`` (``odoo19c: addons/product/models/
+    #: product_template.py:148-149``): calculado, sin columna.
+    product_variant_count = fields.Integer(
+        '# Product Variants', compute='_compute_product_variant_count',
+        store=False,
+    )
     list_price = fields.Monetary(
         max_digits=16,
         decimal_places=2,
@@ -483,16 +489,12 @@ class ProductTemplate(models.BaseModel, ImageMixin, TimeStampedModel):
         """
         return False
 
-    @property
-    def product_variant_count(self):
-        """≙ ``product_variant_count`` / ``_compute_product_variant_count``
-        (``:148``, ``:413-415``) — cuántas variantes tiene.
-
-        Devuelve 0 mientras ``product.product`` no esté portado; llega solo
-        por el ``related_name`` de aquel archivo, sin tocar éste.
-        """
-        variants = getattr(self, 'product_variant_ids', None)
-        return len(variants) if variants is not None else 0
+    @api.depends('product_variant_ids.product_tmpl_id')
+    def _compute_product_variant_count(self):
+        """≙ ``_compute_product_variant_count``
+        (``odoo19c: product_template.py:413-415``)."""
+        for template in self:
+            template.product_variant_count = len(template.product_variant_ids)
 
     @property
     def product_variant_id(self):

@@ -30,7 +30,6 @@ import models
 from orm.environments import env
 from orm.models import CopyMixin
 from addons.analytic.models.analytic_mixin import AnalyticMixin
-from addons.product.models.product_supplierinfo import ProductSupplierinfo
 
 
 class AccountMoveLine(models.BaseModel, AnalyticMixin):
@@ -367,14 +366,15 @@ class AccountMoveLine(models.BaseModel, AnalyticMixin):
             return
         product_uom = self.product_id.uom_id
         if self.move_id and self.move.is_purchase_document():
-            sellers = list(self.product_id.product_tmpl_id.seller_ids.all())
-            filtered_sellers = ProductSupplierinfo._get_filtered_supplier(
-                sellers, self.company_id, self.product_id
-            )
-            first_seller = filtered_sellers[0] if filtered_sellers else None
+            # ≙ ``seller_ids._get_filtered_supplier(...)[:1].product_uom_id``
+            # (``odoo19c: addons/account/models/
+            # account_move_line.py:888-889``).
+            seller_ids = (
+                self.product_id.product_tmpl_id.seller_ids
+                ._get_filtered_supplier(
+                    self.company_id, self.product_id, False))
             self.product_uom_id = (
-                getattr(first_seller, 'product_uom', None) or product_uom
-            )
+                seller_ids[:1].product_uom_id or product_uom)
             return
         self.product_uom_id = product_uom
 

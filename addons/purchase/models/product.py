@@ -174,15 +174,16 @@ def _trigger_uom_warning(self, previous):
 
 # --- product.supplierinfo -------------------------------------------------
 
-def _get_filtered_supplier(cls, previous, sellers, company_id, product_id,
+def _get_filtered_supplier(self, previous, company_id, product_id,
                            params=False):
-    """≙ ``_get_filtered_supplier`` (``odoo19c: :150-153``)."""
-    # En la fuente ``params['order_id']`` es un registro, vacío si no hay
-    # orden; aquí el vacío llega como ``None``.
+    """≙ ``_get_filtered_supplier`` (``odoo19c: :151-154``)."""
+    # ``params['order_id']`` es un recordset en la fuente, vacío si no hay
+    # orden; ``purchase_stock`` lo resuelve a ``None``. La verdad del valor
+    # trata los dos igual.
     order = params.get('order_id') if params else None
-    if order is not None and order.company_id:
+    if order and order.company_id:
         company_id = order.company_id
-    return previous(sellers, company_id, product_id, params)
+    return previous(company_id, product_id, params)
 
 
 # --- account.move.line (account_invoice.py:530,556-560) -------------------
@@ -249,7 +250,7 @@ def apply_purchase_product_extensions():
             wrap_method(model, '_trigger_uom_warning', _trigger_uom_warning)),
     )
     wrap_method(apps.get_model('product', 'ProductSupplierinfo'),
-                '_get_filtered_supplier', classmethod(_get_filtered_supplier))
+                '_get_filtered_supplier', _get_filtered_supplier)
     extend_model(
         'account', 'AccountMoveLine',
         campos={

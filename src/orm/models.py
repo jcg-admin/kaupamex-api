@@ -6687,6 +6687,24 @@ def _forward_get(self, instance, cls=None):
 
 
 _related_descriptors.ForwardManyToOneDescriptor.__get__ = _forward_get
+
+_DJANGO_FORWARD_SET = _related_descriptors.ForwardManyToOneDescriptor.__set__
+
+
+def _forward_set(self, instance, value):
+    """Asignar ``False`` o un recordset vacío a un Many2one lo vacía.
+
+    ≙ ``Many2one.convert_to_cache`` (``odoo19c: odoo/orm/
+    fields_relational.py:329-346``), que convierte un valor falso en el
+    vacío; es el modismo ``record.partner_id = False`` de la fuente. Django
+    sólo acepta ``None`` o una instancia.
+    """
+    if value is False or (getattr(value, '_ids', None) == ()):
+        value = None
+    return _DJANGO_FORWARD_SET(self, instance, value)
+
+
+_related_descriptors.ForwardManyToOneDescriptor.__set__ = _forward_set
 Model._validate_fields = _validate_fields
 Model._run_ondelete_checks = _run_ondelete_checks
 

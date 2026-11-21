@@ -45,58 +45,23 @@ no por gusto:
    ``max_digits=5, decimal_places=2`` en el descuento, que es lo que se copia
    aquí. Un precio de proveedor en ``float`` al lado de la línea que lo
    consume redondearía distinto el mismo importe según por dónde se leyera.
-2. ``Decimal * float`` **lanza** ``TypeError``. Con ``price`` en ``Decimal``,
-   ``discount`` en ``float`` no es una inconsistencia estética: rompe
-   ``price_discounted`` en tiempo de ejecución.
+2. ``price_discounted`` convierte ``price`` con ``Uom._compute_price``, que
+   conserva el tipo del importe: el dinero no sale de ``Decimal``.
 
-**El precio que la divergencia cobra** está en la conversión de unidad:
-``Uom._compute_price`` multiplica por ``factor``, que es ``Float``
-(``uom/models/uom_uom.py:104``), así que **no se le puede pasar un
-``Decimal``**. ``price_discounted`` no lo llama: reconstruye el mismo ratio
-(``to_unit.factor / self.factor``, verbatim de ``uom_uom.py:306-313``) como
-``Decimal`` y multiplica. El dinero no sale de ``Decimal`` en ningún punto;
-lo que se convierte es la **razón**, no el importe.
+``variant_seller_ids`` no es de variantes
+=========================================
 
-Dos hallazgos en la fuente, portados en consecuencia
-====================================================
-
-- **``_compute_price`` es código muerto.** Lleva su ``@api.depends`` y su
-  bucle, pero **ningún campo lo declara**: ``price`` se declara
-  ``fields.Float('Unit Price', min_display_digits=…, default=0.0)``, sin
-  ``compute=``. El ORM nunca lo invoca. No se porta un método que la propia
-  referencia no llama; se deja anotado para que nadie lo "restaure" creyendo
-  que falta. Su intención —sembrar el precio de compra con el coste del
-  producto— es un *default* de formulario, no una derivación.
-- **``variant_seller_ids`` no es de variantes.** La plantilla declara
-  ``seller_ids`` y ``variant_seller_ids`` (``product_template.py:126-127``)
-  y **las dos** usan el mismo inverso ``product_tmpl_id``; sólo difieren en
-  el ``depends_context=('company',)`` de la primera. En Django una FK da
-  exactamente **un** ``related_name``, así que se declara ``seller_ids`` y
-  ``variant_seller_ids`` queda como alias explícito sobre el mismo conjunto —
-  preserva el nombre para quien lo llame sin fingir que filtra algo distinto.
-
-Qué NO se porta, con su medición
-================================
-
-- **``_compute_product_id``**: lee ``self.env.get('default_product_id')``
-  para presembrar la variante al abrir el formulario desde un producto. Es
-  plomería del cliente web; el equivalente aquí es el ``initial`` del
-  serializer.
-- **``check_company=True``** como declaración: aquí es una comprobación
-  explícita en ``clean()``. El atributo del campo no existe en Django, pero
-  la invariante que expresa —proveedor, producto y tarifa de la **misma**
-  compañía— sí, y es lo que se porta.
-- **La comprobación de acceso de lectura** (``ir.model.access.check`` en
-  ``_compute_product_code``): la autorización aquí es por capacidad (DEC-11),
-  no por ACL de modelo. ``code_for`` recibe el interlocutor y devuelve el
-  código; **quién puede preguntarlo** lo decide la vista.
+La plantilla declara ``seller_ids`` y ``variant_seller_ids``
+(``product_template.py:126-127``) y **las dos** usan el mismo inverso
+``product_tmpl_id``; sólo difieren en el ``depends_context=('company',)`` de
+la primera. En Django una FK da exactamente **un** ``related_name``, así que
+se declara ``seller_ids`` y ``variant_seller_ids`` queda como alias explícito
+sobre el mismo conjunto.
 """
 
-import decimal
-
+import api
 import fields
 import models
-from django.core.exceptions import ValidationError
 
 from addons.base.models.res_company import ResCompany
 from addons.base.models.res_currency import ResCurrency
@@ -108,10 +73,12 @@ from addons.uom.models.uom_uom import Uom
 from orm.environments import env
 from tools.translate import _
 
-#: Divisor del porcentaje de descuento. Constante nombrada porque el ``/ 100``
-#: suelto de la fuente es lo que delata si alguien guarda ``0.15`` en vez de
-#: ``15`` en el campo.
-PERCENT_BASE = decimal.Decimal('100')
+
+def _default_company():
+    """≙ ``default=lambda self: self.env.company.id``
+    (``odoo19c: product_supplierinfo.py:33-35``)."""
+    company = env().company
+    return company.pk if company is not None else None
 
 
 def _default_currency():
@@ -122,180 +89,129 @@ def _default_currency():
     return company.currency_id if company is not None else None
 
 
-class ProductSupplierinfo(TimeStampedModel):
-    """``product.supplierinfo`` — la tarifa de un proveedor.
+class ProductSupplierinfo(models.BaseModel, TimeStampedModel):
+    """``product.supplierinfo`` — la tarifa de un proveedor."""
 
-    El nombre conserva la grafía de la referencia (``Supplierinfo``, con
-    minúscula en la ``i``): es el nombre que buscan los ``grep`` de los
-    archivos que la esperaban.
-    """
-
-    #: ≙ la cabecera de la fuente, verbatim
-    #: (``odoo19c: addons/product/models/product_supplierinfo.py:8-11``).
     _name = 'product.supplierinfo'
     _description = "Supplier Pricelist"
     _order = 'sequence, min_qty DESC, price, id'
     _rec_name = 'partner_id'
 
     partner_id = fields.Many2one(
-        ResPartner,
+        ResPartner, string='Vendor',
         null=False, on_delete=models.CASCADE,
+        check_company=True,
         db_index=True,
         related_name='supplierinfo_ids',
         db_column='partner_id',
-        verbose_name='Proveedor',
-        help_text=(
-            'Odoo partner_id. Es el nombre por el que se muestra la '
-            'fila (_rec_name en la referencia).'
-        ),
     )
     product_name = fields.Char(
-        max_length=255,
-        blank=True,
-        default='',
-        verbose_name='Nombre del producto para el proveedor',
-        help_text=(
-            'Se usa al imprimir una solicitud de presupuesto. Vacío = '
-            'se usa el nombre interno.'
-        ),
+        'Vendor Product Name',
+        max_length=255, blank=True, default='',
+        help="This vendor's product name will be used when printing a "
+             "request for quotation. Keep empty to use the internal one.",
     )
     product_code = fields.Char(
-        max_length=64,
-        blank=True,
-        default='',
-        verbose_name='Código del producto para el proveedor',
-        help_text='Idem con la referencia: vacío = se usa la interna.',
+        'Vendor Product Code',
+        max_length=64, blank=True, default='',
+        help="This vendor's product code will be used when printing a "
+             "request for quotation. Keep empty to use the internal one.",
     )
     sequence = fields.Integer(
-        default=1,
-        verbose_name='Secuencia',
-        help_text='Prioridad del proveedor en la lista. Menor gana.',
+        'Sequence', default=1,
+        help="Assigns the priority to the list of product vendor.",
     )
-    #: ≙ ``product_uom_id`` (``:25``) en forma C.
     product_uom_id = fields.Many2one(
-        Uom,
+        Uom, string='Unit',
+        compute='_compute_product_uom_id', store=True, readonly=False,
+        precompute=True,
         db_column='product_uom_id',
         on_delete=models.PROTECT,
-        null=True,
-        blank=True,
+        null=True, blank=True,
         related_name='supplierinfo_ids',
-        verbose_name='Unidad del proveedor',
-        help_text=(
-            'Unidad en que el proveedor cotiza, que puede no ser la del '
-            'producto. Odoo la calcula y almacena; aquí se siembra en '
-            'save() desde la variante o la plantilla.'
-        ),
     )
     min_qty = fields.Float(
-        default=0,
-        verbose_name='Cantidad mínima',
-        help_text=(
-            'Cantidad a partir de la cual aplica este precio, expresada '
-            'en la unidad del proveedor.'
-        ),
+        'Quantity', default=0.0,
+        help="The quantity to purchase from this vendor to benefit from the "
+             "unit price. If a vendor unit is set, quantity should be "
+             "specified in this unit, otherwise it should be specified in "
+             "the default unit of the product.",
     )
+    #: ``Monetary`` y no ``Float``: ver el docstring del módulo.
     price = fields.Monetary(
-        max_digits=16,
-        decimal_places=2,
-        default=0,
-        verbose_name='Precio unitario',
-        help_text=(
-            'Precio de compra en la unidad del proveedor. Monetary, no '
-            'Float — ver el docstring del módulo.'
-        ),
+        'Unit Price', max_digits=16, decimal_places=2, default=0,
+        help="The price to purchase a product",
     )
-    discount = fields.Monetary(
-        max_digits=5,
-        decimal_places=2,
-        default=0,
-        verbose_name='Descuento (%)',
-        help_text=(
-            'Porcentaje sobre el precio. Mismo tipo y precisión que '
-            'purchase_order_line.discount, que es quien lo consume.'
-        ),
+    price_discounted = fields.Monetary(
+        'Discounted Price', compute='_compute_price_discounted',
+        store=False,
     )
-    #: ≙ ``company_id`` (``:33``) en forma C.
     company_id = fields.Many2one(
-        ResCompany,
+        ResCompany, string='Company',
+        default=_default_company,
         db_column='company_id',
         on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+        null=True, blank=True,
         db_index=True,
         related_name='supplierinfo_ids',
-        verbose_name='Compañía',
-        help_text='Vacío = la tarifa sirve a todas las compañías.',
     )
-    #: ≙ ``currency_id`` (``:36``) en forma C.
     currency_id = fields.Many2one(
-        ResCurrency,
+        ResCurrency, string='Currency',
+        default=_default_currency,
         db_column='currency_id',
         on_delete=models.PROTECT,
-        null=True,
-        blank=True,
-        default=_default_currency,
+        null=True, blank=True,
         related_name='supplierinfo_ids',
-        verbose_name='Moneda',
-        help_text=(
-            'Moneda en que el proveedor cotiza. Requerido en la '
-            'referencia, con la de la compañía por defecto.'
-        ),
     )
     date_start = fields.Date(
-        null=True,
-        blank=True,
-        verbose_name='Fecha de inicio',
-        help_text='Desde cuándo rige este precio.',
+        'Start Date', null=True, blank=True,
+        help="Start date for this vendor price",
     )
     date_end = fields.Date(
-        null=True,
-        blank=True,
-        verbose_name='Fecha de fin',
-        help_text='Hasta cuándo rige este precio.',
+        'End Date', null=True, blank=True,
+        help="End date for this vendor price",
     )
-    #: ≙ ``product_id`` (``:42``) en forma C.
     product_id = fields.Many2one(
-        ProductProduct,
+        ProductProduct, string='Product Variant', check_company=True,
+        domain="[('product_tmpl_id', '=', product_tmpl_id)] "
+               "if product_tmpl_id else []",
+        compute='_compute_product_id', store=True, readonly=False,
+        precompute=True,
         db_column='product_id',
         on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
+        null=True, blank=True,
         db_index=True,
         related_name='supplierinfo_ids',
-        verbose_name='Variante de producto',
-        help_text=(
-            'Vacío = el precio aplica a TODAS las variantes de la '
-            'plantilla. Con valor, sólo a esa — y gana sobre la fila '
-            'de plantilla. El related_name no lo nombra la referencia.'
-        ),
+        help="If not set, the vendor price will apply to all variants of "
+             "this product.",
     )
-    #: ≙ ``product_tmpl_id`` (``:47``) en forma C.
     product_tmpl_id = fields.Many2one(
-        ProductTemplate,
+        ProductTemplate, string='Product Template', check_company=True,
+        compute='_compute_product_tmpl_id', precompute=True,
+        store=True, readonly=False,
         db_column='product_tmpl_id',
         null=False, on_delete=models.CASCADE,
         db_index=True,
         related_name='seller_ids',
-        verbose_name='Plantilla de producto',
-        help_text=(
-            'Obligatorio. Odoo lo calcula desde la variante cuando sólo '
-            'se da ésta; aquí lo hace save().'
-        ),
+    )
+    product_variant_count = fields.Integer(
+        'Variant Count', related='product_tmpl_id.product_variant_count',
     )
     delay = fields.Integer(
-        default=1,
-        verbose_name='Plazo de entrega (días)',
-        help_text=(
-            'Días entre confirmar la compra y recibir la mercancía. El '
-            'planificador lo usa para calcular cuándo pedir.'
-        ),
+        'Lead Time', default=1,
+        help="Lead time in days between the confirmation of the purchase "
+             "order and the receipt of the products in your warehouse. Used "
+             "by the scheduler for automatic computation of the purchase "
+             "order planning.",
+    )
+    #: ``Monetary`` y no ``Float``: ver el docstring del módulo.
+    discount = fields.Monetary(
+        string="Discount (%)", max_digits=5, decimal_places=2, default=0,
     )
 
     class Meta:
         db_table = 'product_supplierinfo'
-        # Verbatim de _order: 'sequence, min_qty DESC, price, id'. El DESC de
-        # min_qty es el que hace que el escalón por volumen se evalúe antes
-        # que el de una unidad; invertirlo lo anularía.
+        # ``_order = 'sequence, min_qty DESC, price, id'``.
         ordering = ['sequence', '-min_qty', 'price', 'id']
         verbose_name = 'Tarifa de proveedor'
         verbose_name_plural = 'Tarifas de proveedor'
@@ -303,164 +219,77 @@ class ProductSupplierinfo(TimeStampedModel):
     def __str__(self):
         return str(self.partner_id)
 
-    # === INVARIANTES ======================================================
+    @api.depends('product_id', 'product_tmpl_id')
+    def _compute_product_uom_id(self):
+        for rec in self:
+            if not rec.product_uom_id:
+                rec.product_uom_id = (rec.product_id.uom_id if rec.product_id
+                                      else rec.product_tmpl_id.uom_id)
 
-    def clean(self):
-        """Las dos invariantes que la referencia declara sin escribir código.
+    @api.depends('product_id', 'product_tmpl_id')
+    def _compute_price(self):
+        for rec in self:
+            rec.price = (rec.product_id.standard_price if rec.product_id
+                         else rec.product_tmpl_id.standard_price
+                         if rec.product_tmpl_id else 0.0)
 
-        La primera es el ``@api.onchange('product_tmpl_id')``: si la variante
-        deja de pertenecer a la plantilla, la fila apunta a dos productos
-        distintos y su precio no significa nada. En la referencia el cliente
-        web la limpia sola; aquí se rechaza, que es la versión de servidor de
-        lo mismo — y la única que protege una escritura por API.
+    @api.depends('discount', 'price')
+    def _compute_price_discounted(self):
+        for rec in self:
+            product_uom = (rec.product_id or rec.product_tmpl_id).uom_id
+            rec.price_discounted = rec.product_uom_id._compute_price(
+                rec.price, product_uom) * (1 - rec.discount / 100)
 
-        La segunda es el ``check_company=True`` de tres campos: proveedor,
-        producto y tarifa tienen que ser de la misma compañía. Django no tiene
-        ese atributo, así que la comprobación es explícita.
-        """
-        super().clean()
-        if (
-            self.product_id_id
-            and self.product_tmpl_id_id
-            and self.product_id.product_tmpl_id_id != self.product_tmpl_id_id
-        ):
-            raise ValidationError(
-                'La variante no pertenece a la plantilla de esta tarifa.'
-            )
-        if self.company_id_id and self.product_tmpl_id_id:
-            tmpl_company = getattr(self.product_tmpl_id, 'company_id', None)
-            if tmpl_company and tmpl_company != self.company_id_id:
-                raise ValidationError(
-                    'El producto y la tarifa son de compañías distintas.'
-                )
+    @api.depends('product_id')
+    def _compute_product_tmpl_id(self):
+        for rec in self:
+            if rec.product_id:
+                rec.product_tmpl_id = rec.product_id.product_tmpl_id
 
-    def save(self, *args, **kwargs):
-        """``_sanitize_vals`` + ``_compute_product_uom_id``, en su sitio.
+    @api.depends('product_id', 'product_tmpl_id', 'product_variant_count')
+    def _compute_product_id(self):
+        for rec in self:
+            if self.env.get('default_product_id'):
+                rec.product_id = self.env.get('default_product_id')
 
-        La referencia reparte esto en tres piezas —un ``create``, un ``write``
-        y un ``compute`` con ``precompute``— porque su ORM las necesita
-        separadas. Aquí las tres ocurren en el único punto por el que pasa
-        toda escritura, y hacen exactamente lo que hacían:
+    @api.onchange('product_tmpl_id')
+    def _onchange_product_tmpl_id(self):
+        """Clear product variant if it no longer matches the product
+        template."""
+        if (self.product_id and self.product_id
+                not in self.product_tmpl_id.product_variant_ids):
+            self.product_id = False
 
-        - la plantilla se deduce de la variante cuando sólo se dio ésta
-          (``_sanitize_vals``: sin ella la fila sería inguardable, porque
-          ``product_tmpl_id`` es obligatorio);
-        - la unidad del proveedor se siembra **sólo si está vacía**
-          (``if not rec.product_uom_id`` de la fuente). Sembrarla siempre
-          borraría la unidad que el proveedor realmente usa, que es el dato
-          por el que el campo existe.
-        """
-        if self.product_id_id and self.product_tmpl_id_id is None:
-            self.product_tmpl_id = self.product_id.product_tmpl_id
-        if self.product_uom_id_id is None:
-            source = self.product_id or self.product_tmpl_id
-            self.product_uom_id = getattr(source, 'uom_id', None)
-        super().save(*args, **kwargs)
+    @api.model
+    def get_import_templates(self):
+        return [{
+            'label': _('Import Template for Vendor Pricelists'),
+            'template': '/product/static/xls/product_supplierinfo.xls'
+        }]
 
-    # === PRECIO ===========================================================
+    def _sanitize_vals(self, vals):
+        """Sanitize vals to sync product variant & template on read/write."""
+        # add product's product_tmpl_id if none present in vals
+        if vals.get('product_id') and not vals.get('product_tmpl_id'):
+            product = self.env['product.product'].browse(vals['product_id'])
+            vals['product_tmpl_id'] = product.product_tmpl_id.id
 
-    @property
-    def price_discounted(self):
-        """``_compute_price_discounted`` — precio en la unidad del producto.
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            self._sanitize_vals(vals)
+        return super().create(vals_list)
 
-        Dos pasos, en el orden de la fuente: primero convertir de la unidad
-        del proveedor a la del producto, después aplicar el descuento. Al
-        revés daría lo mismo aquí, pero el orden es el que documenta qué
-        significa el número: *"lo que cuesta una unidad de las nuestras"*.
+    def write(self, vals):
+        self._sanitize_vals(vals)
+        return super().write(vals)
 
-        La conversión **no** llama a ``Uom._compute_price``: ese método
-        multiplica por ``factor``, que es ``Float``, y ``Decimal * float``
-        lanza ``TypeError``. Se reconstruye su ratio
-        (``to_unit.factor / self.factor``, ``uom_uom.py:306-313``) en
-        ``Decimal``, con sus mismos cortocircuitos.
-        """
-        price = self.price or decimal.Decimal(0)
-        target = getattr(
-            self.product_id or self.product_tmpl_id, 'uom_id', None
-        )
-        source = self.product_uom_id
-        if (
-            price
-            and target is not None
-            and source is not None
-            and source != target
-        ):
-            price = price * (
-                decimal.Decimal(str(target.factor))
-                / decimal.Decimal(str(source.factor))
-            )
-        discount = self.discount or decimal.Decimal(0)
-        return price * (1 - discount / PERCENT_BASE)
-
-    @property
-    def product_variant_count(self):
-        """``related='product_tmpl_id.product_variant_count'``."""
-        return self.product_tmpl_id.product_variant_count
-
-    # === SELECCIÓN ========================================================
-
-    @classmethod
-    def _get_filtered_supplier(
-        cls, sellers, company_id, product_id, params=False
-    ):
-        """≙ ``_get_filtered_supplier`` (``odoo19c: :118-119``).
-
-        Las filas que sirven a esta compra. Tres condiciones, verbatim: la
-        compañía encaja (o la fila es de todas), el proveedor está activo, y
-        la fila no es específica de **otra** variante. La tercera es la que
-        deja pasar las filas de plantilla junto a la de la variante pedida.
-
-        ``params`` la fuente lo declara y **no lo usa**: es el enganche por el
-        que un addon de encima refina el filtro. Se porta en la firma para que
-        ``_prepare_sellers`` pueda pasarlo tal cual, como hace la fuente.
-
-        DIVERGENCIA DE MECANISMO, declarada: la fuente es un método de
-        conjunto de registros (``self.filtered(...)``); aquí recibe el
-        conjunto como primer argumento y es ``classmethod``. Quien llama suele
-        venir de ``product.seller_ids``, que ya está en memoria, y volver a la
-        base sería una consulta por producto.
-
-        **El nombre se porta verbatim, con su guion bajo.** Hasta este pase se
-        llamaba ``filtered_suppliers``, que no es un renombre: promovía a API
-        pública un símbolo que la fuente reserva
-        (``porte-completo-no-parcial.md``, "El guion bajo se porta").
-        """
-        company_pk = getattr(company_id, 'pk', company_id)
-        product_pk = getattr(product_id, 'pk', product_id)
-        return [
-            seller
-            for seller in sellers
-            if (not seller.company_id or seller.company_id_id == company_pk)
-            and getattr(seller.partner_id, 'active', True)
-            and (not seller.product_id or seller.product_id_id == product_pk)
-        ]
-
-    @classmethod
-    def get_import_templates(cls):
-        """≙ ``get_import_templates`` (``odoo19c: :95-99``).
-
-        Es el **lado proveedor** de un contrato de ``base_import``: el
-        asistente pregunta a cada modelo por su plantilla de ejemplo y
-        ofrece la descarga. Devuelve metadata —etiqueta y ruta—, no el
-        archivo, asi que se porta verbatim aunque el estatico y el
-        consumidor no esten todavia.
-
-        **Se porta, y hasta este pase se declinaba.** La razon vieja era
-        que "no hay importador XLS en este arbol", medida con
-        ``grep -rn "get_import_templates" src/``. Ese comando acota a
-        ``src/`` y el simbolo vive en ``addons/``: medido sobre las dos
-        raices, ``addons/crm/models/crm_lead.py:2337`` y
-        ``addons/stock/models/stock_quant.py:852`` ya lo declaran. Y "el
-        estatico no existe" no discrimina — los tres ``.xls``/``.xlsx``
-        estan ausentes, incluidos los dos que esos dos sitios devuelven.
-
-        Los otros cuatro sitios que aun declinan quedan en la tarea
-        **#264** (un veredicto unico); el consumidor —``base_import``, hoy
-        un esqueleto con solo ``date_patterns.py``— en la **#265**.
-        """
-        return [
-            {
-                'label': _('Import Template for Vendor Pricelists'),
-                'template': '/product/static/xls/product_supplierinfo.xls',
-            }
-        ]
+    def _get_filtered_supplier(self, company_id, product_id, params=False):
+        # ``res.partner`` es aquí un modelo de Django: la fila ya está leída
+        # y no hay ``sudo()`` que aplicar para leer ``active``. Sin empresa
+        # activa sólo pasan las tarifas de todas las empresas.
+        company = company_id.id if company_id else False
+        return self.filtered(
+            lambda s: (not s.company_id or s.company_id.id == company)
+            and (s.partner_id.active
+                 and (not s.product_id or s.product_id == product_id)))

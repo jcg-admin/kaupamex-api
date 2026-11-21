@@ -48,6 +48,7 @@ from addons.product.models.product_template import (
     TYPE_SERVICE,
 )
 from orm.commands import Command
+from orm.environments import env
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -333,10 +334,10 @@ class TestGetImportTemplates:
     """
 
     def test_returns_one_template_entry(self):
-        assert len(ProductSupplierinfo.get_import_templates()) == 1
+        assert len(env()["product.supplierinfo"].get_import_templates()) == 1
 
     def test_the_entry_carries_the_reference_label_and_path(self):
-        entrada = ProductSupplierinfo.get_import_templates()[0]
+        entrada = env()["product.supplierinfo"].get_import_templates()[0]
         assert entrada['label'] == 'Import Template for Vendor Pricelists'
         assert (
             entrada['template']
@@ -352,7 +353,8 @@ class TestGetImportTemplates:
         """
         claves = {
             frozenset(proveedor.get_import_templates()[0])
-            for proveedor in (ProductSupplierinfo, CrmLead, StockQuant)
+            for proveedor in (env()['product.supplierinfo'], CrmLead,
+                              StockQuant)
         }
         assert claves == {frozenset({'label', 'template'})}
 
@@ -389,7 +391,8 @@ class TestSelectSeller:
         early_large = self._tariff(
             tmpl, supplier, sequence=1, min_qty=50, price=Decimal('5.00')
         )
-        assert variant._prepare_sellers() == [early_large, early_small, late]
+        assert variant._prepare_sellers().ids == [
+            early_large.pk, early_small.pk, late.pk]
 
     def test_prepare_sellers_drops_a_tariff_of_another_variant(self):
         """Delega en ``_get_filtered_supplier``: la fila específica de otra
@@ -405,7 +408,7 @@ class TestSelectSeller:
         supplier = ResPartner.objects.create(name='Proveedor')
         from_template = self._tariff(tmpl, supplier)
         self._tariff(tmpl, supplier, product_id=other)
-        assert variant._prepare_sellers() == [from_template]
+        assert variant._prepare_sellers().ids == [from_template.pk]
 
     def test_filtered_sellers_drops_an_expired_tariff(self):
         tmpl, variant = self._variant()

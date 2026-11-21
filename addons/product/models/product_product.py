@@ -94,7 +94,6 @@ Qué NO se porta, con su medición
 import api
 import fields
 import models
-from django.apps import apps
 from django.db import transaction
 
 from addons.base.models import DecimalPrecision
@@ -450,7 +449,7 @@ class ProductProduct(models.BaseModel, TimeStampedModel):
         partner_id = getattr(partner, 'pk', partner)
         if not partner_id:
             return code
-        for seller in self.product_tmpl_id.seller_ids.all():
+        for seller in self.product_tmpl_id.seller_ids:
             if seller.partner_id_id != partner_id:
                 continue
             if seller.product_id and seller.product_id_id != self.pk:
@@ -469,7 +468,7 @@ class ProductProduct(models.BaseModel, TimeStampedModel):
         vacía del formato.
         """
         partner_id = getattr(partner, 'pk', partner)
-        for seller in self.product_tmpl_id.seller_ids.all():
+        for seller in self.product_tmpl_id.seller_ids:
             if seller.partner_id_id != partner_id:
                 continue
             name = seller.product_name or self.default_code or self.name
@@ -499,22 +498,15 @@ class ProductProduct(models.BaseModel, TimeStampedModel):
         de la fuente**: secuencia, luego cantidad mínima descendente, luego
         precio, luego id. Ese orden importa porque ``_select_seller`` corta
         por el primer proveedor y se apoya en él para desempatar.
-
-        El ``sudo()`` de la fuente no tiene contraparte: el filtro por fila
-        de este árbol lo aplica ``AccessManager``, no un cambio de sujeto
-        dentro del método.
         """
-        ProductSupplierinfo = apps.get_model('product', 'ProductSupplierinfo')
-        sellers = ProductSupplierinfo._get_filtered_supplier(
-            self.product_tmpl_id.seller_ids.all(),
-            company if company is not None else self.company_id,
+        seller_ids = self.sudo().product_tmpl_id.seller_ids
+        sellers = seller_ids._get_filtered_supplier(
+            company if company is not None else self.env.company,
             self,
             params,
         )
-        return sorted(
-            sellers,
-            key=lambda s: (s.sequence, -s.min_qty, s.price, s.pk),
-        )
+        return sellers.sorted(
+            lambda s: (s.sequence, -s.min_qty, s.price, s.id))
 
     def _get_filtered_sellers(
         self,

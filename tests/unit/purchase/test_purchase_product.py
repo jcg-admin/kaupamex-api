@@ -198,9 +198,8 @@ def test_the_order_company_filters_the_sellers():
     seller_model.objects.create(
         partner_id=ResPartner.objects.create(name='Ajeno PP'),
         product_tmpl_id=product.product_tmpl_id, company_id=other, price=1)
-    sellers = seller_model._get_filtered_supplier(
-        product.product_tmpl_id.seller_ids.all(), other, product,
-        {'order_id': order})
+    sellers = product.product_tmpl_id.seller_ids._get_filtered_supplier(
+        other, product, {'order_id': order})
     assert [seller.pk for seller in sellers] == [mine.pk]
 
 

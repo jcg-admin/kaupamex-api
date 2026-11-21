@@ -12,7 +12,7 @@ ids.
 *Ciega a:* ``ProductTemplate.uom_id``, que el diseño declara con su sucesor.
 """
 import pytest
-from django.core.exceptions import ValidationError
+from orm.environments import env
 
 from addons.base.models import ResPartner
 from addons.mrp.models import MrpBom
@@ -46,12 +46,14 @@ def test_a_tariff_accepts_a_variant_of_its_template():
     info.clean()
 
 
-def test_a_tariff_refuses_a_variant_of_another_template():
+def test_a_variant_of_another_template_is_cleared_on_change():
+    """≙ ``_onchange_product_tmpl_id``: la variante que no pertenece a la
+    plantilla se limpia en el formulario."""
     template = ProductTemplate.objects.create(name='Una ptid')
     other = ProductProduct.objects.create(
         product_tmpl_id=ProductTemplate.objects.create(name='Otra ptid'))
-    info = ProductSupplierinfo(
-        partner_id=ResPartner.objects.create(name='Prov2 ptid'),
-        product_tmpl_id=template, product_id=other)
-    with pytest.raises(ValidationError):
-        info.clean()
+    info = env()['product.supplierinfo'].new({
+        'partner_id': ResPartner.objects.create(name='Prov2 ptid').pk,
+        'product_tmpl_id': template.pk, 'product_id': other.pk})
+    info._onchange_product_tmpl_id()
+    assert not info.product_id

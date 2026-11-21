@@ -476,7 +476,7 @@ def get_total_routes(self):
     (``routes |= buy_routes``): con el relevo por defecto perdería las rutas
     propias y las de la categoría, que es lo que el ``super()`` aporta.
     """
-    if not self.product_tmpl_id.seller_ids.exists():
+    if not self.product_tmpl_id.seller_ids:
         return None
     StockRoute = apps.get_model('stock', 'StockRoute')
     route_ids = (

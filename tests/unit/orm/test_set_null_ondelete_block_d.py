@@ -72,7 +72,7 @@ def test_deleting_a_variant_keeps_its_vendor_price():
         product_tmpl_id=template, product_id=variant)
     _delete(variant)
     price.refresh_from_db()
-    assert price.product_id is None
+    assert not price.product_id
 
 
 def test_deleting_a_variant_keeps_its_bill_of_materials():

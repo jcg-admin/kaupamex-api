@@ -505,7 +505,7 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
         árbol: ``partner_id`` como en la fuente, y ``currency``, una FK que
         aún no lleva el sufijo ``_id``.
         """
-        sellers = list(line.product_id.product_tmpl_id.seller_ids.all())
+        sellers = list(line.product_id.product_tmpl_id.seller_ids)
         return {
             'partner_id': partner,
             'sequence': (max(seller.sequence for seller in sellers) + 1
@@ -534,7 +534,7 @@ class PurchaseOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
             if not product:
                 continue
             template = product.product_tmpl_id
-            sellers = list(template.seller_ids.all())
+            sellers = list(template.seller_ids)
             seller_partners = {seller.partner_id_id for seller in sellers}
             if seller_partners & {partner.pk, vendor.pk} or len(sellers) > 10:
                 continue

@@ -47,9 +47,8 @@ def test_the_filter_keeps_rows_of_the_company_or_of_none(template, partner):
         partner_id=partner, product_tmpl_id=template, company_id=own)
     ProductSupplierinfo.objects.create(
         partner_id=partner, product_tmpl_id=template, company_id=other)
-    kept = ProductSupplierinfo._get_filtered_supplier(
-        template.seller_ids.all(), own, variant)
-    assert set(kept) == {shared, mine}
+    kept = template.seller_ids._get_filtered_supplier(own, variant)
+    assert set(kept.ids) == {shared.pk, mine.pk}
 
 
 def test_the_filter_drops_rows_of_another_variant(template, partner):
@@ -62,9 +61,8 @@ def test_the_filter_drops_rows_of_another_variant(template, partner):
         partner_id=partner, product_tmpl_id=template, product_id=variant)
     ProductSupplierinfo.objects.create(
         partner_id=partner, product_tmpl_id=template, product_id=other)
-    kept = ProductSupplierinfo._get_filtered_supplier(
-        template.seller_ids.all(), None, variant)
-    assert set(kept) == {general, specific}
+    kept = template.seller_ids._get_filtered_supplier(None, variant)
+    assert set(kept.ids) == {general.pk, specific.pk}
 
 
 def test_save_derives_the_template_and_seeds_the_unit(template, partner):
