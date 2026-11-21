@@ -79,3 +79,27 @@ La paridad de campos exige los nombres de la fuente en las FK
 Prueba de 1a: `tests/unit/analytic/test_analytic_basemodel.py`, con
 `tests/unit/orm/test_basemodel_reach.py` y las pruebas de `analytic`,
 `account` y `sale_timesheet` que tocan los dos modelos.
+
+## Adenda de 1a: `_check_company_auto` estaba declarado y no tenía receptor
+
+Medido al ejecutar la prueba de 1a: el alta por el ORM de
+`AccountAnalyticAccount` muere con `AttributeError: ... no attribute
+'_check_company'`. Las dos clases declaran `_check_company_auto = True`
+(`odoo19c: addons/analytic/models/analytic_account.py:16`,
+`analytic_line.py:168`), y `BaseModel._create` lo honra llamando a
+`_check_company` (`odoo19c: odoo/orm/models.py:4009`). En el puerto ese
+método lo aporta `models.CheckCompanyMixin`, que los demás modelos reciben
+por `TimeStampedModel`; las dos clases analíticas no usan esa base, así que
+el atributo era letra muerta desde antes de esta etapa.
+
+Por eso 1a añade `models.CheckCompanyMixin` detrás de `models.BaseModel` en
+`AccountAnalyticAccount` y `AccountAnalyticLine`. No cambia conducta hoy:
+`_check_company` recorre los campos con `check_company=True`
+(`analytic_line.py:21`, `:196`; `analytic_account.py:73`), y ninguno lo
+declara todavía; declararlos es paridad de campos, etapa 1b. Tampoco el
+default de `company_id` (`self.env.company`): la prueba de 1a pasa la
+empresa explícita.
+
+El control de anulación de 1a retira el mixin de cada clase y exige que caiga
+`test_an_account_and_a_line_go_through_the_orm`, en
+`tests/unit/analytic/test_analytic_basemodel.py`.
