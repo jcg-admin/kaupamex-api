@@ -1973,8 +1973,9 @@ def _relational_multi_owner_name(field):
 def _reverse_one2many_convert_to_write(self, value, record):
     """``_RelationalMulti.convert_to_write`` — ≙ ``:671-711``."""
     if isinstance(value, tuple):
-        # a tuple of ids, this is the cache format
-        value = self.related_model.browse(value)
+        # a tuple of ids, this is the cache format; the comodel comes from
+        # the record's environment (``record.env[self.comodel_name]``)
+        value = comodel_records(record, self.related_model).browse(value)
 
     if (getattr(value, '_ids', None) is not None
             and model_of(value) is self.related_model):

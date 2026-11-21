@@ -1,84 +1,100 @@
 """``product.tag`` — etiqueta de producto.
 
-Adaptación de ``addons/product/models/product_tag.py``
-(``odoo-tools@bf077302``, ``odoo19c:``, 62 líneas).
+Porte de ``odoo19c: addons/product/models/product_tag.py``: una etiqueta se
+aplica a fichas (``product_template_ids``) o a variantes sueltas
+(``product_product_ids``), y ``product_ids`` es la unión de las dos vías.
+Diseño: ``scripts/workbench/orm-continuation-plan-20261103T095630/designs/
+product-tag-basemodel.md``.
 
-Dos M2M, no uno — y la razón está en el dominio
-===============================================
+La variante suelta sólo se etiqueta cuando su ficha tiene atributos y no
+está ya etiquetada: lo dice el ``domain`` de ``product_product_ids``.
 
-La referencia declara **dos** relaciones separadas: a fichas
-(``product_template_ids``) y a variantes (``product_product_ids``). Podría
-parecer redundante —una variante ya cuelga de una ficha— pero el ``domain`` del
-segundo lo explica:
-
-    ``[('attribute_line_ids', '!=', False),
-      ('product_tmpl_id', 'not in', product_template_ids)]``
-
-Es decir: sólo se etiqueta una **variante suelta** cuando (a) su ficha tiene
-atributos —si no, la variante *es* la ficha— y (b) su ficha **no** está ya
-etiquetada. Etiquetar la ficha y una de sus variantes a la vez sería declarar
-dos veces lo mismo y dejar ambiguo qué se muestra.
-
-``product_ids`` es la **unión** de los dos: las variantes de las fichas
-etiquetadas, más las variantes etiquetadas sueltas. Es ``compute`` sin
-``store`` → propiedad aquí.
-
-Qué NO se porta, con su medición
-================================
-
-- **``_search_product_ids``**: traduce un filtro sobre la unión a un ``OR`` de
-  dominios del ORM de Odoo. En Django el equivalente es un ``Q()`` en el
-  llamador; portar el traductor no aporta.
-- **``copy_data``** (añade *"(copia)"* al duplicar): azúcar del cliente web.
+Divergencia declarada: ``name`` no lleva ``translate=True``, como el resto
+del grupo ``product``; el almacenamiento ``jsonb`` de los campos
+traducibles es TASK-GEN-0060.
 """
 
+import api
 import fields
 import models
+from orm.domains import Domain
+from orm.environments import env
 
-from addons.base.models.image_mixin import ImageMixin
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.product.models.product_product import ProductProduct
 from addons.product.models.product_template import ProductTemplate
 
-#: Color por defecto de una etiqueta, verbatim de la fuente.
-DEFAULT_TAG_COLOR = '#3C3C3C'
+
+def _get_default_template_id():
+    """≙ ``ProductTag._get_default_template_id`` (``odoo19c:
+    addons/product/models/product_tag.py:12-13``): la ficha que el contexto
+    nombra.
+
+    DIVERGENCIA DE MECANISMO declarada, la de ``_get_default_color``: Django
+    serializa un ``default`` callable por su ruta de import y lo resuelve
+    sin instancia, así que queda a nivel de módulo, sin ``self``, y lee el
+    entorno activo. Registrada en ``scripts/divergencias_declaradas.txt``.
+    """
+    environment = env()
+    return environment['product.template'].browse(
+        environment.context.get('product_template_id'))
 
 
-class ProductTag(ImageMixin, TimeStampedModel):
+def _get_default_variant_id():
+    """≙ ``ProductTag._get_default_variant_id`` (``:15-16``); misma
+    divergencia de mecanismo que ``_get_default_template_id``."""
+    environment = env()
+    return environment['product.product'].browse(
+        environment.context.get('product_variant_id'))
+
+
+class ProductTag(models.BaseModel, TimeStampedModel):
     """``product.tag`` — una etiqueta aplicable a fichas o a variantes."""
 
-    #: ≙ la cabecera de la fuente
-    #: (``odoo19c: addons/product/models/product_tag.py:8-10``).
+    #: ≙ la cabecera de la fuente (``:8-10``).
     _name = 'product.tag'
     _description = 'Product Tag'
     _order = 'sequence, id'
 
-    name = fields.Char(max_length=255, unique=True, verbose_name='Nombre')
-    sequence = fields.Integer(default=10, verbose_name='Secuencia')
-    color = fields.Char(
-        max_length=16, default=DEFAULT_TAG_COLOR, verbose_name='Color'
+    name = fields.Char(string="Name", required=True, max_length=255)
+    sequence = fields.Integer(default=10)
+    color = fields.Char(string="Color", default='#3C3C3C', max_length=16)
+    product_template_ids = fields.Many2many(
+        ProductTemplate,
+        string="Product Templates",
+        relation='product_tag_product_template_rel',
+        column1='product_tag_id',
+        column2='product_template_id',
+        related_name='product_tag_ids',
+        default=_get_default_template_id,
+        blank=True,
+    )
+    product_product_ids = fields.Many2many(
+        ProductProduct,
+        string="Product Variants",
+        relation='product_tag_product_product_rel',
+        column1='product_tag_id',
+        column2='product_product_id',
+        related_name='additional_product_tag_ids',
+        domain="[('attribute_line_ids', '!=', False),"
+               " ('product_tmpl_id', 'not in', product_template_ids)]",
+        default=_get_default_variant_id,
+        blank=True,
+    )
+    product_ids = fields.Many2many(
+        ProductProduct,
+        string='All Product Variants using this Tag',
+        compute='_compute_product_ids', search='_search_product_ids',
+        store=False, related_name='+',
     )
     visible_to_customers = fields.Boolean(
-        default=True, verbose_name='Visible para el cliente'
+        string="Visible to customers",
+        help="Whether the tag is displayed to customers.",
+        default=True,
     )
-    product_templates = fields.Many2many(
-        ProductTemplate,
-        blank=True,
-        db_table='product_tag_product_template_rel',
-        related_name='product_tag_ids',
-        verbose_name='Fichas de producto',
-    )
-    product_variants = fields.Many2many(
-        ProductProduct,
-        blank=True,
-        db_table='product_tag_product_product_rel',
-        related_name='additional_product_tag_ids',
-        verbose_name='Variantes de producto',
-        help_text=(
-            'Sólo variantes sueltas: su ficha debe tener atributos y NO '
-            'estar ya etiquetada. Ver el docstring del módulo.'
-        ),
-    )
+    image = fields.Image(
+        string="Image", max_width=200, max_height=200,
+        upload_to='product/tags/', null=True, blank=True)
 
     class Meta:
         db_table = 'product_tag'
@@ -86,24 +102,35 @@ class ProductTag(ImageMixin, TimeStampedModel):
         verbose_name = 'Etiqueta de producto'
         verbose_name_plural = 'Etiquetas de producto'
         constraints = [
-            # ``_name_uniq`` de la fuente.
+            # ≙ ``_name_uniq`` (``:44-47``).
             models.UniqueConstraint(
-                fields=['name'], name='product_tag_name_uniq'
+                fields=['name'], name='product_tag_name_uniq',
+                violation_error_message='Tag name already exists!',
             ),
         ]
 
     def __str__(self):
         return self.name
 
-    @property
-    def product_ids(self):
-        """``_compute_product_ids`` — la unión de las dos vías.
+    @api.depends('product_template_ids', 'product_product_ids')
+    def _compute_product_ids(self):
+        """≙ ``_compute_product_ids`` (``:49-52``)."""
+        for tag in self:
+            tag.product_ids = (
+                tag.product_template_ids.product_variant_ids
+                | tag.product_product_ids)
 
-        Las variantes de las fichas etiquetadas **más** las variantes
-        etiquetadas sueltas. Es una unión, no una concatenación: una variante
-        alcanzada por las dos vías aparece una sola vez.
-        """
-        from_templates = ProductProduct.objects.filter(
-            product_tmpl_id__in=self.product_templates.all()
-        )
-        return (from_templates | self.product_variants.all()).distinct()
+    def copy_data(self, default=None):
+        """≙ ``copy_data`` (``:54-56``): la copia lleva «(copy)»."""
+        vals_list = super().copy_data(default=default)
+        return [dict(vals, name=self.env._("%s (copy)", tag.name))
+                for tag, vals in zip(self, vals_list)]
+
+    def _search_product_ids(self, operator, operand):
+        """≙ ``_search_product_ids`` (``:58-62``)."""
+        if operator in Domain.NEGATIVE_OPERATORS:
+            return NotImplemented
+        return ['|',
+                ('product_template_ids.product_variant_ids', operator,
+                 operand),
+                ('product_product_ids', operator, operand)]

@@ -1236,6 +1236,12 @@ product/models/product_attribute_value.py::ProductAttributeValue::_get_default_c
 # product_template.py:34-36,118-121`): a nivel de modulo y sin `self`.
 product/models/product_template.py::ProductTemplate::_get_default_uom_id
 #
+# Los dos `default=` de las relaciones de `product.tag` (`odoo19c:
+# product_tag.py:12-16,25,32`): misma divergencia, a nivel de modulo, sin
+# `self`, leyendo el contexto del entorno activo.
+product/models/product_tag.py::ProductTag::_get_default_template_id
+product/models/product_tag.py::ProductTag::_get_default_variant_id
+#
 # ---- 13. `create` de `certificate` — DIVERGENCIA DE MECANISMO -----------
 #
 # Su gancho de alta; en Django es `save()` con `_state.adding`. Mismo motivo,
