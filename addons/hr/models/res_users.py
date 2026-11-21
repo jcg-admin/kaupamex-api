@@ -129,9 +129,8 @@ import fields
 
 from addons.base.models import ResPartnerBank
 from addons.hr.models.hr_employee import HrEmployee
-from addons.hr.models.hr_employee_category import HrEmployeeCategory
 from exceptions import UserError
-from orm.environments import get_current_companies, get_current_company
+from orm.environments import env, get_current_companies, get_current_company
 from orm.model_classes import extend_model, extend_property
 from tools.translate import _
 
@@ -445,11 +444,9 @@ def category(self):
     """≙ ``category_ids`` — el M2M de etiquetas del empleado (queryset
     vacío sin empleado)."""
     owner = self.employee
-    return (
-        owner.category.all()
-        if owner is not None
-        else HrEmployeeCategory.objects.none()
-    )
+    if owner is not None:
+        return owner.category
+    return env()['hr.employee.category'].browse([])
 
 
 def work_contact(self):

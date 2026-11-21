@@ -84,7 +84,8 @@ def _compute_calendar_id(self):
 
     version = None
     if self.resource_id:
-        employee = self.resource.hr_hremployee_resource_mixin_set.first()
+        employees = self.resource.hr_hremployee_resource_mixin_set
+        employee = employees[0] if employees else None
         version = (
             employee.version if employee and employee.version_id else None
         )

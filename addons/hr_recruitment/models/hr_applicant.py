@@ -599,8 +599,8 @@ class HrApplicant(models.BaseModel, MailThread, MailActivityMixin, UtmMixin,
         if not self.is_applicant_in_pool():
             return 0
         if self.pool_applicant_id:
-            return self.pool_applicant.talent_pools.count()
-        return self.talent_pools.count()
+            return len(self.pool_applicant.talent_pools)
+        return len(self.talent_pools)
 
     def link_applicant_to_talent(self):
         """≙ ``link_applicant_to_talent`` (``odoo19c: :836-839``)."""

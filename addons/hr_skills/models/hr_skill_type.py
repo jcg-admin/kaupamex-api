@@ -138,5 +138,5 @@ class HrSkillType(models.BaseModel, TimeStampedModel):
     def _compute_levels_count(self):
         """≙ ``_compute_levels_count`` (``:42-48``) — cuenta directa en vez
         de ``_read_group`` (sin equivalente de agregación por grupo aquí)."""
-        self.levels_count = self.skill_level_ids.count()
+        self.levels_count = len(self.skill_level_ids)
         return self.levels_count

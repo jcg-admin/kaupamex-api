@@ -112,7 +112,7 @@ class CategoryTreeSerializer(serializers.ModelSerializer):
     @extend_schema_field(serializers.ListField(child=serializers.DictField()))
     def get_children(self, obj):
         return CategoryTreeSerializer(
-            obj.child_id.all().order_by('name'),
+            obj.child_id.sorted('name'),
             many=True,
             context=self.context,
         ).data

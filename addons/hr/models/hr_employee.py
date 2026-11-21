@@ -1323,7 +1323,8 @@ class HrEmployee(models.BaseModel, MailThread, MailActivityMixin,
             else:
                 versions = [
                     version for version
-                    in employee.versions.order_by('date_version')
+                    in sorted(employee.versions,
+                              key=lambda version: version.date_version)
                     if version.date_start and version.date_start <= stop.date()
                     and (version.date_end is None
                          or version.date_end >= start.date())

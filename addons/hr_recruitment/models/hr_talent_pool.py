@@ -109,4 +109,4 @@ class HrTalentPool(models.BaseModel, MailThread, TimeStampedModel):
         candidatos en esta bolsa. La referencia agrupa por
         ``talent_pool_ids`` (el lado del campo en ``hr.applicant``); aquí es
         el mismo dato, leído por el lado directo del M2M."""
-        return self.talents.count()
+        return len(self.talents)

@@ -30,6 +30,7 @@ Django (``.add()``) y ``HrApplicant.objects.create()`` reconstruyendo los
 sin recordset ``copy()`` en este ORM).
 """
 
+from orm.commands import Command
 from orm.models_transient import TransientModel
 
 
@@ -51,9 +52,9 @@ class TalentPoolAddApplicants(TransientModel):
         for applicant in applicants:
             if applicant.talent_pools.exists():
                 for pool in talent_pools:
-                    pool.talents.add(applicant)
+                    pool.write({'talents': [Command.link(applicant.id)]})
                 for categ in categories:
-                    applicant.categs.add(categ)
+                    applicant.write({'categs': [Command.link(categ.pk)]})
                 talents.append(applicant)
             else:
                 HrApplicant = type(applicant)
@@ -67,9 +68,9 @@ class TalentPoolAddApplicants(TransientModel):
                     job=None,
                 )
                 for pool in talent_pools:
-                    pool.talents.add(talent)
-                for categ in list(applicant.categs.all()) + list(categories):
-                    talent.categs.add(categ)
+                    pool.write({'talents': [Command.link(talent.id)]})
+                for categ in list(applicant.categs) + list(categories):
+                    talent.write({'categs': [Command.link(categ.pk)]})
                 talent.pool_applicant = talent
                 talent.save(update_fields=['pool_applicant'])
                 applicant.pool_applicant = talent

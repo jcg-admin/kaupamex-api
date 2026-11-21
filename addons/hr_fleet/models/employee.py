@@ -91,7 +91,7 @@ def _compute_license_plate(self):
     espacio."""
     car_plates = [
         plate
-        for plate in self.car_ids.values_list('license_plate', flat=True)
+        for plate in self.car_ids.mapped('license_plate')
         if plate
     ]
     if self.private_car_plate:

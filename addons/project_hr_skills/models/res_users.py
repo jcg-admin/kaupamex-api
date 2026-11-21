@@ -33,7 +33,7 @@ def employee_skill_ids(self):
     employee = self.employee
     if employee is None:
         return HrEmployeeSkill.objects.none()
-    return employee.employee_skill_ids.all()
+    return employee.employee_skill_ids
 
 
 def apply_project_hr_skills_res_users_extensions():

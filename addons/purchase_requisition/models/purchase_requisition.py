@@ -450,7 +450,7 @@ class PurchaseRequisition(models.BaseModel, MailThread, MailActivityMixin,
         Cada orden cancelada lleva la nota de la fuente (``:126``).
         """
         for line in self.line_ids:
-            line.supplier_info_ids.all().delete()
+            line.supplier_info_ids.unlink()
         cancellable_pos = self.purchase_ids.filtered(
             lambda po: po.state == 'draft')
         for order in cancellable_pos:
@@ -510,7 +510,7 @@ class PurchaseRequisition(models.BaseModel, MailThread, MailActivityMixin,
                 "for Quotation.\n\nImagine the mess if someone confirms "
                 "these duplicates: double the order, double the trouble :)"))
         for line in self.line_ids:
-            line.supplier_info_ids.all().delete()
+            line.supplier_info_ids.unlink()
         self.state = STATE_DONE
         self.save(update_fields=['state', 'write_date'])
 
@@ -740,7 +740,7 @@ class PurchaseRequisitionLine(models.BaseModel, AnalyticMixin,
             and previous_price is not None
             and previous_price != self.price_unit
         ):
-            self.supplier_info_ids.all().update(price=self.price_unit)
+            self.supplier_info_ids.write({'price': self.price_unit})
         return result
 
     def delete(self, *args, **kwargs):
@@ -756,7 +756,7 @@ class PurchaseRequisitionLine(models.BaseModel, AnalyticMixin,
             STATE_CANCEL,
             STATE_DONE,
         ):
-            self.supplier_info_ids.all().delete()
+            self.supplier_info_ids.unlink()
         return super().delete(*args, **kwargs)
 
     # -- negocio ------------------------------------------------------------

@@ -105,8 +105,9 @@ class HrSkillLevel(models.BaseModel, TimeStampedModel):
         mismo tipo."""
         super().save(*args, **kwargs)
         if self.default_level and self.skill_type_id:
-            (
-                self.skill_type.skill_level_ids.exclude(pk=self.pk).update(
-                    default_level=False
-                )
-            )
+            # El inverso ``skill_level_ids`` es un recordset (los dos
+            # modelos son ``BaseModel``); la desmarca sigue siendo un solo
+            # UPDATE por el gestor del modelo.
+            type(self).objects.filter(
+                skill_type_id=self.skill_type_id,
+            ).exclude(pk=self.pk).update(default_level=False)

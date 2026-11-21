@@ -23,13 +23,14 @@ def _first_employee(resource):
     ``addons/hr/models/resource.py::_first_employee`` (duplicado local:
     cada addon resuelve su propio acceso al reverso del mixin, mismo
     criterio que el resto de las extensiones de este árbol)."""
-    return resource.hr_hremployee_resource_mixin_set.first()
+    employees = resource.hr_hremployee_resource_mixin_set
+    return employees[0] if employees else None
 
 
 def employee_skill_ids(self):
     """≙ ``employee_skill_ids`` (``:9``)."""
     employee = _first_employee(self)
-    return employee.employee_skill_ids.all() if employee is not None else []
+    return employee.employee_skill_ids if employee is not None else []
 
 
 def apply_hr_skills_resource_resource_extensions():

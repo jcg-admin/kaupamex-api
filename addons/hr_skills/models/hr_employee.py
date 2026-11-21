@@ -79,7 +79,7 @@ from orm.model_classes import extend_model
 def _compute_current_employee_skill_ids(self):
     """≙ ``_compute_current_employee_skill_ids`` (``:25-28``)."""
     current_by_employee = HrEmployeeSkill.get_current_skills_by_employee(
-        self.employee_skill_ids.all(),
+        self.employee_skill_ids,
     )
     return current_by_employee.get(self.pk, [])
 
@@ -92,17 +92,16 @@ def current_employee_skill_ids(self):
 
 def _compute_skill_ids(self):
     """≙ ``_compute_skill_ids`` (``:30-33``)."""
-    skill_ids = list(
-        self.employee_skill_ids.values_list('skill_id', flat=True).distinct(),
-    )
-    self.skill_ids.set(skill_ids)
+    skill_ids = sorted({skill.skill_id for skill in self.employee_skill_ids})
+    self.write({'skill_ids': [(6, 0, skill_ids)]})
     return self.skill_ids
 
 
 def _compute_certification_ids(self):
     """≙ ``_compute_certification_ids`` (``:35-38``) — el cuerpo de
     ``certification_ids``."""
-    return self.employee_skill_ids.filter(skill_type__is_certification=True)
+    return self.employee_skill_ids.filtered(
+        lambda skill: skill.skill_type.is_certification)
 
 
 def certification_ids(self):
@@ -134,7 +133,8 @@ def get_internal_resume_lines(cls, res_id, res_model):
             return []
     result = []
     employee_versions = list(
-        HrEmployee.objects.get(pk=res_id).versions.order_by('date_version'),
+        sorted(HrEmployee.objects.get(pk=res_id).versions,
+               key=lambda version: version.date_version),
     )
     if not employee_versions:
         return result

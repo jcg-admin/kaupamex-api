@@ -34,14 +34,14 @@ from orm.model_classes import extend_model
 def resume_line_ids(self):
     """≙ ``resume_line_ids`` (``:9``)."""
     return (
-        self.employee_id.resume_line_ids.all() if self.employee_id_id else []
+        self.employee_id.resume_line_ids if self.employee_id_id else []
     )
 
 
 def employee_skill_ids(self):
     """≙ ``employee_skill_ids`` (``:10-11``)."""
     return (
-        self.employee_id.employee_skill_ids.all()
+        self.employee_id.employee_skill_ids
         if self.employee_id_id
         else []
     )

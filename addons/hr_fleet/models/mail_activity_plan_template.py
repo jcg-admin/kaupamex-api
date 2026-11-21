@@ -65,7 +65,7 @@ def _determine_responsible(responsible_type, employee, current_user=None):
     """
     if responsible_type != 'fleet_manager':
         return None
-    vehicle = employee.car_ids.first()
+    vehicle = employee.car_ids[:1]
     error = False
     warning = False
     if not vehicle:

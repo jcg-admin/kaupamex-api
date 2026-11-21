@@ -93,7 +93,8 @@ def _first_employee(resource):
     """El empleado del recurso, o ``None`` — helper propio del puerto (la
     referencia usa el One2many ``employee_id`` como si fuera único, que es
     exactamente lo que este helper hace explícito)."""
-    return resource.hr_hremployee_resource_mixin_set.first()
+    employees = resource.hr_hremployee_resource_mixin_set
+    return employees[0] if employees else None
 
 
 def _compute_job_title(self):
