@@ -63,3 +63,23 @@ Prueba: `tests/unit/website/test_website_basemodel_u1a.py`.
 
 Con `unlink` retirado (vuelve el borrado de queryset de `BaseModel`) cae
 `test_unlinking_a_308_invalidates_the_routing`.
+
+## Medido al ejecutar (antes de integrar)
+
+- `_invalidate_routing` llamaba a `get_resolver.cache_clear()`. En Django 6
+  `get_resolver` es una función sin `cache_clear` (la caché vive en
+  `_get_cached_resolver`): el primer 308 creado por el ORM reventó con
+  `AttributeError`. Defecto heredado que ningún test alcanzaba; se limpia
+  con `django.urls.clear_url_caches()`, la API pública.
+- `test_url_to_slash_is_rejected` usaba un 301; la regla de `'/'` es sólo
+  del 308 (`odoo19c: addons/website/models/website_rewrite.py:103-110`).
+- La primera anulación (sin `unlink`) **no discriminaba**, por dos causas:
+  1. `unlink` empieza con `flush_all`; el `write` diferido del registro
+     recién creado (308) también invalidaba. El test vuelca antes de medir.
+  2. El espía era un `mock.patch.object` sobre `WebsiteRewrite`. Los
+     colectores de métodos marcados (`orm.registry.ondelete_methods`)
+     buscan en la clase atributos con `_ondelete`; un doble de
+     `unittest.mock` responde a cualquiera y el borrado lo llamaba como
+     comprobación `@api.ondelete`. El test registra con una función.
+  Con las dos corregidas, sin `unlink` cae exactamente
+  `test_unlinking_a_308_invalidates_the_routing`.
