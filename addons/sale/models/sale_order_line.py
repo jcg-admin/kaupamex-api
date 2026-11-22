@@ -28,7 +28,7 @@ from addons.stock.services import InventoryService
 from .sale_order import SaleOrder
 
 
-class SaleOrderLine(AnalyticMixin, TimeStampedModel):
+class SaleOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
     """``sale.order.line`` — una línea de la orden/carrito."""
 
     # -- atributos de clase del modelo -------------------------------------
@@ -720,12 +720,6 @@ class SaleOrderLine(AnalyticMixin, TimeStampedModel):
             ]
         super().save(*args, **kwargs)
         self.order._compute_amounts()
-
-    def delete(self, *args, **kwargs):
-        order = self.order
-        result = super().delete(*args, **kwargs)
-        order._compute_amounts()
-        return result
 
     # ------------------------------------------------------------------
     # Desglose por línea — ≙ ``_compute_amount`` (``odoo19c:

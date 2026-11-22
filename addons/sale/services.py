@@ -164,9 +164,11 @@ def add_item_to_draft(order, product, quantity=1):
 def clear_draft_items(order):
     """Vacía el draft (UC-CART-03).
 
-    ``QuerySet.delete()`` en bloque no dispara el recálculo de
-    ``SaleOrderLine.delete()`` (H-API-30) — se dispara explícito para que el
-    total de la orden quede en ``0.00`` y no stale con el value previo.
+    ``QuerySet.delete()`` en bloque no pasa por ``BaseModel.unlink`` y no
+    anuncia el borrado, así que la dependencia de ``amount_*`` sobre
+    ``order_line`` no recalcula: se dispara explícito para que el total
+    quede en ``0.00``. Pasa a ``unlink()`` cuando ``order_line`` sea un
+    recordset (U3b, ``designs/sale-basemodel-u3a-order-line.md``).
     """
     if order.state != SaleOrder.STATE_DRAFT:
         raise DraftOrderError('La orden no es un draft.', 'ORDER_NOT_DRAFT')
@@ -262,7 +264,7 @@ def remove_draft_item(order, item_pk):
     line = order.order_line.filter(pk=item_pk).first()
     if line is None:
         raise DraftOrderError('Item no encontrado.', 'ITEM_NOT_FOUND')
-    line.delete()
+    line.unlink()
 
 
 def merge_draft_orders(user, cart_token):

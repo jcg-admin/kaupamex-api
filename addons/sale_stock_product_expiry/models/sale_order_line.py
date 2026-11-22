@@ -34,6 +34,6 @@ def use_expiration_date(line) -> bool:
 
     Sin producto, ``False`` — el related de un vacío es falsy.
     """
-    if line.product is None:
+    if not line.product:
         return False
     return bool(getattr(line.product, 'use_expiration_date', False))

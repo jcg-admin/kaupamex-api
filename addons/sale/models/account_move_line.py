@@ -26,8 +26,7 @@ def _copy_data_extend_business_fields(self, previous, values):
     """
     # OVERRIDE to copy the 'sale_line_ids' field as well.
     previous(values)
-    values['sale_line_ids'] = [
-        (6, None, list(self.sale_line_ids.values_list('pk', flat=True)))]
+    values['sale_line_ids'] = [(6, None, self.sale_line_ids.ids)]
 
 
 def apply_sale_account_move_line_extensions():

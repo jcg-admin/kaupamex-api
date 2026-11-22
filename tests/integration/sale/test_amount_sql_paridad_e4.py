@@ -99,7 +99,7 @@ class TestLaColumnaSeRecalculaAlCambiarLineas:
     def test_borrar_la_linea_recalcula_a_cero(self, producto):
         order = _order(producto)
         assert order.amount_total == Decimal('100.00')
-        order.order_line.get().delete()
+        order.order_line.get().unlink()
         assert order.amount_total == Decimal('0.00')
 
     def test_persiste_en_bd_no_solo_en_memoria(self, producto):

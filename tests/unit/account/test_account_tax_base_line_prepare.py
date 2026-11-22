@@ -21,6 +21,7 @@ from addons.account.models import AccountTax
 from addons.base.models import ResCompany
 from addons.base.models.res_currency import ResCurrency
 from addons.sale.models import SaleOrder, SaleOrderLine
+from orm.commands import Command
 from orm.environments import Environment
 from orm.utils import SUPERUSER_ID
 from tests.factories.product_factory import make_product
@@ -57,7 +58,7 @@ def line(environment, tax):
     sale_line = SaleOrderLine.objects.create(
         order=order, product=product, product_uom_qty=Decimal('2'),
         price_unit=Decimal('10.00'))
-    sale_line.tax_ids.set([tax])
+    sale_line.write({'tax_ids': [Command.set([tax.pk])]})
     return sale_line
 
 
