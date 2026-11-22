@@ -608,7 +608,9 @@
   "crm-lead-recordset-computes-0397",
   "account-edi-journal-write-0397",
   "orm-read-nonstored-many2one-0397",
-  "analytic-plan-basemodel-0397"
+  "analytic-plan-basemodel-0397",
+  "write-many2many-discards-recompute-0397",
+  "account-edi-journal-computes-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
