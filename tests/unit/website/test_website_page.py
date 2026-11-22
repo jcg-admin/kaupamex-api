@@ -51,7 +51,7 @@ PAGE_PORTED = [
     '_get_most_specific_pages',
     'copy_data',
     'clone_page',
-    'delete',  # ≙ unlink — divergencia CRUD declarada
+    'unlink',
     'save',  # ≙ write — divergencia CRUD declarada
     '_search_get_detail',
     '_search_fetch',
@@ -75,13 +75,14 @@ PAGE_BLOCKED = [
 ]
 
 #: website_rewrite.py — 11 portados (``unlink``/``create``/``write`` viajan
-#: como ``delete``/``save``), 1 bloqueado.
+#: con su nombre de la fuente desde U1a), 1 bloqueado.
 REWRITE_PORTED = [
     '_onchange_route_id',
     '_check_url_to',
     '_compute_display_name',
-    'save',
-    'delete',
+    'create',
+    'write',
+    'unlink',
     '_invalidate_routing',
     'refresh_routes',
 ]
@@ -96,7 +97,7 @@ class TestCoverage:
         missing = [
             name
             for name in PAGE_PORTED
-            if not callable(getattr(WebsitePage, name, None))
+            if name not in vars(WebsitePage)
         ]
         assert missing == []
 
@@ -108,12 +109,12 @@ class TestCoverage:
         missing = [
             name
             for name in REWRITE_PORTED
-            if not callable(getattr(WebsiteRewrite, name, None))
+            if name not in vars(WebsiteRewrite)
         ]
         missing += [
             name
             for name in ROUTE_PORTED
-            if not callable(getattr(WebsiteRoute, name, None))
+            if name not in vars(WebsiteRoute)
         ]
         assert missing == []
 
@@ -335,7 +336,7 @@ class TestPageLifecycle:
         website = _make_website()
         page = _make_page(website)
         view_pk = page.view_id
-        page.delete()
+        page.unlink()
         assert not IrUiView.objects.filter(pk=view_pk).exists()
 
     def test_save_on_url_change_syncs_menus(self):
@@ -352,9 +353,7 @@ class TestPageLifecycle:
         page.save()
         page.refresh_from_db()
         assert page.url == '/nueva-url'
-        assert list(page.menu_ids.values_list('route', flat=True)) == [
-            '/nueva-url'
-        ]
+        assert page.menu_ids.mapped('route') == ['/nueva-url']
 
 
 class TestPageSearch:

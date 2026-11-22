@@ -13,7 +13,7 @@ clase, 15 campos, 15 métodos**. La tabla de cobertura vive en el docstring de
 la clase.
 """
 from django.apps import apps
-from django.db import models
+import models
 
 from addons.base.models import TimeStampedModel
 from addons.base.models.ir_ui_menu import (
@@ -35,7 +35,7 @@ def default_sequence():
     return WebsiteMenu._default_sequence()
 
 
-class WebsiteMenu(TimeStampedModel):
+class WebsiteMenu(models.BaseModel, TimeStampedModel):
     """Menú de la cara pública (``website.menu``).
 
     Adaptación de Odoo ``addons/website/models/website_menu.py``
@@ -94,56 +94,48 @@ class WebsiteMenu(TimeStampedModel):
     - ``key`` · ``active`` · ``web_icon`` → extensiones propias: ``key`` es
       el ``xmlid`` (identificador estable para el seed idempotente).
 
-    Métodos (fuente ``:23-291``) — 5 portados, 10 declarados fuera:
+    Métodos (fuente ``:23-291``) — 6 portados, 9 declarados fuera. Cada
+    método de la fuente, con su desenlace:
 
-    ========================================  =====================================
-    Fuente                                    Aquí
-    ========================================  =====================================
-    ``_default_sequence`` (``:23``)           portado (classmethod + ``default=``)
-    ``_compute_display_name`` (``:61``)       portado — el contexto
-                                              ``display_website`` es el parámetro
-                                              ``display_website``; el escalón del
-                                              grupo multi-sitio necesita el
-                                              registro de datos por módulo (#467)
-    ``_validate_parent_menu`` (``:80``)       portado — 2 de sus 3 reglas; la de
-                                              mega menú cae con los campos no
-                                              portados (arriba). Lo invoca
-                                              ``clean()``
-    ``_clean_url`` (``:198``)                 portado — lee ``route`` (la
-                                              equivalencia ``url`` → ``route`` de
-                                              arriba)
-    ``get_tree`` (``:266``)                   portado — sin la clave
-                                              ``is_mega_menu`` (campo no portado);
-                                              la portada del sitio se resuelve con
-                                              la consulta de
-                                              ``Website._compute_menu``
-    ``_compute_field_is_mega_menu`` (``:28``) no — mega menú (divergencia SPA)
-    ``_set_field_is_mega_menu`` (``:32``)     no — mega menú (divergencia SPA)
-    ``_compute_url`` (``:72``)                no — necesita ``page_id`` y
-                                              ``is_mega_menu``. Sucesor: #104
-    ``create`` (``:111``)                     no — duplica el menú por sitio vía
-                                              ``env.ref('website.main_menu')``:
-                                              necesita el registro de datos por
-                                              módulo. Sucesor: #467
-    ``write`` (``:154``)                      no — ``env.ref`` del grupo designer
-                                              + caché de plantillas. Sucesor: #467
-    ``unlink`` / ``_unlink_except_master_tags``
-    (``:163`` / ``:174``)                     no — ambos giran sobre
-                                              ``env.ref('website.main_menu')``.
-                                              Sucesor: #467
-    ``_compute_visible`` (``:179``)           no — aquí poda el manager
-                                              (divergencia declarada)
-    ``_is_active`` (``:209``)                 no — necesita
-                                              ``ir.http._unslug_url`` (medido: 0
-                                              hits en ``ir_http.py``). Sucesor:
-                                              #545
-    ``save`` (``:291``, endpoint del editor)  no — necesita ``website.page`` y
-                                              ``ir.http._match``. Sucesores:
-                                              #104 / #545. OJO: su nombre choca
-                                              con el ``save()`` de instancia de
-                                              Django; al portarlo necesitará su
-                                              propia decisión de forma
-    ========================================  =====================================
+    - ``_default_sequence`` (``:23``): portado (classmethod +
+      ``default=``).
+    - ``_compute_display_name`` (``:61``): portado — el contexto
+      ``display_website`` es el parámetro ``display_website``; el escalón
+      del grupo multi-sitio necesita el registro de datos por módulo
+      (#467).
+    - ``_validate_parent_menu`` (``:80``): portado — 2 de sus 3 reglas;
+      la de mega menú cae con los campos no portados (arriba). Lo invoca
+      ``clean()``.
+    - ``_clean_url`` (``:198``): portado — lee ``route`` (la equivalencia
+      ``url`` → ``route`` de arriba).
+    - ``get_tree`` (``:266``): portado — sin la clave ``is_mega_menu``
+      (campo no portado); la portada del sitio se resuelve con la
+      consulta de ``Website._compute_menu``.
+    - ``unlink`` (``:163``): portado — borra y avanza la época del menú,
+      que sustituye a ``clear_cache('templates')``; el arrastre de los
+      menús con la misma ``url`` bajo ``env.ref('website.main_menu')``
+      necesita el registro de datos por módulo. Sucesor: #467.
+    - ``_compute_field_is_mega_menu`` (``:28``): no — mega menú
+      (divergencia SPA).
+    - ``_set_field_is_mega_menu`` (``:32``): no — mega menú (divergencia
+      SPA).
+    - ``_compute_url`` (``:72``): no — necesita ``page_id`` e
+      ``is_mega_menu``. Sucesor: #104.
+    - ``create`` (``:111``): no — duplica el menú por sitio vía
+      ``env.ref('website.main_menu')``: necesita el registro de datos por
+      módulo. Sucesor: #467.
+    - ``write`` (``:154``): no — ``env.ref`` del grupo designer + caché de
+      plantillas. Sucesor: #467.
+    - ``_unlink_except_master_tags`` (``:174``): no — gira sobre
+      ``env.ref('website.main_menu')``. Sucesor: #467.
+    - ``_compute_visible`` (``:179``): no — aquí poda el manager
+      (divergencia declarada).
+    - ``_is_active`` (``:209``): no — necesita ``ir.http._unslug_url``
+      (medido: 0 hits en ``ir_http.py``). Sucesor: #545.
+    - ``save`` (``:291``, endpoint del editor): no — necesita
+      ``website.page`` e ``ir.http._match``. Sucesores: #104 / #545. Su
+      nombre choca con el ``save()`` de instancia de Django; al portarlo
+      necesitará su propia decisión de forma.
 
     El podado lo hace ``CapabilityPrunedMenuManager``, compartido con
     ``base.IrUiMenu`` — ver allí por qué se comparte pese a que la referencia
@@ -263,7 +255,8 @@ class WebsiteMenu(TimeStampedModel):
         return label
 
     def _compute_parent_path(self):
-        """Materializa ``parent_path`` — ≙ el ``_parent_store`` de la referencia.
+        """Materializa ``parent_path`` — ≙ el ``_parent_store`` de la
+        referencia.
 
         El formato es el suyo: los ids de los ancestros y el propio, separados
         por ``/`` y con ``/`` final, de modo que «descendiente de» sea un
@@ -281,7 +274,8 @@ class WebsiteMenu(TimeStampedModel):
         if self.pk is None:
             return self.parent_path
         if self.parent_id:
-            root = self.parent.parent_path or self.parent._compute_parent_path()
+            root = (self.parent.parent_path
+                    or self.parent._compute_parent_path())
             self.parent_path = f'{root}{self.pk}/'
         else:
             self.parent_path = f'{self.pk}/'
@@ -305,17 +299,17 @@ class WebsiteMenu(TimeStampedModel):
         parent_menu = self.parent
         level = 0
         current_menu = parent_menu
-        while current_menu is not None:
+        while current_menu:
             level += 1
             current_menu = current_menu.parent
             if level > 2:
                 raise UserError(_(
                     "Menus cannot have more than two levels of hierarchy."))
 
-        if parent_menu is not None and self.pk is not None:
-            has_children = self.child.exists()
-            has_grandchildren = self.child.filter(child__isnull=False).exists()
-            if has_children and (parent_menu.parent_id or has_grandchildren):
+        if parent_menu and self.pk is not None:
+            has_children = bool(self.child)
+            has_grandchildren = any(child.child for child in self.child)
+            if has_children and (parent_menu.parent or has_grandchildren):
                 raise UserError(_(
                     "Menus with child menus cannot be added as a submenu."))
 
@@ -347,8 +341,12 @@ class WebsiteMenu(TimeStampedModel):
             super().save(update_fields=['parent_path'])
         _bump_menu_epoch()
 
-    def delete(self, *args, **kwargs):
-        result = super().delete(*args, **kwargs)
+    def unlink(self):
+        """≙ ``unlink`` (``odoo19c: website_menu.py:163-171``), sin el arrastre
+        de los menús con la misma ``url`` bajo ``website.main_menu``, que este
+        árbol no siembra (sucesor #467, ver la tabla de cobertura). La época
+        del menú sustituye a ``clear_cache('templates')``."""
+        result = super().unlink()
         _bump_menu_epoch()
         return result
 
@@ -406,7 +404,7 @@ class WebsiteMenu(TimeStampedModel):
                     'sequence': node.sequence,
                     'parent_id': node.parent_id,
                 },
-                'children': [make_tree(child) for child in node.child.all()],
+                'children': [make_tree(child) for child in node.child],
                 'is_homepage': node.route == homepage_url,
             }
 

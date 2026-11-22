@@ -651,7 +651,7 @@ def default_social_discord():
     return Website._default_social_discord()
 
 
-class Website(TimeStampedModel):
+class Website(models.BaseModel, TimeStampedModel):
     """``website`` — el sitio: dominio, empresa, idiomas y tema."""
 
     # Atributos de clase de modelo — los tres de ORM que la referencia declara
@@ -1308,8 +1308,9 @@ class Website(TimeStampedModel):
                 _("The homepage URL should be relative and start with '/'.")
             )
 
+    @api.ondelete(at_uninstall=False)
     def _unlink_except_default_website(self):
-        """≙ ``_unlink_except_default_website`` (``odoo19c: :439-443``).
+        """≙ ``_unlink_except_default_website`` (``odoo19c: :435-439``).
 
         El sitio por defecto no se borra: se reconfigura. La fuente lo resuelve
         por external ID (``website.default_website``); aquí, por el primero en
@@ -1317,13 +1318,13 @@ class Website(TimeStampedModel):
         (#467).
         """
         primero = type(self).objects.order_by('sequence', 'pk').first()
-        if primero and primero.pk == self.pk:
+        if primero and primero.pk in self.ids:
             raise UserError(
                 _(
                     "You cannot delete default website %s. Try to change its "
                     "settings instead"
                 )
-                % self.name
+                % primero.name
             )
 
     def clean(self):
@@ -1371,14 +1372,22 @@ class Website(TimeStampedModel):
         es_alta = self.pk is None
         resultado = super().save(*args, **kwargs)
         if es_alta and not self.languages.exists():
-            self.languages.set(self._active_languages())
+            # ``languages`` apunta a ``res.lang``, que aún no es ``BaseModel``:
+            # su accesor es un ``AccessQuerySet`` sin ``set``. Se escribe con
+            # el comando de la fuente, elevado: el ``default=`` de la fuente
+            # lo aplica su ``create`` sin pasar por el control de acceso.
+            with sudo():
+                self.write({'languages': [
+                    fields.Command.set(self._active_languages())]})
         return resultado
 
-    def delete(self, *args, **kwargs):
-        """≙ ``unlink`` (``odoo19c: :445-451``)."""
-        self._unlink_except_default_website()
+    def unlink(self):
+        """≙ ``unlink`` (``odoo19c: :441-447``). La guarda del sitio por
+        defecto es ``@api.ondelete`` y corre dentro de ``super().unlink()``.
+        ``companies._compute_website_id`` no se llama: ``res.company`` no
+        declara ese cálculo en este árbol (sucesor #563, con los adjuntos)."""
         self._remove_attachments_on_website_unlink()
-        return super().delete(*args, **kwargs)
+        return super().unlink()
 
     def _remove_attachments_on_website_unlink(self):
         """≙ ``_remove_attachments_on_website_unlink`` (``odoo19c: :453-463``).
@@ -2107,41 +2116,30 @@ class Website(TimeStampedModel):
         """≙ ``copy_menu_hierarchy`` (``odoo19c: :1147-1161``).
 
         Clona el árbol de menús plantilla (los de ``website=None``) para este
-        sitio. La fuente lo hace con ``menu.copy({...})``; aquí se clona campo
-        a campo porque el ORM no trae ``copy()``.
+        sitio con ``copy()``, como la fuente.
 
         **Divergencia declarada:** ``key`` es campo propio (la fuente no lo
-        tiene) y es único, así que el clon deriva la suya por sitio
-        (``<key>-w<id>``). El nombre del menú raíz usa la misma plantilla
-        traducible que la fuente.
+        tiene) y es único, así que cada copia recibe la suya por sitio
+        (``<key>-w<id>``) en el ``default`` de ``copy()``.
         """
 
-        def copy_menu(menu, parent_menu):
-            new_menu = WebsiteMenu.objects.create(
-                name=menu.name,
-                route=menu.route,
-                sequence=menu.sequence,
-                new_window=menu.new_window,
-                web_icon=menu.web_icon,
-                key=f'{menu.key}-w{self.pk}',
-                parent=parent_menu,
-                website=self,
-            )
-            for submenu in menu.child.all():
+        def copy_menu(menu, t_menu):
+            new_menu = menu.copy({
+                'parent': t_menu.id,
+                'website': self.id,
+                'key': f'{menu.key}-w{self.id}',
+            })
+            for submenu in menu.child:
                 copy_menu(submenu, new_menu)
 
-        new_top_menu = WebsiteMenu.objects.create(
-            name=_('Top Menu for Website %s') % self.pk,
-            route=top_menu.route,
-            sequence=top_menu.sequence,
-            new_window=top_menu.new_window,
-            web_icon=top_menu.web_icon,
-            key=f'{top_menu.key}-w{self.pk}',
-            website=self,
-        )
-        for submenu in top_menu.child.all():
-            copy_menu(submenu, new_top_menu)
-        return new_top_menu
+        for website in self:
+            new_top_menu = top_menu.copy({
+                'name': _('Top Menu for Website %s') % website.id,
+                'website': website.id,
+                'key': f'{top_menu.key}-w{website.id}',
+            })
+            for submenu in top_menu.child:
+                copy_menu(submenu, new_top_menu)
 
     @classmethod
     def viewref(cls, view_id, raise_if_not_found=True):

@@ -34,7 +34,7 @@ from addons.base.models.res_users import ResUsers
 from addons.website.models.website import Website
 from addons.website.models.website_menu import WebsiteMenu
 from exceptions import UserError
-from orm.environments import company_scope
+from orm.environments import company_scope, sudo
 
 pytestmark = [pytest.mark.django_db]
 
@@ -111,7 +111,7 @@ def test_menu_without_website_is_the_shared_template():
     site = _site(domain='https://menus.kaupamex.test')
     owned = _menu('tpl-owned', website=site)
     assert owned.website_id == site.pk
-    assert list(site.menus.all()) == [owned]
+    assert list(site.menus) == [owned]
 
 
 def test_deleting_the_site_cascades_to_its_menus():
@@ -278,7 +278,8 @@ def test_get_tree_serializes_the_site_menu():
         new_window=True,
     )
 
-    tree = WebsiteMenu.get_tree(site.pk)
+    with sudo():
+        tree = WebsiteMenu.get_tree(site.pk)
     assert tree['fields']['id'] == root.pk
     assert [c['fields']['id'] for c in tree['children']] == [home.pk, shop.pk]
     assert tree['children'][0]['is_homepage'] is True

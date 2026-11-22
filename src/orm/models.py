@@ -6881,6 +6881,13 @@ def _x2many_records(field, value):
     return comodel._from_ids(env(), ids, ids)
 
 
+def _canonical_field_name(records, name):
+    """El nombre del campo que ``name`` designa en ``records._fields``: un
+    Many2one se guarda allí también bajo su ``attname`` (``website_id``)."""
+    field = records._fields.get(name)
+    return field.name if field is not None else name
+
+
 def _copy_data_blacklist(records, default):
     """La lista negra de ``BaseModel.copy_data`` (``odoo19c:
     odoo/orm/models.py:5418-5434``): las columnas mágicas, ``parent_path`` y
@@ -6889,6 +6896,7 @@ def _copy_data_blacklist(records, default):
     blacklist = set(MAGIC_COLUMNS) | {'parent_path'}
     whitelist = {name for name, field in records._fields.items()
                  if not getattr(field, 'inherited', False)}
+    given = {_canonical_field_name(records, name) for name in default}
 
     def blacklist_given_fields(model):
         for parent_field in getattr(model, '_inherits', {}).values():
@@ -6896,13 +6904,14 @@ def _copy_data_blacklist(records, default):
             parent = _inherits_parent(model, parent_field)
             if parent is None:
                 continue
-            if parent_field in default:
+            if _canonical_field_name(model, parent_field) in given:
                 blacklist.update(set(parent._fields) - whitelist)
             else:
                 blacklist_given_fields(parent)
 
     blacklist_given_fields(type(records))
-    return blacklist
+    # una entrada puede llegar por el ``attname`` del FK (``product_tmpl_id``)
+    return {_canonical_field_name(records, name) for name in blacklist}
 
 
 class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
@@ -9436,9 +9445,15 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
             self = self.with_context(
                 __copy_data_seen=collections.defaultdict(set))
         blacklist = _copy_data_blacklist(self, default)
+        # ``_fields`` guarda un Many2one bajo su nombre y bajo su ``attname``
+        # (``website`` y ``website_id`` son el mismo campo); la fuente tiene
+        # una clave por campo, así que se recorre cada uno por su ``name`` y
+        # el ``default`` y la lista negra se leen por ese nombre.
+        given = {_canonical_field_name(self, name) for name in default}
         fields_to_copy = {
             name: field for name, field in self._fields.items()
-            if _copies(field) and name not in default and name not in blacklist
+            if field.name == name and _copies(field) and name not in given
+            and name not in blacklist
         }
         for record in self:
             seen_map = self.env.context['__copy_data_seen']

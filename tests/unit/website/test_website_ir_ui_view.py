@@ -44,7 +44,7 @@ from addons.website.models.ir_ui_view import (
 from addons.website.models.website import Website
 from addons.website.models.website_page import WebsitePage
 from exceptions import AccessError
-from orm.environments import context_scope
+from orm.environments import context_scope, sudo
 
 #: Los 12 métodos que #565 porta, en el orden en que la fuente los declara.
 PORTED_METHODS = [
@@ -552,7 +552,8 @@ class TestHierarchyAndFirstPage:
         website = _make_website('p565g')
         view = _make_view(key='website.nodo-565c')
         WebsiteViewInfo.objects.create(view=view, website=website)
-        node = view._build_hierarchy_datastructure()
+        with sudo():
+            node = view._build_hierarchy_datastructure()
         assert node['website_name'] == website.name
 
     def test_the_first_page_is_the_one_that_uses_the_view(self):

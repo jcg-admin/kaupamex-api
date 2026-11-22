@@ -100,6 +100,9 @@ class WebsiteSearchableMixin:
     """
 
     _name = 'website.searchable.mixin'
+    #: ≙ ``models.AbstractModel`` de la fuente: sin tabla. Lo exige la
+    #: comprobación de bases de un ``BaseModel`` (``website.page``).
+    _abstract = True
     _description = 'Website Searchable Mixin'
 
     @classmethod

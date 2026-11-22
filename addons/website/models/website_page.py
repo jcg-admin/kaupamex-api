@@ -133,6 +133,7 @@ def _translate_order(order):
 
 
 class WebsitePage(
+    models.BaseModel,
     WebsiteSearchableMixin,
     WebsitePublishedMixin,
     WebsitePageOptionsMixin,
@@ -505,25 +506,30 @@ class WebsitePage(
                 )
         return new_page.url
 
-    def delete(self, *args, **kwargs):
-        """≙ ``unlink`` (``odoo19c: website_page.py:148-162``) — nombre CRUD
-        divergente declarado (divergencia 4 del módulo).
+    def unlink(self):
+        """≙ ``unlink`` (``odoo19c: website_page.py:148-162``).
 
-        Al borrar la página, el ORM no borra su vista (la FK apunta página →
-        vista); se borra aquí, sólo si ninguna otra página la usa y no tiene
-        vistas hijas — verbatim el criterio de la fuente. El
-        ``clear_cache('templates')`` final es del ormcache no portado
-        (#542, divergencia 5).
+        Al borrar la página el ORM no borra su vista (la FK apunta página →
+        vista): se borra aquí la que ninguna otra página usa y no tiene vistas
+        hijas, verbatim el criterio de la fuente. Las páginas de esas vistas
+        caen en cascada al borrarlas, así que se retiran de ``self`` antes de
+        llamar a ``super()``. El ``clear_cache('templates')`` es del ormcache
+        no portado (#542, divergencia 5).
         """
-        view = self.view if self.view_id else None
-        result = super().delete(*args, **kwargs)
-        if (
-            view is not None
-            and not view.page_ids.exists()
-            and not view.inherit_children_ids.exists()
-        ):
+        views_to_delete = [
+            page.view for page in self
+            if page.view_id
+            and not page.view.page_ids.exclude(pk__in=self.ids).exists()
+            and not page.view.inherit_children_ids.exists()
+        ]
+        cascaded = {page.id for page in self
+                    if page.view_id in {view.pk for view in views_to_delete}}
+        rest = self.filtered(lambda page: page.id not in cascaded)
+        for view in {view.pk: view for view in views_to_delete}.values():
             view.delete()
-        return result
+        if rest:
+            return super(WebsitePage, rest).unlink()
+        return True
 
     def save(self, *args, **kwargs):
         """≙ ``write`` (``odoo19c: website_page.py:164-195``) — nombre CRUD
@@ -554,7 +560,7 @@ class WebsitePage(
                 current_website = Website.get_current_website()
                 if current_website is not None:
                     new_url = current_website.get_unique_path(new_url)
-                    self.menu_ids.update(route=new_url)
+                    self.menu_ids.write({'route': new_url})
                     # Sincronizar la portada del sitio (verbatim la mecánica
                     # de la fuente sobre _handle_homepage_url).
                     normalized = {'homepage_url': previous.url}
