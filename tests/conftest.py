@@ -52,6 +52,7 @@ from addons.mail.data import CRON_EMAIL_QUEUE
 from addons.website_sale.models.website import CRON_SEND_ABANDONED_CART_EMAIL
 from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
 from addons.account_edi.data import CRON_EDI_NETWORK
+from addons.analytic.data import seed_project_plan
 from tests.fixtures import reference_tree
 from django.apps import apps as django_apps
 from addons.account.data import (seed_manual_payment_methods,
@@ -418,6 +419,12 @@ def _payment_sequence_seed():
     seed_payment_sequence(django_apps, DEFAULT_DB_ALIAS)
 
 
+def _project_plan_seed():
+    """Re-aplica ``analytic/0017``: el plan «Project» y
+    ``analytic.project_plan``, sin los que ``_get_all_plans`` levanta."""
+    seed_project_plan(django_apps, DEFAULT_DB_ALIAS)
+
+
 def _crons_seed():
     """Re-aplica las ocho siembras de cron. Idempotente por clave natural."""
     for spec in _CRON_SPECS:
@@ -438,6 +445,7 @@ _SEEDERS = (
     mail_subtypes_seed,         # mail/0002
     _manual_payment_methods_seed,  # account/0042 (métodos manuales)
     _payment_sequence_seed,     # account/0048 (secuencia de pagos)
+    _project_plan_seed,         # analytic/0017 (plan «Project»)
     geo_providers_seed,         # base_geolocalize/0002
     install_request_template_seed,  # base_install_request/0002
     departure_reasons_seed,     # hr/0003 (3 motivos de baja maestros)
