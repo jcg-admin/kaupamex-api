@@ -25,13 +25,15 @@ lo que la línea posee.
 
 1. `SaleOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel)`.
    `AnalyticMixin` y `TimeStampedModel` ya son abstractos (informe §1).
-2. `delete()` (`addons/sale/models/sale_order_line.py:724-728`) pasa a
-   `unlink()`: `BaseModel.unlink` borra por queryset y no llamaría al
-   `delete()` de instancia, así que el recálculo `order._compute_amounts()`
-   se perdería en silencio. `unlink` toma las órdenes antes de borrar y las
-   recalcula después, una a una (`_compute_amounts` es de un registro).
-   El recálculo por dependencia de la fuente no existe aquí para este
-   borrado; el `unlink` lo sustituye y lo declara.
+2. **`delete()` se retira sin `unlink` propio — corregido tras medir.** La
+   primera versión lo portaba a un `unlink()` que recalculaba las órdenes.
+   El control de anulación mostró que sobra: con la línea en `BaseModel`,
+   `BaseModel.unlink` anuncia el borrado y la dependencia
+   `@api.depends('order_line.price_subtotal', 'order_line.price_tax',
+   'order_line.price_total')` de `SaleOrder._compute_amounts`
+   (`addons/sale/models/sale_order.py:1122`) recalcula la orden, como en la
+   fuente, que tampoco sobreescribe `unlink`. Sin el `unlink` propio la
+   prueba sigue verde; sin la dependencia cae.
 3. Los sitios que borran una línea por instancia pasan a `unlink()`
    (`addons/sale/services.py:265` y los que liste el subconjunto rojo).
 4. Many2one nulos de la línea (`product`, `product_uom_id`,
@@ -55,9 +57,18 @@ Prueba: `tests/unit/sale/test_sale_order_line_basemodel.py`.
 | Símbolo | Referencia | Prueba |
 |---|---|---|
 | `SaleOrderLine` sobre `BaseModel` | `odoo19c: addons/sale/models/sale_order_line.py:13` | `test_the_line_is_a_base_model` |
-| `SaleOrderLine.unlink` (recálculo de la orden) | `odoo19c: addons/sale/models/sale_order.py` `_compute_amounts` sobre `order_line` | `test_unlinking_a_line_recomputes_its_order` |
+| recálculo de la orden al borrar una línea (sin `unlink` propio) | `odoo19c: addons/sale/models/sale_order.py` `_compute_amounts` con `@api.depends` sobre `order_line` | `test_unlinking_a_line_recomputes_its_order` |
 | Many2one nulo como recordset vacío | `odoo19c: odoo/orm/models.py` (`Many2one.convert_to_record`) | `test_a_line_without_product_has_an_empty_product` |
 
 *Ciega a:* los reversos que sólo cambian al adoptar `SaleOrder` (U3b) y a la
 plantilla DTL `docs.order_line.all` (`addons/sale/data/report_templates.py:57`),
 que sigue siendo gestor hasta U3b.
+
+## Control de anulación
+
+- Base de `SaleOrderLine` sin `BaseModel`: caen las tres pruebas (no hay
+  `unlink`; el Many2one nulo vuelve a ser `None`).
+- `unlink` propio renombrado (primera versión): no caía nada — por eso se
+  retiró (punto 2).
+- `@api.depends` de `SaleOrder._compute_amounts` retirado: cae sólo
+  `test_unlinking_a_line_recomputes_its_order`.
