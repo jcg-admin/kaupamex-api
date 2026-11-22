@@ -50,3 +50,31 @@ recordset.
   (estado: quitar `journals` de `account_edi`, añadir `edi_format_ids` en
   `account`; base de datos: nada). Se mide con `sqlmigrate` antes de
   aplicarla.
+
+## Símbolos, referencia y prueba
+
+Pruebas: `tests/unit/account_edi/test_account_journal_computes.py` y
+`tests/unit/account_edi/test_account_edi_basemodel.py`.
+
+| Símbolo | Referencia |
+|---|---|
+| `_compute_compatible_edi_ids` | `odoo19c: addons/account_edi/models/account_journal.py:46-52` |
+| `_compute_edi_format_ids` | `odoo19c: addons/account_edi/models/account_journal.py:54-79` |
+| `apply_account_edi_extensions` (los dos campos) | `odoo19c: addons/account_edi/models/account_journal.py:11-20` |
+| `AccountEdiFormat.create` (paso (a)) | `odoo19c: addons/account_edi/models/account_edi_format.py:24-39` |
+| `0006_journal_edi_format_ids_state`, `0052_accountjournal_edi_format_ids` | `odoo19c: addons/account_edi/models/account_journal.py:11-16` |
+
+## Dependencia descubierta al integrar
+
+Escribir `edi_format_ids` (calculado, almacenado y editable) se perdía en el
+volcado siguiente: el `write` del ORM aplicaba los comandos sin descartar el
+recálculo pendiente ni la marca de sucio. Se cerró como unidad propia,
+`write-many2many-discards-recompute-0397` (`28e327b3`).
+
+## Lo que esta unidad no cierra
+
+El paso (b) del `create` del formato —activar el cron
+`account_edi.ir_cron_edi_network` cuando un formato necesita web-service
+(`odoo19c: addons/account_edi/models/account_edi_format.py:40-42`)— exige
+sembrar el cron en datos. Sucesor: `account-edi-network-cron-0397`, en esta
+misma TASK.
