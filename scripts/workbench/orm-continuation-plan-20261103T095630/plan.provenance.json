@@ -1644,6 +1644,13 @@
         "analytic-plan-methods-0397"
       ],
       "writtenAt": "2026-11-22T07:55:14Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "analytic-applicability-basemodel-0397"
+      ],
+      "writtenAt": "2026-11-22T08:58:02Z"
     }
   ]
 }
