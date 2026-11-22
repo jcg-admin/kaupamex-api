@@ -300,12 +300,6 @@ def _table_object_message(cons, model, diagnostics):
     return cons.get_violation_error_message()
 
 
-#: ≙ ``self.env.cr.cache['export_properties_cache']`` de ``_export_rows``
-#: (``odoo19c: odoo/orm/models.py:687-690``): la caché de propiedades de una
-#: exportación de primer nivel, compartida con sus llamadas recursivas.
-_EXPORT_PROPERTIES_CACHE: ContextVar = ContextVar('export_properties_cache')
-
-
 def _relation_value_ids(value):
     """Los ids de un valor relacional leído: un recordset, una fila de
     Django, su manager o ``QuerySet``, o nada."""
@@ -11010,12 +11004,10 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
             used when recursing, avoid using when calling from outside
         :return: list of lists of corresponding values
 
-        Copia adaptada. La caché de propiedades que la fuente guarda en
-        ``self.env.cr.cache['export_properties_cache']`` vive aquí en
-        :data:`_EXPORT_PROPERTIES_CACHE`: el ``cr`` de este árbol es un
-        alias, no un cursor con diccionario propio. Sigue siendo una por
-        exportación de primer nivel y compartida por las llamadas
-        recursivas.
+        Copia adaptada. La caché de propiedades vive en
+        ``self.env.cr.cache['export_properties_cache']``, como en la fuente
+        (``:686-694``): una por exportación de primer nivel, compartida con
+        las llamadas recursivas y retirada al terminar (``:875-876``).
         """
         import_compatible = self.env.context.get('import_compat', True)
         lines = []
@@ -11023,10 +11015,10 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
         if not _is_toplevel_call:
             # {properties_field: {property_name: [property_type,
             #  {record_id: value}]}}
-            cache_properties = _EXPORT_PROPERTIES_CACHE.get()
+            cache_properties = self.env.cr.cache['export_properties_cache']
         else:
-            cache_properties = collections.defaultdict(dict)
-            cache_token = _EXPORT_PROPERTIES_CACHE.set(cache_properties)
+            cache_properties = self.env.cr.cache[
+                'export_properties_cache'] = collections.defaultdict(dict)
 
             def fill_properties_cache(records, fnames_by_path, fname):
                 """ Fill the cache for the ``fname`` properties field and
@@ -11236,7 +11228,7 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
                 '{}:{}' % it for it in xidmap.items())
 
         if _is_toplevel_call:
-            _EXPORT_PROPERTIES_CACHE.reset(cache_token)
+            self.env.cr.cache.pop('export_properties_cache', None)
 
         return lines
 
