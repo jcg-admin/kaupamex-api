@@ -32,7 +32,8 @@ def _only_our_crons(db):
 def _cron(user, method_name):
     action = IrActionsServer.objects.create(
         name=method_name, model_name='base.SystemParameter',
-        method_name=method_name, state='code', path=None)
+        method_name=method_name, state='code',
+        code=f'model.{method_name}()', path=None)
     return IrCron.objects.create(
         ir_actions_server=action, user=user, priority=5,
         nextcall=timezone.now() - timedelta(minutes=5))

@@ -42,18 +42,19 @@ El **motor de ejecución sigue sin portarse**: ``IrActionsServer.run()``
 levanta ``NotImplementedError`` a propósito, porque el modo ``code`` evalúa
 Python almacenado y quién conecte el evaluador es una decisión aparte (ver
 el docstring de ``ir_actions.py``). Delegar mueve el *dato* del "qué
-ejecutar" a su hogar fiel; **no** habilita la evaluación de código.
+ejecutar" a su hogar fiel. Desde ``cron-runs-server-action-0397`` el cron
+ejecuta ese "qué" como la fuente: ``_callback`` corre la acción con ``run()``
+y su ``code`` se evalúa con ``safe_eval``.
 
 ``method_name`` — dónde vive ahora
 -----------------------------------
 
-Es una adaptación de proyecto **sin análogo** en la referencia: sustituye la
-evaluación del ``code`` Python por una llamada a método
-(``getattr(apps.get_model(model_name), method_name)``, que resolverá el
-runner diferido). Vive en ``IrActionsServer`` junto a ``code`` y
-``model_name`` —no en ``ir.cron``— porque ese es el modelo donde la
-referencia pone el "qué ejecutar". Partirlo entre los dos modelos habría
-dejado el objetivo a medias en cada uno.
+Es una adaptación de proyecto **sin análogo** en la referencia. Sustituía la
+evaluación del ``code``; hoy sólo es la **clave natural** con que la siembra,
+``base_automation`` y ``auto_backup`` encuentran la acción de su cron, y la
+siembra deriva de él el ``code`` por defecto (``model.<method_name>()``).
+Retirarlo exige otra clave —el ``xml_id`` de cada cron, como en la fuente—:
+sucesora ``cron-xml-id-natural-key-0397``.
 
 ``model_name`` sigue siendo ``Char`` plano en su nuevo hogar, igual que
 ``ir.filters.model_id`` y ``ir.attachment.res_model`` — la delegación no
@@ -166,7 +167,8 @@ del método invocado devuelve el ``user`` del cron, que es lo que consumen
 ``bus/ir_attachment.py``, ``bus/bus_listener_mixin.py`` y
 ``digest/digest.py``.
 
-**Lo que esto NO alcanza todavía:** ``IrRule._eval_context`` (``ir_rule.py:161``)
+**Lo que esto NO alcanza todavía:** ``IrRule._eval_context``
+(``ir_rule.py:161``)
 recibe ``user`` como parámetro explícito y **no** cae a ``get_current_user()``
 cuando el llamador no lo pasa. Así que un cron con ``user`` puesto tiene el
 usuario disponible en el contexto, pero las record rules evaluadas dentro no
@@ -773,16 +775,13 @@ class IrCron(models.DefaultGetMixin, models.RecordLoaderMixin,
         return job
 
     def _callback(self):
-        """Invoca el método delegado por la acción servidor (==
-        ``_callback`` de Odoo, ir_cron.py:671-696). La referencia llama
-        ``ir.actions.server.browse(id).run()``; en este árbol
-        ``IrActionsServer.run()`` levanta ``NotImplementedError`` a
-        propósito (el modo ``code`` no se evalúa, ver ``ir_actions.py``).
-        La alternativa sancionada por este proyecto
-        (``ir_actions.py:436-444``) es ``method_name``/``model_name``: el
-        runner —este método— la invoca directamente, sin pasar por
-        ``.run()``. Deja escapar la excepción del método invocado; quien la
-        atrapa es ``_run_job()``.
+        """Ejecuta la acción servidor del cron (== ``_callback`` de Odoo,
+        ir_cron.py:671-696): ``self.ir_actions_server.run()``, que evalúa
+        su ``code`` desde ``server-action-code-runner-0397``. Antes llamaba
+        ``getattr(model, method_name)()`` porque el modo ``code`` no se
+        evaluaba; ``method_name`` queda como clave natural de la acción.
+        Deja escapar la excepción del código; quien la atrapa es
+        ``_run_job()``.
 
         Corre bajo ``user_scope(self.user_id)`` — el equivalente del
         ``env = api.Environment(job_cr, job['user_id'], ...)`` de la
@@ -804,10 +803,8 @@ class IrCron(models.DefaultGetMixin, models.RecordLoaderMixin,
         capacidad inexistente.
 
         Sin esto, ``ir.autovacuum._run_vacuum_cleaner`` —cuyo guard exige el
-        ``cron_id``, como en la fuente— era **inalcanzable desde el cron**:
-        ``method()`` no lleva argumentos. Ver :ref:`h-api-752`."""
-        model = apps.get_model(self.model_name)
-        method = getattr(model, self.method_name)
+        ``cron_id``, como en la fuente— era **inalcanzable desde el cron**.
+        Ver :ref:`h-api-752`."""
         # ≙ ``Environment.__new__``: ``if uid == SUPERUSER_ID: su = True``,
         # y ``False`` para cualquier otro usuario, que no hereda la
         # elevación de quien dispara
@@ -815,7 +812,11 @@ class IrCron(models.DefaultGetMixin, models.RecordLoaderMixin,
         with user_scope(self.user_id), sudo(
                 self.user_id == SUPERUSER_ID), context_scope(
                 cron_id=self.pk, lastcall=self.lastcall):
-            method()
+            # ≙ ``self.env['ir.actions.server'].browse(server_action_id)
+            # .run()`` (``odoo19c: odoo/addons/base/models/ir_cron.py:688``):
+            # el cron ejecuta el ``code`` de su acción
+            # (``designs/cron-runs-server-action.md``).
+            self.ir_actions_server.run()
 
     @classmethod
     def _process_job(cls, job, using=DEFAULT_DB_ALIAS):

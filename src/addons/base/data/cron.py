@@ -22,6 +22,23 @@ referencia.
 from django.apps import apps as apps_vivos
 
 
+def cron_code(spec):
+    """El ``code`` que ejecuta el cron de ``spec``: el que declare, o
+    ``model.<method_name>()`` — la llamada que el corredor de métodos hacía
+    antes de que el cron ejecutara su acción
+    (``designs/cron-runs-server-action.md``)."""
+    return spec.get('code') or f"model.{spec['method_name']}()"
+
+
+def _fill_code(action, spec):
+    """Completa el ``code`` de una acción ya sembrada sin él: la siembra es
+    idempotente por ``(model_name, method_name)`` y una acción anterior a
+    que el cron ejecutara ``code`` lo tiene vacío."""
+    if not action.code:
+        action.code = cron_code(spec)
+        action.save(update_fields=['code'])
+
+
 def sembrar_cron(apps, alias, spec):
     """
     Crea (o respeta) el par acción + cron de ``spec``. Devuelve ``(cron,
@@ -29,6 +46,7 @@ def sembrar_cron(apps, alias, spec):
 
     ``spec`` lleva: ``name``, ``model_name``, ``method_name``,
     ``interval_number``, ``interval_type`` y ``priority``; y, opcionales,
+    ``code`` (por defecto ``model.<method_name>()``, ver ``cron_code``),
     ``active`` (por defecto ``True``) y ``xml_id`` (``'modulo.nombre'``), el
     identificador externo con que la fuente declara el ``<record>`` y con que
     sus consumidores lo piden (``env.ref``). Un cron que nace inactivo, como
@@ -47,14 +65,13 @@ def sembrar_cron(apps, alias, spec):
         method_name=spec['method_name'],
         defaults={
             'name': spec['name'],
-            # 'code' es el modo de la referencia, que EVALÚA Python. Aquí el
-            # qué-ejecutar es method_name (adaptación declarada en ir_actions),
-            # pero el state se conserva para no inventar un valor fuera del
-            # vocabulario del modelo.
+            # ≙ ``<field name="state">code</field>`` de cada cron de la
+            # fuente: el cron ejecuta este ``code`` (``ir_cron._callback``).
             'state': 'code',
-            'code': '',
+            'code': cron_code(spec),
         },
     )
+    _fill_code(accion, spec)
 
     cron, creado = IrCron.objects.using(alias).get_or_create(
         ir_actions_server=accion,
@@ -96,9 +113,10 @@ def sembrar_cron_vivo(spec):
         defaults={
             'name': spec['name'],
             'state': 'code',
-            'code': '',
+            'code': cron_code(spec),
         },
     )
+    _fill_code(accion, spec)
     cron, creado = IrCron.objects.get_or_create(
         ir_actions_server=accion,
         defaults={

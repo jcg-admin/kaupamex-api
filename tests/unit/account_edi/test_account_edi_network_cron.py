@@ -101,3 +101,15 @@ def test_cancelling_a_move_triggers_the_cron(cron, move):
     before = _triggers(cron)
     button_cancel(move)
     assert _triggers(cron) == before + 1
+
+
+def test_the_cron_passes_job_count_to_its_method(cron, monkeypatch):
+    received = {}
+
+    def probe(cls, job_count=None):
+        received['job_count'] = job_count
+    monkeypatch.setattr(AccountEdiDocument,
+                        '_cron_process_documents_web_services',
+                        classmethod(probe))
+    cron._callback()
+    assert received == {'job_count': 20}

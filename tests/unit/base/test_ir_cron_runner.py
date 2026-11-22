@@ -63,7 +63,8 @@ def _tabla_de_crons_vacia(db):
     IrCron.objects.all().delete()
 
 
-def _accion(name='Tarea', model_name='base.SystemParameter', method_name='noop_test'):
+def _accion(name='Tarea', model_name='base.SystemParameter',
+            method_name='noop_test'):
     """== ``_accion`` de ``test_ir_cron.py``: crea la ``ir.actions.server``
     en la que el cron delega su "qué ejecutar". Aquí ``model_name`` apunta a
     un modelo real (``SystemParameter``) para que ``_callback`` pueda
@@ -73,8 +74,8 @@ def _accion(name='Tarea', model_name='base.SystemParameter', method_name='noop_t
     acciones en el mismo test con ``path=''`` chocan contra su UNIQUE —
     ``NULL`` sí admite múltiples filas."""
     return IrActionsServer.objects.create(
-        name=name, model_name=model_name, method_name=method_name, state='code',
-        path=None,
+        name=name, model_name=model_name, method_name=method_name,
+        state='code', code=f'model.{method_name}()', path=None,
     )
 
 

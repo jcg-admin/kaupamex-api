@@ -6,12 +6,8 @@
 # web-service (``account_edi_format.py:40-42``), con su identificador externo
 # porque cuatro sitios de la fuente lo piden por ``env.ref``.
 #
-# La fuente llama ``_cron_process_documents_web_services(job_count=20)``; el
-# runner de este árbol invoca el método sin argumentos
-# (``ir_cron.py:808-810``),
-# así que aquí procesa todos los documentos pendientes de una vez. Sucesor:
-# ``cron-runner-method-arguments-0397`` en
-# ``designs/account-edi-network-cron.md``.
+# ``code`` es el de la fuente, con ``job_count=20``: el cron ejecuta su
+# acción con ``run()`` (``designs/cron-runs-server-action.md``).
 CRON_EDI_NETWORK = {
     'name': 'EDI: Perform web services operations',
     'model_name': 'account_edi.AccountEdiDocument',
@@ -19,6 +15,7 @@ CRON_EDI_NETWORK = {
     'interval_number': 1,
     'interval_type': 'days',
     'priority': 5,
+    'code': 'model._cron_process_documents_web_services(job_count=20)',
     'active': False,
     'xml_id': 'account_edi.ir_cron_edi_network',
 }
