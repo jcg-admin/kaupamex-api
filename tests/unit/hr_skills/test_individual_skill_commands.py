@@ -6,9 +6,11 @@ y sus consumidores ``hr_job.py:55-66``, ``hr_employee.py:45-57``.
 
 Diseño: ``designs/hr-individual-skill-commands.md``.
 """
-from datetime import date, timedelta
+from datetime import timedelta
 
 import pytest
+
+import fields
 
 from addons.hr.models.hr_employee import HrEmployee
 from addons.hr.models.hr_job import HrJob
@@ -22,9 +24,21 @@ from orm.utils import SUPERUSER_ID
 
 pytestmark = pytest.mark.django_db
 
-TODAY = date.today()
+TODAY = fields.Date.today()
 YESTERDAY = TODAY - timedelta(days=1)
 LAST_MONTH = TODAY - timedelta(days=30)
+
+
+@pytest.fixture(autouse=True)
+def _dates_at_run_time():
+    """Las fechas se recalculan al ejecutar cada caso, con el reloj del
+    código (``fields.Date.today``). Fijadas al importar, una ejecución que
+    cruza la medianoche entre la recolección y el caso compara contra el
+    día anterior (F2 de ``b96d1de0``)."""
+    global TODAY, YESTERDAY, LAST_MONTH
+    TODAY = fields.Date.today()
+    YESTERDAY = TODAY - timedelta(days=1)
+    LAST_MONTH = TODAY - timedelta(days=30)
 
 
 @pytest.fixture
