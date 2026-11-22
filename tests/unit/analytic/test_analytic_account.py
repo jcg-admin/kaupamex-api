@@ -57,20 +57,23 @@ class TestDisplayName:
 
 
 class TestRelatedProperties:
-    """``root_plan``/``color`` — Odoo ``related=`` sin columna propia
-    (``@property``, ver docstring del módulo)."""
+    """``root_plan_id``/``color`` — ``related=`` de la fuente
+    (``odoo19c: addons/analytic/models/analytic_account.py:44-53``)."""
 
     @pytest.mark.django_db
     def test_root_plan_of_a_child_plan_account(self):
-        """``root_plan`` lee ``plan_id.root_id``, que el ORM calcula de
-        ``parent_path``: necesita los planes guardados."""
+        """``root_plan_id`` lee ``plan_id.root_id``, que el ORM calcula de
+        ``parent_path``: necesita los planes guardados. Un registro sin
+        guardar se construye con ``new()``, como en la fuente, que calcula
+        el related sin escribir la fila."""
         with sudo():
             plans = env()['account.analytic.plan']
             root = plans.create({'name': 'Marketing', 'color': 3})
             child = plans.create({'name': 'Digital', 'color': 5,
                                   'parent_id': root.id})
-        acct = AccountAnalyticAccount(name='Ads', plan_id=child)
-        assert acct.root_plan_id == root
+            acct = env()['account.analytic.account'].new(
+                {'name': 'Ads', 'plan_id': child.id})
+            assert acct.root_plan_id == root
 
     def test_color_delegates_to_plan_color(self):
         plan = _plan(1, 'Marketing', color=7)

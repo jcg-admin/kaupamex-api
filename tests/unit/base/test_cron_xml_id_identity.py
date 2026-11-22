@@ -85,8 +85,19 @@ def test_seed_finds_cron_by_xml_id(seed):
 
 
 def test_base_automation_cron_is_seeded_inactive():
+    """Sembrado sobre una base sin él nace inactivo. Una base que ya lo
+    tenía conserva su estado, como ``noupdate`` en la fuente."""
     cron = env().ref('base_automation.ir_cron_data_base_automation_check')
-    assert cron.active is False
+    action = cron.ir_actions_server
+    IrModelData.objects.filter(
+        module='base_automation',
+        name='ir_cron_data_base_automation_check').delete()
+    cron.delete()
+    action.delete()
+    seeded, created = sembrar_cron(apps, 'default', CRON_BASE_AUTOMATION_CHECK)
+    assert created and seeded.active is False
+    assert env().ref(
+        'base_automation.ir_cron_data_base_automation_check').pk == seeded.pk
 
 
 def test_base_automation_finds_its_cron_by_xml_id():
