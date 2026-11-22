@@ -10005,11 +10005,15 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
         # columna; se prefiere sólo cuando es el nuestro.
         attname = getattr(field, 'attname', None) or field.name
         descriptor = getattr(type(self), attname, None)
-        # El descriptor del id de un Many2one almacenado también es un
-        # ``FieldDescriptor`` y devuelve el entero; la fila la da el de
-        # ``field.name``.
+        # El descriptor del id de un Many2one también es un
+        # ``FieldDescriptor`` y devuelve el entero, almacenado o no: sin
+        # columna, Django fija igualmente ``attname = '<nombre>_id'`` y el
+        # cómputo se instala ahí. La fila la da siempre el de ``field.name``
+        # (``designs/read-nonstored-many2one-multi.md``), y ``attname``
+        # sólo difiere de ``name`` en un Many2one.
         if (not isinstance(descriptor, FieldDescriptor)
-                or isinstance(descriptor, StoredMany2oneIdDescriptor)):
+                or isinstance(descriptor, StoredMany2oneIdDescriptor)
+                or attname != field.name):
             descriptor = getattr(type(self), field.name, None)
         if descriptor is None or not hasattr(descriptor, '__get__'):
             return getattr(self, field.name)
