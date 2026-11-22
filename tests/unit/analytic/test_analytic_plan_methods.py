@@ -13,9 +13,9 @@ import pytest
 
 from addons.analytic.models import AccountAnalyticPlan
 from addons.analytic.models.analytic_plan import AccountAnalyticApplicability
-from addons.base.models import SystemParameter
+from addons.base.models import ResCompany, SystemParameter
 from exceptions import UserError
-from orm.environments import env, sudo
+from orm.environments import env, set_current_company, sudo
 from orm.registry import clear_cache
 
 pytestmark = pytest.mark.django_db
@@ -27,13 +27,26 @@ def _elevated():
         yield
 
 
+@pytest.fixture(autouse=True)
+def _company(db):
+    """``default_applicability`` depende de la empresa: se escribe y se lee
+    con una activa."""
+    company = ResCompany.objects.create(name='Analítica D1')
+    set_current_company(company.pk)
+    yield company
+    set_current_company(None)
+
+
 def _plans():
     return env()['account.analytic.plan']
 
 
 @pytest.fixture
 def project_plan():
-    plan = _plans().create({'name': 'Proyecto D1'})
+    # La fuente siembra el plan de proyecto con ``optional``
+    # (``analytic_data.xml:16``); el campo no tiene default.
+    plan = _plans().create({'name': 'Proyecto D1',
+                            'default_applicability': 'optional'})
     SystemParameter.set_param('analytic.project_plan', str(plan.id))
     clear_cache()
     return plan
