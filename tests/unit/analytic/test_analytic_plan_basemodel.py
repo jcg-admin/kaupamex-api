@@ -51,7 +51,7 @@ def test_the_root_is_computed_and_searchable():
         root = _plans().create({'name': 'Raíz'})
         child = _plans().create({'name': 'Rama', 'parent_id': root.id})
         leaf = _plans().create({'name': 'Hoja', 'parent_id': child.id})
-        assert (root | child | leaf).root_id == root
+        assert (root | child | leaf).mapped('root_id') == root
         assert _plans().search([('root_id', '=', root.id)]) == (
             root | child | leaf)
 

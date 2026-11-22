@@ -8,8 +8,11 @@ requieren el reverse manager ``lines`` (query real) y quedan fuera de este
 corte, igual que ``clean()`` (usa ``self.lines.exclude(...)``).
 """
 
+import pytest
+
 from addons.analytic.models import AccountAnalyticAccount, AccountAnalyticPlan
 from addons.base.models import ResPartner
+from orm.environments import env, sudo
 
 
 def _plan(pk, name, color=1):
@@ -57,12 +60,17 @@ class TestRelatedProperties:
     """``root_plan``/``color`` — Odoo ``related=`` sin columna propia
     (``@property``, ver docstring del módulo)."""
 
+    @pytest.mark.django_db
     def test_root_plan_of_a_child_plan_account(self):
-        root = _plan(1, 'Marketing', color=3)
-        child = AccountAnalyticPlan(pk=2, name='Digital', color=5)
-        child.parent = root
+        """``root_plan`` lee ``plan_id.root_id``, que el ORM calcula de
+        ``parent_path``: necesita los planes guardados."""
+        with sudo():
+            plans = env()['account.analytic.plan']
+            root = plans.create({'name': 'Marketing', 'color': 3})
+            child = plans.create({'name': 'Digital', 'color': 5,
+                                  'parent_id': root.id})
         acct = AccountAnalyticAccount(name='Ads', plan_id=child)
-        assert acct.root_plan is root
+        assert acct.root_plan == root
 
     def test_color_delegates_to_plan_color(self):
         plan = _plan(1, 'Marketing', color=7)

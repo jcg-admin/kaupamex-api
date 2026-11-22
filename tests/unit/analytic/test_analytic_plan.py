@@ -35,8 +35,12 @@ def _plan(pk, name, parent=None, **kwargs):
     return plan
 
 
+@pytest.mark.django_db
 class TestHierarchyCycleProtection:
-    """``clean()`` -> ``_reject_hierarchy_cycle`` (Odoo no valida esto —
+    """Con base: asignar ``parent_id`` a un ``BaseModel`` marca para recálculo
+    ``complete_name``, que depende de él, y esa marca consulta la base.
+
+    ``clean()`` -> ``_reject_hierarchy_cycle`` (Odoo no valida esto —
     la referencia depende del ``_parent_store``/UI para evitarlo; aquí es
     una invariante explícita, igual que ``hr.HrDepartment``)."""
 

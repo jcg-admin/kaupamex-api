@@ -96,6 +96,7 @@ import models
 
 from addons.base.models import _reject_hierarchy_cycle
 from orm.models import _parent_store_update
+from tools.sql import SQL
 
 #: Compartido entre ``AccountAnalyticPlan.default_applicability`` y
 #: ``AccountAnalyticApplicability.applicability`` — misma enumeración que la
@@ -234,10 +235,12 @@ class AccountAnalyticPlan(models.BaseModel, models.RecordLoaderMixin):
 
     @api.depends('parent_id', 'parent_path')
     def _compute_root_id(self):
-        """≙ ``_compute_root_id`` (``:129-132``)."""
+        """≙ ``_compute_root_id`` (``:129-132``). La fuente asigna el id;
+        el descriptor del ``Many2one`` recibe aquí el registro."""
         for plan in self.sudo():
-            plan.root_id = (int(plan.parent_path[:-1].split('/')[0])
-                            if plan.parent_path else plan)
+            root_id = (int(plan.parent_path[:-1].split('/')[0])
+                       if plan.parent_path else plan.id)
+            plan.root_id = plan.browse(root_id)
 
     def _search_root_id(self, operator, value):
         """≙ ``_search_root_id`` (``:134-137``)."""
@@ -267,16 +270,20 @@ class AccountAnalyticPlan(models.BaseModel, models.RecordLoaderMixin):
         if not self.ids:
             self.all_account_count = 0
             return
-        self.env.cr.execute("""
+        # ``env.cr.execute`` + ``fetchall`` de la fuente es
+        # ``env.execute_query`` aquí (``orm/environments.py:1626``), y su
+        # ``IN %s`` con tupla es ``= ANY(%s)`` con lista: psycopg 3 no
+        # expande una tupla, como psycopg2 (mismo idioma que
+        # ``orm/models.py:9342``).
+        all_children_ids = dict(self.env.execute_query(SQL("""
             SELECT parent.id,
                    array_agg(child.id) as children_ids
               FROM account_analytic_plan parent
               JOIN account_analytic_plan child
                 ON child.parent_path LIKE parent.parent_path || '%%'
-             WHERE parent.id IN %s
+             WHERE parent.id = ANY(%s)
           GROUP BY parent.id
-        """, [tuple(self.ids)])
-        all_children_ids = dict(self.env.cr.fetchall())
+        """, list(self.ids))))
 
         plans_count = dict(
             self.env['account.analytic.account']._read_group(

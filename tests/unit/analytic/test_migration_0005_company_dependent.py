@@ -75,12 +75,15 @@ def _run(sql):
 def _seed_plan(cursor, applicability):
     """
     Inserta un plan por SQL — el modelo ya declara el campo como ``jsonb``.
+
+    Las dos columnas de fecha del log-access son ``NOT NULL`` desde que el
+    plan es ``BaseModel`` (migración 0016), sin valor por defecto en la base.
     """
     cursor.execute(
         "insert into account_analytic_plan "
         "  (name, description, parent_path, default_applicability, "
-        "   sequence, color) "
-        "values (%s, '', '', %s, 10, 0) returning id",
+        "   sequence, color, create_date, write_date) "
+        "values (%s, '', '', %s, 10, 0, now(), now()) returning id",
         ['Plan de control', applicability],
     )
     return cursor.fetchone()[0]
