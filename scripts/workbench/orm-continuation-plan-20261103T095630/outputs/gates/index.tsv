@@ -221,3 +221,4 @@ f2-3467b837	full-batch	3467b837	-	0	14539	0	0	8	-	14539 passed, 66 skipped, 8 xf
 f2-9a502205	full-batch	9a502205	-	0	14544	0	0	8	-	14544 passed, 66 skipped, 8 xfailed, EXIT=0	verde	analytic-account-company-id-0397	f2-9a502205.log:468460cb86362b8eb6466ba20218af47dd8785c1d060694ca4c8705ea57c0cf3
 f2-70a0a46e	full-batch	70a0a46e	-	0	14578	0	0	8	-	14578 passed, 66 skipped, 8 xfailed, EXIT=0	verde	basemodel-reverse-queryset-0397	f2-70a0a46e.log:8f0ca6fbccc2b1f7c1fb2616ce79c89f2f24109d9c0271d86513429f3690cba8
 f2-d6a8d0d2	full-batch	d6a8d0d2	-	0	14586	0	0	8	-	14586 passed, 66 skipped, 8 xfailed in 2034.66s; EXIT=0	verde	crm-lead-recordset-computes-0397	f2-d6a8d0d2.log:4aac159654b1ba54b92f28544f054935d0ecddbc077b47c8fa4172aa1ef83b7c
+f2-f1111d99	full-batch	f1111d99	-	0	14590	0	0	8	-	14590 passed, 66 skipped, 8 xfailed in 1899.87s; EXIT=0	verde	account-edi-journal-write-0397	f2-f1111d99.log:25befd424d6b4bf73858e3e546615d831cd38d8eea88f38f807205b8ae0818b9
