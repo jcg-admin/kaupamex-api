@@ -43,8 +43,8 @@ def _cron(code, method_name=''):
 
 def test_the_cron_runs_the_code_of_its_action():
     partner = ResPartner.objects.create(name='Antes')
-    cron = _cron(f"env['res.partner'].browse({partner.pk})"
-                 ".write({'name': 'Despues'})")
+    cron = _cron(f"model.objects.filter(pk={partner.pk})"
+                 ".update(name='Despues')")
     cron._callback()
     partner.refresh_from_db()
     assert partner.name == 'Despues'
