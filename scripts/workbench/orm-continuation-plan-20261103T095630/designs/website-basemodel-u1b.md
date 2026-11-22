@@ -55,3 +55,35 @@ Prueba: `tests/unit/website/test_website_basemodel_u1b.py`.
 | `Website`, `Website.unlink`, `Website._unlink_except_default_website` | `odoo19c: addons/website/models/website.py:435-451` | `test_the_three_models_are_base_models` |
 | `WebsiteMenu`, `WebsiteMenu.unlink` | `odoo19c: addons/website/models/website_menu.py:163-177` | `test_unlinking_a_menu_bumps_the_menu_epoch` |
 | `WebsitePage`, `WebsitePage.unlink` | `odoo19c: addons/website/models/website_page.py:148-162` | `test_unlinking_a_page_unlinks_its_lonely_view` |
+
+## Control de anulación (medido antes del commit de código)
+
+Suite `tests/unit/website/test_website_basemodel_u1b.py`: 6 passed. Cada
+guarda retirada por separado, restaurada desde copia y verificada con `cmp`:
+
+| Anulación | Cae |
+|---|---|
+| `@api.ondelete` de `_unlink_except_default_website` comentado | sólo `test_the_default_website_cannot_be_unlinked` |
+| `_bump_menu_epoch()` retirado de `WebsiteMenu.unlink` | sólo `test_unlinking_a_menu_bumps_the_menu_epoch` |
+| `WebsitePage.unlink` renombrado | sólo `test_unlinking_a_page_unlinks_its_lonely_view` |
+
+Contratos de recordset que la adopción cambió en las pruebas heredadas, con
+la forma de la fuente: un Many2one nulo es un recordset vacío (falso), no
+`None` (`_validate_parent_menu`); los accesores inversos son recordsets
+(`list(site.menus)`, `page.menu_ids.mapped('route')`); el borrado de una
+página es `unlink`; leer `website.menu`/`website` exige un usuario con ACL,
+así que las dos pruebas sin usuario corren elevadas. `TestCoverage` mide
+ahora los métodos **propios** de cada clase (`vars`), porque `getattr`
+encontraba `delete`/`save` heredados de Django y no discriminaba.
+
+## Funciones cuyo cuerpo cambia, con su referencia y su prueba
+
+`scripts/check_reference_flow.py` exige que cada función de cuerpo cambiado
+esté nombrada aquí antes del commit de código.
+
+| Función | Referencia | Cambio | Prueba |
+|---|---|---|---|
+| `BaseModel.copy_data` (`src/orm/models.py`) | `odoo19c: odoo/orm/models.py:5406-5463` | `_fields` guarda cada Many2one bajo su nombre y bajo su `attname` (`website` y `website_id` son el mismo objeto). `copy_data` emitía las dos claves: el `default` sólo pisaba una y `create` tomaba el `False` de la otra; y la lista negra (`create_uid`, `parent_path`) dejaba pasar el alias (`create_uid_id`). Se recorre cada campo una vez, por su `name`, y `default` y lista negra se resuelven al nombre canónico. En la fuente cada campo tiene una sola clave | `test_copy_data_emits_each_field_once_and_honours_its_default` |
+| `Website.copy_menu_hierarchy` y `copy_menu` | `odoo19c: addons/website/models/website.py:1147-1161` | `menu.copy({...})` como la fuente, en vez del clon campo a campo cuyo motivo («el ORM no trae `copy()`») dejó de ser cierto al adoptar `BaseModel`; recorre `for website in self` y no devuelve nada, como allá. `key` (campo propio y único) se fija en el `default` | `test_copy_menu_hierarchy_copies_the_template_tree` |
+| `WebsiteMenu._validate_parent_menu` | `odoo19c: addons/website/models/website_menu.py:80-108` | el padre nulo es un recordset vacío: `while current_menu:` y `if parent_menu`, como la fuente; hijos y nietos sobre el recordset `child` | `test_hierarchy_deeper_than_two_levels_is_rejected`, `test_menu_with_children_cannot_hang_under_a_submenu`, `test_two_level_tree_is_valid` (`test_website_menu.py`) |
+| `WebsiteMenu.get_tree` y `make_tree` | `odoo19c: addons/website/models/website_menu.py:266-287` | itera el recordset `node.child` (antes `.all()` del gestor) | `test_get_tree_serializes_the_site_menu` (`test_website_menu.py`) |
