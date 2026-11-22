@@ -58,6 +58,7 @@ Prueba: `tests/unit/sale/test_sale_order_line_basemodel.py`.
 |---|---|---|
 | `SaleOrderLine` sobre `BaseModel` | `odoo19c: addons/sale/models/sale_order_line.py:13` | `test_the_line_is_a_base_model` |
 | recálculo de la orden al borrar una línea (sin `unlink` propio) | `odoo19c: addons/sale/models/sale_order.py` `_compute_amounts` con `@api.depends` sobre `order_line` | `test_unlinking_a_line_recomputes_its_order` |
+| `_copy_data_extend_business_fields` (`addons/sale/models/account_move_line.py`) | `odoo19c: addons/sale/models/account_move_line.py:36-39` — `[(6, None, self.sale_line_ids.ids)]` | `test_with_include_business_fields_the_sale_lines_are_set` (`tests/unit/account/test_account_move_line_copy_data.py:95`) |
 | Many2one nulo como recordset vacío | `odoo19c: odoo/orm/models.py` (`Many2one.convert_to_record`) | `test_a_line_without_product_has_an_empty_product` |
 
 *Ciega a:* los reversos que sólo cambian al adoptar `SaleOrder` (U3b) y a la
