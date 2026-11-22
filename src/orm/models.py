@@ -69,8 +69,8 @@ from django.db.models import (  # noqa: F401
 from django.db.models.base import ModelState, checks
 from django.db.models.fields import related_descriptors as _related_descriptors
 from django.db.models.signals import (class_prepared, m2m_changed, post_init,
-                                      post_save, pre_delete, pre_init,
-                                      pre_save)
+                                      post_delete, post_save, pre_delete,
+                                      pre_init, pre_save)
 from django.dispatch import receiver
 import psycopg
 from psycopg import errors as pg_errors
@@ -118,6 +118,7 @@ from orm.fields_relational import (
 )
 from orm.fields import (PENDING_INVERSE_FIELDS, WRITING_VALUES, determine,
                         FieldDescriptor, StoredMany2oneIdDescriptor,
+                        _in_record_environment,
                         _field_cache_record_id,
                         convert_to_display_name, determine_inverse,
                         null_record_value)
@@ -6563,8 +6564,11 @@ def _x2many_descriptor_get(self, instance, cls=None):
     return comodel._from_ids(env(), ids, ids)
 
 
+# ≙ ``Field.__get__`` (``odoo19c: odoo/orm/fields.py:1642-1650``), que toma
+# ``env = record.env``: el x2many de un registro se construye en su entorno,
+# no en el ambiente. Es el mismo envoltorio de ``FieldDescriptor``.
 _related_descriptors.ReverseManyToOneDescriptor.__get__ = (
-    _x2many_descriptor_get)
+    _in_record_environment(_x2many_descriptor_get))
 _DJANGO_X2MANY_SET = _related_descriptors.ReverseManyToOneDescriptor.__set__
 
 
@@ -9111,8 +9115,12 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
         """
         if not self:
             return True
+        # ≙ ``self.check_access('unlink')``
+        # (``odoo19c: odoo/orm/models.py:4203``):
+        # con el entorno del recordset, no con el ambiental, para que un
+        # ``sudo()`` del registro alcance el borrado igual que la escritura.
+        self.check_access('unlink')
         rows = AccessQuerySet(model=type(self)).filter(pk__in=self.ids)
-        rows.check_access('unlink')
         environment = env()
         registry_ = model_field_registry(type(self))
         for field in set(registry_.values()):
@@ -11750,3 +11758,19 @@ def _inherits_delegation(model, field):
         if parent is owner or issubclass(parent, owner):
             return fk.name, parent
     return None
+
+
+@receiver(post_delete, dispatch_uid='orm.invalidate_after_django_delete')
+def _invalidate_after_django_delete(sender, **kwargs):
+    """Invalida la caché del entorno tras borrar una fila de Django.
+
+    ≙ el cierre de ``unlink`` (``odoo19c: odoo/orm/models.py``):
+    ``self.env.invalidate_all(flush=False)``, porque *«the orm does not handle
+    all changes made in the database, like cascading delete!»*. El borrado de
+    un modelo que no es ``BaseModel`` no pasa por ``BaseModel.unlink``, y su
+    colector aplica ``SET NULL`` y ``CASCADE`` sobre filas que sí son
+    ``BaseModel``. Un ``BaseModel`` se salta: su ``unlink`` ya invalida.
+    """
+    if isinstance(sender, type) and issubclass(sender, BaseModel):
+        return
+    env().invalidate_all(flush=False)
