@@ -771,6 +771,9 @@ def _wrap_cursor_cut(name, flush_first, discard):
             if discard:
                 if hasattr(self, _TRANSACTION_ATTRIBUTE):
                     delattr(self, _TRANSACTION_ATTRIBUTE)
+                # El cursor muere y su caché con él.
+                if hasattr(self, _CURSOR_CACHE_ATTRIBUTE):
+                    delattr(self, _CURSOR_CACHE_ATTRIBUTE)
             else:
                 _clear_connection_transaction(self)
 
@@ -2284,3 +2287,24 @@ def current_uid_or_superuser():
     instalación, ``SUPERUSER_ID`` (``odoo19c: odoo/modules/loading.py:404``).
     """
     return get_current_uid() or SUPERUSER_ID
+
+
+#: El atributo con que la caché por cursor cuelga de la conexión.
+_CURSOR_CACHE_ATTRIBUTE = 'orm_cursor_cache'
+
+
+def _connection_cache(conexion):
+    """≙ ``BaseCursor.cache`` (``odoo19c: odoo/sql_db.py:164-174``): un
+    diccionario por cursor para que el código guarde lo que vale mientras el
+    cursor viva. Aquí el cursor es la conexión de Django, como para
+    ``cr.transaction``; el corte ``close`` la descarta
+    (``odoo19c: odoo/sql_db.py:525-540``) y ``commit``/``rollback`` no la
+    tocan (``designs/cursor-cache.md``)."""
+    cache = getattr(conexion, _CURSOR_CACHE_ATTRIBUTE, None)
+    if cache is None:
+        cache = {}
+        setattr(conexion, _CURSOR_CACHE_ATTRIBUTE, cache)
+    return cache
+
+
+BaseDatabaseWrapper.cache = property(_connection_cache)

@@ -222,11 +222,17 @@ class Cursor:
         self.prerollback = Callbacks()
         self.postrollback = Callbacks()
         self._now = None
-        self.cache = {}
         # ≙ las estadísticas de ``Cursor.__init__`` (``:285-295``)
         self.sql_from_log = {}
         self.sql_into_log = {}
         self.sql_log_count = 0
+
+    @property
+    def cache(self):
+        """≙ ``BaseCursor.cache`` (``:164-174``): la de su conexión, la misma
+        que ``env.cr.cache`` de un entorno sobre este alias
+        (``designs/cursor-cache.md``)."""
+        return self._cnx.cache
 
     @property
     def transaction(self):
