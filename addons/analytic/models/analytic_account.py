@@ -91,6 +91,22 @@ class AccountAnalyticAccount(
             'ondelete explícito aquí; PROTECT es la adaptación segura).'
         ),
     )
+    #: ≙ ``root_plan_id``
+    #: (``odoo19c: addons/analytic/models/analytic_account.py:44-49``).
+    root_plan_id = fields.Many2one(
+        'analytic.AccountAnalyticPlan',
+        related='plan_id.root_id',
+        store=True,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        db_column='root_plan_id',
+        related_name='+',
+        verbose_name='Root Plan',
+    )
+    #: ≙ ``color`` (``odoo19c: addons/analytic/models/
+    #: analytic_account.py:50-53``).
+    color = fields.Integer(related='plan_id.color', verbose_name='Color Index')
     company_id = fields.Many2one(
         'base.ResCompany',
         on_delete=models.SET_NULL,
@@ -156,18 +172,6 @@ class AccountAnalyticAccount(
                 )
 
     # -- "related" fields de la referencia, sin columna propia --------------
-
-    @property
-    def root_plan(self):
-        """
-        Odoo ``root_plan_id`` (``related="plan_id.root_id", store=True``).
-        """
-        return self.plan_id.root_id
-
-    @property
-    def color(self):
-        """Odoo ``color`` (``related='plan_id.color'``)."""
-        return self.plan_id.color
 
     @property
     def currency(self):

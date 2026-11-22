@@ -70,7 +70,7 @@ class TestRelatedProperties:
             child = plans.create({'name': 'Digital', 'color': 5,
                                   'parent_id': root.id})
         acct = AccountAnalyticAccount(name='Ads', plan_id=child)
-        assert acct.root_plan == root
+        assert acct.root_plan_id == root
 
     def test_color_delegates_to_plan_color(self):
         plan = _plan(1, 'Marketing', color=7)
