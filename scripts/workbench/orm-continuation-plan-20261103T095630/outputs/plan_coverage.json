@@ -620,7 +620,8 @@
   "analytic-project-plan-restore-0397",
   "analytic-relevant-plans-0397",
   "cron-xml-id-natural-key-0397",
-  "export-properties-cursor-cache-0397"
+  "export-properties-cursor-cache-0397",
+  "website-security-groups-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
