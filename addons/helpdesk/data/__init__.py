@@ -15,6 +15,7 @@ CRON_AUTO_CLOSE_TICKETS = {
     'name': 'Helpdesk: cerrar tickets sin actividad',
     'model_name': 'helpdesk.SupportTicket',
     'method_name': 'auto_close_stale',
+    'xml_id': 'helpdesk.ir_cron_auto_close_ticket',
     'interval_number': 1,
     'interval_type': 'days',
     'priority': 5,

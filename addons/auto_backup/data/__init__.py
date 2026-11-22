@@ -12,6 +12,7 @@ CRON_BACKUP = {
     'name': 'Backup scheduler',
     'model_name': 'auto_backup.DbBackup',
     'method_name': 'schedule_backup',
+    'xml_id': 'auto_backup.backup_scheduler',
     'interval_number': 12,
     'interval_type': 'hours',
     'priority': 5,

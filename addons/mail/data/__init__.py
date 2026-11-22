@@ -45,6 +45,7 @@ CRON_EMAIL_QUEUE = {
     'name': 'Mail: gestor de la cola de correo',
     'model_name': 'mail.MailMail',
     'method_name': 'process_email_queue',
+    'xml_id': 'mail.ir_cron_mail_scheduler_action',
     'interval_number': 1,
     'interval_type': 'minutes',
     'priority': 6,

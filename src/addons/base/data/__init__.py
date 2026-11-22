@@ -14,6 +14,7 @@ CRON_AUTOVACUUM = {
     'name': 'Base: Auto-vacuum internal data',
     'model_name': 'base.IrAutovacuum',
     'method_name': '_run_vacuum_cleaner',
+    'xml_id': 'base.autovacuum_job',
     'interval_number': 1,
     'interval_type': 'days',
     'priority': 3,

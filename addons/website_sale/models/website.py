@@ -211,6 +211,7 @@ CRON_SEND_ABANDONED_CART_EMAIL = {
     'name': 'eCommerce: correo de recuperación de carrito abandonado',
     'model_name': 'website_sale.WebsiteSaleSettings',
     'method_name': '_send_abandoned_cart_email',
+    'xml_id': 'website_sale.ir_cron_send_availability_email',
     'interval_number': 1,
     'interval_type': 'hours',
     'priority': 5,

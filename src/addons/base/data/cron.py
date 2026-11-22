@@ -12,11 +12,14 @@ Por qué un helper y no cuatro copias: la siembra de un cron son **dos** filas
 y esa costura es idéntica en todos los addons. Repetirla cuatro veces es cuatro
 oportunidades de que una diverja.
 
-**Idempotencia.** La clave natural es ``(model_name, method_name)``: la
-identidad de un job es *qué ejecuta*, no cómo se llama en la interfaz. Un
-segundo pase no duplica ni pisa el intervalo — si el operador cambió la
-periodicidad, se respeta, que es lo que ``noupdate`` garantiza en la
-referencia.
+**Idempotencia.** La clave natural es el ``xml_id`` del spec: el ``id`` del
+``<record model="ir.cron">`` de la fuente, que es como la fuente identifica el
+cron y como sus consumidores lo piden (``env.ref``). Una base sembrada antes
+de que el spec declarara ``xml_id`` no tiene aún su fila de ``ir.model.data``;
+ahí la siembra encuentra la acción por ``(model_name, method_name)`` y le
+vincula el ``xml_id`` (``designs/cron-xml-id-natural-key.md``). Un segundo
+pase no duplica ni pisa el intervalo — si el operador cambió la periodicidad,
+se respeta, que es lo que ``noupdate`` garantiza en la referencia.
 """
 
 from django.apps import apps as apps_vivos
@@ -60,17 +63,8 @@ def sembrar_cron(apps, alias, spec):
     IrCron = apps.get_model('base', 'IrCron')
     IrModelData = apps.get_model('base', 'IrModelData')
 
-    accion, _ = IrActionsServer.objects.using(alias).get_or_create(
-        model_name=spec['model_name'],
-        method_name=spec['method_name'],
-        defaults={
-            'name': spec['name'],
-            # ≙ ``<field name="state">code</field>`` de cada cron de la
-            # fuente: el cron ejecuta este ``code`` (``ir_cron._callback``).
-            'state': 'code',
-            'code': cron_code(spec),
-        },
-    )
+    accion = _find_seeded_action(IrModelData, IrCron, IrActionsServer,
+                                 alias, spec)
     _fill_code(accion, spec)
 
     cron, creado = IrCron.objects.using(alias).get_or_create(
@@ -107,15 +101,8 @@ def sembrar_cron_vivo(spec):
     IrCron = apps_vivos.get_model('base', 'IrCron')
     IrModelData = apps_vivos.get_model('base', 'IrModelData')
 
-    accion, _ = IrActionsServer.objects.get_or_create(
-        model_name=spec['model_name'],
-        method_name=spec['method_name'],
-        defaults={
-            'name': spec['name'],
-            'state': 'code',
-            'code': cron_code(spec),
-        },
-    )
+    accion = _find_seeded_action(IrModelData, IrCron, IrActionsServer,
+                                 None, spec)
     _fill_code(accion, spec)
     cron, creado = IrCron.objects.get_or_create(
         ir_actions_server=accion,
@@ -145,3 +132,37 @@ def _register_xml_id(ir_model_data, alias, spec, cron):
         return
     manager.create(module=module, name=name, model='base.IrCron',
                    res_id=cron.pk, noupdate=True)
+
+
+def _find_seeded_action(ir_model_data, ir_cron, ir_actions_server, alias,
+                        spec):
+    """La acción del cron de ``spec``, creada si no existe.
+
+    Con ``xml_id`` declarado y ya registrado, la acción es la del cron que
+    ``ir.model.data`` nombra — la identidad de la fuente, sea cual sea el
+    método que hoy ejecute. Sin esa fila (base sembrada antes del ``xml_id``,
+    o spec que no lo declara) la clave es ``(model_name, method_name)``.
+    """
+    using = (lambda manager: manager.using(alias)) if alias else (
+        lambda manager: manager)
+    xml_id = spec.get('xml_id')
+    if xml_id:
+        module, _, name = xml_id.partition('.')
+        row = using(ir_model_data.objects).filter(
+            module=module, name=name).first()
+        if row is not None:
+            cron = using(ir_cron.objects).filter(pk=row.res_id).first()
+            if cron is not None:
+                return cron.ir_actions_server
+    accion, _ = using(ir_actions_server.objects).get_or_create(
+        model_name=spec['model_name'],
+        method_name=spec['method_name'],
+        defaults={
+            'name': spec['name'],
+            # ≙ ``<field name="state">code</field>`` de cada cron de la
+            # fuente: el cron ejecuta este ``code`` (``ir_cron._callback``).
+            'state': 'code',
+            'code': cron_code(spec),
+        },
+    )
+    return accion

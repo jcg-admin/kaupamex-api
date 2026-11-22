@@ -17,6 +17,7 @@ CRON_EXPIRE_VOUCHERS = {
     'name': 'Loyalty: caducar vouchers vencidos',
     'model_name': 'loyalty.Voucher',
     'method_name': 'expire_overdue',
+    'xml_id': 'loyalty.ir_cron_expire_vouchers',
     'interval_number': 1,
     'interval_type': 'hours',
     'priority': 5,

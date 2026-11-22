@@ -100,7 +100,7 @@ from django.utils import timezone
 
 import fields
 import models
-from addons.base.models import IrActionsServer, IrCron, IrLogging, IrModel
+from addons.base.models import IrActionsServer, IrLogging, IrModel
 from addons.base.models.ir_model import IrModelFields, IrModelFieldsSelection
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.mail.models import MailActivityMixin, MailThread
@@ -1147,13 +1147,9 @@ class BaseAutomation(models.BaseModel, MailThread, MailActivityMixin,
 
     def action_open_scheduled_action(self):
         """≙ ``action_open_scheduled_action``."""
-        cron = (IrCron.objects
-                .filter(
-                    ir_actions_server__model_name=(
-                        'base_automation.BaseAutomation'),
-                    ir_actions_server__method_name=(
-                        '_cron_process_time_based_actions'))
-                .first())
+        cron = env().ref(
+            'base_automation.ir_cron_data_base_automation_check',
+            raise_if_not_found=False)
         if not cron:
             raise UserError(
                 'The scheduled action for Automation Rules seems to have '
@@ -1362,13 +1358,9 @@ class BaseAutomation(models.BaseModel, MailThread, MailActivityMixin,
 
     def _update_cron(self):
         """≙ ``_update_cron``."""
-        cron = (IrCron.objects
-                .filter(
-                    ir_actions_server__model_name=(
-                        'base_automation.BaseAutomation'),
-                    ir_actions_server__method_name=(
-                        '_cron_process_time_based_actions'))
-                .first())
+        cron = env().ref(
+            'base_automation.ir_cron_data_base_automation_check',
+            raise_if_not_found=False)
         if not cron:
             return
         automations = BaseAutomation.objects.filter(

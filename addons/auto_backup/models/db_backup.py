@@ -103,10 +103,9 @@ from tools.translate import _
 
 from addons.auto_backup.models.db_backup_details import DbBackupDetails
 from addons.base.models import SystemParameter, TimeStampedModel
-from addons.base.models.ir_cron import IrCron
 from addons.base.models.ir_module import IrModule
 from addons.mail.models.email_executor import dispatch_email
-from orm.environments import ContextVar, get_current_uid
+from orm.environments import ContextVar, env, get_current_uid
 from service.db import _pg_env, database_exists
 
 _logger = logging.getLogger(__name__)
@@ -554,10 +553,8 @@ class DbBackup(models.BaseModel, TimeStampedModel):
         Su guarda de autorización se porta entera: sólo el usuario del cron
         puede volcar, y sólo sobre ``db.backup``.
         """
-        cron = IrCron.objects.filter(
-            ir_actions_server__model_name='auto_backup.DbBackup',
-            ir_actions_server__method_name='schedule_backup',
-        ).first()
+        cron = env().ref('auto_backup.backup_scheduler',
+                         raise_if_not_found=False)
         cron_user_id = cron.user_id if cron is not None else None
         current_uid = get_current_uid()
         # DIVERGENCIA que CIERRA un hueco, no que lo abre (:ref:`h-api-766`).
@@ -667,10 +664,8 @@ class DbBackup(models.BaseModel, TimeStampedModel):
             propaga ``method_direct_trigger``, y es la señal de "ya hay un
             respaldo en curso" que el endpoint traduce a 409.
         """
-        cron = IrCron.objects.filter(
-            ir_actions_server__model_name='auto_backup.DbBackup',
-            ir_actions_server__method_name='schedule_backup',
-        ).first()
+        cron = env().ref('auto_backup.backup_scheduler',
+                         raise_if_not_found=False)
         if cron is None:
             return False
         token = MANUAL_RUN.set(True)
