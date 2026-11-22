@@ -12,7 +12,7 @@ de ejecutar» y devuelve ``False``; cada caso afirma un efecto del código
 resultado.
 
 *Métrica:* el efecto observable del código evaluado.
-*Ciega a:* el aislamiento de ``safe_eval`` más allá del caso de ``import``,
+*Ciega a:* el aislamiento de ``safe_eval`` más allá del caso de ``open``,
 que mide su propia suite.
 """
 import logging
@@ -67,9 +67,13 @@ def test_the_context_carries_the_source_keys():
     assert action._get_eval_context()['Command'] is Command
 
 
-def test_code_cannot_import():
+def test_code_runs_without_unsafe_builtins():
+    # ``import`` lo rechaza ya ``test_python_expr`` al guardar; ``open`` pasa
+    # esa validación y sólo falla al evaluar, porque ``safe_eval`` no lo
+    # expone.
+    action = _code("open('/etc/hostname')")
     with pytest.raises(Exception):
-        _code('import os').run()
+        action.run()
 
 
 def test_the_logger_is_the_proxy(caplog):
