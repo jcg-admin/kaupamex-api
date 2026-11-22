@@ -42,7 +42,8 @@ Fecha: 2026-11-22T07:20:30. Etapa C de `designs/analytic-plan-basemodel.md`.
 
 ## Símbolos, referencia y prueba
 
-Prueba: `tests/unit/analytic/test_analytic_applicability_basemodel.py`.
+Pruebas: `tests/unit/analytic/test_analytic_applicability_basemodel.py` y
+`tests/unit/account/test_account_analytic_plan.py`.
 
 | Símbolo | Referencia |
 |---|---|
@@ -50,6 +51,8 @@ Prueba: `tests/unit/analytic/test_analytic_applicability_basemodel.py`.
 | `0018_applicability_basemodel` | `odoo19c: addons/analytic/models/analytic_plan.py:411-431` |
 | `AccountAnalyticPlan._get_applicability` | `odoo19c: addons/analytic/models/analytic_plan.py:246-265` |
 | `apply_account_extensions` (`product_categ_id`, cómputos) | `odoo19c: addons/account/models/account_analytic_plan.py:20-82` |
+| `_compute_display_account_prefix` | `odoo19c: addons/account/models/account_analytic_plan.py:78-82` |
+| `_compute_prefix_placeholder` | `odoo19c: addons/account/models/account_analytic_plan.py:34-57` |
 
 ## Lo que esta unidad no cierra
 
