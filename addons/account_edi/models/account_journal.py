@@ -16,13 +16,12 @@ Cinco símbolos de la referencia — los 5 con contraparte real
      - Nota
    * - ``edi_format_ids`` (campo)
      - portado
-     - declarado en ``account_edi_format.py`` de este addon (M2M inverso,
-       ver su docstring) — **no** aquí; ``account/models/account_journal.py``
-       está fuera del write-set de este agente
+     - ``Many2many`` calculado y almacenado sobre el diario, colgado con
+       ``extend_model(campos=)`` y la tabla ``through`` de siempre
+       (``odoo19c: :11-16``)
    * - ``compatible_edi_ids`` (campo)
      - portado
-     - propiedad no-almacenada (``compute`` sin ``store=True`` en la
-       referencia — DEC-SALE-01, mismo criterio que ``account_payment``)
+     - ``Many2many`` calculado sin almacenar (``odoo19c: :18-20``)
    * - ``write`` (override)
      - portado
      - ``write(self, previous, vals)`` instalado con ``extend_model(...,
@@ -31,12 +30,14 @@ Cinco símbolos de la referencia — los 5 con contraparte real
        (``odoo19c: :25-41``)
    * - ``_compute_compatible_edi_ids``
      - portado
-     - función de módulo ``compute_compatible_edi_ids(journal)``
+     - método del recordset (``odoo19c: :46-52``)
    * - ``_compute_edi_format_ids``
-     - portado (parcial declarado)
-     - la SQL cruda de la referencia (``env.cr.execute`` con
-       ``ARRAY_AGG``) se sustituye por un ``.values_list()`` agrupado en
-       Python — ver su docstring
+     - portado
+     - método del recordset, con la consulta agregada por lote de la fuente
+       (``odoo19c: :54-79``)
+
+Diseño: ``scripts/workbench/orm-continuation-plan-20261103T095630/designs/
+account-edi-journal-computes.md``.
 
 ``write``, donde lo pone la fuente
 ==================================
@@ -54,65 +55,66 @@ La escritura y su verificación comparten la transacción del llamador, como en
 la fuente: el ``UserError`` la deshace allí.
 """
 
-import fields
-import models
+from collections import defaultdict
 
-from addons.account.models.account_journal import AccountJournal
-from addons.account_edi.models.account_edi_document import AccountEdiDocument
-from addons.account_edi.models.account_edi_format import AccountEdiFormat
+import api
+import fields
+
 from exceptions import UserError
 from orm.model_classes import extend_model
+from tools.sql import SQL
 from tools.translate import _
 
 
-def compute_compatible_edi_ids(journal):
-    """≙ ``_compute_compatible_edi_ids`` (``odoo19c: account_edi/models/
-    account_journal.py:47-52``).
+@api.depends('type', 'company', 'company.account_fiscal_country')
+def _compute_compatible_edi_ids(self):
+    """≙ ``_compute_compatible_edi_ids``.
 
-    Sin ``@api.depends`` reactivo en este ORM (se computa bajo demanda, no
-    en cada acceso ni en cada escritura de ``type``/``company``) — mismo
-    criterio que el resto de propiedades DEC-SALE-01 de este árbol.
+    ``odoo19c: addons/account_edi/models/account_journal.py:46-52``
     """
-    return [
-        edi_format
-        for edi_format in AccountEdiFormat.objects.all()
-        if edi_format._is_compatible_with_journal(journal)
-    ]
+    edi_formats = self.env['account.edi.format'].search([])
+    for journal in self:
+        journal.compatible_edi_ids = edi_formats.filtered(
+            lambda e: e._is_compatible_with_journal(journal))
 
 
-def compute_edi_format_ids(journal):
-    """≙ ``_compute_edi_format_ids`` (``odoo19c: :54-79``), parcial declarado.
+@api.depends('type', 'company', 'company.account_fiscal_country')
+def _compute_edi_format_ids(self):
+    """≙ ``_compute_edi_format_ids``
+    (``odoo19c: addons/account_edi/models/account_journal.py:54-79``).
 
-    La referencia hace UNA consulta SQL cruda con ``ARRAY_AGG`` para los
-    ``edi_format_id`` "protegidos" (documentos ``to_send``/``to_cancel`` de
-    **todos** los diarios pasados) y luego itera. Aquí se protege sólo este
-    ``journal`` (la función recibe una fila, no un recordset — mismo criterio
-    que el resto de este puerto, ``self`` de Odoo → parámetro explícito), así
-    que la consulta cruda no aporta sobre agregar por lote: un
-    ``.values_list('edi_format_id', flat=True)`` filtrado por este diario
-    hace el mismo trabajo con el ORM normal.
+    La consulta agregada de la fuente corre por ``env.execute_query``; su
+    ``IN %s`` con tupla es ``= ANY(%s)`` con lista porque psycopg 3 no
+    expande la tupla.
     """
-    enabled = [
-        edi_format
-        for edi_format in AccountEdiFormat.objects.all()
-        if edi_format._is_compatible_with_journal(journal)
-        and (
-            edi_format._is_enabled_by_default_on_journal(journal)
-            or edi_format.id in journal.edi_format_ids.ids
-        )
-    ]
+    edi_formats = self.env['account.edi.format'].search([])
+    journal_ids = self.ids
+    if journal_ids:
+        protected_edi_formats_per_journal = {
+            row[0]: set(row[1]) for row in self.env.execute_query(SQL("""
+                SELECT
+                    move.journal_id,
+                    ARRAY_AGG(doc.edi_format_id) AS edi_format_ids
+                FROM account_edi_document doc
+                JOIN account_move move ON move.id = doc.move_id
+                WHERE doc.state IN ('to_cancel', 'to_send')
+                AND move.journal_id = ANY(%s)
+                GROUP BY move.journal_id
+            """, list(journal_ids)))}
+    else:
+        protected_edi_formats_per_journal = defaultdict(set)
 
-    protected_ids = set(
-        AccountEdiDocument.objects.filter(
-            move_id__journal=journal,
-            state__in=('to_cancel', 'to_send'),
-        ).values_list('edi_format_id', flat=True)
-    )
-    protected = journal.edi_format_ids.filtered(
-        lambda edi_format: edi_format.id in protected_ids)
-
-    ids = {f.pk for f in enabled} | set(protected.ids)
-    journal.write({'edi_format_ids': [fields.Command.set(sorted(ids))]})
+    for journal in self:
+        enabled_edi_formats = edi_formats.filtered(
+            lambda e: e._is_compatible_with_journal(journal)
+            and (e._is_enabled_by_default_on_journal(journal)
+                 or e in journal.edi_format_ids))
+        # Los formatos ya en uso no se pueden quitar.
+        protected_edi_format_ids = protected_edi_formats_per_journal.get(
+            journal.id, set())
+        protected_edi_formats = journal.edi_format_ids.filtered(
+            lambda e: e.id in protected_edi_format_ids)
+        journal.edi_format_ids = enabled_edi_formats + protected_edi_formats
 
 
 def write(self, previous, vals):
@@ -147,13 +149,32 @@ def write(self, previous, vals):
 def apply_account_edi_extensions():
     """≙ ``_inherit = 'account.journal'`` de ``account_edi``.
 
-    ``compatible_edi_ids`` se cuelga como propiedad no-almacenada
-    (DEC-SALE-01); ``write`` extiende el de ``account`` por ``overrides=``.
+    Los dos campos se declaran sobre el diario con sus cómputos, y ``write``
+    extiende el de ``account`` por ``overrides=``.
     """
-    extend_model('account.journal', overrides={'write': write})
-    if not hasattr(AccountJournal, 'compatible_edi_ids'):
-        setattr(
-            AccountJournal,
-            'compatible_edi_ids',
-            property(compute_compatible_edi_ids),
-        )
+    extend_model(
+        'account.journal',
+        campos={
+            'edi_format_ids': fields.Many2many(
+                'account_edi.AccountEdiFormat',
+                blank=True,
+                related_name='+',
+                db_table='account_edi_format_journals',
+                compute='_compute_edi_format_ids', store=True,
+                readonly=False,
+                string='Electronic invoicing',
+                help_text='Send XML/EDI invoices',
+            ),
+            'compatible_edi_ids': fields.Many2many(
+                'account_edi.AccountEdiFormat',
+                related_name='+',
+                compute='_compute_compatible_edi_ids',
+                help_text='EDI format that support moves in this journal',
+            ),
+        },
+        metodos={
+            '_compute_compatible_edi_ids': _compute_compatible_edi_ids,
+            '_compute_edi_format_ids': _compute_edi_format_ids,
+        },
+        overrides={'write': write},
+    )

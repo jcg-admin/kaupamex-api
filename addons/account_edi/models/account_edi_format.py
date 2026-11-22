@@ -1,4 +1,5 @@
-r"""``account.edi.format`` — el registro de formatos EDI (Odoo ``account_edi``).
+r"""``account.edi.format`` — el registro de formatos EDI (Odoo
+``account_edi``).
 
 Adaptación de ``addons/account_edi/models/account_edi_format.py``
 (``odoo-tools@622ddc2aa5563d12295b4ab7d3eb438a43eb31de``, ``odoo19c:``,
@@ -27,11 +28,12 @@ Once símbolos (2 campos + 9 métodos) — 10 portados, 1 bloqueado
      - Nota
    * - ``name`` / ``code`` (campos)
      - portados
-     - ``_unique_code`` → ``Meta.constraints`` (``atributos-de-clase-de-modelo.md``)
+     - ``_unique_code`` → ``Meta.constraints``
+       (``atributos-de-clase-de-modelo.md``)
    * - ``create`` (override)
-     - **divergencia de mecanismo**
-     - disponible como llamada explícita, no side-effect de ``save()`` (ver
-       abajo)
+     - portado (paso (a))
+     - recalcula los diarios al crear formatos; el paso (b), el cron, queda
+       pendiente (ver abajo)
    * - ``_register_hook``
      - **bloqueado**
      - hook de ciclo de vida de instalación de módulo Odoo; sin equivalente
@@ -58,33 +60,25 @@ Once símbolos (2 campos + 9 métodos) — 10 portados, 1 bloqueado
      - portado
      - HTML de lista de errores; ``html_escape`` → ``django.utils.html.escape``
 
-``create`` — bloqueado como efecto automático; disponible como llamada explícita
-====================================================================================
+``create`` — recalcula los diarios
+==================================
 
-La referencia, al crear un formato, (a) recalcula ``edi_format_ids`` de todos
-los diarios existentes para que el nuevo formato aparezca donde corresponda, y
-(b) activa el cron ``account_edi.ir_cron_edi_network`` si algún formato creado
-necesita web-service.
+≙ ``create``
+(``odoo19c: addons/account_edi/models/account_edi_format.py:24-44``): tras
+crear formatos, recalcula ``edi_format_ids`` de todos los diarios para que
+el formato nuevo aparezca donde corresponda (paso (a) de la fuente). La versión
+anterior lo declaraba bloqueado por un import circular entre este módulo y
+``account_journal.py``; la fuente no importa la clase, la pide al entorno
+(``self.env['account.journal']``), y aquí igual.
 
-Ninguna de las dos se cuelga de ``save()`` aquí — **divergencia de mecanismo
-declarada, no omisión**: ``account_journal.py`` (extensión de
-``account.journal`` en este mismo addon) necesita importar
-``AccountEdiFormat`` para computar ``edi_format_ids``/``compatible_edi_ids``;
-si este archivo importara ``AccountJournal`` de vuelta al tope, sería un
-import circular real entre dos módulos del mismo addon. La recomputación
-(a) sigue disponible, pero como llamada **explícita** —
-``account_journal.compute_edi_format_ids(journal)``, exportada desde
-``account_journal.py``— que se invoca donde haga falta, en vez de un
-side-effect automático de ``create``. (b) queda bloqueado por completo: el
-cron no existe — sembrarlo exige una migración de datos (``sembrar_cron``,
-patrón de ``mail/migrations/0004_seed_cron_email_queue.py``) y este agente NO
-crea migraciones (``makemigrations`` es del orquestador).
-
-La rama ``self.pool.loaded`` / ``self.pool._delay_compute_edi_format_ids`` de
-la referencia es maquinaria de carga de registro de Odoo (``Registry.loaded``,
-poblado a mitad de arranque) — Django no tiene ese concepto (las apps ya están
-100% registradas cuando el primer ``ready()`` corre); se omite sin sustituto.
+Lo que sigue pendiente, con su sucesor en ``designs/
+account-edi-journal-computes.md``: el paso (b), activar el cron
+``account_edi.ir_cron_edi_network`` si un formato necesita web-service, que
+exige sembrar el cron. La rama ``self.pool.loaded`` /
+``_delay_compute_edi_format_ids`` es la carga diferida del registro de la
+fuente; aquí el registro de Django está completo antes del primer ``create``.
 """
+import api
 import fields
 import models
 from django.utils.html import escape as html_escape
@@ -95,13 +89,9 @@ class AccountEdiFormat(models.BaseModel):
 
     Fila vacía de comportamiento hasta que un ``l10n_*_edi`` concreto
     sobreescriba sus cinco métodos "TO OVERRIDE" (ver el docstring del
-    módulo). ``journals`` es el M2M inverso de ``account.journal.
-    edi_format_ids`` (``odoo19c: account_edi/models/account_journal.py:12``,
-    ``compute='_compute_edi_format_ids', store=True``) — se declara **aquí**,
-    no en ``account/models/account_journal.py`` (fuera del write-set de este
-    agente): ``related_name`` en el lado ``Many2many`` crea el accesor
-    inverso sin tocar el archivo ajeno, mismo idioma que
-    ``account/models/account_journal_group.py::excluded_journals``.
+    módulo). La relación con los diarios la declara el diario
+    (``edi_format_ids``, ``account_journal.py`` de este addon), como en la
+    fuente: el formato no lleva inverso.
     """
 
     _name = 'account.edi.format'
@@ -114,14 +104,6 @@ class AccountEdiFormat(models.BaseModel):
     code = fields.Char(
         max_length=64,
         help_text='Código técnico único del formato (Odoo code, requerido).',
-    )
-    #: ≙ ``account.journal.edi_format_ids`` (M2M inverso) — ver el docstring
-    #: de la clase para por qué vive aquí y no en ``account_journal.py``.
-    journals = fields.Many2many(
-        'account.AccountJournal', blank=True,
-        related_name='edi_format_ids',
-        help_text='Diarios donde este formato está activo (Odoo journal_id, '
-                  'lado inverso de journal.edi_format_ids).',
     )
 
     class Meta:
@@ -136,6 +118,20 @@ class AccountEdiFormat(models.BaseModel):
 
     def __str__(self) -> str:
         return self.name or self.code
+
+    @api.model_create_multi
+    @classmethod
+    def create(cls, vals_list):
+        """≙ ``create``, paso (a): recalcula los diarios.
+
+        ``odoo19c: addons/account_edi/models/account_edi_format.py:24-44``
+        """
+        edi_formats = super().create(vals_list)
+        if not edi_formats:
+            return edi_formats
+        journals = edi_formats.env['account.journal'].search([])
+        journals._compute_edi_format_ids()
+        return edi_formats
 
     ####################################################
     # Export method to override based on EDI Format

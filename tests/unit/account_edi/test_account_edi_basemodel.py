@@ -17,7 +17,6 @@ from django.contrib.auth import get_user_model
 import fields
 from addons.account.models import AccountJournal
 from addons.account_edi.models.account_edi_format import AccountEdiFormat
-from addons.account_edi.models.account_journal import compute_edi_format_ids
 from addons.base.models import IrModelAccess, IrModelData, ResCompany
 from exceptions import AccessError
 from orm.environments import Environment, sudo, user_scope
@@ -93,12 +92,12 @@ class TestComputeEdiFormatIds:
     def test_a_default_format_is_enabled(self, journal, formats):
         default, _manual = formats
         with sudo():
-            compute_edi_format_ids(journal)
+            journal._compute_edi_format_ids()
             assert set(journal.edi_format_ids.ids) == {default.pk}
 
     def test_a_format_already_enabled_stays(self, journal, formats):
         default, manual = formats
         with sudo():
-            manual.write({'journals': [fields.Command.link(journal.pk)]})
-            compute_edi_format_ids(journal)
+            journal.write({'edi_format_ids': [fields.Command.link(manual.pk)]})
+            journal._compute_edi_format_ids()
             assert set(journal.edi_format_ids.ids) == {default.pk, manual.pk}
