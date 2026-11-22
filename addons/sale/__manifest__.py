@@ -56,7 +56,12 @@
     # arista medida quedan registrados, no legitimados:
     #   controllers/serializers.py:20 · services.py:26 · amounts.py:29
     #   models/sale_order.py:185 (FK por cadena) · status_projection.py:27
-    #
+
+    # ACL de los dos modelos que la fuente declara para ``sale.order`` y
+    # ``sale.order.line`` (``designs/sale-security-acl.md``).
+    'data': [
+        'security/ir.model.access.csv',
+    ],
     # Declaración de la licencia de la fuente de la que se adapta este addon,
     # tal como su manifest la declara (DEC-KX-03 punto 1): una licencia NO se
     # re-etiqueta. Aquí es la de `sale` en Odoo Community.
