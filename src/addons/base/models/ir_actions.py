@@ -75,18 +75,13 @@ Qué NO se porta, con su medición
   ``_run_action_object_copy`` y ``_run_action_webhook`` están escritos, y
   ``run()`` los despacha por ``_action_runner``.
 
-  Lo que **sí** sigue fuera es la **superficie de ejecución de código**, y son
-  dos sitios: el corredor ``_run_action_code_multi`` —con su ayudante
-  ``LoggerProxy``— y, dentro de ``_eval_value``, **una de sus ocho** ramas, la
-  de ``evaluation_type == 'equation'``. Es la misma decisión que
-  ``ir_rule.domain_force`` (``api@020e965``): montar un evaluador sobre entrada
-  almacenada exige decidir explícitamente el evaluador y su contexto.
-
-  El corredor está en ``scripts/divergencias_declaradas.txt``, que es donde el
-  gate lo lee. La rama **no** puede estarlo: el registro indexa por símbolo y
-  ``_eval_value`` sí existe, así que su divergencia vive en el ``raise`` con su
-  motivo —levanta en vez de escribir el texto del programa en el campo y
-  llamarlo éxito— y en esta nota.
+  La **superficie de ejecución de código** —el corredor
+  ``_run_action_code_multi`` con su ``LoggerProxy`` y la rama ``equation`` de
+  ``_eval_value``— también se porta desde 2026-11-22. Se declaraba fuera como
+  «la misma decisión que ``ir_rule.domain_force``», y esa decisión se tomó en
+  sentido contrario: ``ir_rule`` evalúa ``domain_force`` con ``safe_eval``
+  sobre su contexto explícito desde ``4c3a992e``. Diseño:
+  ``designs/server-action-code-runner.md``.
 
   La medición que sostenía el bloqueo de los otros cuatro —sus insumos cuelgan
   de ``ir.model.fields`` y ``model_name`` sigue ``Char``— resultó **no ser
@@ -106,9 +101,9 @@ Qué NO se porta, con su medición
   campos             42         54           4
   ==========  =========  =========  ==========
 
-  Los **3 métodos**: ``_run_action_code_multi`` (la divergencia de arriba) y
-  ``create``/``write``, que aquí son un solo ``save()`` — deuda **contada**, no
-  divergencia, registrada en **#77**.
+  Los **3 métodos** medidos entonces: ``_run_action_code_multi`` (portado
+  desde 2026-11-22) y ``create``/``write``, que aquí son un solo
+  ``save()`` — deuda **contada**, no divergencia, registrada en **#77**.
 
   Los **4 campos** son todos renombres o reversos, ninguno un hueco:
   ``parent_id`` es ``parent``; ``child_ids`` e ``ir_cron_ids`` son los
@@ -151,6 +146,7 @@ Qué NO se porta, con su medición
   binario opaco: aquí no hay que preservar el formato de pickle de nadie.
 """
 
+import base64
 import json
 import logging
 import re
@@ -161,6 +157,7 @@ import fields
 import models
 import requests
 from babel import dates as babel_dates
+from pytz import timezone
 from django.apps import apps
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
@@ -185,9 +182,51 @@ from orm.environments import (context_scope, env, get_context,
 from orm.models_transient import TransientModel
 from orm.registry import model_by_key
 from tools.misc import get_diff, get_lang, unquote
-from tools.safe_eval import test_python_expr
+from tools.float_utils import float_compare
+from tools.safe_eval import datetime as eval_datetime
+from tools.safe_eval import dateutil as eval_dateutil
+from tools.safe_eval import safe_eval, test_python_expr
+from tools.safe_eval import time as eval_time
 
 _logger = logging.getLogger(__name__)
+_server_action_logger = _logger.getChild("server_action_safe_eval")
+
+
+class LoggerProxy:
+    """≙ ``LoggerProxy``, en
+    ``odoo19c: odoo/addons/base/models/ir_actions.py:30-54``.
+
+    El ``_logger`` que ve el código de una acción de servidor: sólo los cinco
+    métodos de abajo, porque se ejecuta dentro de ``safe_eval``.
+    """
+
+    @staticmethod
+    def log(level, message, *args, stack_info=False, exc_info=False):
+        _server_action_logger.log(level, message, *args,
+                                  stack_info=stack_info, exc_info=exc_info)
+
+    @staticmethod
+    def info(message, *args, stack_info=False, exc_info=False):
+        _server_action_logger.info(message, *args,
+                                   stack_info=stack_info, exc_info=exc_info)
+
+    @staticmethod
+    def warning(message, *args, stack_info=False, exc_info=False):
+        _server_action_logger.warning(message, *args,
+                                      stack_info=stack_info,
+                                      exc_info=exc_info)
+
+    @staticmethod
+    def error(message, *args, stack_info=False, exc_info=False):
+        _server_action_logger.error(message, *args,
+                                    stack_info=stack_info, exc_info=exc_info)
+
+    @staticmethod
+    def exception(message, *args, stack_info=False, exc_info=True):
+        _server_action_logger.exception(message, *args,
+                                        stack_info=stack_info,
+                                        exc_info=exc_info)
+
 
 #: ``VIEW_TYPES`` verbatim de ``ir_actions.py:401-408``.
 VIEW_TYPES = [
@@ -285,6 +324,26 @@ class IrActionsBase(
 
     class Meta:
         abstract = True
+
+    def _get_eval_context(self, action=None):
+        """≙ ``_get_eval_context`` de ``ir.actions.actions``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:140-153``): el
+        contexto base que ``safe_eval`` recibe. ``uid`` y ``user`` salen del
+        entorno ambiental; los módulos son los envueltos de
+        ``tools.safe_eval``."""
+        environment = env()
+        return {
+            'uid': environment.uid,
+            'user': environment.user,
+            'time': eval_time,
+            'datetime': eval_datetime,
+            'dateutil': eval_dateutil,
+            'timezone': timezone,
+            'float_compare': float_compare,
+            'b64encode': base64.b64encode,
+            'b64decode': base64.b64decode,
+            'Command': Command,
+        }
 
     def _for_xml_id(self, full_xml_id):
         """Devuelve el contenido de la acción con ese identificador externo.
@@ -2108,6 +2167,15 @@ class IrActionsServer(IrActionsBase):
             return runner, True
         return getattr(model, f'_run_action_{self.state}', None), False
 
+    def _run_action_code_multi(self, eval_context):
+        """≙ ``_run_action_code_multi``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:1013-1017``)."""
+        if not self.code:
+            return None
+        safe_eval(self.code.strip(), eval_context, mode='exec',
+                  filename=str(self))
+        return eval_context.get('action')
+
     def _run_action_multi(self, eval_context=None):
         """≙ ``_run_action_multi`` (``:1019-1023``).
 
@@ -2382,21 +2450,14 @@ class IrActionsServer(IrActionsBase):
 
         Siete resuelven sin evaluar nada: la secuencia, las cuatro operaciones
         de campo relacional múltiple, el booleano, el entero, el flotante y el
-        ``html``. La octava —``equation``— evalúa Python almacenado y es la
-        divergencia declarada del módulo: **levanta con su motivo** en vez de
-        devolver la cadena sin evaluar, que sería escribir el texto del
-        programa en el campo y llamarlo éxito.
+        ``html``. La octava —``equation``— evalúa ``value`` con ``safe_eval``
+        sobre el contexto de evaluación, como la fuente.
         """
         expression = self.value
         ttype = self.update_field_id.ttype if self.update_field_id else None
         if self.evaluation_type == 'equation':
-            raise NotImplementedError(
-                'El modo de valor "equation" evalúa Python almacenado; este '
-                'árbol no monta un evaluador sobre entrada guardada sin '
-                'decidir explícitamente su contexto (misma decisión que '
-                'ir_rule.domain_force). Ver el docstring del módulo.'
-            )
-        if self.evaluation_type == 'sequence':
+            expression = safe_eval(self.value, eval_context)
+        elif self.evaluation_type == 'sequence':
             expression = (
                 self.sequence_id.next_by_id() if self.sequence_id else False
             )
@@ -2437,16 +2498,12 @@ class IrActionsServer(IrActionsBase):
     def _get_eval_context(self, action=None):
         """≙ ``_get_eval_context`` (``:1111-1149``).
 
-        El diccionario que la fuente pasa a ``safe_eval``. Se porta **entero**
-        aunque aquí ningún corredor lo evalúe: es el contrato que un corredor
-        propio recibe, y los cinco que corren lo reciben igual.
-
-        Lo que NO se porta y por qué: ``env``, ``uid`` y ``user`` de la base
-        (``:140-153``) son el ``Environment`` de la referencia, que este árbol
-        resuelve con ``orm.environments`` y no con un objeto que se pase de
-        mano en mano; ``time``/``datetime``/``dateutil`` son los módulos que
-        su evaluador restringido necesita exponer, y sin evaluador no tienen
-        receptor.
+        El diccionario que la fuente pasa a ``safe_eval``: el de la base
+        (``:140-153``) más ``env``, ``model``, ``UserError``, ``record``,
+        ``records``, ``log`` y ``_logger``. ``env`` es el entorno ambiental
+        de ``orm.environments``; ``model`` es la clase que resuelve
+        ``model_name``, la misma que el corredor de métodos del cron invoca
+        (``model_id`` como ``Many2one`` sigue en **#139**).
         """
         action = self if action is None else action
         context = get_context()
@@ -2503,14 +2560,17 @@ class IrActionsServer(IrActionsBase):
             finally:
                 separate.close()
 
-        return {
+        eval_context = super()._get_eval_context(action=action)
+        eval_context.update({
+            'env': env(),
             'model': model,
             'UserError': UserError,
             'record': record,
             'records': records,
             'log': log,
-            '_logger': _logger,
-        }
+            '_logger': LoggerProxy,
+        })
+        return eval_context
 
     def run(self):
         """≙ ``run`` (``:1151-1181``) — el punto de entrada del motor.

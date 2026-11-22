@@ -1274,11 +1274,9 @@ certificate/models/certificate.py::CertificateCertificate::create
 # no este archivo. `tests/unit/scripts/test_divergencias_declaradas.py` lo
 # vigila por nombre y este intento fue justamente lo que atrapo.
 #
-# El modo `code` NO se evalua en este arbol: es la misma divergencia declarada
-# que `ir_rule.domain_force` y que la rama `equation` de `_eval_value`. Su
-# corredor levanta con el motivo en vez de callar; ver el bloque "El motor de
-# ejecucion (#117)" del propio archivo.
-base/models/ir_actions.py::IrActionsServer::_run_action_code_multi
+# El modo `code` se porta desde 2026-11-22 (`designs/server-action-code-
+# runner.md`): `ir_rule.domain_force`, que era su precedente, ya se evalua con
+# `safe_eval`, asi que la divergencia que aqui se declaraba quedo sin motivo.
 
 # ===========================================================================
 # base/models/ir_model.py  (tarea #172)
