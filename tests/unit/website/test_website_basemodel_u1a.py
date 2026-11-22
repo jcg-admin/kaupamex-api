@@ -10,8 +10,6 @@ website-basemodel-u1a.md``.
 llamadas a ``_invalidate_routing``.
 *Ciega a:* el middleware que sirve las 308/404 desde estas filas (#562).
 """
-from unittest import mock
-
 import pytest
 
 from addons.website.models import (
@@ -34,6 +32,18 @@ def _rewrites():
     return env()['website.rewrite']
 
 
+@pytest.fixture
+def invalidations(monkeypatch):
+    """Registra cada ``_invalidate_routing``. Es una función y no un
+    doble de ``unittest.mock``: el colector de ``@api.ondelete`` busca en la
+    clase los atributos con ``_ondelete``, un doble responde a cualquiera y
+    el borrado lo llamaría como comprobación."""
+    calls = []
+    monkeypatch.setattr(WebsiteRewrite, '_invalidate_routing',
+                        lambda self: calls.append(self.ids))
+    return calls
+
+
 @pytest.mark.parametrize('model', [
     WebsiteConfiguratorFeature, WebsiteRoute, WebsiteRewrite,
 ])
@@ -49,28 +59,32 @@ def test_refresh_creates_and_unlinks_routes():
     assert routes.search([])
 
 
-def test_unlinking_a_308_invalidates_the_routing():
+def test_unlinking_a_308_invalidates_the_routing(invalidations):
     rewrite = _rewrites().create([{
         'name': 'u1a 308', 'redirect_type': '308',
         'url_from': '/u1a-from', 'url_to': '/u1a-to'}])
-    with mock.patch.object(WebsiteRewrite, '_invalidate_routing') as spy:
-        rewrite.unlink()
-    assert spy.called
+    # Lo pendiente de la creación se vuelca antes: ``unlink`` empieza con
+    # ``flush_all`` y ese ``write`` diferido también invalidaría.
+    env().flush_all()
+    invalidations.clear()
+    rewrite.unlink()
+    assert invalidations
 
 
-def test_writing_into_a_404_invalidates_the_routing():
+def test_writing_into_a_404_invalidates_the_routing(invalidations):
     rewrite = _rewrites().create([{
         'name': 'u1a 302', 'redirect_type': '302',
         'url_from': '/u1a-a', 'url_to': '/u1a-b'}])
-    with mock.patch.object(WebsiteRewrite, '_invalidate_routing') as spy:
-        rewrite.write({'redirect_type': '404'})
-    assert spy.called
+    env().flush_all()
+    invalidations.clear()
+    rewrite.write({'redirect_type': '404'})
+    assert invalidations
 
 
 def test_url_to_slash_is_rejected():
     with pytest.raises(ValidationError):
         _rewrites().create([{
-            'name': 'u1a slash', 'redirect_type': '301',
+            'name': 'u1a slash', 'redirect_type': '308',
             'url_from': '/u1a-slash', 'url_to': '/'}])
 
 

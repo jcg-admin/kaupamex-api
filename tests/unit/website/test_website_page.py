@@ -24,7 +24,7 @@ from addons.website.models.website_page import WebsitePage
 from addons.website.models.website_rewrite import WebsiteRewrite, WebsiteRoute
 from exceptions import UserError, ValidationError
 from orm.domains import Domain
-from orm.environments import sudo
+from orm.environments import env, sudo
 
 pytestmark = [pytest.mark.django_db]
 
@@ -405,29 +405,27 @@ class TestPageInfo:
 
 
 class TestRewriteInvariant:
+    """``_check_url_to`` es ``@api.constrains``: corre en el ``create`` del
+    ORM, como en la fuente, no en ``objects.create`` de Django
+    (``designs/website-basemodel-u1a.md``)."""
+
     def test_a_redirect_without_target_is_rejected(self):
         with pytest.raises(ValidationError):
-            WebsiteRewrite.objects.create(
-                name='Sin destino', url_from='/vieja', redirect_type='301'
-            )
+            env()['website.rewrite'].create([{
+                'name': 'Sin destino', 'url_from': '/vieja',
+                'redirect_type': '301'}])
 
     def test_a_308_cannot_point_to_the_homepage(self):
         with pytest.raises(ValidationError):
-            WebsiteRewrite.objects.create(
-                name='A la portada',
-                url_from='/algo',
-                url_to='/',
-                redirect_type='308',
-            )
+            env()['website.rewrite'].create([{
+                'name': 'A la portada', 'url_from': '/algo',
+                'url_to': '/', 'redirect_type': '308'}])
 
     def test_a_308_must_carry_the_from_parameters(self):
         with pytest.raises(ValidationError):
-            WebsiteRewrite.objects.create(
-                name='Parámetro perdido',
-                url_from='/x/<id>',
-                url_to='/y',
-                redirect_type='308',
-            )
+            env()['website.rewrite'].create([{
+                'name': 'Parámetro perdido', 'url_from': '/x/<id>',
+                'url_to': '/y', 'redirect_type': '308'}])
 
     def test_display_name_prefixes_the_redirect_type(self):
         rewrite = WebsiteRewrite.objects.create(

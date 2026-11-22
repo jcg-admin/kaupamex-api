@@ -46,7 +46,7 @@ import re
 import api
 import fields
 import models
-from django.urls import Resolver404, get_resolver
+from django.urls import Resolver404, clear_url_caches, get_resolver
 
 from addons.base.models import TimeStampedModel
 from orm.environments import env
@@ -394,11 +394,13 @@ class WebsiteRewrite(models.BaseModel, TimeStampedModel):
         La fuente limpia la caché 'routing' en todos los workers porque sólo
         404 y 308 alteran el mapa (404 quita la entrada; 301/302 se sirven
         como fallback; 308 añade el alias). Aquí el mapa es la URLconf y su
-        caché es el ``lru_cache`` de ``get_resolver`` — se limpia ése, que
-        es el único routing cacheado que este árbol tiene; el middleware que
-        sirva las 308/404 desde estas filas es la tarea **#562**.
+        caché vive detrás de ``get_resolver``, que en Django 6 es una función
+        sin ``cache_clear``: se limpia con ``clear_url_caches``, la API
+        pública que la vacía. Es el único routing cacheado que este árbol
+        tiene; el middleware que sirva las 308/404 desde estas filas es la
+        tarea **#562**.
         """
-        get_resolver.cache_clear()
+        clear_url_caches()
 
     def refresh_routes(self):
         """≙ ``refresh_routes`` (``odoo19c: website_rewrite.py:167-168``)."""
