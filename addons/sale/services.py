@@ -65,8 +65,17 @@ def get_or_create_draft_order(user=None, cart_token=None):
     - Anónimo (``cart_token``): busca/crea el draft por token (columna
       UNIQUE; múltiples NULL permitidos — verificado en PostgreSQL).
 
-    Retorna ``(order, created)``.
+    Retorna ``(order, created)``, con la orden elevada como el carrito de la
+    fuente: ``sale_order_sudo`` (``odoo19c: addons/website_sale/models/
+    website.py:679``). La autorización del carrito es que pertenezca a quien
+    lo pide, no la ACL de ``sale.order.line``.
     """
+    order, created = _draft_order(user, cart_token)
+    return order.sudo(), created
+
+
+def _draft_order(user, cart_token):
+    """La orden draft del usuario o del token, sin elevar."""
     if user is not None and getattr(user, 'is_authenticated', False):
         draft = (
             SaleOrder.objects.filter(partner=user, state=SaleOrder.STATE_DRAFT)
@@ -138,7 +147,8 @@ def add_item_to_draft(order, product, quantity=1):
     unit_price = product.sudo().lst_price
 
     with transaction.atomic():
-        line, created = order.order_line.get_or_create(
+        line, created = SaleOrderLine.objects.get_or_create(
+            order=order,
             product=product,
             defaults={
                 'name': _line_snapshot_name(product),
@@ -165,15 +175,13 @@ def clear_draft_items(order):
     """Vacía el draft (UC-CART-03).
 
     ``QuerySet.delete()`` en bloque no pasa por ``BaseModel.unlink`` y no
-    anuncia el borrado, así que la dependencia de ``amount_*`` sobre
-    ``order_line`` no recalcula: se dispara explícito para que el total
-    quede en ``0.00``. Pasa a ``unlink()`` cuando ``order_line`` sea un
-    recordset (U3b, ``designs/sale-basemodel-u3a-order-line.md``).
+    anuncia el borrado; ``unlink()`` sí, y la dependencia de ``amount_*``
+    sobre ``order_line`` recalcula el total sin llamada explícita (medido por
+    anulación, ``designs/sale-basemodel-u3b-callers.md``).
     """
     if order.state != SaleOrder.STATE_DRAFT:
         raise DraftOrderError('La orden no es un draft.', 'ORDER_NOT_DRAFT')
-    order.order_line.all().delete()
-    order._compute_amounts()
+    order.order_line.unlink()
 
 
 def _draft_extra_discount(order, subtotal):
@@ -208,7 +216,7 @@ def get_draft_totals(order):
     threshold = get_setting('free_shipping_threshold')
     threshold = threshold if threshold > 0 else None
 
-    lines = list(order.order_line.all())
+    lines = list(order.order_line)
     subtotal = sum(
         (item.price_unit * item.product_uom_qty for item in lines),
         Decimal('0.00'))
@@ -246,7 +254,7 @@ def update_draft_item_quantity(order, item_pk, quantity):
         raise DraftOrderError('La orden no es un draft.', 'ORDER_NOT_DRAFT')
     if quantity < 1:
         raise DraftOrderError('quantity debe ser >= 1.', 'INVALID_QUANTITY')
-    line = order.order_line.filter(pk=item_pk).first()
+    line = SaleOrderLine.objects.filter(order=order, pk=item_pk).first()
     if line is None:
         raise DraftOrderError('Item no encontrado.', 'ITEM_NOT_FOUND')
     stock = InventoryService.available_quantity(line.product)
@@ -261,7 +269,7 @@ def remove_draft_item(order, item_pk):
     """Elimina una línea del draft (UC-CART-03)."""
     if order.state != SaleOrder.STATE_DRAFT:
         raise DraftOrderError('La orden no es un draft.', 'ORDER_NOT_DRAFT')
-    line = order.order_line.filter(pk=item_pk).first()
+    line = SaleOrderLine.objects.filter(order=order, pk=item_pk).first()
     if line is None:
         raise DraftOrderError('Item no encontrado.', 'ITEM_NOT_FOUND')
     line.unlink()
@@ -292,7 +300,7 @@ def merge_draft_orders(user, cart_token):
 
     skipped = []
     with transaction.atomic():
-        for anon_line in anon_order.order_line.select_related('product').all():
+        for anon_line in anon_order.order_line:
             available = InventoryService.available_quantity(anon_line.product)
             if available <= 0:
                 skipped.append(
@@ -304,9 +312,9 @@ def merge_draft_orders(user, cart_token):
                 )
                 continue
 
-            existing = auth_order.order_line.filter(
-                product=anon_line.product
-            ).first()
+            existing = auth_order.order_line.filtered(
+                lambda line: line.product.id == anon_line.product.id
+            )[:1]
             if existing:
                 new_qty = existing.product_uom_qty + anon_line.product_uom_qty
                 if new_qty > available:
@@ -324,13 +332,14 @@ def merge_draft_orders(user, cart_token):
                 merge_qty = anon_line.product_uom_qty
                 if merge_qty > available:
                     merge_qty = available
-                auth_order.order_line.create(
+                SaleOrderLine.objects.create(
+                    order=auth_order,
                     product=anon_line.product,
                     name=anon_line.name,
                     price_unit=anon_line.price_unit,
                     product_uom_qty=merge_qty,
                 )
-        anon_order.delete()
+        anon_order.unlink()
     return auth_order, skipped
 
 
@@ -373,11 +382,9 @@ def confirm_draft_order(
     # precio 0 del producto de servicio, borrando el importe— y no cruzan al
     # espejo legacy, cuyos ``SaleOrderLine`` son de producto por contrato.
     # Un carrito con sólo líneas marcadoras está vacío.
-    lines = list(
-        order.order_line.filter(
-            is_delivery=False, is_reward=False
-        ).select_related('product')
-    )
+    lines = list(order.order_line.filtered(
+        lambda line: not line.is_delivery and not line.is_reward
+    ))
     if not lines:
         raise DraftOrderError('El carrito está vacío.', 'EMPTY_CART')
 
@@ -425,7 +432,8 @@ def confirm_draft_order(
             ):
                 raise DraftOrderError(
                     f'Voucher {voucher_locked.code} agotado: '
-                    f'{voucher_locked.current_uses}/{voucher_locked.max_uses}.',
+                    f'{voucher_locked.current_uses}/'
+                    f'{voucher_locked.max_uses}.',
                     'VOUCHER_EXHAUSTED',
                 )
             Voucher.objects.filter(pk=voucher.pk).update(
@@ -566,12 +574,10 @@ def cancel_order(
         # envío y descuento no reservaron nada que devolver.
         stock_items = [
             {'product': line.product, 'quantity': line.product_uom_qty}
-            for line in (
-                order.order_line.filter(
-                    is_delivery=False, is_reward=False
-                ).select_related('product')
+            for line in order.order_line.filtered(
+                lambda line: not line.is_delivery and not line.is_reward
             )
-            if line.product_id
+            if line.product
         ]
         if stock_items:
             InventoryService.restore(

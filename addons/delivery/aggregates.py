@@ -22,5 +22,10 @@ AMOUNT_DELIVERY_SQL = line_sum_subquery(Q(is_delivery=True))
 
 
 def with_delivery_amount(queryset):
-    """Anota un queryset de ``SaleOrder`` con su importe de envío."""
+    """Anota un queryset de ``SaleOrder`` con su importe de envío.
+
+    ``sale.order`` es ``BaseModel``: un registro no recibe anotaciones
+    (``BaseModel.__setattr__``), así que el importe se lee como fila,
+    con ``.values('amount_delivery_sql')``.
+    """
     return queryset.annotate(amount_delivery_sql=AMOUNT_DELIVERY_SQL)

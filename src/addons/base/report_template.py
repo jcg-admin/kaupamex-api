@@ -168,9 +168,9 @@ def _render_text(text, context):
 
 
 def _resolve_path(path, context):
-    # ``in="order.order_line.all"`` — la resolución de variables de DTL, la
-    # misma que un ``{{ }}`` usa por dentro (llama callables sin argumentos,
-    # p. ej. managers .all).
+    # ``in="docs.order_line"`` — la resolución de variables de DTL, la misma
+    # que un ``{{ }}`` usa por dentro (recorre atributos y llama callables
+    # sin argumentos, como el ``.all`` de un gestor de Django).
     #
     # ``AttributeError`` entra en la guarda a propósito, y no es defensa
     # genérica: DTL degrada a ``string_if_invalid`` en dos ramas —el callable

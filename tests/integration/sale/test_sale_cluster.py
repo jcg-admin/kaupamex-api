@@ -128,7 +128,7 @@ def test_sale_order_team_id(db):
     team = CrmTeam.objects.create(name='Equipo A')
     so = SaleOrder.objects.create(team=team)
     assert so.team.name == 'Equipo A'
-    assert so in team.sale_orders.all()
+    assert so.pk in team.sale_orders.ids
 
 
 # ---------------------------------------------------------------- sale_stock

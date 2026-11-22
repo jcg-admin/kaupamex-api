@@ -50,8 +50,8 @@ def free_shipping_discount(order) -> Decimal:
     voucher = coupon.voucher if coupon and coupon.voucher_id else None
     if voucher is None or voucher.voucher_type != Voucher.TYPE_FREE_SHIPPING:
         return Decimal('0.00')
-    delivery_line = order.order_line.filter(is_delivery=True).first()
-    if delivery_line is None:
+    delivery_line = order.order_line.filtered('is_delivery')[:1]
+    if not delivery_line:
         return Decimal('0.00')
     price = delivery_line.price_unit or Decimal('0.00')
     cap = voucher.max_discount

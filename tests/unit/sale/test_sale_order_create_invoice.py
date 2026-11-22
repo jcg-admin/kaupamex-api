@@ -23,7 +23,7 @@ import pytest
 from exceptions import UserError
 from addons.account.models import AccountAccount, AccountJournal, AccountMove
 from addons.base.models import ResCompany
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from tests.factories.product_factory import make_category, make_product
 
 
@@ -65,7 +65,8 @@ def confirmed_order(db, company):
     order = SaleOrder.objects.create(
         state=SaleOrder.STATE_SALE, company=company, cart_token=uuid.uuid4()
     )
-    order.order_line.create(
+    SaleOrderLine.objects.create(
+        order=order,
         product=product,
         name='Prod',
         price_unit=Decimal('116.00'),
@@ -102,7 +103,8 @@ class TestSaleOrderCreateInvoice:
         order = SaleOrder.objects.create(
             state=SaleOrder.STATE_SALE, cart_token=uuid.uuid4()
         )  # sin company
-        order.order_line.create(
+        SaleOrderLine.objects.create(
+            order=order,
             product=product,
             name='P',
             price_unit=Decimal('50.00'),

@@ -91,7 +91,7 @@ class TestLaColumnaSeRecalculaAlCambiarLineas:
 
     def test_editar_la_cantidad_recalcula_el_total(self, producto):
         order = _order(producto)
-        linea = order.order_line.get()
+        linea = order.order_line.ensure_one()
         linea.product_uom_qty = 3
         linea.save(update_fields=['product_uom_qty', 'write_date'])
         assert order.amount_total == Decimal('300.00')
@@ -99,7 +99,7 @@ class TestLaColumnaSeRecalculaAlCambiarLineas:
     def test_borrar_la_linea_recalcula_a_cero(self, producto):
         order = _order(producto)
         assert order.amount_total == Decimal('100.00')
-        order.order_line.get().unlink()
+        order.order_line.ensure_one().unlink()
         assert order.amount_total == Decimal('0.00')
 
     def test_persiste_en_bd_no_solo_en_memoria(self, producto):
@@ -204,21 +204,22 @@ class TestDesgloseContribuidoPorCadaAddon:
         qs = with_reward_amount(
             with_delivery_amount(SaleOrder.objects.filter(pk=order.pk))
         )
-        row = qs.first()
+        row = qs.values(
+            'amount_delivery_sql', 'amount_reward_sql', 'amount_total').get()
 
-        assert row.amount_delivery_sql == Decimal('99.00')
-        assert row.amount_reward_sql == Decimal('-20.00')
-        assert row.amount_total == Decimal('179.00')
-        assert row.amount_total == order.amount_total
+        assert row['amount_delivery_sql'] == Decimal('99.00')
+        assert row['amount_reward_sql'] == Decimal('-20.00')
+        assert row['amount_total'] == Decimal('179.00')
+        assert row['amount_total'] == order.amount_total
 
     def test_sin_lineas_marcadas_los_desgloses_dan_cero(self, producto):
         order = _order(producto)
         qs = with_reward_amount(
             with_delivery_amount(SaleOrder.objects.filter(pk=order.pk))
         )
-        row = qs.first()
-        assert row.amount_delivery_sql == Decimal('0.00')
-        assert row.amount_reward_sql == Decimal('0.00')
+        row = qs.values('amount_delivery_sql', 'amount_reward_sql').get()
+        assert row['amount_delivery_sql'] == Decimal('0.00')
+        assert row['amount_reward_sql'] == Decimal('0.00')
 
 
 class TestBackfillDeOrdenesPreexistentes:

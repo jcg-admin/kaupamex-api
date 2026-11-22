@@ -55,7 +55,7 @@ def orden():
 class TestSaleService:
 
     def test_is_service_deriva_del_tipo_del_producto(self, orden):
-        linea = orden.order_line.first()
+        linea = orden.order_line[:1]
         assert is_service(linea) is False
         linea.product.product_tmpl_id.type = TYPE_SERVICE
         linea.product.product_tmpl_id.save(update_fields=['type'])
@@ -63,7 +63,7 @@ class TestSaleService:
         assert is_service(linea) is True
 
     def test_el_dominio_filtra_por_tipo_y_estado(self, orden):
-        linea = orden.order_line.first()
+        linea = orden.order_line[:1]
         linea.product.product_tmpl_id.type = TYPE_SERVICE
         linea.product.product_tmpl_id.save(update_fields=['type'])
         # check_state=False: entra sin importar el estado de la orden.
@@ -81,7 +81,7 @@ class TestSaleLoyaltyDelivery:
     def _with_shipping(self, orden, precio='50.00'):
         SaleOrderLine.objects.create(
             order=orden,
-            product=orden.order_line.first().product,
+            product=orden.order_line[:1].product,
             name='Envío estándar',
             price_unit=Decimal(precio),
             product_uom_qty=1,
@@ -130,10 +130,10 @@ class TestSaleStockProductExpiry:
     satélite ``ProductExpiryConfig`` que este puerto inventaba."""
 
     def test_sin_config_es_falso(self, orden):
-        assert use_expiration_date(orden.order_line.first()) is False
+        assert use_expiration_date(orden.order_line[:1]) is False
 
     def test_el_related_lee_la_config_del_producto(self, orden):
-        linea = orden.order_line.first()
+        linea = orden.order_line[:1]
         plantilla = linea.product.product_tmpl_id
         plantilla.tracking = 'lot'
         plantilla.use_expiration_date = True
@@ -175,7 +175,7 @@ class TestSaleMrpMargin:
         assert bom_unit_cost(suelto) is None
 
     def test_el_margen_usa_el_costo_de_bom(self, orden):
-        linea = orden.order_line.first()
+        linea = orden.order_line[:1]
         self._kit_con_componentes(linea.product)
         cost = recompute_purchase_price_with_bom(linea)
         assert cost == Decimal('75.00')

@@ -55,7 +55,8 @@ def apply_voucher_to_draft(order, code, user=None):
     with transaction.atomic():
         order = SaleOrder.objects.select_for_update().get(pk=order.pk)
         cart_total = sum(
-            (l.price_unit * l.product_uom_qty for l in order.order_line.all()),
+            (line.price_unit * line.product_uom_qty
+             for line in order.order_line),
             Decimal('0.00'))
 
         error_code = voucher.validate_for_cart(cart_total, user)

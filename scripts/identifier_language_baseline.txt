@@ -380,9 +380,15 @@ addons/payment_mercado_pago/apps.py::PaymentMercadoPagoConfig
 addons/payment_mercado_pago/checks.py::check_mercadopago_client_secret
 addons/payment_mercado_pago/controllers.py::MercadoPagoWebhookView
 addons/payment_mercado_pago/gateway.py::MercadoPagoGateway
+addons/payment_mercado_pago/gateway.py::banamex
+addons/payment_mercado_pago/gateway.py::bancomer
+addons/payment_mercado_pago/gateway.py::clabe
+addons/payment_mercado_pago/gateway.py::oxxo
+addons/payment_mercado_pago/gateway.py::serfin
 addons/payment_mercado_pago/management/commands/mp_sandbox_charge.py::APRO
 addons/payment_mercado_pago/management/commands/mp_sandbox_charge.py::SECU
 addons/payment_mercado_pago/management/commands/setup_mp_gateway.py::modo
+addons/payment_paypal/gateway.py::auth_algo
 addons/portal/controllers/main.py::campo
 addons/portal/controllers/main.py::datos
 addons/portal/controllers/main.py::direccion

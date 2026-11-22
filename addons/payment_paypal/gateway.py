@@ -121,27 +121,28 @@ class PayPalGateway(BaseGateway):
         brand_name  = _resolve_brand_name(order)
 
         purchase_units = [{
-            'reference_id':  order.name,
-            'description':   f'Orden {order.name} — {brand_name}',
+            'reference_id': order.name,
+            'description': f'Orden {order.name} — {brand_name}',
             'amount': {
                 'currency_code': 'MXN',
-                'value':         total,
+                'value': total,
                 'breakdown': {
                     'item_total': {'currency_code': 'MXN', 'value': total},
                 },
             },
             'items': [
                 {
-                    'name':        item.name,
+                    'name': item.name,
                     'description': (item.variant.option.label
                                     if item.variant_id else ''),
-                    'unit_amount': {'currency_code': 'MXN', 'value': str(item.price_unit)},
-                    'quantity':    str(item.product_uom_qty),
+                    'unit_amount': {'currency_code': 'MXN',
+                                    'value': str(item.price_unit)},
+                    'quantity': str(item.product_uom_qty),
                 }
                 # Sólo producto: envío y descuento son términos del total.
-                for item in order.order_line.filter(
-                    is_delivery=False, is_reward=False
-                ).select_related('product', 'variant__option').order_by('id')
+                for item in order.order_line.filtered(
+                    lambda line: not line.is_delivery and not line.is_reward
+                ).sorted('id')
             ],
         }]
 

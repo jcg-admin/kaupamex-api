@@ -190,7 +190,7 @@ def _cart_payload(order):
                 'quantity': line.product_uom_qty,
                 'price_unit': str(line.price_unit),
             }
-            for line in order.order_line.select_related('product').all()
+            for line in order.order_line
         ],
         'totals': get_draft_totals(order),
     }
@@ -485,7 +485,7 @@ def save_cart_for_later(request):
     carrito anónimo no tiene dónde guardarse.
     """
     order, _created = _resolve_cart(request)
-    lines = list(order.order_line.select_related('product').all())
+    lines = list(order.order_line)
     if not lines:
         return Response(
             {'codigo_error': 'EMPTY_CART',

@@ -27,7 +27,7 @@ from addons.account.models import AccountAccount, AccountJournal
 from addons.account.services import create_invoice_from_sale_order
 from tests.factories.product_factory import make_category, make_product
 from addons.base.models import ResCompany
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 
 
 @pytest.fixture
@@ -76,7 +76,8 @@ def confirmed_order(db):
     order = SaleOrder.objects.create(
         state=SaleOrder.STATE_SALE, cart_token=uuid.uuid4()
     )
-    order.order_line.create(
+    SaleOrderLine.objects.create(
+        order=order,
         product=product,
         name='Prod',
         price_unit=Decimal('116.00'),

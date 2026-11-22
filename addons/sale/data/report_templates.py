@@ -54,7 +54,7 @@ REPORT_SALEORDER_ARCH = (
     """{% else %}{{ docs.create_date|date:'c' }}{% endif %}</field>
   <field name="currency">{% if currency %}{{ currency }}{% else %}"""
     """MXN{% endif %}</field>
-  <list name="items" in="docs.order_line.all">
+  <list name="items" in="docs.order_line">
     <field name="name">{% if item.name %}{{ item.name }}{% else %}"""
     """{{ item.product }}{% endif %}</field>
     <field name="sku">{{ item.product.default_code|default_if_none:'' }}"""

@@ -100,7 +100,7 @@ def build_sale_order(records, **ctx):
     ver el motor en ``base/models/ir_actions_report.py``.
     """
     order = records[0] if isinstance(records, (list, tuple)) else records
-    lines = order.order_line.select_related('product').all()
+    lines = order.order_line
     return {
         'issuer': _issuer(order.company),
         'buyer': _buyer(order),

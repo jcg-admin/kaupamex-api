@@ -27,7 +27,7 @@ from addons.account.services import (
 )
 from tests.factories.product_factory import make_category, make_product
 from addons.base.models import ResCompany
-from addons.sale.models import SaleOrder
+from addons.sale.models import SaleOrder, SaleOrderLine
 from orm.environments import sudo
 
 
@@ -82,7 +82,8 @@ def posted_invoice(db, company, chart):
     order = SaleOrder.objects.create(
         state=SaleOrder.STATE_SALE, cart_token=uuid.uuid4()
     )
-    order.order_line.create(
+    SaleOrderLine.objects.create(
+        order=order,
         product=product,
         name='Prod',
         price_unit=Decimal('116.00'),

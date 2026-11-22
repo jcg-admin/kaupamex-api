@@ -138,14 +138,20 @@ def _png_1x1_b64() -> str:
 
 @pytest.fixture
 def orden_con_lineas():
-    """Una orden con dos líneas — el sujeto de ``sale.report_saleorder``."""
+    """Una orden con dos líneas — el sujeto de ``sale.report_saleorder``.
+
+    Se entrega elevada: estos casos miden el motor, no el ACL de
+    ``sale.order.line`` (lo mide
+    ``tests/unit/sale/test_sale_security_acl.py``),
+    y el entorno ambiente de la prueba no tiene usuario.
+    """
     producto = make_product(name='Ofrenda de Osun', price='150.00')
     orden = make_order(product=producto, quantity=2, unit_price='150.00')
     SaleOrderLine.objects.create(
         order=orden, product=producto, name='Vela de siete días',
         price_unit='45.50', product_uom_qty=3,
     )
-    return orden
+    return orden.sudo()
 
 
 @pytest.fixture
@@ -193,7 +199,7 @@ class TestDescriptor:
     def test_lleva_las_lineas_de_la_orden(self, orden_con_lineas):
         spec = report_catalog.get('sale.report_saleorder')
         descriptor = spec.builder(orden_con_lineas)
-        assert len(descriptor['items']) == orden_con_lineas.order_line.count()
+        assert len(descriptor['items']) == len(orden_con_lineas.order_line)
 
     def test_los_importes_viajan_preformateados(self, orden_con_lineas):
         """El contrato del helper lo exige: strings, no Decimal ni float.
@@ -364,7 +370,7 @@ class TestConversion:
         enmascararía lo que este caso mide, que es la codificación.
         """
         acentuado = 'Vela ñ ó ú € — αβγ'
-        linea = orden_con_lineas.order_line.first()
+        linea = orden_con_lineas.order_line[:1]
         linea.name = acentuado
         linea.save(update_fields=['name'])
 
@@ -386,7 +392,7 @@ class TestConversion:
         exactamente lo que un corte por bytes no puede producir (daría el
         mismo conteo para ambas). Medido en el pase: 90 ``i`` vs 22 ``W``.
         """
-        linea = orden_con_lineas.order_line.first()
+        linea = orden_con_lineas.order_line[:1]
         dibujadas = {}
         for letra in ('i', 'W'):
             linea.name = letra * 90
@@ -564,7 +570,7 @@ class TestPlantillaEnBD:
         # porque el camino UTF-8 de T-002 también cubre esta vía.
         assert 'Plantilla Kaupamex ñ' in impreso
         # La lista se iteró contra el recordset real.
-        linea = orden_con_lineas.order_line.first()
+        linea = orden_con_lineas.order_line[:1]
         assert linea.name in impreso
 
     def test_sin_vista_el_builder_sigue_siendo_el_documento(

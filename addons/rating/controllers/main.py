@@ -204,8 +204,9 @@ class ProductReviewsView(APIView):
             })
         # Sólo renglones de producto: las líneas marcadoras de envío y
         # descuento no son algo que el comprador pueda reseñar.
-        if not order.order_line.filter(product=product, is_delivery=False,
-                                       is_reward=False).exists():
+        if not order.order_line.filtered(
+                lambda line: line.product.id == product.pk
+                and not line.is_delivery and not line.is_reward):
             raise PermissionDenied({
                 'detail': 'El producto no fue comprado en esa orden.',
                 'codigo_error': 'PRODUCT_NOT_PURCHASED',

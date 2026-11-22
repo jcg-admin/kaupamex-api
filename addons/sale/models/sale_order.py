@@ -126,9 +126,9 @@ SALESPERSON_GROUP = 'sales_team.group_sale_salesman'
 _COMPANY_NOT_LOADED = object()
 
 
-class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
-                MailActivityMixin, UtmMixin, AccountDocumentImportMixin,
-                TimeStampedModel):
+class SaleOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
+                MailThread, MailActivityMixin, UtmMixin,
+                AccountDocumentImportMixin, TimeStampedModel):
     """``sale.order`` — cotización/carrito (draft) → orden de venta (sale).
 
     Hereda ``MailThread`` igual que ``sale.order`` hereda ``mail.thread`` en la
@@ -897,8 +897,8 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
         """
         self.has_archived_products = value = any(
             not line.product.active
-            for line in self.order_line.all()
-            if line.product_id is not None
+            for line in self.order_line
+            if line.product
         )
         return value
 
@@ -1115,7 +1115,7 @@ class SaleOrder(PortalMixin, ProductCatalogMixin, MailThread,
     # falta, sin recorrer las líneas en Python.
     def _sum_lines(self, attr: str) -> Decimal:
         return sum(
-            (getattr(line, attr) for line in self.order_line.all()),
+            (getattr(line, attr) for line in self.order_line),
             Decimal('0.00'),
         )
 

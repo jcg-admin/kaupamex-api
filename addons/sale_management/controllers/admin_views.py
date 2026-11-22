@@ -58,13 +58,15 @@ def _admin_orders():
     # ``sale.SaleOrderLine`` no tiene campo ``variant`` (el eje se colapsó en
     # ``product`` — H-API-213). Cualquier orden con líneas hacía que este
     # queryset levantara ``AttributeError`` al evaluarse (prefetch inválido).
-    # Se retiran las dos rutas rotas; ``order_line__product`` (sin más
-    # profundidad) sigue evitando el N+1 de acceder al producto por línea.
+    # Se retiraron las dos rutas rotas.
     return (
         SaleOrder.objects
         .exclude(state=SaleOrder.STATE_DRAFT)
         .select_related('partner', 'carrier', 'delivery_address')
-        .prefetch_related('order_line__product', 'payments', 'shipment_guide')
+        # ``order_line`` no se precarga con Django: es un recordset de
+        # ``BaseModel`` y la precarga de Django lo trataría como una
+        # instancia. El ORM lee las líneas en un solo SELECT al acceder.
+        .prefetch_related('payments', 'shipment_guide')
         .order_by('-create_date', '-id')
     )
 

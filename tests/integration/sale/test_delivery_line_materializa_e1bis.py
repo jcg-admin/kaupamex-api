@@ -121,9 +121,9 @@ class TestLineOfShipping:
         draft = _draft(producto, carrier=metodo)
         _checkout(draft, Decimal('99.00'))
         draft.refresh_from_db()
-        envio = draft.order_line.filter(is_delivery=True)
-        assert envio.count() == 1
-        assert envio.first().price_unit == Decimal('99.00')
+        envio = draft.order_line.filtered('is_delivery')
+        assert len(envio) == 1
+        assert envio.price_unit == Decimal('99.00')
 
     def test_el_total_canonico_incluye_el_envio(self, producto, metodo):
         """El punto de H-API-30: antes ``amount_total()`` lo excluía."""
@@ -137,7 +137,7 @@ class TestLineOfShipping:
     ):
         draft = _draft(producto, carrier=metodo)
         set_delivery_line(draft, Decimal('99.00'))
-        linea = draft.order_line.get(is_delivery=True)
+        linea = draft.order_line.filtered('is_delivery').ensure_one()
         assert (
             linea.product.default_code
             == f'{ShippingMethod.SERVICE_SKU_PREFIX}{metodo.pk}'
@@ -158,7 +158,7 @@ class TestLineOfShipping:
         draft = _draft(producto, carrier=None)
         _checkout(draft, Decimal('50.00'))
         draft.refresh_from_db()
-        linea = draft.order_line.get(is_delivery=True)
+        linea = draft.order_line.filtered('is_delivery').ensure_one()
         assert linea.price_unit == Decimal('50.00')
         assert linea.product.default_code == 'SRV-ENVIO'  # producto genérico
         assert linea.name == 'Envío'
@@ -173,7 +173,7 @@ class TestLineaDeRecompensa:
         draft = _draft(producto, carrier=metodo)
         apply_voucher_to_draft(draft, voucher_20.code)
         set_reward_line(draft)
-        linea = draft.order_line.get(is_reward=True)
+        linea = draft.order_line.filtered('is_reward').ensure_one()
         assert linea.price_unit == Decimal('-20.00')
         assert linea.product.default_code == REWARD_SKU
 
@@ -187,7 +187,7 @@ class TestLineaDeRecompensa:
     def test_sin_cupon_no_hay_linea(self, producto, metodo):
         draft = _draft(producto, carrier=metodo)
         assert set_reward_line(draft) is None
-        assert draft.order_line.filter(is_reward=True).count() == 0
+        assert len(draft.order_line.filtered('is_reward')) == 0
 
     def test_el_importe_no_lo_dicta_el_llamador(
         self, producto, metodo, voucher_20
@@ -197,9 +197,8 @@ class TestLineaDeRecompensa:
         draft = _draft(producto, carrier=metodo)
         apply_voucher_to_draft(draft, voucher_20.code)
         set_reward_line(draft)
-        assert draft.order_line.get(is_reward=True).price_unit == Decimal(
-            '-20.00'
-        )
+        reward = draft.order_line.filtered('is_reward').ensure_one()
+        assert reward.price_unit == Decimal('-20.00')
 
 
 class TestMecanismoABorrarYRecrear:
@@ -209,16 +208,16 @@ class TestMecanismoABorrarYRecrear:
         draft = _draft(producto, carrier=metodo)
         set_delivery_line(draft, Decimal('99.00'))
         set_delivery_line(draft, Decimal('149.00'))
-        lineas = draft.order_line.filter(is_delivery=True)
-        assert lineas.count() == 1
-        assert lineas.first().price_unit == Decimal('149.00')
+        lineas = draft.order_line.filtered('is_delivery')
+        assert len(lineas) == 1
+        assert lineas.price_unit == Decimal('149.00')
 
     def test_importe_cero_borra_la_linea(self, producto, metodo):
         draft = _draft(producto, carrier=metodo)
         set_delivery_line(draft, Decimal('99.00'))
-        assert draft.order_line.filter(is_delivery=True).count() == 1
+        assert len(draft.order_line.filtered('is_delivery')) == 1
         set_delivery_line(draft, Decimal('0.00'))
-        assert draft.order_line.filter(is_delivery=True).count() == 0
+        assert len(draft.order_line.filtered('is_delivery')) == 0
 
     def test_re_materializar_la_recompensa_deja_una_sola_linea(
         self, producto, metodo, voucher_20
@@ -227,7 +226,7 @@ class TestMecanismoABorrarYRecrear:
         apply_voucher_to_draft(draft, voucher_20.code)
         set_reward_line(draft)
         set_reward_line(draft)
-        assert draft.order_line.filter(is_reward=True).count() == 1
+        assert len(draft.order_line.filtered('is_reward')) == 1
 
 
 class TestBaseDelDescuento:
@@ -242,9 +241,8 @@ class TestBaseDelDescuento:
         apply_voucher_to_draft(draft, voucher_20.code)
         set_delivery_line(draft, Decimal('99.00'))
         set_reward_line(draft)
-        assert draft.order_line.get(is_reward=True).price_unit == Decimal(
-            '-20.00'
-        )
+        reward = draft.order_line.filtered('is_reward').ensure_one()
+        assert reward.price_unit == Decimal('-20.00')
         assert draft.amount_total == Decimal('179.00')
 
     def test_el_orden_inverso_da_el_mismo_total(
@@ -266,7 +264,7 @@ class TestVoucherEndToEnd:
         apply_voucher_to_draft(draft, voucher_20.code)
         _checkout(draft, Decimal('99.00'))
         draft.refresh_from_db()
-        assert draft.order_line.filter(is_delivery=True).count() == 1
-        assert draft.order_line.filter(is_reward=True).count() == 1
+        assert len(draft.order_line.filtered('is_delivery')) == 1
+        assert len(draft.order_line.filtered('is_reward')) == 1
         # producto 100.00 - descuento 20.00 + envío 99.00
         assert draft.amount_total == Decimal('179.00')

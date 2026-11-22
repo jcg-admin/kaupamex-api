@@ -38,7 +38,7 @@ def _log_legacy_payments_api(method: str, **ctx) -> None:
 
 
 # Métodos de pago que NO requieren token de tarjeta ni número de cuotas.
-# Para estos la API de MP usa payer.email + monto + payment_method_id solamente.
+# Para estos la API de MP usa sólo payer.email + monto + payment_method_id.
 NON_CARD_METHOD_IDS = frozenset({
     'oxxo', 'clabe', 'paycash', 'banamex', 'serfin', 'bancomer',
     'account_money', 'consumer_credits',
@@ -62,10 +62,9 @@ def _product_lines(order):
     no partidas que el gateway deba listar; el espejo tampoco las incluía
     porque sus ``OrderItem`` eran de producto por contrato.
     """
-    return (order.order_line
-            .filter(is_delivery=False, is_reward=False)
-            .select_related('product', 'variant__option')
-            .order_by('id'))
+    return order.order_line.filtered(
+        lambda line: not line.is_delivery and not line.is_reward
+    ).sorted('id')
 
 
 def _split_payer_name(order) -> tuple[str, str]:
@@ -182,7 +181,7 @@ def _build_additional_info(order) -> dict:
 CARD_PAYMENT_TYPES = frozenset({'credit_card', 'debit_card'})
 
 # Mapeo id no-tarjeta -> ``payment_method.type`` de Orders.
-# [INFERRED] por analogía (Pix/Boleto/PSE); se verifica en T-002 contra sandbox.
+# [INFERRED] por analogía (Pix/Boleto/PSE); se verifica en T-002 en sandbox.
 _NON_CARD_TYPE_BY_ID = {
     'oxxo':             'ticket',
     'paycash':          'ticket',

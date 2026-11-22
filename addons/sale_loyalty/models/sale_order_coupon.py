@@ -106,8 +106,8 @@ class SaleOrderCoupon(TimeStampedModel):
     # línea de recompensa se realimentaría). Preserva la semántica del carrito
     # legacy, donde el descuento se calculaba sobre el subtotal de productos.
     def discount_base(self) -> Decimal:
-        lines = self.order.order_line.filter(
-            is_delivery=False, is_reward=False
+        lines = self.order.order_line.filtered(
+            lambda line: not line.is_delivery and not line.is_reward
         )
         return sum((line.price_subtotal for line in lines), Decimal('0.00'))
 

@@ -49,11 +49,9 @@ def product_lines(order):
     prefetched = getattr(order, '_product_lines_prefetched', None)
     if prefetched is not None:
         return prefetched
-    return list(
-        order.order_line.filter(is_delivery=False, is_reward=False)
-        .select_related('product')
-        .order_by('id')
-    )
+    return list(order.order_line.filtered(
+        lambda line: not line.is_delivery and not line.is_reward
+    ).sorted('id'))
 
 
 class DeliveryAddressSerializer(serializers.ModelSerializer):

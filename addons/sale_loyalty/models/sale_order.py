@@ -29,20 +29,18 @@ def set_reward_line(order):
     Idempotente: borra la línea de recompensa previa y crea una nueva.
     Devuelve ``None`` si la orden no trae cupón o el descuento es 0.
 
-    El borrado previo es un ``QuerySet.delete()`` en bloque —no dispara el
-    recálculo de ``SaleOrderLine.delete()`` (H-API-30)—; cuando la función
-    termina sin crear línea nueva (sin cupón o descuento 0) el recálculo no
-    llegaría por ningún otro camino, así que se dispara explícito para no
-    dejar la orden con un total stale.
+    La línea previa se borra con ``filtered('is_reward').unlink()`` ≙
+    ``odoo19c: addons/sale_loyalty/models/sale_order.py:202``: ``unlink``
+    anuncia el borrado y la dependencia de ``amount_*`` sobre ``order_line``
+    recalcula el total aunque la función no cree línea nueva (medido por
+    anulación en U3b).
     """
-    order.order_line.filter(is_reward=True).delete()
+    order.order_line.filtered('is_reward').unlink()
     coupon = SaleOrderCoupon.objects.filter(order=order).first()
     if coupon is None:
-        order._compute_amounts()
         return None
     discount = coupon.discount_amount()
     if discount == Decimal('0.00'):
-        order._compute_amounts()
         return None
     return SaleOrderLine.objects.create(
         order=order,
@@ -62,6 +60,7 @@ def amount_reward(order):
     (igual que hacía ``OrderValue.discount``), así que aquí se invierte.
     """
     return -sum(
-        (line.price_total for line in order.order_line.filter(is_reward=True)),
+        (line.price_total
+         for line in order.order_line.filtered('is_reward')),
         Decimal('0.00'),
     )

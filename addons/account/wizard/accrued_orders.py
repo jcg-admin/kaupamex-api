@@ -220,8 +220,8 @@ class AccountAccruedOrdersWizard(TransientModel):
 
         if len(orders) == 1 and amount:
             order = orders[0]
-            order_line = order.order_line.filter(product__isnull=False).first()
-            if order_line is None:
+            order_line = order.order_line.filtered('product')[:1]
+            if not order_line:
                 raise UserError(
                     _('La orden no tiene líneas con producto para devengar.')
                 )

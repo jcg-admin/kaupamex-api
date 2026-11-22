@@ -77,7 +77,7 @@ class SaleOrderDelivery(TimeStampedModel):
     def compute_status(self) -> str | None:
         line_deliveries = [
             item.delivery
-            for item in self.order.order_line.all()
+            for item in self.order.order_line
             if hasattr(item, 'delivery')
         ]
         if not line_deliveries:

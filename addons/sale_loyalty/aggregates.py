@@ -17,5 +17,10 @@ AMOUNT_REWARD_SQL = line_sum_subquery(Q(is_reward=True))
 
 
 def with_reward_amount(queryset):
-    """Anota un queryset de ``SaleOrder`` con su importe de descuento."""
+    """Anota un queryset de ``SaleOrder`` con su importe de descuento.
+
+    ``sale.order`` es ``BaseModel``: un registro no recibe anotaciones
+    (``BaseModel.__setattr__``), así que el importe se lee como fila,
+    con ``.values('amount_reward_sql')``.
+    """
     return queryset.annotate(amount_reward_sql=AMOUNT_REWARD_SQL)

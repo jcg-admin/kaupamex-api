@@ -92,15 +92,15 @@ def set_delivery_line(order, shipping_cost):
     Devuelve ``None`` sólo cuando el importe es 0 (envío gratis): no hay
     concepto que facturar.
 
-    El borrado de la línea previa es un ``QuerySet.delete()`` en bloque, que
-    no dispara el recálculo de ``SaleOrderLine.delete()`` (H-API-30); en la
-    rama que crea la línea nueva el recálculo llega igual vía
-    ``SaleOrderLine.save()``, pero la rama "envío gratis" no crea nada, así
-    que aquí se dispara explícito para no dejar la orden con un total stale.
+    La línea previa se borra con ``filtered('is_delivery').unlink()`` ≙
+    ``_remove_delivery_line``
+    (``odoo19c: addons/delivery/models/sale_order.py:54``):
+    ``unlink`` anuncia el borrado y la dependencia de ``amount_*`` sobre
+    ``order_line`` recalcula el total también en la rama "envío gratis", que
+    no crea línea (medido por anulación en U3b).
     """
-    order.order_line.filter(is_delivery=True).delete()
+    order.order_line.filtered('is_delivery').unlink()
     if shipping_cost == Decimal('0.00'):
-        order._compute_amounts()
         return None
     carrier = order.carrier if order.carrier_id else None
     return SaleOrderLine.objects.create(
@@ -129,7 +129,7 @@ def amount_delivery(order):
     return sum(
         (
             line.price_total
-            for line in order.order_line.filter(is_delivery=True)
+            for line in order.order_line.filtered('is_delivery')
         ),
         Decimal('0.00'),
     )

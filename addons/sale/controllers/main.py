@@ -66,8 +66,10 @@ def _own_orders(user):
         # eje variant en SaleOrderLine): el prefetch viejo lanzaba
         # AttributeError en cada GET real. Ver mismo fix en
         # ``sale_management/admin_views.py::_admin_orders``.
-        .prefetch_related('order_line__product', 'payments',
-                          'shipment_guide')
+        # ``order_line`` no se precarga con Django: es un recordset de
+        # ``BaseModel`` y la precarga de Django lo trataría como una
+        # instancia. El ORM lee las líneas en un solo SELECT al acceder.
+        .prefetch_related('payments', 'shipment_guide')
         .order_by('-create_date', '-id')
     )
 

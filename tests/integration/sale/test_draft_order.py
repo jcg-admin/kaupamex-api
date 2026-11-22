@@ -201,9 +201,9 @@ class TestDraftItemOperationsS2b:
     def test_clear_draft_items(self, draft_product):
         order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
         add_item_to_draft(order, draft_product, quantity=1)
-        assert order.order_line.count() == 1
+        assert len(order.order_line) == 1
         clear_draft_items(order)
-        assert order.order_line.count() == 0
+        assert len(order.order_line) == 0
 
 
 class TestDraftTotalsS2c:
@@ -270,7 +270,7 @@ class TestDraftItemUpdateRemoveS2c2:
         order, _ = get_or_create_draft_order(cart_token=uuid.uuid4())
         line, _ = add_item_to_draft(order, draft_product, quantity=1)
         remove_draft_item(order, line.pk)
-        assert order.order_line.count() == 0
+        assert len(order.order_line) == 0
 
 
 class TestSaleOrderLineMethodsV2:
@@ -328,8 +328,8 @@ class TestMergeDraftOrdersS2c2b:
         order, skipped = merge_draft_orders(user, token)
         assert skipped == []
         assert order.partner_id == user.pk
-        assert order.order_line.count() == 1
-        assert order.order_line.first().product_uom_qty == 2
+        assert len(order.order_line) == 1
+        assert order.order_line[:1].product_uom_qty == 2
         assert not SaleOrder.objects.filter(pk=anon.pk).exists()
 
     def test_merge_caps_quantity_to_stock(self, draft_product):
@@ -343,7 +343,7 @@ class TestMergeDraftOrdersS2c2b:
         add_item_to_draft(anon, draft_product, quantity=3)
 
         order, skipped = merge_draft_orders(user, token)
-        line = order.order_line.get()
+        line = order.order_line.ensure_one()
         assert line.product_uom_qty == 5  # 4+3 recortado al stock=5
         assert skipped == []
 
@@ -357,7 +357,7 @@ class TestMergeDraftOrdersS2c2b:
         set_stock(draft_product, 0)
 
         order, skipped = merge_draft_orders(user, token)
-        assert order.order_line.count() == 0
+        assert len(order.order_line) == 0
         assert skipped == [
             {
                 'product_id': draft_product.pk,

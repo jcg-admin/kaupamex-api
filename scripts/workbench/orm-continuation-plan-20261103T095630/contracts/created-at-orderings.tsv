@@ -19,7 +19,7 @@ addons/payment/controllers/portal.py::payment_history	reference-id	odoo19c: paym
 addons/rating/controllers/main.py::ProductReviewsView.get	reference-id	odoo19c: rating/models/rating.py:15 'write_date desc, id desc'
 addons/rating/controllers/main.py::ReviewAdminListView.get	consumer	cola FIFO de moderación, contrato propio
 addons/sale/controllers/main.py::_own_orders	reference-id	odoo19c: sale/models/sale_order.py:38 'date_order desc, id desc'
-addons/sale/services.py::get_or_create_draft_order	consumer	carrito en borrador, contrato propio
+addons/sale/services.py::_draft_order	consumer	carrito en borrador, contrato propio
 addons/sale_management/controllers/admin_views.py::_admin_orders	reference-id	odoo19c: sale/models/sale_order.py:38
 addons/sale_subscription/controllers/views.py::CompanyViewSet.invoices	consumer	factura de suscripción L0, contrato propio
 addons/stock/models/stock_quant.py::StockQuant._onchange_product_id	reference-untied	odoo19c: stock/models/stock_quant.py:985-987 order='create_date desc', limit=1

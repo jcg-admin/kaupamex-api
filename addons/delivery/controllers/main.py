@@ -74,7 +74,8 @@ class _AdminOnly:
 
 
 class LogisticsPanelView(_AdminOnly, APIView):
-    @extend_schema(summary='Panel logístico (UC-LOG-01)', tags=['logistics'], responses={200: None})
+    @extend_schema(summary='Panel logístico (UC-LOG-01)', tags=['logistics'],
+                   responses={200: None})
     def get(self, request):
         courier_id_raw = request.query_params.get('courier_id')
         courier_filter = None
@@ -86,9 +87,10 @@ class LogisticsPanelView(_AdminOnly, APIView):
 
         # Cut-over orders→sale (ADR-024): "pending pickup" = orden confirmada
         # (sale.state='sale') y pagada (Payment APPROVED) SIN guía viva. El
-        # enum legacy SaleOrder.status ya no se filtra: IN_PREPARATION es un valor
-        # muerto proyectado desde los ejes, no escrito (H-API-10). El status
-        # de cada fila se deriva con order_status(), no leyendo la columna.
+        # enum legacy SaleOrder.status ya no se filtra: IN_PREPARATION es un
+        # valor muerto proyectado desde los ejes, no escrito (H-API-10). El
+        # status de cada fila se deriva con order_status(), no leyendo la
+        # columna.
         group_a_qs = (
             SaleOrder.objects
             .filter(
@@ -97,7 +99,6 @@ class LogisticsPanelView(_AdminOnly, APIView):
             )
             .exclude(shipment_guide__is_deleted=False)
             .select_related('delivery_address')
-            .prefetch_related('order_line')
             .distinct()
         )
         pending_pickup = []

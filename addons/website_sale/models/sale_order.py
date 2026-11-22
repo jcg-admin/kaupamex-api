@@ -485,7 +485,7 @@ def _filter_can_send_abandoned_cart_mail(cls, orders):
             not float_is_zero(
                 float(line.price_unit), precision_digits=PRICE_PRECISION_DIGITS
             )
-            for line in order.order_line.all()
+            for line in order.order_line
         )
         and not has_later_sale_order.get(order.partner_id, False)
     ]

@@ -19,6 +19,7 @@ from django.core.validators import MinValueValidator
 import api
 import fields
 import models
+from orm.environments import sudo
 
 from addons.analytic.models.analytic_mixin import AnalyticMixin
 from addons.base.models import TimeStampedModel
@@ -653,11 +654,11 @@ class SaleOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
     # ``QuerySet.filter(...).delete()`` (o ``.update()``) no pasa por aquí:
     # Django hace DELETE/UPDATE en bloque sin invocar el
     # ``delete()``/``save()``
-    # de cada fila. Los llamadores que borran líneas en bloque
-    # (``delivery.set_delivery_line``, ``sale_loyalty.set_reward_line``,
-    # ``sale_product_matrix.SaleOrderMatrix.apply``, ``sale.services.
-    # clear_draft_items``) llaman a ``order._compute_amounts()`` explícitamente
-    # tras el borrado en bloque — ver el docstring de cada uno.
+    # de cada fila. Quien borra con ``unlink()`` (``set_delivery_line``,
+    # ``set_reward_line``, ``clear_draft_items``) no necesita recalcular: la
+    # dependencia de ``amount_*`` sobre ``order_line`` lo hace. Sólo
+    # ``sale_product_matrix.SaleOrderMatrix.apply``, que borra con
+    # ``QuerySet.delete()`` de Django, llama a ``order._compute_amounts()``.
     # ------------------------------------------------------------------
     #: Los operandos del desglose. Su valor se normaliza al tipo que su campo
     #: declara ANTES de multiplicar, con el ``to_python`` del propio campo —el
@@ -719,7 +720,12 @@ class SaleOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
                 ),
             ]
         super().save(*args, **kwargs)
-        self.order._compute_amounts()
+        # Un ``save()`` de Django no anuncia el cambio a la dependencia de
+        # ``amount_*``, así que se recalcula aquí. Elevado como en la fuente:
+        # un calculado almacenado se recalcula con ``compute_sudo``, que vale
+        # ``store`` por defecto (``odoo19c: odoo/orm/fields.py:448``).
+        with sudo():
+            self.order._compute_amounts()
 
     # ------------------------------------------------------------------
     # Desglose por línea — ≙ ``_compute_amount`` (``odoo19c:
