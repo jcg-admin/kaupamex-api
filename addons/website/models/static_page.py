@@ -21,14 +21,14 @@ como interinato.
 """
 
 from django.conf import settings
-from django.db import models
+import models
 
 from addons.base.models import TimeStampedModel
 from addons.website.models.mixins import WebsiteSearchableMixin
 from orm.domains import Domain
 
 
-class StaticPage(WebsiteSearchableMixin, TimeStampedModel):
+class StaticPage(models.BaseModel, WebsiteSearchableMixin, TimeStampedModel):
     """Página estática del sitio. UC-CFG-04.
 
     Hereda ``WebsiteSearchableMixin`` como su análogo ``website.page`` en la

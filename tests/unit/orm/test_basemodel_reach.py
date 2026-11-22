@@ -50,7 +50,6 @@ PENDING = {
     'base',
     'sale',
     'stock',
-    'website',
 }
 
 

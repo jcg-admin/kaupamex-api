@@ -37,6 +37,12 @@ PORTED_ROWS = {
 }
 
 
+#: Filas propias del L0, sin contraparte en el CSV de la fuente: la de
+#: ``settings.static.page`` sigue a su análogo ``website.page`` (U2,
+#: ``designs/website-basemodel-u2.md``).
+OWN_ROWS = {'access_settings_static_page_designer'}
+
+
 @pytest.fixture
 def installed_data():
     """Los datos del manifiesto como los deja una instalación nueva.
@@ -88,7 +94,7 @@ def test_the_acl_rows_of_the_ported_models_are_loaded():
     names = set(IrModelData.objects.filter(
         module='website', model='base.IrModelAccess').values_list(
             'name', flat=True))
-    assert names == PORTED_ROWS
+    assert names == PORTED_ROWS | OWN_ROWS
     designer = IrModelAccess.objects.get(pk=IrModelData.objects.get(
         module='website', name='access_website_designer').res_id)
     assert designer.group_id.pk == _group('website.group_website_designer').pk
