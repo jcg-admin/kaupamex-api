@@ -112,3 +112,11 @@ unidad siguiente se prepara en `git worktree add -b wt/<unidad>
 rehúsa mientras el `.env` del worktree no la declare; `src/.env` se enlaza
 desde el clon porque los gates importan la configuración. Antes de esta nota
 el caso se redescubrió en lugar de leerse aquí.
+
+**F2 sólo sobre un snapshot limpio y publicado (2026-11-22).** El 22 se
+lanzó una F2 en la misma orden que un `git commit` que el `pre-commit`
+rechazó: corrió sobre un árbol con cambios sin commitear, rotulada con la
+revisión anterior, y sobrescribió el log de la F2 fallida de esa revisión. Se
+detuvo. Desde entonces la F2 se lanza sólo si `git status --porcelain
+--untracked-files=no` está vacío y `HEAD` es igual a la rama publicada; si
+no, no se lanza y lo dice.
