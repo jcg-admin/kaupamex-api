@@ -613,7 +613,8 @@
   "account-edi-journal-computes-0397",
   "account-edi-network-cron-0397",
   "server-action-code-runner-0397",
-  "cron-runs-server-action-0397"
+  "cron-runs-server-action-0397",
+  "analytic-plan-methods-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
