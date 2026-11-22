@@ -6201,6 +6201,11 @@ def _run_ondelete_checks(self, at_uninstall=False):
             check(self)
 
 
+#: El conjunto cuyas ``@api.ondelete`` ya corrió ``BaseModel.unlink``: el
+#: colector no las repite para ese mismo borrado.
+ONDELETE_CHECKED = ContextVar('orm_ondelete_checked', default=None)
+
+
 def _run_ondelete_on_delete(self, objs, source=None, *args, **kwargs):
     """Corre las comprobaciones marcadas ANTES de reunir el borrado.
 
@@ -6225,11 +6230,14 @@ def _run_ondelete_on_delete(self, objs, source=None, *args, **kwargs):
     if source is None and model is not None and registry.ondelete_methods(
             model):
         at_uninstall = bool(get_context().get('module_uninstall'))
-        if hasattr(model, '_from_ids'):
+        ids = tuple(instance.pk for instance in objs)
+        already_checked = ONDELETE_CHECKED.get() == (model, frozenset(ids))
+        if already_checked:
+            pass  # ``BaseModel.unlink`` ya las corrió sobre este conjunto
+        elif hasattr(model, '_from_ids'):
             # Un ``BaseModel`` recibe el recordset entero, como ``func(self)``
             # en la fuente: una guarda que mira el conjunto (borrar dos
             # registros que se refieren entre sí) necesita verlos juntos.
-            ids = tuple(instance.pk for instance in objs)
             _run_ondelete_checks(model._from_ids(env(), ids, ids),
                                  at_uninstall=at_uninstall)
         else:
@@ -9120,6 +9128,12 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
         # con el entorno del recordset, no con el ambiental, para que un
         # ``sudo()`` del registro alcance el borrado igual que la escritura.
         self.check_access('unlink')
+        # ≙ ``for func in self._ondelete_methods: ... func(self)``
+        # (``odoo19c: odoo/orm/models.py:4205-4209``): las guardas corren
+        # aquí, sobre ``self`` y antes de descartar sus cómputos pendientes;
+        # en el colector leerían la fila ya sin ellos.
+        _run_ondelete_checks(
+            self, at_uninstall=bool(get_context().get('module_uninstall')))
         rows = AccessQuerySet(model=type(self)).filter(pk__in=self.ids)
         environment = env()
         registry_ = model_field_registry(type(self))
@@ -9133,7 +9147,11 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
         # borrar una)
         with environment.protecting(set(registry_.values()), self):
             self.modified(list(registry_), before=True)
-        rows.delete()
+        token = ONDELETE_CHECKED.set((type(self), frozenset(self.ids)))
+        try:
+            rows.delete()
+        finally:
+            ONDELETE_CHECKED.reset(token)
         environment.invalidate_all(flush=False)
         return True
 

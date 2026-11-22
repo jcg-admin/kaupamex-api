@@ -1058,6 +1058,36 @@ class SaleOrder(models.BaseModel, PortalMixin, ProductCatalogMixin,
             order._loaded_company_id = order.company_id
         return order
 
+    @api.constrains('prepayment_percent')
+    def _check_prepayment_percent(self):
+        """≙ ``_check_prepayment_percent``
+        (``odoo19c: addons/sale/models/sale_order.py:865-869``)."""
+        for order in self:
+            if order.require_payment and not (
+                    0 < order.prepayment_percent <= 1.0):
+                raise ValidationError(
+                    _("Prepayment percentage must be a valid percentage."))
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_except_draft_or_cancel(self):
+        """≙ ``_unlink_except_draft_or_cancel``
+        (``odoo19c: addons/sale/models/sale_order.py:1032-1038``)."""
+        for order in self:
+            if order.state not in (self.STATE_DRAFT, self.STATE_CANCEL):
+                raise UserError(_(
+                    "You can not delete a sent quotation or a confirmed "
+                    "sales order. You must first cancel it."))
+
+    def write(self, vals):
+        """≙ ``write``
+        (``odoo19c: addons/sale/models/sale_order.py:1040-1043``): la
+        tarifa de una orden confirmada no cambia."""
+        if 'pricelist_id' in vals and any(
+                order.state == self.STATE_SALE for order in self):
+            raise UserError(
+                _("You cannot change the pricelist of a confirmed order !"))
+        return super().write(vals)
+
     def save(self, *args, **kwargs):
         """Recalcula ``validity_date`` cuando cambia la empresa.
 

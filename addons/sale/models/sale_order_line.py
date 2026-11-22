@@ -19,7 +19,9 @@ from django.core.validators import MinValueValidator
 import api
 import fields
 import models
+from exceptions import UserError
 from orm.environments import sudo
+from tools.translate import _
 
 from addons.analytic.models.analytic_mixin import AnalyticMixin
 from addons.base.models import TimeStampedModel
@@ -276,8 +278,11 @@ class SaleOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
         ),
     )
     state = fields.Selection(
-        max_length=10,
+        related='order.state',
+        store=True,
+        copy=False,
         choices=SaleOrder.STATES,
+        max_length=10,
         null=True,
         blank=True,
         db_index=True,
@@ -800,6 +805,30 @@ class SaleOrderLine(models.BaseModel, AnalyticMixin, TimeStampedModel):
     # ``InventoryService``, no de una columna del producto (odoo19c:
     # ``stock/models/stock_quant.py:119-122``).
     # ------------------------------------------------------------------
+    def _check_line_unlink(self):
+        """Las líneas que no se pueden borrar — ≙ ``_check_line_unlink``
+        (``odoo19c: addons/sale/models/sale_order_line.py:1452-1467``).
+
+        Una línea de una orden confirmada no se borra; un anticipo aún sin
+        facturar y las secciones y notas sí.
+        """
+        return self.filtered(
+            lambda line:
+                line.state == SaleOrder.STATE_SALE
+                and (line.invoice_lines or not line.is_downpayment)
+                and not line.display_type
+        )
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_except_confirmed(self):
+        """≙ ``_unlink_except_confirmed``
+        (``odoo19c: addons/sale/models/sale_order_line.py:1469-1473``)."""
+        if self._check_line_unlink():
+            raise UserError(_(
+                "Once a sales order is confirmed, you can't remove one of "
+                "its lines (we need to track if something gets invoiced or "
+                "delivered).\nSet the quantity to 0 instead."))
+
     def current_price(self) -> Decimal:
         """Precio vigente del catálogo (Odoo ``lst_price``)."""
         return self.product.lst_price

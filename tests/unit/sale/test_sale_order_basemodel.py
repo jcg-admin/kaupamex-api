@@ -22,7 +22,7 @@ from addons.sale_stock.models.sale_order import SaleOrderDelivery
 from addons.sale_stock.models.sale_order_line import SaleOrderLineDelivery
 from orm.environments import sudo
 from orm.models import BaseModel
-from tests.factories.order_factory import make_order
+from tests.factories.order_factory import STATUS_DRAFT, make_order
 from tests.factories.product_factory import make_product
 
 pytestmark = pytest.mark.django_db
@@ -36,7 +36,9 @@ def _elevated():
 
 @pytest.fixture
 def order(user):
-    return make_order(user=user)
+    # Borrador: una orden confirmada no deja borrar sus líneas
+    # (``_unlink_except_confirmed``, U3c).
+    return make_order(status=STATUS_DRAFT, user=user)
 
 
 def _line(order, price, name):
