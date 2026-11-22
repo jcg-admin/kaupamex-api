@@ -51,6 +51,11 @@ Prosa heredada medida:
    `website.track`, `website.snippet.filter`, `website.robots`,
    `website.technical.page`, `website.custom_blocked_third_party_domains` y
    los `theme.*`); entran con la unidad que porte cada modelo.
+   Una divergencia: `access_website_ir_asset_designer` nombra
+   `base.model_ir_asset`. La fuente escribe `model_ir_asset`, que resuelve a
+   `website.model_ir_asset` porque `website` extiende `ir.asset`; aquí no
+   lo extiende y la carga falla con «No se encontró registro para el
+   identificador externo 'model_ir_asset'» (medido al ejecutar la prueba).
 3. El manifiesto declara `data`: primero el XML, después el CSV.
 
 ## Fuera de esta unidad (sucesoras)
