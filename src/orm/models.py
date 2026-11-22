@@ -3097,7 +3097,33 @@ class RecordLoaderMixin(FieldSqlMixin):
                 # todos los valores nuevos a la vez, como en la fuente.
                 registry_ = model_field_registry(type(self))
                 for fname, value in many2many.items():
+                    # ≙ ``_RelationalMulti.write`` (``odoo19c: odoo/orm/
+                    # fields_relational.py:737-740``): escribir el campo
+                    # descarta su recálculo pendiente, que si no pisaría lo
+                    # escrito en el volcado siguiente.
+                    # Un modelo de Django con este mixin no lleva ``ids``.
+                    field_ids = getattr(self, 'ids', [self.pk])
+                    env().remove_to_compute(registry_[fname], field_ids)
                     apply_many2many_commands(self, registry_[fname], value)
+                    # El gestor de Django escribe la tabla intermedia sin
+                    # pasar por la caché, así que lo que la caché tenga del
+                    # campo —quizá sucio, de un cómputo anterior— ya no es el
+                    # valor, y volcarlo después lo pisaría. Allá
+                    # ``write_real`` deja en caché el valor nuevo; aquí se
+                    # suelta la marca y se invalida, y la lectura siguiente
+                    # trae el de la base
+                    # (``designs/write-many2many-discards-recompute.md``).
+                    dirty = env().transaction.field_dirty.get(
+                        registry_[fname])
+                    if dirty:
+                        for field_id in field_ids:
+                            dirty.discard(field_id)
+                    # Misma guarda que ``_invalidate_cache`` del modelo: el
+                    # lado inverso (``ManyToManyRel``) no lleva el método.
+                    invalidate = getattr(registry_[fname],
+                                         '_invalidate_cache', None)
+                    if invalidate is not None:
+                        invalidate(env(), field_ids)
                 check_company = getattr(type(self), '_check_company_auto',
                                         False)
                 if not values and check_company:

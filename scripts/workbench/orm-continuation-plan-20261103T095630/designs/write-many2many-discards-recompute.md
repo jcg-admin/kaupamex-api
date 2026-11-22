@@ -42,3 +42,24 @@ sobrevive. Rojo antes del cambio: queda la etiqueta calculada.
 | Símbolo | Referencia |
 |---|---|
 | `BaseModel.write` | `odoo19c: odoo/orm/fields_relational.py:737-740` |
+
+## Segunda mitad, medida al integrar `account-edi-journal-computes-0397`
+
+Descartar el recálculo no bastaba. Leer el campo antes de escribirlo ejecuta
+su cómputo perezoso, que deja el valor calculado en caché **y sucio**
+(`transaction.field_dirty`). `apply_many2many_commands` escribe la tabla con
+el gestor de Django, sin tocar la caché, así que el primer `flush_all`
+posterior —el de un `unlink` de otro modelo, por ejemplo— reescribía el valor
+calculado sobre el escrito. Sonda: la tabla tenía `[ws]` antes del `unlink` de
+los documentos y `[ws, plain]` después; `field_dirty` contenía el diario.
+
+En la fuente `write_real` deja en caché el valor nuevo, y un volcado
+posterior es inocuo. Aquí, tras aplicar los comandos, se suelta la marca de
+sucio de esas filas y se invalida su caché; la lectura siguiente trae el
+valor de la base. El lado inverso (`ManyToManyRel`) no tiene
+`_invalidate_cache`: misma guarda que el `_invalidate_cache` del modelo.
+
+Controles de anulación: sin `remove_to_compute` cae sólo
+`test_a_written_computed_many2many_survives_the_flush`; sin soltar la marca
+ni invalidar cae sólo `test_a_dirty_computed_value_does_not_overwrite_the_written_one`
+(y, en el consumidor, `test_removing_a_plain_format_deletes_its_pending_documents`).
