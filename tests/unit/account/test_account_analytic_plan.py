@@ -154,7 +154,7 @@ class TestAccountPrefixAndProductCategFields:
             company_id=company,
             product_categ_id=categ)
         applicability.refresh_from_db()
-        assert applicability.product_categ_id == categ.pk
+        assert applicability.product_categ_id.id == categ.pk
 
 
 class TestGetScoreWrappedWithAccountPrefixAndProductCateg:

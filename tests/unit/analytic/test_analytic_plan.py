@@ -22,6 +22,7 @@ transacción por test.
 import pytest
 from django.core.exceptions import ValidationError
 
+from addons.base.models import ResCompany
 from addons.analytic.models import (
     AccountAnalyticPlan,
     AccountAnalyticApplicability,
@@ -77,14 +78,18 @@ class TestApplicabilityScore:
         )
         assert rule._get_score() == 0
 
+    @pytest.mark.django_db
     def test_company_set_and_company_id_kwarg_adds_half_point(self):
+        # ``company_id`` es un ``Many2one`` de ``BaseModel``: se lee el
+        # registro, así que la empresa tiene que existir.
+        company = ResCompany.objects.create(name='Siete')
         rule = AccountAnalyticApplicability(
             pk=1,
             business_domain='general',
             applicability='mandatory',
-            company_id=7,
+            company_id=company,
         )
-        assert rule._get_score(company_id=7) == 0.5
+        assert rule._get_score(company_id=company.pk) == 0.5
 
     def test_matching_business_domain_adds_one_point(self):
         rule = AccountAnalyticApplicability(
@@ -100,14 +105,19 @@ class TestApplicabilityScore:
         )
         assert rule._get_score(business_domain='other') == -1
 
+    @pytest.mark.django_db
     def test_combines_company_bonus_and_domain_match(self):
+        # ``company_id`` es un ``Many2one`` de ``BaseModel``: se lee el
+        # registro, así que la empresa tiene que existir.
+        company = ResCompany.objects.create(name='Siete')
         rule = AccountAnalyticApplicability(
             pk=1,
             business_domain='general',
             applicability='mandatory',
-            company_id=7,
+            company_id=company,
         )
-        assert rule._get_score(company_id=7, business_domain='general') == 1.5
+        assert rule._get_score(
+            company_id=company.pk, business_domain='general') == 1.5
 
 
 class TestApplicabilityRequiredFields:

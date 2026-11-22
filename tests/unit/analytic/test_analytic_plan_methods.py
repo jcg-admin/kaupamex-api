@@ -12,7 +12,6 @@ analytic-plan-methods.md``.
 import pytest
 
 from addons.analytic.models import AccountAnalyticPlan
-from addons.analytic.models.analytic_plan import AccountAnalyticApplicability
 from addons.base.models import ResCompany, SystemParameter
 from exceptions import UserError
 from orm.environments import env, set_current_company, sudo
@@ -101,9 +100,9 @@ def test_applicability_forced_rule_and_default(project_plan):
     assert project_plan._get_applicability(applicability='mandatory') == (
         'mandatory')
     assert project_plan._get_applicability() == 'optional'
-    AccountAnalyticApplicability.objects.create(
-        analytic_plan_id=project_plan.id, business_domain='invoice',
-        applicability='mandatory')
+    env()['account.analytic.applicability'].create({
+        'analytic_plan_id': project_plan.id, 'business_domain': 'invoice',
+        'applicability': 'mandatory'})
     assert project_plan._get_applicability(
         business_domain='invoice') == 'mandatory'
     assert project_plan._get_applicability(
