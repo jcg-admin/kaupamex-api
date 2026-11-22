@@ -55,3 +55,14 @@ Prueba de todos: `tests/unit/analytic/test_analytic_plan_basemodel.py`.
 | `AccountAnalyticPlan._compute_all_analytic_account_count` | `odoo19c: addons/analytic/models/analytic_plan.py:152-178` |
 | `AccountAnalyticPlan._compute_children_count` | `odoo19c: addons/analytic/models/analytic_plan.py:180-182` |
 | `0016_plan_parent_id_complete_name` (renombre y relleno) | `odoo19c: addons/analytic/models/analytic_plan.py:29-57` |
+
+## Corrección tras F2 de `337aafd6` (2026-11-22)
+
+F2 cayó en `tests/unit/orm/test_new_computed_columns_are_computed.py`: la
+migración 0016 rellenaba `complete_name` con un `RunPython` escrito a mano
+cuando el árbol ya tiene el mecanismo canónico,
+`orm.migration_operations.ComputeStoredFields` (≙ `odoo19c:
+odoo/orm/models.py:3220-3238`), y un guardián que lo exige. Fue un mecanismo
+inventado sin buscar el existente — la lección del 3 de septiembre. La
+migración usa ahora `ComputeStoredFields("analytic", "accountanalyticplan",
+["complete_name"])`.

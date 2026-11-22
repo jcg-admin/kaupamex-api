@@ -3,6 +3,8 @@ import django.utils.timezone
 from django.conf import settings
 from django.db import migrations, models
 
+from orm.migration_operations import ComputeStoredFields
+
 
 def _user_column(column):
     return models.ForeignKey(
@@ -17,27 +19,6 @@ def _user_column(column):
     )
 
 
-def fill_complete_name(apps, schema_editor):
-    """Rellena ``complete_name`` en las filas que ya existían.
-
-    ≙ ``_compute_complete_name`` (``odoo19c: addons/analytic/models/
-    analytic_plan.py:139-145``), recorriendo de la raíz a las hojas por la
-    longitud de ``parent_path``: cada padre ya tiene su nombre completo
-    cuando llega su hijo.
-    """
-    plan_model = apps.get_model("analytic", "AccountAnalyticPlan")
-    names = {}
-    rows = plan_model.objects.values_list(
-        "pk", "name", "parent_id", "parent_path")
-    by_depth = sorted(rows, key=lambda row: len(row[3] or ""))
-    for pk, name, parent_id, _path in by_depth:
-        complete = (
-            f"{names[parent_id]} / {name}" if parent_id in names else name
-        )
-        names[pk] = complete
-        plan_model.objects.filter(pk=pk).update(complete_name=complete)
-
-
 class Migration(migrations.Migration):
     """``parent`` del plan pasa a ``parent_id`` en forma C y nace
     ``complete_name`` almacenado.
@@ -45,9 +26,10 @@ class Migration(migrations.Migration):
     ≙ ``parent_id``/``children_ids`` (``odoo19c: addons/analytic/models/
     analytic_plan.py:29-47``) y ``complete_name`` (``:52-57``). La columna ya
     se llamaba ``parent_id``: el ``db_column`` la fija y el renombre no toca
-    datos. Como ``BaseModel``, el plan recibe además las cuatro columnas del
-    log-access (``odoo19c: odoo/orm/models.py:287-292``); las filas
-    existentes reciben la fecha de la migración.
+    datos. ``complete_name`` se calcula sobre las filas existentes con
+    ``ComputeStoredFields``. Como ``BaseModel``, el plan recibe además las
+    cuatro columnas del log-access (``odoo19c: odoo/orm/models.py:287-292``);
+    las filas existentes reciben la fecha de la migración.
     """
 
     dependencies = [
@@ -107,5 +89,8 @@ class Migration(migrations.Migration):
             name="write_uid",
             field=_user_column("write_uid"),
         ),
-        migrations.RunPython(fill_complete_name, migrations.RunPython.noop),
+        # ≙ ``odoo19c: odoo/orm/models.py:3220-3238``: la columna nueva se
+        # calcula sobre las filas existentes con el mecanismo del ORM.
+        ComputeStoredFields(
+            "analytic", "accountanalyticplan", ["complete_name"]),
     ]
