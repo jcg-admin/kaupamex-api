@@ -615,7 +615,9 @@
   "server-action-code-runner-0397",
   "cron-runs-server-action-0397",
   "analytic-plan-methods-0397",
-  "analytic-applicability-basemodel-0397"
+  "analytic-applicability-basemodel-0397",
+  "cursor-cache-0397",
+  "analytic-project-plan-restore-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
