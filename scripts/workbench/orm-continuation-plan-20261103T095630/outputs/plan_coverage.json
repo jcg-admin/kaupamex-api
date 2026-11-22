@@ -623,7 +623,8 @@
   "export-properties-cursor-cache-0397",
   "website-security-groups-0397",
   "website-basemodel-u1a-0397",
-  "website-basemodel-u1b-0397"
+  "website-basemodel-u1b-0397",
+  "website-basemodel-u2-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
