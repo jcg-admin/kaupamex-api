@@ -96,6 +96,7 @@ import models
 from exceptions import UserError
 
 from addons.base.models import SystemParameter, _reject_hierarchy_cycle
+from orm.environments import env
 from orm.models import _parent_store_update
 from orm.registry import clear_cache
 from tools.cache import ormcache
@@ -379,13 +380,12 @@ class AccountAnalyticPlan(models.BaseModel, models.RecordLoaderMixin):
             return kwargs['applicability']
         score = 0
         applicability = self.default_applicability
-        rules = [
-            rule for rule in self.applicability_ids.all()
-            if not rule.company_id
-            or not kwargs.get('company_id')
-            or rule.company_id == kwargs.get('company_id')
-        ]
-        for applicability_rule in rules:
+        for applicability_rule in self.applicability_ids.filtered(
+                lambda rule:
+                not rule.company_id
+                or not kwargs.get('company_id')
+                or rule.company_id.id == kwargs.get('company_id')
+        ):
             score_rule = applicability_rule._get_score(**kwargs)
             if score_rule > score:
                 applicability = applicability_rule.applicability
@@ -419,16 +419,35 @@ class AccountAnalyticPlan(models.BaseModel, models.RecordLoaderMixin):
         return res
 
 
-class AccountAnalyticApplicability(models.RecordLoaderMixin, models.Model):
-    """``account.analytic.applicability`` — regla de aplicabilidad por plan
-    raíz + dominio de negocio + compañía. Portado completo: es Python puro,
-    sin dependencia del sistema de columna dinámica."""
+def _default_company_id():
+    """≙ ``default=lambda self: self.env.company``
+    (``odoo19c: addons/analytic/models/analytic_plan.py:427-431``)."""
+    company = env().company
+    return company.pk if company is not None else None
 
-    analytic_plan = fields.Many2one(
+
+class AccountAnalyticApplicability(
+    models.BaseModel,
+    models.CheckCompanyMixin,
+    models.RecordLoaderMixin,
+):
+    """``account.analytic.applicability`` — regla de aplicabilidad por plan
+    raíz + dominio de negocio + compañía, sobre ``BaseModel``
+    (``designs/analytic-applicability-basemodel.md``)."""
+
+    #: ≙ la cabecera de
+    #: ``odoo19c: addons/analytic/models/analytic_plan.py:405-409``.
+    _name = 'account.analytic.applicability'
+    _description = "Analytic Plan's Applicabilities"
+    _check_company_auto = True
+    _check_company_domain = models.check_company_domain_parent_of
+
+    analytic_plan_id = fields.Many2one(
         'analytic.AccountAnalyticPlan',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        db_column='analytic_plan_id',
         related_name='applicability_ids',
         verbose_name='Plan analítico',
     )
@@ -450,11 +469,13 @@ class AccountAnalyticApplicability(models.RecordLoaderMixin, models.Model):
         required=True,
         verbose_name='Aplicabilidad',
     )
-    company = fields.Many2one(
+    company_id = fields.Many2one(
         'base.ResCompany',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        db_column='company_id',
+        default=_default_company_id,
         related_name='analytic_applicabilities',
         verbose_name='Empresa',
     )
@@ -477,9 +498,8 @@ class AccountAnalyticApplicability(models.RecordLoaderMixin, models.Model):
 
     def _get_score(self, **kwargs):
         """Puntaje de esta regla contra ``kwargs`` — fiel a ``_get_score``
-        (odoo19c: líneas 446-455). ``self.company_id`` es el atributo FK
-        crudo de Django (no dispara query), igual semántica que el ``id``
-        booleano de Odoo."""
+        (odoo19c: líneas 446-455)."""
+        self.ensure_one()
         score = 0.5 if self.company_id and kwargs.get('company_id') else 0
         if not kwargs.get('business_domain'):
             return score

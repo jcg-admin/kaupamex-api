@@ -56,7 +56,8 @@ class TestBusinessDomainExtended:
     def test_a_record_with_the_new_value_can_be_saved(self, company):
         """La prueba que importa: no sólo está en ``choices``, se persiste."""
         applicability = AccountAnalyticApplicability.objects.create(
-            business_domain='invoice', applicability='optional', company=company)
+            business_domain='invoice', applicability='optional',
+            company_id=company)
         applicability.refresh_from_db()
         assert applicability.business_domain == 'invoice'
 
@@ -69,9 +70,11 @@ class TestDisplayAccountPrefix:
         ('invoice', True),
         ('bill', True),
     ])
-    def test_it_shows_for_general_invoice_and_bill(self, company, domain, expected):
+    def test_it_shows_for_general_invoice_and_bill(
+            self, company, domain, expected):
         applicability = AccountAnalyticApplicability.objects.create(
-            business_domain=domain, applicability='optional', company=company)
+            business_domain=domain, applicability='optional',
+            company_id=company)
         assert applicability.display_account_prefix is expected
 
     def test_it_creates_no_column(self):
@@ -90,31 +93,37 @@ class TestAccountPrefixPlaceholder:
 
     def test_bill_uses_the_expense_account_and_prefix_60(self, company):
         AccountAccount.objects.create(
-            code='601', name='Compras', account_type='expense', company=company)
+            code='601', name='Compras', account_type='expense',
+            company=company)
         applicability = AccountAnalyticApplicability.objects.create(
-            business_domain='bill', applicability='optional', company=company)
+            business_domain='bill', applicability='optional',
+            company_id=company)
         assert applicability.account_prefix_placeholder == 'e.g. 60, 61, 62'
 
     def test_invoice_uses_the_income_account_and_prefix_40(self, company):
         AccountAccount.objects.create(
             code='401', name='Ventas', account_type='income', company=company)
         applicability = AccountAnalyticApplicability.objects.create(
-            business_domain='invoice', applicability='optional', company=company)
+            business_domain='invoice', applicability='optional',
+            company_id=company)
         assert applicability.account_prefix_placeholder == 'e.g. 40, 41, 42'
 
-    def test_general_falls_into_the_income_branch_like_the_reference(self, company):
+    def test_general_falls_into_the_income_branch_like_the_reference(
+            self, company):
         """``if business_domain == 'bill': ... else: ...`` — cualquier otro
         valor (incluido ``general``) toma la rama de ingreso, tal cual la
         referencia lo escribe."""
         AccountAccount.objects.create(
             code='401', name='Ventas', account_type='income', company=company)
         applicability = AccountAnalyticApplicability.objects.create(
-            business_domain='general', applicability='optional', company=company)
+            business_domain='general', applicability='optional',
+            company_id=company)
         assert applicability.account_prefix_placeholder == 'e.g. 40, 41, 42'
 
     def test_without_an_account_it_uses_the_reference_default(self, company):
         applicability = AccountAnalyticApplicability.objects.create(
-            business_domain='bill', applicability='optional', company=company)
+            business_domain='bill', applicability='optional',
+            company_id=company)
         assert applicability.account_prefix_placeholder == 'e.g. 60, 61, 62'
 
     def test_it_ignores_the_records_company_like_the_reference(self, company):
@@ -125,7 +134,8 @@ class TestAccountPrefixPlaceholder:
             code='601', name='Compras', account_type='expense',
             company=other_company)
         applicability = AccountAnalyticApplicability.objects.create(
-            business_domain='bill', applicability='optional', company=company)
+            business_domain='bill', applicability='optional',
+            company_id=company)
         assert applicability.account_prefix_placeholder == 'e.g. 60, 61, 62'
 
 
@@ -140,8 +150,9 @@ class TestAccountPrefixAndProductCategFields:
     def test_product_categ_can_be_set_and_read_back(self, company):
         categ = ProductCategory.objects.create(name='Servicios')
         applicability = AccountAnalyticApplicability.objects.create(
-            business_domain='general', applicability='optional', company=company,
-            product_categ=categ)
+            business_domain='general', applicability='optional',
+            company_id=company,
+            product_categ_id=categ)
         applicability.refresh_from_db()
         assert applicability.product_categ_id == categ.pk
 
@@ -150,46 +161,57 @@ class TestGetScoreWrappedWithAccountPrefixAndProductCateg:
     """≙ ``_get_score`` (odoo19c: :59-76) — envuelve la base con
     ``chain_method``+``combine``, desbloqueado en tarea #520."""
 
-    def test_without_account_prefix_nor_product_categ_only_the_base_score_applies(self, company):
+    def test_without_prefix_nor_categ_only_the_base_score_applies(
+            self, company):
         """Sin los dos campos nuevos, el comportamiento es idéntico al de la
         base — el envoltorio no aporta ni resta nada."""
         applicability = AccountAnalyticApplicability.objects.create(
-            business_domain='general', applicability='optional', company=company)
+            business_domain='general', applicability='optional',
+            company_id=company)
         assert applicability._get_score(company_id=company.pk) == 0.5
 
     def test_account_prefix_matching_adds_one_point(self, company):
         AccountAccount.objects.create(
-            code='601100', name='Compras', account_type='expense', company=company)
+            code='601100', name='Compras', account_type='expense',
+            company=company)
         account = AccountAccount.objects.get(code='601100')
         applicability = AccountAnalyticApplicability.objects.create(
-            business_domain='general', applicability='optional', company=company,
+            business_domain='general', applicability='optional',
+            company_id=company,
             account_prefix='601, 602')
-        assert applicability._get_score(company_id=company.pk, account=account.pk) == 1.5
+        assert applicability._get_score(
+            company_id=company.pk, account=account.pk) == 1.5
 
     def test_account_prefix_not_matching_vetoes_to_minus_one(self, company):
         """El veto descarta INCLUSO el puntaje base ya ganado — mismo
         criterio de corto-circuito que la referencia (odoo19c: :69-72)."""
         AccountAccount.objects.create(
-            code='701100', name='Ventas', account_type='income', company=company)
+            code='701100', name='Ventas', account_type='income',
+            company=company)
         account = AccountAccount.objects.get(code='701100')
         applicability = AccountAnalyticApplicability.objects.create(
-            business_domain='general', applicability='optional', company=company,
+            business_domain='general', applicability='optional',
+            company_id=company,
             account_prefix='601, 602')
-        assert applicability._get_score(company_id=company.pk, account=account.pk) == -1
+        assert applicability._get_score(
+            company_id=company.pk, account=account.pk) == -1
 
-    def test_a_base_score_of_minus_one_short_circuits_before_the_bonus(self, company):
+    def test_a_base_score_of_minus_one_short_circuits_before_the_bonus(
+            self, company):
         """``business_domain`` no coincide → base ya es ``-1`` (odoo19c:
         :454-455) — el bonus ni se evalúa."""
         applicability = AccountAnalyticApplicability.objects.create(
-            business_domain='invoice', applicability='optional', company=company,
+            business_domain='invoice', applicability='optional',
+            company_id=company,
             account_prefix='601')
         assert applicability._get_score(business_domain='bill') == -1
 
     def test_product_categ_matching_adds_one_point(self, company):
         categ = ProductCategory.objects.create(name='Consultoría')
         applicability = AccountAnalyticApplicability.objects.create(
-            business_domain='general', applicability='optional', company=company,
-            product_categ=categ)
+            business_domain='general', applicability='optional',
+            company_id=company,
+            product_categ_id=categ)
         template = ProductTemplate.objects.create(
             name='Hora de consultoría', company_id=company, categ_id=categ)
         product = ProductProduct.objects.create(product_tmpl_id=template)
@@ -202,9 +224,12 @@ class TestGetScoreWrappedWithAccountPrefixAndProductCateg:
         apply_account_extensions()
         apply_account_extensions()
         AccountAccount.objects.create(
-            code='601200', name='Compras', account_type='expense', company=company)
+            code='601200', name='Compras', account_type='expense',
+            company=company)
         account = AccountAccount.objects.get(code='601200')
         applicability = AccountAnalyticApplicability.objects.create(
-            business_domain='general', applicability='optional', company=company,
+            business_domain='general', applicability='optional',
+            company_id=company,
             account_prefix='601')
-        assert applicability._get_score(company_id=company.pk, account=account.pk) == 1.5
+        assert applicability._get_score(
+            company_id=company.pk, account=account.pk) == 1.5

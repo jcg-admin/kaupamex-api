@@ -178,7 +178,7 @@ def _account_prefix_categ_bonus(self, **kwargs):
             plus += 1
         else:
             return None
-    if self.product_categ_id is not None:
+    if self.product_categ_id:
         product_id = kwargs.get('product')
         product = (
             ProductProduct.objects.filter(pk=product_id).first()
@@ -190,7 +190,7 @@ def _account_prefix_categ_bonus(self, **kwargs):
         )
         if (
             product_categ
-            and product_categ.pk == self.product_categ_id
+            and product_categ.pk == self.product_categ_id.id
         ):
             plus += 1
         else:
@@ -261,12 +261,13 @@ def apply_account_extensions():
     )
     _add_if_absent(
         AccountAnalyticApplicability,
-        'product_categ',
+        'product_categ_id',
         fields.Many2one(
             'product.ProductCategory',
             on_delete=models.SET_NULL,
             null=True,
             blank=True,
+            db_column='product_categ_id',
             related_name='analytic_applicabilities',
             help_text=(
                 'Odoo product_categ_id. Categoría de producto sobre '
@@ -283,18 +284,18 @@ def apply_account_extensions():
     )
 
 
-def _compute_display_account_prefix(instance):
-    """≙ ``_compute_display_account_prefix`` (odoo19c: :78-81): asigna, como
-    la fuente. La derivación es :func:`_default_display_account_prefix`, que
-    servía de ``default`` invocable cuando el campo era el descriptor
-    sin columna retirado en TASK-API-0418;
-    retirado en TASK-API-0417, el ``default`` ya no recibe el registro."""
-    instance.display_account_prefix = _default_display_account_prefix(
-        instance)
+def _compute_display_account_prefix(records):
+    """≙ ``_compute_display_account_prefix`` (odoo19c: :78-81): asigna por
+    registro sobre el recordset, como la fuente, desde que el modelo vive en
+    ``BaseModel`` (``designs/analytic-applicability-basemodel.md``)."""
+    for record in records:
+        record.display_account_prefix = _default_display_account_prefix(
+            record)
 
 
-def _compute_prefix_placeholder(instance):
-    """≙ ``_compute_prefix_placeholder`` (odoo19c: :34-57), con la misma
-    razón que :func:`_compute_display_account_prefix`."""
-    instance.account_prefix_placeholder = (
-        _default_account_prefix_placeholder(instance))
+def _compute_prefix_placeholder(records):
+    """≙ ``_compute_prefix_placeholder`` (odoo19c: :34-57), por registro
+    sobre el recordset como :func:`_compute_display_account_prefix`."""
+    for record in records:
+        record.account_prefix_placeholder = (
+            _default_account_prefix_placeholder(record))
