@@ -577,7 +577,7 @@ class DbBackup(models.BaseModel, TimeStampedModel):
             raise ValueError('la base %r no existe' % (db_name,))
 
         cmd = ['pg_dump', '--no-owner', db_name]
-        env = _pg_env()
+        pg_env = _pg_env()
         if backup_format == 'zip':
             with tempfile.TemporaryDirectory() as dump_dir:
                 sql_path = os.path.join(dump_dir, 'dump.sql')
@@ -587,7 +587,7 @@ class DbBackup(models.BaseModel, TimeStampedModel):
                         json.dump(self._dump_db_manifest(cursor), handle,
                                   indent=4)
                 cmd.insert(-1, '--file=' + sql_path)
-                subprocess.run(cmd, env=env, stdout=subprocess.DEVNULL,
+                subprocess.run(cmd, env=pg_env, stdout=subprocess.DEVNULL,
                                stderr=subprocess.STDOUT, check=True)
                 # ≙ ``zip_dir(dump_dir, stream, include_dir=False)``. Sin la
                 # rama ``filestore/`` de la fuente: aquí los binarios de
@@ -600,7 +600,7 @@ class DbBackup(models.BaseModel, TimeStampedModel):
                     archive.write(sql_path, 'dump.sql')
                 return None
         cmd.insert(-1, '--format=c')
-        process = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE,
+        process = subprocess.Popen(cmd, env=pg_env, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE)
         stdout, _stderr = process.communicate()
         if stream:
