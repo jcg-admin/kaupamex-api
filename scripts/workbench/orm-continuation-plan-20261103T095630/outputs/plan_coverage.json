@@ -605,7 +605,8 @@
   "analytic-account-plan-id-0397",
   "analytic-account-company-id-0397",
   "basemodel-reverse-queryset-0397",
-  "crm-lead-recordset-computes-0397"
+  "crm-lead-recordset-computes-0397",
+  "account-edi-journal-write-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
