@@ -100,6 +100,7 @@ from orm.environments import env
 from orm.models import _parent_store_update
 from orm.registry import clear_cache
 from tools.cache import ormcache
+from tools.misc import frozendict
 from tools.sql import SQL
 from tools.translate import _
 
@@ -400,22 +401,73 @@ class AccountAnalyticPlan(models.BaseModel, models.RecordLoaderMixin):
             fname = f'x_{fname}'
         return depth, fname
 
+    @api.model
+    def get_relevant_plans(self, **kwargs):
+        """≙ ``get_relevant_plans``
+        (``odoo19c: addons/analytic/models/analytic_plan.py:214-244``).
+
+        *"Returns the list of plans that should be available. This list is
+        computed based on the applicabilities of root plans."*
+        """
+        cache = self.env.cr.cache.setdefault('get_relevant_plans', {})
+        key = frozendict(kwargs)
+        if key in cache:
+            return cache[key]
+        record_account_ids = kwargs.get('existing_account_ids', [])
+        project_plan, other_plans = self.env[
+            'account.analytic.plan']._get_all_plans()
+        root_plans = (project_plan + other_plans).filtered(lambda p: (
+            p.all_account_count > 0
+            and not p.parent_id
+            and p._get_applicability(**kwargs) != 'unavailable'
+        ))
+        # Con cuentas ya elegidas (antes de que cambiaran las reglas, o desde
+        # un modelo) sus planes se muestran aunque no estén disponibles, y
+        # como opcionales: el porcentaje previo puede no ser 0.
+        forced_plans = self.env['account.analytic.account'].browse(
+            record_account_ids).exists().mapped('root_plan_id') - root_plans
+        cache[key] = [
+            {
+                "id": plan.id,
+                "name": plan.name,
+                "color": plan.color,
+                "applicability": (plan._get_applicability(**kwargs)
+                                  if plan in root_plans else 'optional'),
+                "all_account_count": plan.all_account_count,
+                "column_name": plan._column_name(),
+            }
+            for plan in (root_plans + forced_plans).sorted('sequence')
+        ]
+        return cache[key]
+
     @api.model_create_multi
     @classmethod
     def create(cls, vals_list):
-        """``create`` limpia la caché de ``__get_all_plans``: en la fuente
-        la limpia la recarga del registro que provoca crear la columna
-        dinámica del plan (etapa B); sin esa columna el efecto se pide
-        aquí (``designs/analytic-plan-methods.md``)."""
+        """≙ ``create`` (``:372-375``): vacía la caché de
+        ``get_relevant_plans``. Limpia además la de ``__get_all_plans``: en
+        la fuente la limpia la recarga del registro que provoca crear la
+        columna dinámica del plan (etapa B); sin esa columna el efecto se
+        pide aquí (``designs/analytic-plan-methods.md``)."""
+        env().cr.cache.pop('get_relevant_plans', None)
         plans = super().create(vals_list)
         clear_cache()
         return plans
 
+    def write(self, vals):
+        """≙ ``write`` (``:377-379``): vacía la caché de
+        ``get_relevant_plans`` si cambia ``default_applicability``. El paso
+        de ``parent_id`` (``:380-401``) mueve cuentas entre columnas
+        dinámicas y es la etapa B."""
+        if 'default_applicability' in vals:
+            self.env.cr.cache.pop('get_relevant_plans', None)
+        return super().write(vals)
+
     def unlink(self):
-        """Mismo motivo que ``create``. Lo demás de ``unlink`` (``:267-275``)
-        retira columnas dinámicas y es la etapa D-2."""
+        """≙ ``unlink`` (``:267-275``): vacía las dos cachés. Retirar la
+        columna dinámica y los campos de agrupación es la etapa B."""
         res = super().unlink()
         clear_cache()
+        self.env.cr.cache.pop('get_relevant_plans', None)
         return res
 
 
@@ -495,6 +547,26 @@ class AccountAnalyticApplicability(
             raise ValidationError({'business_domain': 'REQUIRED'})
         if not self.applicability:
             raise ValidationError({'applicability': 'REQUIRED'})
+
+    @api.model_create_multi
+    @classmethod
+    def create(cls, vals_list):
+        """≙ ``create`` (``:433-436``): vacía la caché de
+        ``get_relevant_plans``."""
+        env().cr.cache.pop('get_relevant_plans', None)
+        return super().create(vals_list)
+
+    def write(self, vals):
+        """≙ ``write`` (``:438-440``)."""
+        self.env.cr.cache.pop('get_relevant_plans', None)
+        return super().write(vals)
+
+    def unlink(self):
+        """≙ ``_unlink_clear_cache`` (``:442-444``): este stack no tiene
+        ``@api.ondelete``, así que la limpieza cuelga de ``unlink``, como en
+        ``addons/hr/models/hr_departure_reason.py``."""
+        self.env.cr.cache.pop('get_relevant_plans', None)
+        return super().unlink()
 
     def _get_score(self, **kwargs):
         """Puntaje de esta regla contra ``kwargs`` — fiel a ``_get_score``
