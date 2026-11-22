@@ -72,6 +72,7 @@ Prueba: `tests/unit/base/test_server_action_code_runner.py`.
 | `LoggerProxy` | `odoo19c: odoo/addons/base/models/ir_actions.py:30-54` |
 | `IrActionsBase._get_eval_context` | `odoo19c: odoo/addons/base/models/ir_actions.py:140-153` |
 | `IrActionsServer._get_eval_context` | `odoo19c: odoo/addons/base/models/ir_actions.py:1111-1149` |
+| `IrActionsServer._eval_value` (rama `equation`) | `odoo19c: odoo/addons/base/models/ir_actions.py:1285-1290` |
 
 ## Casos de prueba
 
