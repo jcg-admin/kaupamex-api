@@ -41,7 +41,7 @@ Prueba: `tests/unit/orm/test_cursor_cache.py`.
 | Símbolo | Referencia |
 |---|---|
 | `_connection_cache` (`BaseDatabaseWrapper.cache`) | `odoo19c: odoo/sql_db.py:164-174` |
-| `_wrap_cursor_cut` (corte `close`) | `odoo19c: odoo/sql_db.py:525-540` |
+| `_wrap_cursor_cut.cut` (corte `close`) | `odoo19c: odoo/sql_db.py:525-540` |
 | `Cursor.cache` | `odoo19c: odoo/sql_db.py:164-174` |
 
 ## Casos de prueba
