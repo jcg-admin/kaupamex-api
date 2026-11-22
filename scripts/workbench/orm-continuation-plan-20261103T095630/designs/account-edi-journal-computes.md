@@ -31,3 +31,22 @@ Prueba prevista: `tests/unit/account_edi/test_account_journal_computes.py` —
 cambiar `type` recalcula `edi_format_ids`; dos diarios en un recordset
 conservan cada uno sus formatos protegidos; `compatible_edi_ids` es un
 recordset.
+
+## Investigación del mecanismo (2026-11-22, sólo lectura)
+
+- La razón heredada de declarar el M2M en `account.edi.format`
+  («`account/models/account_journal.py` está fuera del write-set de este
+  agente», `addons/account_edi/models/account_edi_format.py:100-104`) ya no
+  rige: es prosa de una ejecución paralela pasada, no un contrato.
+- Precedente para declararlo en el diario sin tocar su archivo:
+  `addons/purchase_stock/models/stock_reference.py:68-84` cuelga
+  `purchase_ids` sobre `stock.StockReference` con
+  `extend_model(campos=...)` y `db_table` explícito, y su migración vive en la
+  app dueña del modelo (`addons/stock/migrations/0018_...`).
+- Consumidores del lado `journals` hoy: uno,
+  `tests/unit/account_edi/test_account_edi_basemodel.py:102`.
+- Conservar la tabla `through` existente con `db_table` hace que el cambio
+  sea de estado, no de datos: migración con `SeparateDatabaseAndState`
+  (estado: quitar `journals` de `account_edi`, añadir `edi_format_ids` en
+  `account`; base de datos: nada). Se mide con `sqlmigrate` antes de
+  aplicarla.
