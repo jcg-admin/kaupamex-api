@@ -93,10 +93,14 @@ from django.core.exceptions import ValidationError
 import api
 import fields
 import models
+from exceptions import UserError
 
-from addons.base.models import _reject_hierarchy_cycle
+from addons.base.models import SystemParameter, _reject_hierarchy_cycle
 from orm.models import _parent_store_update
+from orm.registry import clear_cache
+from tools.cache import ormcache
 from tools.sql import SQL
+from tools.translate import _
 
 #: Compartido entre ``AccountAnalyticPlan.default_applicability`` y
 #: ``AccountAnalyticApplicability.applicability`` — misma enumeración que la
@@ -303,6 +307,116 @@ class AccountAnalyticPlan(models.BaseModel, models.RecordLoaderMixin):
         """≙ ``_compute_children_count`` (``:180-182``)."""
         for plan in self:
             plan.children_count = len(plan.children_ids)
+
+    # ---- Etapa D-1 (``designs/analytic-plan-methods.md``) ----------------
+
+    @ormcache()
+    def __get_all_plans(self):
+        """≙ ``__get_all_plans``
+        (``odoo19c: addons/analytic/models/analytic_plan.py:104-110``)."""
+        project_plan = self.browse(int(
+            SystemParameter.get_param('analytic.project_plan', 0) or 0))
+        if not project_plan:
+            raise UserError(_(
+                "A 'Project' plan needs to exist and its id needs to be set "
+                "as `analytic.project_plan` in the system variables"))
+        other_plans = self.sudo().search(
+            [('parent_id', '=', False)]) - project_plan
+        return project_plan.id, other_plans.ids
+
+    def _get_all_plans(self):
+        """≙ ``_get_all_plans`` (``:112-113``)."""
+        return map(self.browse, self.__get_all_plans())
+
+    def _strict_column_name(self):
+        """≙ ``_strict_column_name`` (``:115-118``)."""
+        self.ensure_one()
+        project_plan, _other_plans = self._get_all_plans()
+        return ('account_id' if self == project_plan
+                else f"x_plan{self.id}_id")
+
+    def _column_name(self):
+        """≙ ``_column_name`` (``:120-121``)."""
+        return self.root_id._strict_column_name()
+
+    @api.onchange('parent_id')
+    def _onchange_parent_id(self):
+        """≙ ``_onchange_parent_id`` (``:184-188``)."""
+        project_plan, __ = self._get_all_plans()
+        if self._origin.id == project_plan.id:
+            raise UserError(_(
+                "You cannot add a parent to the base plan '%s'",
+                project_plan.name))
+
+    def action_view_analytical_accounts(self):
+        """≙ ``action_view_analytical_accounts`` (``:190-199``)."""
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "account.analytic.account",
+            "domain": [('plan_id', "child_of", self.id)],
+            "context": {'default_plan_id': self.id},
+            "name": _("Analytical Accounts"),
+            'view_mode': 'list,form',
+        }
+
+    def action_view_children_plans(self):
+        """≙ ``action_view_children_plans`` (``:201-211``)."""
+        return {
+            "type": "ir.actions.act_window",
+            "res_model": "account.analytic.plan",
+            "domain": [('parent_id', '=', self.id)],
+            "context": {'default_parent_id': self.id,
+                        'default_color': self.color},
+            "name": _("Analytical Plans"),
+            'view_mode': 'list,form',
+        }
+
+    def _get_applicability(self, **kwargs):
+        """≙ ``_get_applicability`` (``:246-265``): la aplicabilidad de la
+        regla de mayor puntaje, o la del plan."""
+        self.ensure_one()
+        if 'applicability' in kwargs:
+            return kwargs['applicability']
+        score = 0
+        applicability = self.default_applicability
+        rules = [
+            rule for rule in self.applicability_ids.all()
+            if not rule.company_id
+            or not kwargs.get('company_id')
+            or rule.company_id == kwargs.get('company_id')
+        ]
+        for applicability_rule in rules:
+            score_rule = applicability_rule._get_score(**kwargs)
+            if score_rule > score:
+                applicability = applicability_rule.applicability
+                score = score_rule
+        return applicability
+
+    def _hierarchy_name(self):
+        """≙ ``_hierarchy_name`` (``:277-282``)."""
+        depth = self.parent_path.count('/') - 1
+        fname = f"{self._column_name()}_{depth}"
+        if fname.startswith('account_id'):
+            fname = f'x_{fname}'
+        return depth, fname
+
+    @api.model_create_multi
+    @classmethod
+    def create(cls, vals_list):
+        """``create`` limpia la caché de ``__get_all_plans``: en la fuente
+        la limpia la recarga del registro que provoca crear la columna
+        dinámica del plan (etapa B); sin esa columna el efecto se pide
+        aquí (``designs/analytic-plan-methods.md``)."""
+        plans = super().create(vals_list)
+        clear_cache()
+        return plans
+
+    def unlink(self):
+        """Mismo motivo que ``create``. Lo demás de ``unlink`` (``:267-275``)
+        retira columnas dinámicas y es la etapa D-2."""
+        res = super().unlink()
+        clear_cache()
+        return res
 
 
 class AccountAnalyticApplicability(models.RecordLoaderMixin, models.Model):
