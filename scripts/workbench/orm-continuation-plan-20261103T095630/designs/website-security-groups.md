@@ -15,7 +15,7 @@ informe de solo lectura de un subagente, verificado aquí punto por punto.
 - `odoo19c: addons/website/security/website_security.xml:94-104` —
   `website_page_controller_expose`, implicado por `base.group_public` y
   `base.group_portal`.
-- `odoo19c: addons/website/security/ir.model.access.csv` — 49 filas.
+- `odoo19c: addons/website/security/ir.model.access.csv` — 44 filas de datos y la cabecera.
 
 ## Estado heredado (consumidor en `da5c0620`)
 
@@ -45,7 +45,7 @@ Prosa heredada medida:
    modelos existen aquí (`website` 4, `website.menu` 4,
    `website.rewrite` 2, `website.page` 1, `website.route` 1,
    `website.configurator.feature` 1, `ir.ui.view` 2, `ir.asset` 1), copia
-   fiel. Las otras 33 nombran modelos de `website` no portados
+   fiel. Las otras 28, de 44 filas de datos, nombran modelos de `website` no portados
    (`website.controller.page`, `website.seo.metadata`, `website.visitor`,
    `website.page.properties`, `website.page.properties.base`,
    `website.track`, `website.snippet.filter`, `website.robots`,
