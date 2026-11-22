@@ -26,13 +26,13 @@ Divergencias transversales, declaradas una vez aquí
    ``'GET' in methods`` de ``_refresh`` no tiene sobre qué operar; toda ruta
    enumerable se cataloga (superconjunto conservador: catalogar de más no
    rompe; catalogar de menos escondería rutas).
-3. **``create``/``write`` → ``save``, ``unlink`` → ``delete``** — la
-   divergencia CRUD ya declarada en B1 de ``website.py``. La invalidación de
-   routing de la fuente corre en los tres, con la misma condición
-   (308/404 antes o después del cambio).
-4. **``@api.constrains`` sin motor** — ``_check_url_to`` corre dentro de
-   ``save()`` (mismo mecanismo que ``_check_company_auto`` en otros portes):
-   el invariante se sostiene donde el ORM escribe.
+3. **``create``/``write``/``unlink`` como en la fuente.** Desde que
+   ``website.route`` y ``website.rewrite`` son ``BaseModel``
+   (``designs/website-basemodel-u1a.md``) la invalidación del routing corre
+   en esos tres métodos, con la misma condición (308/404 antes o después del
+   cambio). Antes vivía en ``save()``/``delete()``, y ``BaseModel.unlink``
+   borra por queryset sin pasar por el ``delete()`` de la instancia.
+4. **``_check_url_to`` es ``@api.constrains``**, como en la fuente.
 5. **El sentido del import es rewrite → website**, nunca al revés: este
    módulo importa ``_iter_url_patterns`` de ``website.py``, y ``website.py``
    consulta ``website.rewrite`` por el registro
@@ -43,11 +43,13 @@ Divergencias transversales, declaradas una vez aquí
 import logging
 import re
 
+import api
 import fields
 import models
 from django.urls import Resolver404, get_resolver
 
 from addons.base.models import TimeStampedModel
+from orm.environments import env
 from addons.website.models.website import _iter_url_patterns
 from exceptions import ValidationError
 from orm.domains import Domain, to_q
@@ -56,7 +58,7 @@ from tools.translate import _
 logger = logging.getLogger(__name__)
 
 
-class WebsiteRoute(TimeStampedModel):
+class WebsiteRoute(models.BaseModel, TimeStampedModel):
     """``website.route`` — el catálogo de rutas servibles del sitio.
 
     Una fila por ruta de la URLconf; ``_refresh`` lo reconcilia contra el
@@ -167,19 +169,20 @@ class WebsiteRoute(TimeStampedModel):
             if url in paths:
                 paths.pop(url)
             else:
-                tocreate.append(cls(path=url))
+                tocreate.append({'path': url})
 
+        routes = env()['website.route']
         if tocreate:
             logger.info("Add %d website.route", len(tocreate))
-            cls.objects.bulk_create(tocreate)
+            routes.create(tocreate)
 
         if paths:
-            stale = cls.objects.filter(path__in=list(paths.keys()))
-            logger.info("Delete %d website.route", stale.count())
-            stale.delete()
+            find = routes.search([('path', 'in', list(paths.keys()))])
+            logger.info("Delete %d website.route", len(find))
+            find.unlink()
 
 
-class WebsiteRewrite(TimeStampedModel):
+class WebsiteRewrite(models.BaseModel, TimeStampedModel):
     """``website.rewrite`` — una redirección o reescritura de URL del sitio."""
 
     _name = 'website.rewrite'
@@ -270,13 +273,14 @@ class WebsiteRewrite(TimeStampedModel):
         self.url_from = self.route.path if self.route_id else None
         self.url_to = self.route.path if self.route_id else None
 
+    @api.constrains('url_to', 'url_from', 'redirect_type')
     def _check_url_to(self):
         """
         ≙ ``_check_url_to`` (``@api.constrains``, ``odoo19c:
         website_rewrite.py:90-130``).
 
-        El invariante de la regla; corre en ``save()`` (divergencia 4 del
-        módulo). Los mensajes conservan el texto de la fuente vía el hook de
+        El invariante de la regla, como restricción del modelo. Los
+        mensajes conservan el texto de la fuente vía el hook de
         traducción.
 
         Divergencias declaradas del caso 308: (1) «no puede apuntar a una
@@ -286,101 +290,103 @@ class WebsiteRewrite(TimeStampedModel):
         replica — werkzeug no es dependencia de este árbol; la forma de los
         parámetros ya quedó validada por los dos barridos de ``/<...>``.
         """
-        rewrite = self
-        if rewrite.redirect_type in ['301', '302', '308']:
-            if not rewrite.url_to:
-                raise ValidationError(_('"URL to" can not be empty.'))
-            if not rewrite.url_from:
-                raise ValidationError(_('"URL from" can not be empty.'))
-            if rewrite.url_to.startswith('#') or rewrite.url_from.startswith(
-                '#'
-            ):
-                raise ValidationError(_("URL must not start with '#'."))
-            if rewrite.url_to.split('#')[0] == rewrite.url_from.split('#')[0]:
-                raise ValidationError(
-                    _("base URL of 'URL to' should not be same as 'URL from'.")
-                )
+        for rewrite in self:
+            if rewrite.redirect_type in ['301', '302', '308']:
+                if not rewrite.url_to:
+                    raise ValidationError(_('"URL to" can not be empty.'))
+                if not rewrite.url_from:
+                    raise ValidationError(_('"URL from" can not be empty.'))
+                if (rewrite.url_to.startswith('#')
+                        or rewrite.url_from.startswith('#')):
+                    raise ValidationError(_("URL must not start with '#'."))
+                url_to_base = rewrite.url_to.split('#')[0]
+                if url_to_base == rewrite.url_from.split('#')[0]:
+                    raise ValidationError(
+                        _("base URL of 'URL to' should not be same as "
+                          "'URL from'.")
+                    )
 
-        if rewrite.redirect_type == '308':
-            if not rewrite.url_to.startswith('/'):
-                raise ValidationError(
-                    _('"URL to" must start with a leading slash.')
-                )
-            for param in re.findall('/<.*?>', rewrite.url_from):
-                if param not in rewrite.url_to:
+            if rewrite.redirect_type == '308':
+                if not rewrite.url_to.startswith('/'):
+                    raise ValidationError(
+                        _('"URL to" must start with a leading slash.')
+                    )
+                for param in re.findall('/<.*?>', rewrite.url_from):
+                    if param not in rewrite.url_to:
+                        raise ValidationError(
+                            _(
+                                '"URL to" must contain parameter %s used in '
+                                '"URL from".'
+                            )
+                            % param
+                        )
+                for param in re.findall('/<.*?>', rewrite.url_to):
+                    if param not in rewrite.url_from:
+                        raise ValidationError(
+                            _(
+                                '"URL to" cannot contain parameter %s which '
+                                'is not'
+                                ' used in "URL from".'
+                            )
+                            % param
+                        )
+
+                if rewrite.url_to == '/':
                     raise ValidationError(
                         _(
-                            '"URL to" must contain parameter %s used in '
-                            '"URL from".'
+                            '"URL to" cannot be set to "/". To change the '
+                            'homepage content, use the "Homepage URL" field '
+                            'in the website settings or the page properties '
+                            'on any custom page.'
                         )
-                        % param
                     )
-            for param in re.findall('/<.*?>', rewrite.url_to):
-                if param not in rewrite.url_from:
+
+                try:
+                    get_resolver().resolve(rewrite.url_to)
+                except Resolver404:
+                    # silent OK because destino libre: la 308 puede
+                    # apuntarle
+                    pass
+                else:
                     raise ValidationError(
-                        _(
-                            '"URL to" cannot contain parameter %s which is not'
-                            ' used in "URL from".'
-                        )
-                        % param
+                        _('"URL to" cannot be set to an existing page.')
                     )
 
-            if rewrite.url_to == '/':
-                raise ValidationError(
-                    _(
-                        '"URL to" cannot be set to "/". To change the homepage'
-                        ' content, use the "Homepage URL" field in the website'
-                        ' settings or the page properties on any custom page.'
-                    )
-                )
-
-            try:
-                get_resolver().resolve(rewrite.url_to)
-            except Resolver404:
-                pass  # silent OK because destino libre: la 308 puede apuntarle
-            else:
-                raise ValidationError(
-                    _('"URL to" cannot be set to an existing page.')
-                )
-
+    @api.depends('redirect_type')
     def _compute_display_name(self):
         """
         ≙ ``_compute_display_name`` (``@api.depends('redirect_type')``,
         ``odoo19c: website_rewrite.py:132-135``).
         """
-        self.display_name = label = f"{self.redirect_type} - {self.name}"
-        return label
+        for rewrite in self:
+            rewrite.display_name = f"{rewrite.redirect_type} - {rewrite.name}"
 
-    def save(self, *args, **kwargs):
-        """≙ ``create`` (``@api.model_create_multi``, ``:137-142``) +
-        ``write`` (``:144-150``) — nombre CRUD divergente declarado
-        (divergencia 3 del módulo).
+    @api.model_create_multi
+    def create(self, vals_list):
+        """≙ ``create`` (``odoo19c: website_rewrite.py:137-142``): invalida
+        el routing si alguna regla nueva es 308 o 404."""
+        rewrites = super().create(vals_list)
+        if set(rewrites.mapped('redirect_type')) & {'308', '404'}:
+            rewrites._invalidate_routing()
+        return rewrites
 
-        Corre el invariante (``_check_url_to``, divergencia 4) y, si el tipo
-        antes o después del cambio altera el mapa (308/404), invalida el
-        routing — misma condición en los dos lados que la fuente.
-        """
-        self._check_url_to()
-        need_invalidate = self.redirect_type in ('308', '404')
-        if self.pk:
-            previous = type(self).objects.filter(pk=self.pk).first()
-            if previous is not None:
-                need_invalidate = (
-                    need_invalidate or previous.redirect_type in ('308', '404')
-                )
-        result = super().save(*args, **kwargs)
+    def write(self, vals):
+        """≙ ``write`` (``odoo19c: website_rewrite.py:144-150``): invalida el
+        routing si el tipo antes o después del cambio es 308 o 404."""
+        need_invalidate = set(self.mapped('redirect_type')) & {'308', '404'}
+        res = super().write(vals)
+        need_invalidate |= set(self.mapped('redirect_type')) & {'308', '404'}
         if need_invalidate:
             self._invalidate_routing()
-        return result
+        return res
 
-    def delete(self, *args, **kwargs):
-        """≙ ``unlink`` (``odoo19c: website_rewrite.py:152-157``) — nombre
-        CRUD divergente declarado (divergencia 3 del módulo)."""
-        need_invalidate = self.redirect_type in ('308', '404')
-        result = super().delete(*args, **kwargs)
+    def unlink(self):
+        """≙ ``unlink`` (``odoo19c: website_rewrite.py:152-157``)."""
+        need_invalidate = set(self.mapped('redirect_type')) & {'308', '404'}
+        res = super().unlink()
         if need_invalidate:
             self._invalidate_routing()
-        return result
+        return res
 
     def _invalidate_routing(self):
         """≙ ``_invalidate_routing`` (``odoo19c: website_rewrite.py:159-165``).

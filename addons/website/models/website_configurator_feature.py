@@ -43,7 +43,7 @@ ninguna de sus 60 líneas — aquí ``re`` sí se usa (guard del nombre de tema)
 import re
 from pathlib import Path
 
-from django.db import models
+import models
 
 from addons.base.models import TimeStampedModel
 from exceptions import ValidationError
@@ -61,7 +61,7 @@ _ADDON_ROOTS = (_ADDONS_DIR, _ADDONS_DIR.parent / 'src' / 'addons')
 _THEME_NAME_RE = re.compile(r'^[a-z0-9_]+$', re.IGNORECASE)
 
 
-class WebsiteConfiguratorFeature(TimeStampedModel):
+class WebsiteConfiguratorFeature(models.BaseModel, TimeStampedModel):
     """Una feature ofrecida por el configurador de sitios.
 
     Cada registro es o bien una página que el configurador crea (lleva
