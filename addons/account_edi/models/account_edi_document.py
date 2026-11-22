@@ -69,12 +69,9 @@ Diecinueve símbolos (7 campos + 12 métodos) — el desglose
        (ver ``lock_for_update`` abajo); el ``self.env.cr.commit()`` por lote
        de la referencia se traduce a ``transaction.atomic()`` por job
    * - ``_cron_process_documents_web_services``
-     - portado (parcial declarado)
-     - la búsqueda y el procesamiento se portan; el
-       ``self.env.ref('account_edi.ir_cron_edi_network')._trigger()`` final
-       queda **bloqueado** — el cron no existe (sembrarlo exige una
-       migración, fuera del alcance de este agente — ver
-       ``account_edi_format.py``)
+     - portado
+     - la búsqueda, el procesamiento y el ``_trigger()`` final del cron
+       ``account_edi.ir_cron_edi_network`` (sembrado por ``0007``)
    * - ``_filter_edi_attachments_for_mailing``
      - portado
      - ``self.ensure_one()`` no aplica (una instancia YA es una sola fila en
@@ -110,6 +107,7 @@ from addons.account.models.account_move import AccountMove
 from addons.account_edi.models.account_edi_format import AccountEdiFormat
 from addons.base.models.ir_attachment import IrAttachment
 from exceptions import LockError, UserError
+from orm.environments import env
 from tools.translate import _
 
 _logger = logging.getLogger(__name__)
@@ -506,9 +504,9 @@ class AccountEdiDocument(models.BaseModel):
 
     @classmethod
     def _cron_process_documents_web_services(cls, job_count=None):
-        """≙ ``_cron_process_documents_web_services`` (``odoo19c: :188-198``),
-        parcial declarado: el disparo del cron al final queda bloqueado (ver
-        el docstring del módulo)."""
+        """≙ ``_cron_process_documents_web_services``, en
+        ``odoo19c: addons/account_edi/models/account_edi_document.py:237-251``:
+        si quedan trabajos, vuelve a disparar el cron."""
         edi_documents = list(
             cls.objects.filter(
                 state__in=('to_send', 'to_cancel'),
@@ -519,12 +517,7 @@ class AccountEdiDocument(models.BaseModel):
             edi_documents, job_count=job_count
         )
         if nb_remaining_jobs > 0:
-            _logger.info(
-                'account_edi: quedan %s jobs por procesar; el cron '
-                '(bloqueado, sin sembrar) los recogería en la próxima '
-                'corrida — ver el docstring del módulo.',
-                nb_remaining_jobs,
-            )
+            env().ref('account_edi.ir_cron_edi_network')._trigger()
         return nb_remaining_jobs
 
     def _filter_edi_attachments_for_mailing(self):

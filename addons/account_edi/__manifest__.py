@@ -23,7 +23,9 @@
     'application': False,
     # Seguridad de la fuente
     # (``odoo19c: addons/account_edi/__manifest__.py:17``): copia fiel del CSV.
-    # Las vistas y el cron de la fuente no se cargan aquí.
+    # Las vistas de la fuente no se cargan aquí; su cron
+    # (``data/cron.xml``) lo siembra la migración
+    # ``0007_seed_cron_edi_network``.
     'data': [
         'security/ir.model.access.csv',
     ],

@@ -51,6 +51,7 @@ from addons.loyalty.data import CRON_EXPIRE_VOUCHERS
 from addons.mail.data import CRON_EMAIL_QUEUE
 from addons.website_sale.models.website import CRON_SEND_ABANDONED_CART_EMAIL
 from tests.factories.user_factory import make_buyer  # noqa: F401 (re-export)
+from addons.account_edi.data import CRON_EDI_NETWORK
 from tests.fixtures import reference_tree
 from django.apps import apps as django_apps
 from addons.account.data import (seed_manual_payment_methods,
@@ -371,7 +372,7 @@ def _reset_system_parameter_cache():
 # envío en cada test colisiona con los tests que crean las suyas y afirman
 # conteos — el mismo choque que ya costó un CI rojo. Queda registrado como
 # hallazgo aparte en vez de arrastrarlo aquí a ciegas.
-# Las siete siembras de ``ir.cron`` del arbol — ``base/0032`` y las seis de
+# Las ocho siembras de ``ir.cron`` del arbol — ``base/0032`` y las siete de
 # addon. Estaban FUERA de esta red hasta 2026-08-26: cada una es una
 # data-migration sin ``seed()`` registrado aqui, asi que un solo test
 # transaccional las borraba y ``django_migrations`` las seguia dando por
@@ -388,6 +389,7 @@ _CRON_SPECS = (
     CRON_AUTO_CLOSE_TICKETS,          # helpdesk/0002
     CRON_SEND_ABANDONED_CART_EMAIL,   # website_sale/0002
     CRON_BASE_AUTOMATION_CHECK,       # base_automation
+    CRON_EDI_NETWORK,                 # account_edi/0007
 )
 
 
@@ -417,7 +419,7 @@ def _payment_sequence_seed():
 
 
 def _crons_seed():
-    """Re-aplica las siete siembras de cron. Idempotente por clave natural."""
+    """Re-aplica las ocho siembras de cron. Idempotente por clave natural."""
     for spec in _CRON_SPECS:
         sembrar_cron_vivo(spec)
 
@@ -446,7 +448,7 @@ _SEEDERS = (
     subscription_rules_seed,    # sale_subscription/security/ir_rules
     sale_report_view_seed,      # sale/0002 (plantilla del documento)
     incoterm_extension_seed,    # sale_stock/0003 — después de la primaria
-    _crons_seed,                # las siete siembras de ir.cron
+    _crons_seed,                # las ocho siembras de ir.cron
     _install_modules,           # el ciclo de instalación (post_migrate)
 )
 

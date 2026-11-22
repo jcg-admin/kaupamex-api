@@ -103,6 +103,7 @@ import models
 from addons.account.models.account_move import AccountMove
 from addons.account_edi.models.account_edi_document import AccountEdiDocument
 from exceptions import UserError
+from orm.environments import env
 from orm.method_chain import chain_method
 from tools.translate import _
 
@@ -278,9 +279,9 @@ def _create_edi_documents_after_post(self):
     Crea (o reactiva) el ``account.edi.document`` de cada
     ``edi_format`` activo del diario, y procesa síncronamente los que no
     necesitan web-service — ≙ ``posted.edi_document_ids.
-    _process_documents_no_web_services()``. El disparo del cron
-    (``ir_cron_edi_network._trigger()``) queda bloqueado (no sembrado, ver
-    ``account_edi_format.py``).
+    _process_documents_no_web_services()``, y dispara el cron de
+    web-services salvo con ``skip_account_edi_cron_trigger`` en el contexto
+    (``odoo19c: addons/account_edi/models/account_move.py:263-264``).
     """
     for edi_format in self.journal.edi_format_ids:
         applicability = edi_format._get_move_applicability(self)
@@ -306,6 +307,8 @@ def _create_edi_documents_after_post(self):
 
     new_documents = list(self.edi_document_ids.all())
     AccountEdiDocument._process_documents_no_web_services(new_documents)
+    if not env().context.get('skip_account_edi_cron_trigger'):
+        env().ref('account_edi.ir_cron_edi_network')._trigger()
 
 
 #: Marca en la función instalada — evita doble envoltura si ``ready()``
@@ -385,6 +388,8 @@ def button_cancel(self):
     AccountEdiDocument._process_documents_no_web_services(
         list(self.edi_document_ids.all())
     )
+    # ≙ ``odoo19c: addons/account_edi/models/account_move.py:283``.
+    env().ref('account_edi.ir_cron_edi_network')._trigger()
     return None
 
 

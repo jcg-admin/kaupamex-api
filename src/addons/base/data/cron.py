@@ -28,7 +28,11 @@ def sembrar_cron(apps, alias, spec):
     creado)``.
 
     ``spec`` lleva: ``name``, ``model_name``, ``method_name``,
-    ``interval_number``, ``interval_type`` y ``priority``.
+    ``interval_number``, ``interval_type`` y ``priority``; y, opcionales,
+    ``active`` (por defecto ``True``) y ``xml_id`` (``'modulo.nombre'``), el
+    identificador externo con que la fuente declara el ``<record>`` y con que
+    sus consumidores lo piden (``env.ref``). Un cron que nace inactivo, como
+    ``account_edi.ir_cron_edi_network``, los necesita los dos.
 
     Escribe sobre los modelos **históricos** (``apps.get_model``), nunca sobre
     los vivos: una migración no debe ejecutar comportamiento de la app, que
@@ -36,6 +40,7 @@ def sembrar_cron(apps, alias, spec):
     """
     IrActionsServer = apps.get_model('base', 'IrActionsServer')
     IrCron = apps.get_model('base', 'IrCron')
+    IrModelData = apps.get_model('base', 'IrModelData')
 
     accion, _ = IrActionsServer.objects.using(alias).get_or_create(
         model_name=spec['model_name'],
@@ -57,9 +62,10 @@ def sembrar_cron(apps, alias, spec):
             'interval_number': spec['interval_number'],
             'interval_type': spec['interval_type'],
             'priority': spec['priority'],
-            'active': True,
+            'active': spec.get('active', True),
         },
     )
+    _register_xml_id(IrModelData, alias, spec, cron)
     return cron, creado
 
 
@@ -82,6 +88,7 @@ def sembrar_cron_vivo(spec):
     """
     IrActionsServer = apps_vivos.get_model('base', 'IrActionsServer')
     IrCron = apps_vivos.get_model('base', 'IrCron')
+    IrModelData = apps_vivos.get_model('base', 'IrModelData')
 
     accion, _ = IrActionsServer.objects.get_or_create(
         model_name=spec['model_name'],
@@ -98,7 +105,25 @@ def sembrar_cron_vivo(spec):
             'interval_number': spec['interval_number'],
             'interval_type': spec['interval_type'],
             'priority': spec['priority'],
-            'active': True,
+            'active': spec.get('active', True),
         },
     )
+    _register_xml_id(IrModelData, None, spec, cron)
     return cron, creado
+
+
+def _register_xml_id(ir_model_data, alias, spec, cron):
+    """Graba el identificador externo del cron si el ``spec`` lo declara y
+    aún no existe — ≙ el ``id`` del ``<record model="ir.cron">`` de la
+    fuente, con ``noupdate`` como su ``<odoo noupdate="1">``. Mismo patrón que
+    ``mail.data.register_subtype_xmlids``."""
+    xml_id = spec.get('xml_id')
+    if not xml_id:
+        return
+    module, _, name = xml_id.partition('.')
+    manager = (ir_model_data.objects.using(alias) if alias
+               else ir_model_data.objects)
+    if manager.filter(module=module, name=name).exists():
+        return
+    manager.create(module=module, name=name, model='base.IrCron',
+                   res_id=cron.pk, noupdate=True)

@@ -31,9 +31,9 @@ Once símbolos (2 campos + 9 métodos) — 10 portados, 1 bloqueado
      - ``_unique_code`` → ``Meta.constraints``
        (``atributos-de-clase-de-modelo.md``)
    * - ``create`` (override)
-     - portado (paso (a))
-     - recalcula los diarios al crear formatos; el paso (b), el cron, queda
-       pendiente (ver abajo)
+     - portado
+     - recalcula los diarios al crear formatos y activa el cron si un formato
+       necesita web-service
    * - ``_register_hook``
      - **bloqueado**
      - hook de ciclo de vida de instalación de módulo Odoo; sin equivalente
@@ -71,10 +71,9 @@ anterior lo declaraba bloqueado por un import circular entre este módulo y
 ``account_journal.py``; la fuente no importa la clase, la pide al entorno
 (``self.env['account.journal']``), y aquí igual.
 
-Lo que sigue pendiente, con su sucesor en ``designs/
-account-edi-journal-computes.md``: el paso (b), activar el cron
-``account_edi.ir_cron_edi_network`` si un formato necesita web-service, que
-exige sembrar el cron. La rama ``self.pool.loaded`` /
+El paso (b), activar el cron ``account_edi.ir_cron_edi_network`` si un
+formato necesita web-service (``:40-42``), escribe sobre el cron que siembra
+la migración ``0007_seed_cron_edi_network``. La rama ``self.pool.loaded`` /
 ``_delay_compute_edi_format_ids`` es la carga diferida del registro de la
 fuente; aquí el registro de Django está completo antes del primer ``create``.
 """
@@ -131,6 +130,14 @@ class AccountEdiFormat(models.BaseModel):
             return edi_formats
         journals = edi_formats.env['account.journal'].search([])
         journals._compute_edi_format_ids()
+        # Paso (b) (``odoo19c: addons/account_edi/models/
+        # account_edi_format.py:40-42``): activar el cron.
+        if any(edi_format._needs_web_services()
+               for edi_format in edi_formats):
+            # ``ir.cron`` es un modelo de Django: la asignación de la fuente
+            # es aquí un ``write``.
+            edi_formats.env.ref('account_edi.ir_cron_edi_network').write(
+                {'active': True})
         return edi_formats
 
     ####################################################
