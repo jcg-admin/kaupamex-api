@@ -1714,6 +1714,13 @@
         "website-basemodel-u2-0397"
       ],
       "writtenAt": "2026-11-22T17:22:30Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "sale-security-acl-0397"
+      ],
+      "writtenAt": "2026-11-22T18:20:33Z"
     }
   ]
 }
