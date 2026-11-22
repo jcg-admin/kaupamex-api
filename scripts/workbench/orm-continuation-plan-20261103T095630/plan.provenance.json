@@ -1665,6 +1665,27 @@
         "analytic-project-plan-restore-0397"
       ],
       "writtenAt": "2026-11-22T11:09:02Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "analytic-relevant-plans-0397"
+      ],
+      "writtenAt": "2026-11-22T12:50:47Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "cron-xml-id-natural-key-0397"
+      ],
+      "writtenAt": "2026-11-22T12:50:47Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "export-properties-cursor-cache-0397"
+      ],
+      "writtenAt": "2026-11-22T12:50:47Z"
     }
   ]
 }
