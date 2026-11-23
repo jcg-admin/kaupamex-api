@@ -84,6 +84,24 @@ de `scheduled_date` tumba sólo
 `QuerySet.update` en `_put_in_pack` tumba
 `tests/unit/stock/test_stock_picking_packages.py::TestActionPutInPack::test_delegates_to_the_move_lines`.
 
+## Citas de la fuente por archivo
+
+- `addons/stock/models/stock_picking.py`: odoo19c: addons/stock/models/stock_picking.py:1117-1173
+  (`create`, `write`, `unlink`), odoo19c: addons/stock/models/stock_picking.py:864-873
+  y odoo19c: addons/stock/models/stock_picking.py:925-931 (`scheduled_date`).
+- `addons/stock/models/stock_scrap.py`: odoo19c: addons/stock/models/stock_scrap.py:120-123.
+- `addons/stock/models/stock_move_line.py`: odoo19c: addons/stock/models/stock_move_line.py:137-149
+  (`_compute_location_id`) y odoo19c: addons/stock/models/stock_move_line.py:1090-1113
+  (`_put_in_pack`).
+- `addons/stock/models/stock_move.py`: odoo19c: addons/stock/models/stock_move.py:1529-1545
+  (asignación del albarán a los candidatos).
+- `addons/project_stock/models/project_project.py`:
+  odoo19c: addons/project_stock/models/project_project.py:22-26.
+- `addons/purchase_stock/models/stock.py`: odoo19c: addons/purchase_stock/models/stock.py:13-15.
+
+Prueba de todos: `tests/unit/stock/test_stock_picking_recordset_crud.py` y
+`tests/unit/stock/test_stock_picking_packages.py`.
+
 ## Símbolos tocados por archivo
 
 Derivados del AST del diff.
