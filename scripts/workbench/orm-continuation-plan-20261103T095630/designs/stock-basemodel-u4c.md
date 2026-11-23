@@ -54,8 +54,12 @@ Referencia (`odoo-tools@abe4040ec1`, Odoo 19 Community):
    `_set_scheduled_date` (`:925-931`) y el `pop` de `create` que lo escribe
    después de crear (`:1126-1134`). `Meta.ordering` pasa a
    `['-priority', 'scheduled_date', '-id']`. La migración
-   `stock/0033_port_picking_scheduled_date` rellena las filas existentes con
-   la misma regla, y con su `create_date` si no tienen movimientos pendientes.
+   `stock/0033_port_picking_scheduled_date` calcula las filas existentes con
+   `ComputeStoredFields`, el mecanismo del ORM para una columna calculada
+   nueva (`odoo19c: odoo/orm/models.py:3220-3238`). Un primer borrador las
+   rellenaba con un `RunPython` propio; el gate completo lo rechazó en
+   `tests/unit/orm/test_new_computed_columns_are_computed.py`, que exige esa
+   operación.
 8. **`_put_in_pack` escribía el paquete con `QuerySet.update`**, que no
    invalida la caché del ORM: tras la adopción, la línea seguía leyendo
    `result_package_id = None` aunque la fila tuviera el paquete. Pasa a
