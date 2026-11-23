@@ -277,6 +277,7 @@ from decimal import Decimal
 import fields
 import api
 import models
+from orm.utils import browse
 from django.apps import apps
 from django.db.models import Q
 from django.utils import timezone
@@ -315,7 +316,7 @@ FREE_RESERVATION_INDEX = models.Index(
 )
 
 
-class StockMoveLine(TimeStampedModel):
+class StockMoveLine(models.BaseModel, TimeStampedModel):
     """``stock.move.line`` — el detalle ejecutable de un movimiento."""
 
     # Atributos de clase de modelo — los cuatro de ORM que la referencia
@@ -347,34 +348,46 @@ class StockMoveLine(TimeStampedModel):
         help_text='Empresa (Odoo company_id, readonly+required; se recalcula '
                   'en save() desde el movimiento o el albarán).',
     )
-    product          = fields.Many2one(
-        'product.ProductProduct', on_delete=models.CASCADE, null=True, blank=True, db_index=True,
+    product = fields.Many2one(
+        'product.ProductProduct',
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        db_index=True,
         related_name='stock_move_lines',
         help_text='Producto (Odoo product_id; el dominio excluye servicios).',
     )
-    product_uom      = fields.Many2one(
-        'uom.Uom', on_delete=models.PROTECT, null=True, blank=True,
+    product_uom = fields.Many2one(
+        'uom.Uom',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
         related_name='stock_move_lines',
         help_text='Unidad de la línea (Odoo product_uom_id, compute+store; '
-                  'la recalcula _compute_product_uom_id).',
+        'la recalcula _compute_product_uom_id).',
     )
-    quantity         = fields.Monetary(
-        max_digits=16, decimal_places=4, default=Decimal('0.0000'),
+    quantity = fields.Monetary(
+        max_digits=16,
+        decimal_places=4,
+        default=Decimal('0.0000'),
         help_text='Cantidad en la unidad de la línea (Odoo quantity, '
-                  'compute+store con readonly=False).',
+        'compute+store con readonly=False).',
     )
     quantity_product_uom = fields.Monetary(
         max_digits=16, decimal_places=4, default=Decimal('0.0000'),
         help_text='La misma cantidad en la unidad del producto (Odoo '
                   'quantity_product_uom, compute+store).',
     )
-    picked           = fields.Boolean(
+    picked = fields.Boolean(
         default=False,
         help_text='La línea ya fue tomada (Odoo picked, compute+store con '
-                  'readonly=False).',
+        'readonly=False).',
     )
-    package          = fields.Many2one(
-        'stock.StockPackage', on_delete=models.RESTRICT, null=True, blank=True,
+    package = fields.Many2one(
+        'stock.StockPackage',
+        on_delete=models.RESTRICT,
+        null=True,
+        blank=True,
         related_name='source_move_line_ids',
         help_text='Paquete de origen (Odoo package_id).',
     )
@@ -383,50 +396,71 @@ class StockMoveLine(TimeStampedModel):
         related_name='move_line_ids', db_index=True,
         help_text='Lote / número de serie (Odoo lot_id).',
     )
-    lot_name         = fields.Char(
-        max_length=255, null=True, blank=True,
+    lot_name = fields.Char(
+        max_length=255,
+        null=True,
+        blank=True,
         help_text='Nombre del lote cuando aún no existe el registro (Odoo '
-                  'lot_name); lo materializa _create_and_assign_production_lot.',
+        'lot_name); lo materializa _create_and_assign_production_lot.',
     )
-    result_package   = fields.Many2one(
-        'stock.StockPackage', on_delete=models.RESTRICT, null=True, blank=True,
+    result_package = fields.Many2one(
+        'stock.StockPackage',
+        on_delete=models.RESTRICT,
+        null=True,
+        blank=True,
         related_name='move_line_ids',
         help_text='Paquete de destino (Odoo result_package_id).',
     )
-    package_history  = fields.Many2one(
-        'stock.StockPackageHistory', on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='move_line_ids',
+    package_history = fields.Many2one(
+        'stock.StockPackageHistory',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='move_line_ids',
         help_text='Instantánea del paquete al momento del movimiento (Odoo '
-                  'package_history_id).',
+        'package_history_id).',
     )
-    is_entire_pack   = fields.Boolean(
+    is_entire_pack = fields.Boolean(
         default=False,
-        help_text='La línea entró por un paquete completo (Odoo is_entire_pack).',
+        help_text='La línea entró por un paquete completo (Odoo '
+                  'is_entire_pack).',
     )
-    date             = fields.Datetime(
+    date = fields.Datetime(
         default=timezone.now,
         help_text='Fecha de creación, actualizada al aumentar cantidad, al '
-                  'marcarse tomada o al terminar (Odoo date).',
+        'marcarse tomada o al terminar (Odoo date).',
     )
-    owner            = fields.Many2one(
-        'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
+    owner = fields.Many2one(
+        'base.ResPartner',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='owned_move_lines',
         help_text='Propietario de la mercancía en origen (Odoo owner_id).',
     )
-    location         = fields.Many2one(
-        'stock.StockLocation', null=False, on_delete=models.PROTECT, db_index=True,
+    location = fields.Many2one(
+        'stock.StockLocation',
+        null=False,
+        on_delete=models.PROTECT,
+        db_index=True,
         related_name='move_line_ids',
         help_text='Ubicación de origen (Odoo location_id, compute+store).',
     )
-    location_dest    = fields.Many2one(
-        'stock.StockLocation', null=False, on_delete=models.PROTECT, db_index=True,
+    location_dest = fields.Many2one(
+        'stock.StockLocation',
+        null=False,
+        on_delete=models.PROTECT,
+        db_index=True,
         related_name='dest_move_line_ids',
-        help_text='Ubicación de destino (Odoo location_dest_id, compute+store).',
+        help_text='Ubicación de destino (Odoo location_dest_id, '
+                  'compute+store).',
     )
-    state            = fields.Char(
-        max_length=32, null=True, blank=True,
+    state = fields.Char(
+        max_length=32,
+        null=True,
+        blank=True,
         help_text='Estado heredado del movimiento (Odoo state, related+store; '
-                  'lo recalcula save()).',
+        'lo recalcula save()).',
     )
     consume_line_ids = fields.Many2many(
         'self', through='stock.StockMoveLineConsumeRel', symmetrical=False,
@@ -456,7 +490,11 @@ class StockMoveLine(TimeStampedModel):
 
     def __str__(self):
         # ≙ ``_rec_name = "product_id"`` (``odoo19c: :18``).
-        return str(self.product) if self.product_id else f'stock.move.line#{self.pk}'
+        return (
+            str(self.product)
+            if self.product_id
+            else f'stock.move.line#{self.pk}'
+        )
 
     # ------------------------------------------------------------------ #
     # Campos calculados sin almacenar (≙ los tres `compute` no-store)      #
@@ -464,7 +502,8 @@ class StockMoveLine(TimeStampedModel):
 
     @property
     def allowed_uom_ids(self):
-        """≙ el campo ``allowed_uom_ids`` / ``_compute_allowed_uom_ids`` (``:101-104``).
+        """≙ el campo ``allowed_uom_ids`` / ``_compute_allowed_uom_ids``
+        (``:101-104``).
 
         Las unidades admisibles son la del producto, las suyas alternas y las
         que declaran sus proveedores. La referencia lo resuelve con la unión de
@@ -479,7 +518,8 @@ class StockMoveLine(TimeStampedModel):
         if unidad is not None:
             permitidas.add(unidad.pk)
         permitidas.update(
-            uom.pk for uom in getattr(producto, 'uom_ids', uom_model.objects.none())
+            uom.pk
+            for uom in getattr(producto, 'uom_ids', uom_model.objects.none())
         )
         for proveedor in getattr(producto, 'seller_ids', []):
             if getattr(proveedor, 'product_uom_id', None) is not None:
@@ -488,7 +528,9 @@ class StockMoveLine(TimeStampedModel):
 
     @property
     def product_category_name(self):
-        """≙ ``product_category_name`` (``related='product_id.categ_id.complete_name'``, ``:36``)."""
+        """≙ ``product_category_name``
+        (``related='product_id.categ_id.complete_name'``, ``:36``).
+        """
         producto = self.product
         categoria = (getattr(producto, 'categ_id', None)
                      if producto is not None else None)
@@ -517,11 +559,16 @@ class StockMoveLine(TimeStampedModel):
     @property
     def location_dest_usage(self):
         """≙ ``location_dest_usage`` (related, ``:74``)."""
-        return self.location_dest.usage if self.location_dest is not None else None
+        return (
+            self.location_dest.usage
+            if self.location_dest is not None
+            else None
+        )
 
     @property
     def lots_visible(self):
-        """≙ el campo ``lots_visible`` / ``_compute_lots_visible`` (``:114-121``).
+        """≙ el campo ``lots_visible`` / ``_compute_lots_visible``
+        (``:114-121``).
 
         El lote se muestra si el producto se rastrea; y cuando hay tipo de
         operación, además decide el tipo: sólo si admite crear o usar lotes.
@@ -529,16 +576,22 @@ class StockMoveLine(TimeStampedModel):
         producto = self.product
         rastreado = getattr(producto, 'tracking', 'none') != 'none'
         albaran = self.picking
-        tipo = getattr(albaran, 'picking_type', None) if albaran is not None else None
+        tipo = (
+            getattr(albaran, 'picking_type', None)
+            if albaran is not None
+            else None
+        )
         if tipo is not None and rastreado:
             return bool(tipo.use_existing_lots or tipo.use_create_lots)
         return rastreado
 
     @property
     def picking_partner(self):
-        """≙ ``picking_partner_id`` (``related='picking_id.partner_id'``, ``:76``).
+        """≙ ``picking_partner_id`` (``related='picking_id.partner_id'``,
+        ``:76``).
 
-        **Bloqueado:** ``StockPicking`` aún no declara ``partner`` (tarea #330).
+        **Bloqueado:** ``StockPicking`` aún no declara ``partner`` (tarea
+        #330).
         """
         return self.picking.partner if self.picking is not None else None
 
@@ -558,7 +611,8 @@ class StockMoveLine(TimeStampedModel):
 
     @property
     def picking_type(self):
-        """≙ el campo ``picking_type_id`` / ``_compute_picking_type_id`` (``:136-141``).
+        """≙ el campo ``picking_type_id`` / ``_compute_picking_type_id``
+        (``:136-141``).
 
         El tipo lo aporta el albarán; sin albarán la referencia deja el campo
         en falso.
@@ -577,7 +631,9 @@ class StockMoveLine(TimeStampedModel):
         """
         if operator in NEGATIVE_OPERATORS:
             return NotImplemented
-        return expression.to_q([('picking_id.picking_type_id', operator, value)])
+        return expression.to_q(
+            [('picking_id.picking_type_id', operator, value)]
+        )
 
     @property
     def picking_type_use_create_lots(self):
@@ -593,17 +649,23 @@ class StockMoveLine(TimeStampedModel):
 
     @property
     def scrap(self):
-        """≙ ``scrap_id`` (``related='move_id.scrap_id'``, ``:85``). **Bloqueado** (#330)."""
+        """≙ ``scrap_id`` (``related='move_id.scrap_id'``, ``:85``).
+        **Bloqueado** (#330).
+        """
         return self.move.scrap if self.move is not None else None
 
     @property
     def is_inventory(self):
-        """≙ ``is_inventory`` (``related='move_id.is_inventory'``, ``:86``). **Bloqueado** (#330)."""
+        """≙ ``is_inventory`` (``related='move_id.is_inventory'``, ``:86``).
+        **Bloqueado** (#330).
+        """
         return bool(self.move is not None and self.move.is_inventory)
 
     @property
     def is_locked(self):
-        """≙ ``is_locked`` (``related='move_id.is_locked'``, ``:87``). **Bloqueado** (#330)."""
+        """≙ ``is_locked`` (``related='move_id.is_locked'``, ``:87``).
+        **Bloqueado** (#330).
+        """
         return bool(self.move is not None and self.move.is_locked)
 
     @property
@@ -619,7 +681,9 @@ class StockMoveLine(TimeStampedModel):
 
     @property
     def reference(self):
-        """≙ ``reference`` (``related='move_id.reference'``, ``:90``). **Bloqueado** (#330)."""
+        """≙ ``reference`` (``related='move_id.reference'``, ``:90``).
+        **Bloqueado** (#330).
+        """
         return self.move.reference if self.move is not None else None
 
     @property
@@ -629,17 +693,25 @@ class StockMoveLine(TimeStampedModel):
 
     @property
     def origin(self):
-        """≙ ``origin`` (``related='move_id.origin'``, ``:92``). **Bloqueado** (#330)."""
+        """≙ ``origin`` (``related='move_id.origin'``, ``:92``). **Bloqueado**
+        (#330).
+        """
         return self.move.origin if self.move is not None else None
 
     @property
     def description_picking(self):
-        """≙ ``description_picking`` (``related='move_id.description_picking'``, ``:93``). **Bloqueado** (#330)."""
+        """≙ ``description_picking``
+        (``related='move_id.description_picking'``, ``:93``).
+        **Bloqueado** (#330).
+        """
+
         return self.move.description_picking if self.move is not None else None
 
     @property
     def picking_location(self):
-        """≙ ``picking_location_id`` (``related='picking_id.location_id'``, ``:95``)."""
+        """≙ ``picking_location_id`` (``related='picking_id.location_id'``,
+        ``:95``).
+        """
         return self.picking.location if self.picking is not None else None
 
     @property
@@ -660,10 +732,14 @@ class StockMoveLine(TimeStampedModel):
         """
         if self.product_uom_id:
             return
-        del_movimiento = getattr(self.move, 'product_uom', None) if self.move is not None else None
+        del_movimiento = (
+            getattr(self.move, 'product_uom', None)
+            if self.move is not None
+            else None
+        )
         if del_movimiento is not None:
             self.product_uom = del_movimiento
-        elif self.product is not None:
+        elif self.product:
             self.product_uom = self.product.uom_id
 
     def _compute_quantity(self):
@@ -679,7 +755,9 @@ class StockMoveLine(TimeStampedModel):
         uom_producto = self.product.uom_id
         uom_linea = self.product_uom
         movimiento = self.move
-        visible = movimiento._visible_quantity() if movimiento is not None else 0.0
+        visible = (
+            movimiento._visible_quantity() if movimiento is not None else 0.0
+        )
 
         demanda = movimiento.product_uom._compute_quantity(
             movimiento.product_uom_qty, uom_linea, rounding_method='HALF-UP')
@@ -696,7 +774,7 @@ class StockMoveLine(TimeStampedModel):
 
     def _compute_quantity_product_uom(self):
         """≙ ``_compute_quantity_product_uom`` (``odoo19c: :173-176``)."""
-        if self.product_uom is None or self.product is None:
+        if not self.product_uom or not self.product:
             self.quantity_product_uom = self.quantity
             return
         cantidad = self.product_uom._compute_quantity(
@@ -742,15 +820,18 @@ class StockMoveLine(TimeStampedModel):
         # nueva no hay ``_origin`` y dispararía siempre, pisando el valor que
         # el llamador fijó explícitamente — la fuente sólo rellena lo no
         # provisto (precompute) y resincroniza al cambiar el albarán.
-        if (self.location_id is None
-                or (origen is not None
-                    and getattr(albaran_previo, 'location_id', None) != del_albaran)):
+        if self.location_id is None or (
+            origen is not None
+            and getattr(albaran_previo, 'location_id', None) != del_albaran
+        ):
             nueva = del_movimiento or del_albaran
             if nueva is not None:
                 self.location_id = nueva
-        if (self.location_dest_id is None
-                or (origen is not None
-                    and getattr(albaran_previo, 'location_dest_id', None) != dest_albaran)):
+        if self.location_dest_id is None or (
+            origen is not None
+            and getattr(albaran_previo, 'location_dest_id', None)
+            != dest_albaran
+        ):
             nueva = dest_movimiento or dest_albaran
             if nueva is not None:
                 self.location_dest_id = nueva
@@ -767,7 +848,8 @@ class StockMoveLine(TimeStampedModel):
         self._compute_quantity()
         self._compute_quantity_product_uom()
         if self.move is not None:
-            # ≙ ``state = fields.Selection(related='move_id.state', store=True)``
+            # ≙ ``state = fields.Selection(related='move_id.state',
+            # store=True)``
             self.state = self.move.state
         self._compute_picked()
         super().save(*args, **kwargs)
@@ -778,12 +860,15 @@ class StockMoveLine(TimeStampedModel):
 
     def _check_lot_product(self):
         """≙ ``_check_lot_product`` (``odoo19c: :178-186``)."""
-        if self.lot is not None and self.product_id != self.lot.product_id:
-            raise ValidationError(_(
-                'This lot %(lot_name)s is incompatible with this product %(product_name)s',
-                lot_name=self.lot.name,
-                product_name=str(self.product),
-            ))
+        if self.lot and self.product_id != self.lot.product_id:
+            raise ValidationError(
+                _(
+                    'This lot %(lot_name)s is incompatible with this product '
+                    '%(product_name)s',
+                    lot_name=self.lot.name,
+                    product_name=str(self.product),
+                )
+            )
 
     def _check_positive_quantity(self):
         """≙ ``_check_positive_quantity`` (``odoo19c: :188-191``)."""
@@ -806,7 +891,7 @@ class StockMoveLine(TimeStampedModel):
         En la referencia el onchange fija ``lots_visible``, que aquí es una
         ``property`` derivada — así que devuelve el valor en vez de asignarlo.
         """
-        if self.product is None:
+        if not self.product:
             return {}
         return {'lots_visible': self.tracking != 'none'}
 
@@ -824,14 +909,18 @@ class StockMoveLine(TimeStampedModel):
             self.quantity = Decimal('1.0000')
 
         mensaje = None
-        if self.lot_name or self.lot is not None:
-            otras = [l for l in self._get_similar_move_lines() if l.pk != self.pk]
+        if self.lot_name or self.lot:
+            otras = [
+                line
+                for line in self._get_similar_move_lines()
+                if line.pk != self.pk
+            ]
             if self.lot_name:
-                cuenta = Counter([l.lot_name for l in otras])
+                cuenta = Counter([line.lot_name for line in otras])
                 if cuenta.get(self.lot_name, 0) > 1:
                     mensaje = _('You cannot use the same serial number twice. '
                                 'Please correct the serial numbers encoded.')
-                elif self.lot is None:
+                elif not self.lot:
                     lot_model = apps.get_model('stock', 'StockLot')
                     quant_model = apps.get_model('stock', 'StockQuant')
                     lotes = lot_model.objects.filter(
@@ -841,26 +930,40 @@ class StockMoveLine(TimeStampedModel):
                         ]))
                     quants = quant_model.objects.filter(
                         lot__in=lotes,
-                        location__usage__in=['customer', 'internal', 'transit'],
+                        location__usage__in=[
+                            'customer',
+                            'internal',
+                            'transit',
+                        ],
                     ).exclude(quantity=0)
                     if quants.exists():
                         mensaje = _(
-                            'Serial number (%(serial_number)s) already exists in '
-                            'location(s): %(location_list)s. Please correct the '
+                            'Serial number (%(serial_number)s) already exists '
+                            'in '
+                            'location(s): %(location_list)s. Please correct '
+                            'the '
                             'serial number encoded.',
                             serial_number=self.lot_name,
                             location_list=[str(q.location) for q in quants],
                         )
-            elif self.lot is not None:
-                cuenta = Counter([l.lot_id for l in otras])
+            elif self.lot:
+                cuenta = Counter([line.lot_id for line in otras])
                 if cuenta.get(self.lot_id, 0) > 1:
                     mensaje = _('You cannot use the same serial number twice. '
                                 'Please correct the serial numbers encoded.')
                 else:
                     quant_model = apps.get_model('stock', 'StockQuant')
                     mensaje, recomendada = quant_model._check_serial_number(
-                        self.product, self.lot, self.company, self.location,
-                        self.picking.location if self.picking is not None else None)
+                        self.product,
+                        self.lot,
+                        self.company,
+                        self.location,
+                        (
+                            self.picking.location
+                            if self.picking is not None
+                            else None
+                        ),
+                    )
                     if recomendada is not None:
                         self.location = recomendada
         if mensaje:
@@ -878,9 +981,13 @@ class StockMoveLine(TimeStampedModel):
         uom = self.product.uom_id
         cantidad = float(self.quantity_product_uom)
         if uom.compare(cantidad, 1.0) != 0 and not uom.is_zero(cantidad):
-            raise UserError(_(
-                'You can only process 1.0 %s of products with unique serial number.',
-                uom.name))
+            raise UserError(
+                _(
+                    'You can only process 1.0 %s of products with unique '
+                    'serial number.',
+                    uom.name,
+                )
+            )
         return {}
 
     def _onchange_putaway_location(self):
@@ -891,7 +998,7 @@ class StockMoveLine(TimeStampedModel):
         alguien ya lo cambió a mano, no lo pisa.
         """
         destino = self._get_default_dest_location()
-        if self.pk or self.product is None or not self.quantity_product_uom:
+        if self.pk or not self.product or not self.quantity_product_uom:
             return
         if self.location_dest_id != getattr(destino, 'pk', None):
             return
@@ -925,11 +1032,17 @@ class StockMoveLine(TimeStampedModel):
         for paquete_id, grupo in por_paquete.items():
             paquete = None
             if paquete_id is not None:
-                paquete = apps.get_model('stock', 'StockPackage').objects.get(pk=paquete_id)
-            excluidas = {l.pk for l in grupo if l.pk}
+                paquete = apps.get_model('stock', 'StockPackage').objects.get(
+                    pk=paquete_id
+                )
+            excluidas = {ml.pk for ml in grupo if ml.pk}
 
             if paquete is not None and paquete.package_type_id:
-                base = grupo[0].move.location_dest if grupo[0].move is not None else None
+                base = (
+                    grupo[0].move.location_dest
+                    if grupo[0].move is not None
+                    else None
+                )
                 if base is None:
                     continue
                 mejor = base._get_putaway_strategy(None, package=paquete,
@@ -943,31 +1056,44 @@ class StockMoveLine(TimeStampedModel):
                 for line in grupo:
                     if len(usadas) > 1:
                         break
-                    base = line.move.location_dest if line.move is not None else None
+                    base = (
+                        line.move.location_dest
+                        if line.move is not None
+                        else None
+                    )
                     if base is None:
                         continue
                     propuesta = base._get_putaway_strategy(
                         line.product, quantity=line.quantity,
                         exclude_sml_ids=excluidas)
-                    if propuesta is not None and propuesta.pk != line.location_dest_id:
+                    if (
+                        propuesta is not None
+                        and propuesta.pk != line.location_dest_id
+                    ):
                         line.location_dest = propuesta
                     excluidas.discard(line.pk)
                     usadas.add(line.location_dest_id)
                 if len(usadas) > 1:
-                    # El paquete no se parte: todas vuelven al destino del movimiento.
+                    # El paquete no se parte: todas vuelven al destino del
+                    # movimiento.
                     for line in grupo:
                         if line.move is not None:
                             line.location_dest = line.move.location_dest
                 continue
 
             for line in grupo:
-                base = line.move.location_dest if line.move is not None else None
+                base = (
+                    line.move.location_dest if line.move is not None else None
+                )
                 if base is None:
                     continue
                 propuesta = base._get_putaway_strategy(
                     line.product, quantity=line.quantity,
                     exclude_sml_ids=excluidas)
-                if propuesta is not None and propuesta.pk != line.location_dest_id:
+                if (
+                    propuesta is not None
+                    and propuesta.pk != line.location_dest_id
+                ):
                     line.location_dest = propuesta
                 excluidas.discard(line.pk)
 
@@ -979,8 +1105,16 @@ class StockMoveLine(TimeStampedModel):
         """
         movimiento, albaran = self.move, self.picking
         return (
-            (getattr(movimiento, 'location_dest', None) if movimiento is not None else None)
-            or (getattr(albaran, 'location_dest', None) if albaran is not None else None)
+            (
+                getattr(movimiento, 'location_dest', None)
+                if movimiento is not None
+                else None
+            )
+            or (
+                getattr(albaran, 'location_dest', None)
+                if albaran is not None
+                else None
+            )
             or self.location_dest
         )
 
@@ -994,7 +1128,7 @@ class StockMoveLine(TimeStampedModel):
         """
         adicional = {}
         for line in lines:
-            if line.product_uom is None or line.product is None:
+            if not line.product_uom or not line.product:
                 continue
             cantidad = line.product_uom._compute_quantity(
                 float(line.quantity), line.product.uom_id)
@@ -1007,7 +1141,9 @@ class StockMoveLine(TimeStampedModel):
     # ------------------------------------------------------------------ #
 
     @classmethod
-    def get_move_line_quant_match(cls, move_id, dirty_move_line_ids, dirty_quant_ids):
+    def get_move_line_quant_match(
+        cls, move_id, dirty_move_line_ids, dirty_quant_ids
+    ):
         """≙ ``get_move_line_quant_match`` (``odoo19c: :308-341``).
 
         ``quant_id`` no se almacena ni se calcula, así que el cliente necesita
@@ -1020,16 +1156,21 @@ class StockMoveLine(TimeStampedModel):
         quant_model = apps.get_model('stock', 'StockQuant')
         movimiento = move_model.objects.get(pk=move_id)
         sucias = list(cls.objects.filter(pk__in=dirty_move_line_ids))
-        vivas_ids = {l.pk for l in cls.objects.filter(move=movimiento)}
+        vivas_ids = {line.pk for line in cls.objects.filter(move=movimiento)}
         borradas = list(cls.objects.filter(
             pk__in=vivas_ids - set(dirty_move_line_ids)))
 
         # ≙ ``Domain("id","in",…) | Domain.OR(…)`` (``:315-324``) — el espejo
         # del proyecto es ``osv.expression``.
         ramas = [
-            Q(product_id=l.product_id, lot_id=l.lot_id, location_id=l.location_id,
-              package_id=l.package_id, owner_id=l.owner_id)
-            for l in (sucias + borradas)
+            Q(
+                product_id=line.product_id,
+                lot_id=line.lot_id,
+                location_id=line.location_id,
+                package_id=line.package_id,
+                owner_id=line.owner_id,
+            )
+            for line in (sucias + borradas)
         ]
         filtro = Q(pk__in=list(dirty_quant_ids))
         if ramas:
@@ -1044,17 +1185,17 @@ class StockMoveLine(TimeStampedModel):
                         and linea.package_id == quant.package_id
                         and linea.owner_id == quant.owner_id)
 
-            de_sucias = [l for l in sucias if _casa(l)]
-            de_borradas = [l for l in borradas if _casa(l)]
+            de_sucias = [line for line in sucias if _casa(line)]
+            de_borradas = [line for line in borradas if _casa(line)]
             disponible = quant.available_qty(quant.product, quant.location)
             quants_data.append((quant.pk, {
                 'available_quantity': disponible + sum(
-                    l.quantity_product_uom for l in de_borradas),
-                'move_line_ids': [l.pk for l in de_sucias],
+                    line.quantity_product_uom for line in de_borradas),
+                'move_line_ids': [line.pk for line in de_sucias],
             }))
             move_lines_data += [
-                (l.pk, {'quantity': l.quantity, 'quant_id': quant.pk})
-                for l in de_sucias
+                (line.pk, {'quantity': line.quantity, 'quant_id': quant.pk})
+                for line in de_sucias
             ]
         return [quants_data, move_lines_data]
 
@@ -1097,7 +1238,9 @@ class StockMoveLine(TimeStampedModel):
 
         def create_move(move_line):
             """≙ la closure ``create_move`` (``odoo19c: :356-359``)."""
-            nuevo = move_model.objects.create(**move_line._prepare_stock_move_vals())
+            nuevo = move_model.objects.create(
+                **move_line._prepare_stock_move_vals()
+            )
             move_line.move = nuevo
             move_line.save()
             created_moves.add(nuevo.pk)
@@ -1126,8 +1269,10 @@ class StockMoveLine(TimeStampedModel):
             if movimiento is not None:
                 reserva = not movimiento._should_bypass_reservation()
             else:
-                reserva = (getattr(move_line.product, 'is_storable', True)
-                           and not move_line.location.should_bypass_reservation())
+                reserva = (
+                    getattr(move_line.product, 'is_storable', True)
+                    and not move_line.location.should_bypass_reservation()
+                )
             if move_line.quantity_product_uom and reserva:
                 quant_model._update_reserved_quantity(
                     move_line.product, move_line.location,
@@ -1136,7 +1281,9 @@ class StockMoveLine(TimeStampedModel):
                 if movimiento is not None:
                     move_to_recompute_state.add(movimiento.pk)
 
-        for movimiento in move_model.objects.filter(pk__in=move_to_recompute_state):
+        for movimiento in move_model.objects.filter(
+            pk__in=move_to_recompute_state
+        ):
             movimiento._recompute_state()
         for movimiento in move_model.objects.filter(pk__in=created_moves):
             movimiento._post_process_created_moves()
@@ -1151,7 +1298,7 @@ class StockMoveLine(TimeStampedModel):
                 disponible, in_date = quant_model._update_available_quantity(
                     ml.product, ml.location, -cantidad, lot_id=ml.lot,
                     package_id=ml.package, owner_id=ml.owner)
-                if disponible < 0 and ml.lot is not None:
+                if disponible < 0 and ml.lot:
                     # Compensar el quant negativo con existencia sin lote.
                     sin_lote = quant_model._get_available_quantity(
                         ml.product, ml.location, lot_id=None,
@@ -1165,8 +1312,14 @@ class StockMoveLine(TimeStampedModel):
                             ml.product, ml.location, tomado, lot_id=ml.lot,
                             package_id=ml.package, owner_id=ml.owner)
                 quant_model._update_available_quantity(
-                    ml.product, ml.location_dest, cantidad, lot_id=ml.lot,
-                    package_id=ml.result_package, owner_id=ml.owner, in_date=in_date)
+                    ml.product,
+                    ml.location_dest,
+                    cantidad,
+                    lot_id=ml.lot,
+                    package_id=ml.result_package,
+                    owner_id=ml.owner,
+                    in_date=in_date,
+                )
             siguientes = [
                 m for m in ml.move.move_dest_ids.all()
                 if m.state not in TERMINAL_STATES
@@ -1175,13 +1328,14 @@ class StockMoveLine(TimeStampedModel):
                 m._do_unreserve()
                 m._action_assign()
 
-        terminadas = {ml.move for ml in mls if ml.state == 'done' and ml.move is not None}
+        terminadas = {
+            ml.move for ml in mls if ml.state == 'done' and ml.move is not None
+        }
         for movimiento in terminadas:
             movimiento._check_quantity()
         return mls
 
-    @classmethod
-    def write(cls, lines, vals):
+    def write(self, vals):
         """≙ ``write`` (``odoo19c: :421-546``).
 
         El trabajo real no es escribir los campos: es **mantener los quants en
@@ -1190,22 +1344,31 @@ class StockMoveLine(TimeStampedModel):
         editar una línea ya terminada obliga a deshacer el movimiento del quant
         y rehacerlo, además de reasignar lo que venía encadenado.
         """
-        lines = list(lines)
+        cls = type(self)
+        lines = list(self)
         if 'product_id' in vals and any(
-                vals.get('state', l.state) != 'draft'
-                and vals['product_id'] != l.product_id for l in lines):
-            raise UserError(_("Changing the product is only allowed in 'Draft' state."))
-        if ('lot_id' in vals or 'quant_id' in vals) and len({l.product_id for l in lines}) > 1:
-            raise UserError(_("Changing the Lot/Serial number for move lines with "
-                              "different products is not allowed."))
+                vals.get('state', line.state) != 'draft'
+                and vals['product_id'] != line.product_id for line in lines):
+            raise UserError(
+                _("Changing the product is only allowed in 'Draft' state.")
+            )
+        if ('lot_id' in vals or 'quant_id' in vals) and len(
+            {line.product_id for line in lines}
+        ) > 1:
+            raise UserError(
+                _(
+                    "Changing the Lot/Serial number for move lines with "
+                    "different products is not allowed."
+                )
+            )
 
         package_model = apps.get_model('stock', 'StockPackage')
         paquetes_a_revisar = []
         if 'result_package_id' in vals:
             ids = set()
-            for l in lines:
-                if l.result_package is not None:
-                    ids.update(l.result_package.get_all_package_dest_ids())
+            for line in lines:
+                if line.result_package:
+                    ids.update(line.result_package.get_all_package_dest_ids())
             paquetes_a_revisar = list(package_model.objects.filter(pk__in=ids))
 
         triggers = [
@@ -1225,8 +1388,11 @@ class StockMoveLine(TimeStampedModel):
             if clave in vals:
                 valor = vals[clave]
                 updates[atributo] = (
-                    valor if isinstance(valor, models.Model)
-                    else apps.get_model(app_label, modelo).objects.get(pk=valor)
+                    valor
+                    if isinstance(valor, models.Model)
+                    else apps.get_model(app_label, modelo).objects.get(
+                        pk=valor
+                    )
                 )
 
         moves_to_recompute_state = set()
@@ -1234,7 +1400,10 @@ class StockMoveLine(TimeStampedModel):
         if ((updates and {'result_package'}.difference(updates.keys()))
                 or 'quantity' in vals):
             for ml in lines:
-                if not getattr(ml.product, 'is_storable', True) or ml.state == 'done':
+                if (
+                    not getattr(ml.product, 'is_storable', True)
+                    or ml.state == 'done'
+                ):
                     continue
                 if 'quantity' in vals or 'product_uom_id' in vals:
                     nueva_uom = updates.get('product_uom', ml.product_uom)
@@ -1249,10 +1418,15 @@ class StockMoveLine(TimeStampedModel):
                     nueva_reserva = ml.quantity_product_uom
 
                 if not ml.product_uom.is_zero(float(ml.quantity_product_uom)):
-                    ml._synchronize_quant(-ml.quantity_product_uom, ml.location,
-                                          action='reserved')
+                    ml._synchronize_quant(
+                        -ml.quantity_product_uom,
+                        ml.location,
+                        action='reserved',
+                    )
                 origen = updates.get('location', ml.location)
-                if ml.move is None or not ml.move._should_bypass_reservation(origen):
+                if ml.move is None or not ml.move._should_bypass_reservation(
+                    origen
+                ):
                     ml._synchronize_quant(
                         nueva_reserva, origen, action='reserved',
                         lot=updates.get('lot', ml.lot),
@@ -1268,12 +1442,17 @@ class StockMoveLine(TimeStampedModel):
         mls = []
         siguientes = set()
         if updates or 'quantity' in vals:
-            mls = [l for l in lines
-                   if l.move is not None and l.move.state == 'done'
-                   and getattr(l.product, 'is_storable', True)]
+            mls = [line for line in lines
+                   if line.move is not None and line.move.state == 'done'
+                   and getattr(line.product, 'is_storable', True)]
             if not updates:
-                mls = [l for l in mls
-                       if not l.product_uom.is_zero(float(l.quantity - vals['quantity']))]
+                mls = [
+                    line
+                    for line in mls
+                    if not line.product_uom.is_zero(
+                        float(line.quantity - vals['quantity'])
+                    )
+                ]
             for ml in mls:
                 in_date = ml._synchronize_quant(
                     -ml.quantity_product_uom, ml.location_dest,
@@ -1284,8 +1463,10 @@ class StockMoveLine(TimeStampedModel):
                     m.pk for m in ml.move.move_dest_ids.all()
                     if m.state not in TERMINAL_STATES)
                 if ml.picking is not None:
-                    ml._log_message(ml.picking, ml, 'stock.track_move_template', vals)
-            for movimiento in {l.move for l in mls}:
+                    ml._log_message(
+                        ml.picking, ml, 'stock.track_move_template', vals
+                    )
+            for movimiento in {line.move for line in mls}:
                 movimiento._check_quantity()
 
         # La fecha se refresca cuando la cantidad sube o la línea se toma.
@@ -1340,8 +1521,9 @@ class StockMoveLine(TimeStampedModel):
         if updates or 'quantity' in vals:
             fuera_de_pack = cls._get_lines_not_entire_pack(lines)
             if fuera_de_pack:
-                cls.objects.filter(pk__in=[l.pk for l in fuera_de_pack]).update(
-                    is_entire_pack=False)
+                cls.objects.filter(
+                    pk__in=[line.pk for line in fuera_de_pack]
+                ).update(is_entire_pack=False)
             move_model = apps.get_model('stock', 'StockMove')
             for movimiento in move_model.objects.filter(pk__in=siguientes):
                 movimiento._do_unreserve()
@@ -1349,30 +1531,38 @@ class StockMoveLine(TimeStampedModel):
 
         if moves_to_recompute_state:
             move_model = apps.get_model('stock', 'StockMove')
-            for movimiento in move_model.objects.filter(pk__in=moves_to_recompute_state):
+            for movimiento in move_model.objects.filter(
+                pk__in=moves_to_recompute_state
+            ):
                 movimiento._recompute_state()
-        return lines
+        return True
 
     @classmethod
     def _unlink_except_done_or_cancel(cls, lines):
         """≙ ``_unlink_except_done_or_cancel`` (``odoo19c: :548-555``)."""
         for ml in lines:
             if ml.state in TERMINAL_STATES:
-                raise UserError(_(
-                    "Deleting product moves after the transfer is done?\n\n"
-                    "That would be like going back in time to revert all operations "
-                    "triggered after this move. Who knows what the end result would "
-                    "be, So let's not do it.\n\n"
-                    "Try changing the “done” quantity to 0 instead."))
+                raise UserError(
+                    _(
+                        "Deleting product moves after the transfer is "
+                        "done?\n\n"
+                        "That would be like going back in time to revert all "
+                        "operations "
+                        "triggered after this move. Who knows what the end "
+                        "result would "
+                        "be, So let's not do it.\n\n"
+                        "Try changing the “done” quantity to 0 instead."
+                    )
+                )
 
-    @classmethod
-    def unlink(cls, lines):
+    def unlink(self):
         """≙ ``unlink`` (``odoo19c: :557-575``).
 
         Borrar una línea **libera su reserva**: si no lo hiciera, la existencia
         quedaría comprometida con una línea que ya no existe.
         """
-        lines = list(lines)
+        cls = type(self)
+        lines = list(self)
         cls._unlink_except_done_or_cancel(lines)
         quant_model = apps.get_model('stock', 'StockQuant')
         package_model = apps.get_model('stock', 'StockPackage')
@@ -1385,14 +1575,16 @@ class StockMoveLine(TimeStampedModel):
                     lot_id=ml.lot, package_id=ml.package, owner_id=ml.owner,
                     strict=True)
 
-        movimientos = {l.move for l in lines if l.move is not None}
+        movimientos = {line.move for line in lines if line.move is not None}
         ids_paquete = set()
-        for l in lines:
-            if l.result_package is not None:
-                ids_paquete.update(l.result_package.get_all_package_dest_ids())
+        for line in lines:
+            if line.result_package:
+                ids_paquete.update(
+                    line.result_package.get_all_package_dest_ids()
+                )
         paquetes = list(package_model.objects.filter(pk__in=ids_paquete))
 
-        res = cls.objects.filter(pk__in=[l.pk for l in lines]).delete()
+        res = cls.objects.filter(pk__in=[line.pk for line in lines]).delete()
 
         for movimiento in movimientos:
             movimiento._recompute_state()
@@ -1448,27 +1640,45 @@ class StockMoveLine(TimeStampedModel):
             # Dos redondeos distintos, y ahí está el chequeo: el de la unidad
             # de la línea contra el de la precisión decimal 'Product Unit'. Si
             # discrepan, la cantidad no cabe en la unidad que se declaró.
-            uom_qty = ml.product_uom.round(float(ml.quantity), rounding_method='HALF-UP')
+            uom_qty = ml.product_uom.round(
+                float(ml.quantity), rounding_method='HALF-UP'
+            )
             digitos = uom_model._precision_digits()
             cantidad = round(float(ml.quantity), digitos)
             if ml.product_uom.compare(uom_qty, cantidad) != 0:
-                raise UserError(_(
-                    'The quantity done for the product "%(product)s" doesn\'t respect '
-                    'the rounding precision defined on the unit of measure "%(unit)s". '
-                    'Please change the quantity done or the rounding precision of your '
-                    'unit of measure.',
-                    product=str(ml.product), unit=ml.product_uom.name))
+                raise UserError(
+                    _(
+                        'The quantity done for the product "%(product)s" '
+                        'doesn\'t respect '
+                        'the rounding precision defined on the unit of '
+                        'measure "%(unit)s". '
+                        'Please change the quantity done or the rounding '
+                        'precision of your '
+                        'unit of measure.',
+                        product=str(ml.product),
+                        unit=ml.product_uom.name,
+                    )
+                )
 
             comparada = ml.product_uom.compare(float(ml.quantity), 0)
             if comparada > 0:
                 if ml.tracking == 'none':
                     continue
-                tipo = getattr(ml.move, 'picking_type', None) if ml.move is not None else None
+                tipo = (
+                    getattr(ml.move, 'picking_type', None)
+                    if ml.move is not None
+                    else None
+                )
                 if not ml._exclude_requiring_lot():
                     sin_lote.append(ml)
                     continue
-                if (tipo is None or ml.lot_id
-                        or (not tipo.use_create_lots and not tipo.use_existing_lots)):
+                if (
+                    tipo is None
+                    or ml.lot_id
+                    or (
+                        not tipo.use_create_lots and not tipo.use_existing_lots
+                    )
+                ):
                     # El tipo desactivó las dos casillas: se admite sin lote.
                     continue
                 if tipo.use_create_lots:
@@ -1484,11 +1694,20 @@ class StockMoveLine(TimeStampedModel):
             lotes = {
                 lote.name: lote
                 for lote in lot_model.objects.filter(
-                    expression.AND([
-                        Q(product_id=product_id,
-                          name__in=[l.lot_name for l in grupo if l.lot_name]),
-                        Q(company__isnull=True) | Q(company_id=company_id),
-                    ]))
+                    expression.AND(
+                        [
+                            Q(
+                                product_id=product_id,
+                                name__in=[
+                                    move_line.lot_name
+                                    for move_line in grupo
+                                    if move_line.lot_name
+                                ],
+                            ),
+                            Q(company__isnull=True) | Q(company_id=company_id),
+                        ]
+                    )
+                )
             }
             for ml in grupo:
                 lote = lotes.get(ml.lot_name)
@@ -1502,21 +1721,29 @@ class StockMoveLine(TimeStampedModel):
 
         if sin_lote:
             productos = "\n".join(f"- {ml.product}" for ml in sin_lote)
-            raise UserError(_(
-                "You need to supply a Lot/Serial Number for product:\n%(products)s",
-                products=productos))
+            raise UserError(
+                _(
+                    "You need to supply a Lot/Serial Number for "
+                    "product:\n%(products)s",
+                    products=productos,
+                )
+            )
         if a_crear_lote:
             cls._create_and_assign_production_lot(a_crear_lote)
 
         if a_borrar:
-            cls.unlink(a_borrar)
-        pendientes = [l for l in lines if l not in a_borrar]
+            browse(cls, [line.pk for line in a_borrar]).unlink()
+        pendientes = [
+            move_line for move_line in lines if move_line not in a_borrar
+        ]
 
         ids_a_ignorar = set()
         if not ignore_dest_packages:
             vals_historial = cls._prepare_package_history_vals(pendientes)
             if vals_historial:
-                historial_model = apps.get_model('stock', 'StockPackageHistory')
+                historial_model = apps.get_model(
+                    'stock', 'StockPackageHistory'
+                )
                 for vals in vals_historial:
                     historial_model.objects.create(**vals)
 
@@ -1537,10 +1764,12 @@ class StockMoveLine(TimeStampedModel):
 
         if not ignore_dest_packages:
             for ml in pendientes:
-                if ml.result_package is not None:
+                if ml.result_package:
                     ml.result_package.apply_dest_to_package()
 
-        cls.objects.filter(pk__in=[l.pk for l in pendientes]).update(date=timezone.now())
+        cls.objects.filter(
+            pk__in=[move_line.pk for move_line in pendientes]
+        ).update(date=timezone.now())
         return pendientes
 
     def _synchronize_quant(self, quantity, location, action='available',
@@ -1572,7 +1801,9 @@ class StockMoveLine(TimeStampedModel):
                 self.product, location, quantity, lot_id=lote,
                 package_id=paquete, owner_id=propietario, in_date=in_date)
         elif action == 'reserved':
-            if self.move is None or not self.move._should_bypass_reservation(location):
+            if self.move is None or not self.move._should_bypass_reservation(
+                location
+            ):
                 quant_model._update_reserved_quantity(
                     self.product, location, quantity, lot_id=lote,
                     package_id=paquete, owner_id=propietario)
@@ -1598,7 +1829,9 @@ class StockMoveLine(TimeStampedModel):
         Las líneas del mismo albarán con el mismo producto y algún lote — el
         conjunto sobre el que se detecta un número de serie repetido.
         """
-        albaran = (self.move.picking if self.move is not None else None) or self.picking
+        albaran = (
+            self.move.picking if self.move is not None else None
+        ) or self.picking
         if albaran is None:
             return type(self).objects.none()
         return type(self).objects.filter(
@@ -1644,7 +1877,9 @@ class StockMoveLine(TimeStampedModel):
         lotes = [lot_model.objects.create(**vals) for vals in lots_vals]
         for clave, grupo in lineas_por_clave.items():
             lote = lotes[indice_por_clave[clave]]
-            cls.objects.filter(pk__in=[l.pk for l in grupo]).update(lot=lote)
+            cls.objects.filter(pk__in=[line.pk for line in grupo]).update(
+                lot=lote
+            )
         return lotes
 
     def _log_message(self, record, move, template, vals):
@@ -1662,14 +1897,22 @@ class StockMoveLine(TimeStampedModel):
             data['lot_name'] = getattr(lote, 'name', None)
         location_model = apps.get_model('stock', 'StockLocation')
         if 'location_id' in vals:
-            origen = location_model.objects.filter(pk=vals.get('location_id')).first()
+            origen = location_model.objects.filter(
+                pk=vals.get('location_id')
+            ).first()
             data['location_name'] = str(origen) if origen is not None else None
         if 'location_dest_id' in vals:
-            destino = location_model.objects.filter(pk=vals.get('location_dest_id')).first()
-            data['location_dest_name'] = str(destino) if destino is not None else None
+            destino = location_model.objects.filter(
+                pk=vals.get('location_dest_id')
+            ).first()
+            data['location_dest_name'] = (
+                str(destino) if destino is not None else None
+            )
         package_model = apps.get_model('stock', 'StockPackage')
         if 'package_id' in vals and vals['package_id'] != move.package_id:
-            paquete = package_model.objects.filter(pk=vals.get('package_id')).first()
+            paquete = package_model.objects.filter(
+                pk=vals.get('package_id')
+            ).first()
             data['package_name'] = getattr(paquete, 'name', None)
         if ('package_result_id' in vals
                 and vals['package_result_id'] != move.result_package_id):
@@ -1679,7 +1922,9 @@ class StockMoveLine(TimeStampedModel):
         if 'owner_id' in vals and vals['owner_id'] != move.owner_id:
             propietario = apps.get_model('base', 'ResPartner').objects.filter(
                 pk=vals.get('owner_id')).first()
-            data['owner_name'] = str(propietario) if propietario is not None else None
+            data['owner_name'] = (
+                str(propietario) if propietario is not None else None
+            )
         return {
             'record': record,
             'template': template,
@@ -1705,7 +1950,9 @@ class StockMoveLine(TimeStampedModel):
             ml_ids_to_ignore = set()
         ml_ids_to_ignore = set(ml_ids_to_ignore) | {self.pk}
 
-        if self.move is not None and self.move._should_bypass_reservation(location_id):
+        if self.move is not None and self.move._should_bypass_reservation(
+            location_id
+        ):
             return
 
         candidatos = type(self).objects.filter(
@@ -1724,7 +1971,9 @@ class StockMoveLine(TimeStampedModel):
         mi_albaran = self.move.picking if self.move is not None else None
 
         def current_picking_first(cand):
-            """≙ la closure ``current_picking_first`` (``odoo19c: :1012-1018``)."""
+            """≙ la closure ``current_picking_first`` (``odoo19c:
+            :1012-1018``).
+            """
             fecha = None
             if cand.picking is not None:
                 fecha = getattr(cand.picking, 'scheduled_date', None)
@@ -1759,15 +2008,19 @@ class StockMoveLine(TimeStampedModel):
                 break
 
         a_desatar = list(type(self).objects.filter(pk__in=a_borrar))
-        movimientos = {l.move.pk for l in a_desatar if l.move is not None} | a_reasignar
+        movimientos = {
+            ml.move.pk for ml in a_desatar if ml.move is not None
+        } | a_reasignar
         for movimiento in move_model.objects.filter(pk__in=movimientos):
             movimiento.procure_method = 'make_to_stock'
             # ≙ ``'move_orig_ids': [Command.clear()]`` (``odoo19c: :1038``).
             fields.Command.clear(movimiento.move_orig_ids)
             movimiento.save()
         if a_desatar:
-            type(self).unlink(a_desatar)
-        for movimiento in reversed(list(move_model.objects.filter(pk__in=movimientos))):
+            browse(type(self), [line.pk for line in a_desatar]).unlink()
+        for movimiento in reversed(
+            list(move_model.objects.filter(pk__in=movimientos))
+        ):
             movimiento._action_assign()
 
     # ------------------------------------------------------------------ #
@@ -1786,7 +2039,9 @@ class StockMoveLine(TimeStampedModel):
         uom = (getattr(movimiento, 'product_uom', None)
                or (move_line.product_uom if move_line else None))
         packaging_uom = getattr(movimiento, 'packaging_uom', None)
-        producto = movimiento.product if movimiento is not None else move_line.product
+        producto = (
+            movimiento.product if movimiento is not None else move_line.product
+        )
         nombre = str(producto)
         descripcion = getattr(movimiento, 'description_picking', '') or ''
         if descripcion.startswith(nombre):
@@ -1794,8 +2049,10 @@ class StockMoveLine(TimeStampedModel):
         elif descripcion.startswith(producto.name):
             descripcion = descripcion.removeprefix(producto.name).strip()
 
-        line_key = (f'{producto.pk}_{nombre}_{descripcion or ""}_'
-                    f'{getattr(uom, "pk", 0)}_{getattr(packaging_uom, "pk", 0)}')
+        line_key = (
+            f'{producto.pk}_{nombre}_{descripcion or ""}_'
+            f'{getattr(uom, "pk", 0)}_{getattr(packaging_uom, "pk", 0)}'
+        )
         propiedades = {
             'line_key': line_key,
             'name': nombre,
@@ -1804,7 +2061,7 @@ class StockMoveLine(TimeStampedModel):
             'packaging_uom_id': packaging_uom,
             'move': movimiento,
         }
-        if move_line and move_line.result_package is not None:
+        if move_line and move_line.result_package:
             propiedades['package'] = move_line.result_package
             propiedades['package_history'] = move_line.package_history
             propiedades['line_key'] += f'_{move_line.result_package_id}'
@@ -1824,17 +2081,19 @@ class StockMoveLine(TimeStampedModel):
         picking_model = apps.get_model('stock', 'StockPicking')
 
         pendientes = set()
-        actuales = {l.picking for l in lines if l.picking is not None}
+        actuales = {line.picking for line in lines if line.picking is not None}
         while actuales:
             siguientes = set()
             for albaran in actuales:
-                for atrasado in getattr(albaran, 'backorder_ids', picking_model.objects.none()):
+                for atrasado in getattr(
+                    albaran, 'backorder_ids', picking_model.objects.none()
+                ):
                     siguientes.add(atrasado)
             pendientes |= siguientes
             actuales = siguientes
 
         for move_line in lines:
-            if kwargs.get('except_package') and move_line.result_package is not None:
+            if kwargs.get('except_package') and move_line.result_package:
                 continue
             propiedades = cls._get_aggregated_properties(move_line=move_line)
             line_key, uom = propiedades['line_key'], propiedades['product_uom']
@@ -1850,12 +2109,21 @@ class StockMoveLine(TimeStampedModel):
                 if not kwargs.get('strict'):
                     pedida = move_line.move.product_uom_qty
                     if pendientes:
-                        posteriores = cls.objects.filter(picking__in=pendientes)
+                        posteriores = cls.objects.filter(
+                            picking__in=pendientes
+                        )
                         pedida += sum(
-                            l.move.product_uom_qty for l in posteriores
+                            line.move.product_uom_qty
+                            for line in posteriores
                             if line_key.startswith(
-                                cls._get_aggregated_properties(move=l.move)['line_key']))
-                    previas = cls.objects.filter(move=move_line.move).exclude(pk=move_line.pk)
+                                cls._get_aggregated_properties(move=line.move)[
+                                    'line_key'
+                                ]
+                            )
+                        )
+                    previas = cls.objects.filter(move=move_line.move).exclude(
+                        pk=move_line.pk
+                    )
                     pedida -= sum(
                         Decimal(str(earlier_line.product_uom._compute_quantity(
                             float(earlier_line.quantity), uom)))
@@ -1872,7 +2140,10 @@ class StockMoveLine(TimeStampedModel):
                     'packaging_quantity': cantidad_pack,
                     'qty_ordered': pedida if pedida is not None else cantidad,
                     'packaging_qty_ordered': (
-                        pedida_pack if pedida_pack is not None else cantidad_pack),
+                        pedida_pack
+                        if pedida_pack is not None
+                        else cantidad_pack
+                    ),
                     'product': move_line.product,
                 }
             else:
@@ -1887,20 +2158,30 @@ class StockMoveLine(TimeStampedModel):
         # Los movimientos vacíos también aportan su cantidad pedida: al
         # validar parcialmente se parten y el trozo pendiente queda sin líneas.
         move_model = apps.get_model('stock', 'StockMove')
-        albaranes = {l.picking for l in lines if l.picking is not None} | pendientes
+        albaranes = {
+            line.picking for line in lines if line.picking is not None
+        } | pendientes
         for empty_move in move_model.objects.filter(picking__in=albaranes):
             saltar = False
-            if not (empty_move.product_uom_qty
-                    and empty_move.product_uom.is_zero(float(empty_move.quantity))):
+            if not (
+                empty_move.product_uom_qty
+                and empty_move.product_uom.is_zero(float(empty_move.quantity))
+            ):
                 continue
             if empty_move.state != 'cancel':
-                if empty_move.state != 'confirmed' or empty_move.move_line_ids.exists():
+                if (
+                    empty_move.state != 'confirmed'
+                    or empty_move.move_line_ids.exists()
+                ):
                     continue
                 saltar = True
             propiedades = cls._get_aggregated_properties(move=empty_move)
             line_key = propiedades['line_key']
 
-            if not any(k.startswith(line_key) for k in agregadas) and not saltar:
+            if (
+                not any(k.startswith(line_key) for k in agregadas)
+                and not saltar
+            ):
                 agregadas[line_key] = {
                     **propiedades,
                     'quantity': False,
@@ -1910,17 +2191,24 @@ class StockMoveLine(TimeStampedModel):
                     'product': empty_move.product,
                 }
             elif line_key in agregadas:
-                agregadas[line_key]['qty_ordered'] += empty_move.product_uom_qty
+                agregadas[line_key][
+                    'qty_ordered'
+                ] += empty_move.product_uom_qty
             else:
-                coincidencias = [k for k in agregadas if k.startswith(line_key)]
+                coincidencias = [
+                    k for k in agregadas if k.startswith(line_key)
+                ]
                 if coincidencias:
-                    agregadas[coincidencias[0]]['qty_ordered'] += empty_move.product_uom_qty
+                    agregadas[coincidencias[0]][
+                        'qty_ordered'
+                    ] += empty_move.product_uom_qty
         return agregadas
 
     def _compute_sale_price(self):
         """≙ ``_compute_sale_price`` (``odoo19c: :1162-1164``).
 
-        «To Override» en la fuente: el precio de venta lo aporta ``sale_stock``,
+        «To Override» en la fuente: el precio de venta lo aporta
+        ``sale_stock``,
         no ``stock``. Se porta como el punto de extensión que es.
         """
         return None
@@ -1940,29 +2228,44 @@ class StockMoveLine(TimeStampedModel):
         package_model = apps.get_model('stock', 'StockPackage')
         ids = set()
         for line in lines:
-            if line.result_package is not None:
+            if line.result_package:
                 ids.update(line.result_package.get_all_package_dest_ids())
 
         vals = []
         for paquete in package_model.objects.filter(pk__in=ids):
-            propias = [l for l in lines if l.result_package_id == paquete.pk]
-            vals.append({
-                'location_id': paquete.location_id,
-                'location_dest_id': getattr(paquete.location_dest, 'pk', None),
-                # ≙ ``[Command.set(ids)]`` (``odoo19c: :1173-1174``). Aquí el
-                # comando se aplica sobre un manager vivo, y estos son vals de
-                # creación: se entregan los identificadores y el creador los
-                # asigna tras insertar la fila.
-                'move_line_ids': [l.pk for l in propias],
-                'picking_ids': [p.pk for p in paquete.picking_ids],
-                'package_id': paquete.pk,
-                'package_name': paquete.complete_name,
-                'parent_orig_id': paquete.parent_package_id,
-                'parent_orig_name': getattr(paquete.parent_package, 'complete_name', None),
-                'parent_dest_id': paquete.package_dest_id,
-                'parent_dest_name': getattr(paquete.package_dest, 'dest_complete_name', None),
-                'outermost_dest_id': getattr(paquete.outermost_package, 'pk', None),
-            })
+            propias = [
+                ml for ml in lines if ml.result_package_id == paquete.pk
+            ]
+            vals.append(
+                {
+                    'location_id': paquete.location_id,
+                    'location_dest_id': getattr(
+                        paquete.location_dest, 'pk', None
+                    ),
+                    # ≙ ``[Command.set(ids)]`` (``odoo19c: :1173-1174``). Aquí
+                    # el
+                    # comando se aplica sobre un manager vivo, y estos son vals
+                    # de
+                    # creación: se entregan los identificadores y el creador
+                    # los
+                    # asigna tras insertar la fila.
+                    'move_line_ids': [ml.pk for ml in propias],
+                    'picking_ids': [p.pk for p in paquete.picking_ids],
+                    'package_id': paquete.pk,
+                    'package_name': paquete.complete_name,
+                    'parent_orig_id': paquete.parent_package_id,
+                    'parent_orig_name': getattr(
+                        paquete.parent_package, 'complete_name', None
+                    ),
+                    'parent_dest_id': paquete.package_dest_id,
+                    'parent_dest_name': getattr(
+                        paquete.package_dest, 'dest_complete_name', None
+                    ),
+                    'outermost_dest_id': getattr(
+                        paquete.outermost_package, 'pk', None
+                    ),
+                }
+            )
         return vals
 
     def _prepare_stock_move_vals(self):
@@ -1976,7 +2279,10 @@ class StockMoveLine(TimeStampedModel):
         return {
             'product_id': self.product_id,
             'product_uom_qty': (
-                0 if albaran is not None and albaran.state != 'done' else self.quantity),
+                0
+                if albaran is not None and albaran.state != 'done'
+                else self.quantity
+            ),
             'product_uom': self.product_uom_id,
             'location_id': getattr(albaran, 'location_id', None),
             'location_dest_id': getattr(albaran, 'location_dest_id', None),
@@ -2044,18 +2350,30 @@ class StockMoveLine(TimeStampedModel):
         accion = cls._check_destinations(move_lines)
         if accion:
             return accion
-        if cls._should_display_put_in_pack_wizard(lines, package_id, package_type_id,
-                                                  package_name, from_package_wizard):
+        if cls._should_display_put_in_pack_wizard(
+            lines,
+            package_id,
+            package_type_id,
+            package_name,
+            from_package_wizard,
+        ):
             return {
                 'type': 'ir.actions.act_window',
                 'res_model': 'stock.package.destination',
                 'xml_id': 'stock.action_put_in_pack_wizard',
                 'context': {
-                    'all_move_line_ids': [l.pk for l in move_lines],
-                    'default_move_line_ids': [l.pk for l in lines],
-                    'default_location_dest_id': lines[0].location_dest_id if lines else None,
-                    'picking_ids': list({l.picking_id for l in move_lines
-                                         if l.picking_id}),
+                    'all_move_line_ids': [line.pk for line in move_lines],
+                    'default_move_line_ids': [line.pk for line in lines],
+                    'default_location_dest_id': (
+                        lines[0].location_dest_id if lines else None
+                    ),
+                    'picking_ids': list(
+                        {
+                            line.picking_id
+                            for line in move_lines
+                            if line.picking_id
+                        }
+                    ),
                 },
             }
         return None
@@ -2070,7 +2388,7 @@ class StockMoveLine(TimeStampedModel):
         descriptor.
         """
         lines = list(lines)
-        destinos = {l.location_dest_id for l in lines}
+        destinos = {line.location_dest_id for line in lines}
         if len(destinos) <= 1:
             return None
         return {
@@ -2080,7 +2398,7 @@ class StockMoveLine(TimeStampedModel):
             'type': 'ir.actions.act_window',
             'target': 'new',
             'context': {
-                'default_move_line_ids': [l.pk for l in lines],
+                'default_move_line_ids': [line.pk for line in lines],
                 'default_location_dest_id': lines[0].location_dest_id,
             },
         }
@@ -2093,25 +2411,29 @@ class StockMoveLine(TimeStampedModel):
         es el de origen, o si el albarán dejó de contener el paquete entero.
         """
         lines = list(lines)
-        relevantes = [l for l in lines if l.is_entire_pack]
+        relevantes = [line for line in lines if line.is_entire_pack]
         if not relevantes:
             return False
 
-        a_actualizar = {l.pk for l in relevantes
-                        if l.package_id != l.result_package_id}
+        a_actualizar = {line.pk for line in relevantes
+                        if line.package_id != line.result_package_id}
         por_paquete = defaultdict(list)
-        for l in relevantes:
-            por_paquete[l.package_id].append(l)
+        for line in relevantes:
+            por_paquete[line.package_id].append(line)
 
         for package_id, grupo in por_paquete.items():
-            albaranes = {l.picking for l in grupo if l.picking is not None}
+            albaranes = {
+                line.picking for line in grupo if line.picking is not None
+            }
             for albaran in albaranes:
                 paquete = grupo[0].package
-                completo = (albaran._is_single_transfer()
-                            and albaran._check_move_lines_map_quant_package(paquete))
+                completo = (
+                    albaran._is_single_transfer()
+                    and albaran._check_move_lines_map_quant_package(paquete)
+                )
                 if not completo:
                     a_actualizar.update(
-                        l.pk for l in cls.objects.filter(
+                        line.pk for line in cls.objects.filter(
                             picking=albaran, package_id=package_id))
         return list(cls.objects.filter(pk__in=a_actualizar))
 
@@ -2133,8 +2455,14 @@ class StockMoveLine(TimeStampedModel):
                 name=package_name, package_type_id=package_type_id)
         else:
             vals = {'name': package_name}
-            tipos = {getattr(l.move, 'packaging_uom', None) for l in lines}
-            tipos = {getattr(t, 'package_type_id', None) for t in tipos if t is not None}
+            tipos = {
+                getattr(line.move, 'packaging_uom', None) for line in lines
+            }
+            tipos = {
+                getattr(t, 'package_type_id', None)
+                for t in tipos
+                if t is not None
+            }
             tipos.discard(None)
             if len(tipos) == 1:
                 vals['package_type_id'] = tipos.pop()
@@ -2144,10 +2472,13 @@ class StockMoveLine(TimeStampedModel):
             linea = lines[0]
             destino = linea._get_default_dest_location()
             linea.location_dest = destino._get_putaway_strategy(
-                product=linea.product, quantity=linea.quantity, package=paquete)
+                product=linea.product, quantity=linea.quantity, package=paquete
+            )
             linea.save()
 
-        cls.objects.filter(pk__in=[l.pk for l in lines]).update(result_package=paquete)
+        cls.objects.filter(pk__in=[line.pk for line in lines]).update(
+            result_package=paquete
+        )
         return paquete
 
     @classmethod
@@ -2159,7 +2490,11 @@ class StockMoveLine(TimeStampedModel):
         """
         lines = list(lines)
         tipo = lines[0].picking_type if lines else None
-        if package is None or tipo is None or not tipo.auto_print_package_label:
+        if (
+            package is None
+            or tipo is None
+            or not tipo.auto_print_package_label
+        ):
             return package
         xml_id = {
             'pdf': 'stock.action_report_package_barcode_small',
@@ -2175,9 +2510,17 @@ class StockMoveLine(TimeStampedModel):
         }
 
     @classmethod
-    def action_put_in_pack(cls, lines, *, package_id=False, package_type_id=False,
-                           package_name=False, all_move_line_ids=None,
-                           force_move_lines=False, from_package_wizard=False):
+    def action_put_in_pack(
+        cls,
+        lines,
+        *,
+        package_id=False,
+        package_type_id=False,
+        package_name=False,
+        all_move_line_ids=None,
+        force_move_lines=False,
+        from_package_wizard=False,
+    ):
         """≙ ``action_put_in_pack`` (``odoo19c: :1316-1338``).
 
         El orquestador del empaque. Empaca primero las líneas sueltas; los
@@ -2223,25 +2566,39 @@ class StockMoveLine(TimeStampedModel):
         ignoran las no tomadas — el capturista ya declaró qué va.
         """
         lines = list(lines)
-        tipos = {l.picking_type.pk for l in lines if l.picking_type is not None}
+        tipos = {
+            line.picking_type.pk
+            for line in lines
+            if line.picking_type is not None
+        }
         if len(tipos) > 1:
-            raise UserError(_('You cannot pack products into the same package when '
-                              'they are from different transfers with different '
-                              'operation types'))
+            raise UserError(
+                _(
+                    'You cannot pack products into the same package when '
+                    'they are from different transfers with different '
+                    'operation types'
+                )
+            )
 
-        con_cantidad = [l for l in lines
-                        if l.state not in TERMINAL_STATES
-                        and l.product_uom.compare(float(l.quantity), 0.0) > 0]
+        con_cantidad = [
+            line
+            for line in lines
+            if line.state not in TERMINAL_STATES
+            and line.product_uom.compare(float(line.quantity), 0.0) > 0
+        ]
         if picked_first:
-            tomadas = [l for l in con_cantidad if l.picked]
+            tomadas = [line for line in con_cantidad if line.picked]
             if tomadas:
                 con_cantidad = tomadas
 
-        a_empacar = [l for l in con_cantidad if l.result_package is None]
+        a_empacar = [line for line in con_cantidad if not line.result_package]
         paquetes = []
-        for l in con_cantidad:
-            if l.result_package is not None and l.result_package.outermost_package is not None:
-                paquetes.append(l.result_package.outermost_package)
+        for line in con_cantidad:
+            if (
+                line.result_package
+                and line.result_package.outermost_package is not None
+            ):
+                paquetes.append(line.result_package.outermost_package)
         return a_empacar, list({p.pk: p for p in paquetes}.values())
 
     # ------------------------------------------------------------------ #
@@ -2291,8 +2648,9 @@ class StockMoveLine(TimeStampedModel):
         move_model = apps.get_model('stock', 'StockMove')
         vals, procesadas = [], []
         for move_line in lines:
-            if (move_line.is_inventory
-                    and not move_line.product_uom.is_zero(float(move_line.quantity))):
+            if move_line.is_inventory and not move_line.product_uom.is_zero(
+                float(move_line.quantity)
+            ):
                 procesadas.append(move_line)
                 vals.append(move_line._get_revert_inventory_move_values())
 
@@ -2302,20 +2660,26 @@ class StockMoveLine(TimeStampedModel):
                 'tag': 'display_notification',
                 'params': {
                     'type': 'danger',
-                    'message': _("There are no inventory adjustments to revert."),
+                    'message': _(
+                        "There are no inventory adjustments to revert."
+                    ),
                 },
             }
 
         movimientos = [move_model.objects.create(**v) for v in vals]
         for movimiento in movimientos:
             movimiento._action_done()
-        nuevas = list(cls.objects.filter(move__in=movimientos).values_list('pk', flat=True))
+        nuevas = list(
+            cls.objects.filter(move__in=movimientos).values_list(
+                'pk', flat=True
+            )
+        )
         return {
             'name': _('Reverted Moves'),
             'type': 'ir.actions.act_window',
             'res_model': 'stock.move.line',
             'view_mode': 'list',
-            'domain': [('id', 'in', nuevas + [l.pk for l in lines])],
+            'domain': [('id', 'in', nuevas + [line.pk for line in lines])],
         }
 
     def _get_linkable_moves(self):
@@ -2331,20 +2695,33 @@ class StockMoveLine(TimeStampedModel):
         move_model = apps.get_model('stock', 'StockMove')
         candidatos = list(move_model.objects.filter(
             picking=albaran, product_id=self.product_id))
-        return sorted(candidatos,
-                      key=lambda m: m.quantity < m.product_uom_qty, reverse=True)
+        return sorted(
+            candidatos,
+            key=lambda m: m.quantity < m.product_uom_qty,
+            reverse=True,
+        )
 
     @classmethod
-    def _should_display_put_in_pack_wizard(cls, lines, package_id, package_type_id,
-                                           package_name, from_package_wizard):
+    def _should_display_put_in_pack_wizard(
+        cls,
+        lines,
+        package_id,
+        package_type_id,
+        package_name,
+        from_package_wizard,
+    ):
         """≙ ``_should_display_put_in_pack_wizard`` (``odoo19c: :1424-1426``).
 
         Sólo se pregunta si el tipo de operación pide fijar el tipo de paquete
         **y** no viene ya un paquete, tipo o nombre decidido.
         """
-        return (cls._should_set_package(lines)
-                and not from_package_wizard
-                and not package_id and not package_type_id and not package_name)
+        return (
+            cls._should_set_package(lines)
+            and not from_package_wizard
+            and not package_id
+            and not package_type_id
+            and not package_name
+        )
 
     @classmethod
     def _should_set_package(cls, lines):
@@ -2353,10 +2730,18 @@ class StockMoveLine(TimeStampedModel):
         Con más de un tipo de operación en juego no hay respuesta única, así
         que la referencia responde que no.
         """
-        tipos = {l.picking_type.pk for l in lines if l.picking_type is not None}
+        tipos = {
+            line.picking_type.pk
+            for line in lines
+            if line.picking_type is not None
+        }
         if len(tipos) != 1:
             return False
-        tipo = next(l.picking_type for l in lines if l.picking_type is not None)
+        tipo = next(
+            line.picking_type
+            for line in lines
+            if line.picking_type is not None
+        )
         return bool(tipo.set_package_type)
 
 

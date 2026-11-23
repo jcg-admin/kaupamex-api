@@ -2563,9 +2563,10 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         descendants = set(
             package.all_children_package_ids.values_list('pk', flat=True))
         lines = [
-            l for l in self.move_line_ids.all()
-            if l.product is not None and l.product.is_storable
-            and (l.package_id == package.pk or l.package_id in descendants)]
+            move_line for move_line in self.move_line_ids.all()
+            if move_line.product and move_line.product.is_storable
+            and (move_line.package_id == package.pk
+                 or move_line.package_id in descendants)]
         return package._check_move_lines_map_quant(lines)
 
     def _get_entire_pack_location_dest(self, move_line_ids):

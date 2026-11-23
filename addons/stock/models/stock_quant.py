@@ -2066,17 +2066,19 @@ class StockQuant(models.BaseModel, TimeStampedModel):
                 strict=True, allow_negative=True), in_date
 
     @classmethod
-    def _update_reserved_quantity(cls, product, location, quantity, lot=None,
-                                  package=None, owner=None, strict=True):
+    def _update_reserved_quantity(cls, product_id, location_id, quantity,
+                                  lot_id=None, package_id=None,
+                                  owner_id=None, strict=True):
         """≙ ``_update_reserved_quantity`` (``odoo19c: :1108-1121``).
 
         Docstring de la referencia: *"Increase or decrease `reserved_quantity`
         of a set of quants"*. Es un delegado a ``_update_available_quantity``,
-        igual que allá.
+        igual que allá. Los nombres de los parámetros son los de la fuente:
+        sus llamadores de ``stock.move.line`` los pasan así.
         """
         return cls._update_available_quantity(
-            product, location, reserved_quantity=quantity, lot=lot,
-            package=package, owner=owner)
+            product_id, location_id, reserved_quantity=quantity, lot=lot_id,
+            package=package_id, owner=owner_id)
 
     @classmethod
     def _unlink_zero_quants(cls):
@@ -2158,9 +2160,11 @@ class StockQuant(models.BaseModel, TimeStampedModel):
                 product,
                 location,
                 delta,
-                lot=cls._by_pk('stock', 'StockLot', fila['lot']),
-                package=cls._by_pk('stock', 'StockPackage', fila['package']),
-                owner=cls._by_pk('base', 'ResPartner', fila['owner']),
+                lot_id=cls._by_pk('stock', 'StockLot', fila['lot']),
+                package_id=cls._by_pk(
+                    'stock', 'StockPackage', fila['package']
+                ),
+                owner_id=cls._by_pk('base', 'ResPartner', fila['owner']),
             )
 
         for clave, cantidad in reservado_lineas.items():
@@ -2173,9 +2177,9 @@ class StockQuant(models.BaseModel, TimeStampedModel):
                 continue
             cls._update_reserved_quantity(
                 product, location, cantidad,
-                lot=cls._by_pk('stock', 'StockLot', lot_pk),
-                package=cls._by_pk('stock', 'StockPackage', package_pk),
-                owner=cls._by_pk('base', 'ResPartner', owner_pk))
+                lot_id=cls._by_pk('stock', 'StockLot', lot_pk),
+                package_id=cls._by_pk('stock', 'StockPackage', package_pk),
+                owner_id=cls._by_pk('base', 'ResPartner', owner_pk))
 
     @staticmethod
     def _by_pk(app_label, model_name, pk):

@@ -441,9 +441,9 @@ class StockLot(models.BaseModel, MailThread, MailActivityMixin,
         if to_date is None:
             return total
 
-        hechas_despues = self.move_line_ids.filter(
-            state='done', move__date__gt=to_date
-        )
+        hechas_despues = apps.get_model(
+            'stock', 'StockMoveLine'
+        ).objects.filter(lot=self, state='done', move__date__gt=to_date)
         entradas = hechas_despues.filter(
             location_dest__usage='internal',
         ).aggregate(s=Sum('quantity_product_uom'))['s'] or Decimal('0.00')
@@ -884,8 +884,8 @@ class StockLot(models.BaseModel, MailThread, MailActivityMixin,
         if delivery_by_lot is None:
             delivery_by_lot = {}
 
-        lineas = self.move_line_ids.filter(
-            self._get_outgoing_domain(), state='done'
+        lineas = apps.get_model('stock', 'StockMoveLine').objects.filter(
+            self._get_outgoing_domain(), lot=self, state='done'
         ).distinct()
         producen, esteriles = [], []
         for linea in lineas:
@@ -900,7 +900,7 @@ class StockLot(models.BaseModel, MailThread, MailActivityMixin,
                 item
                 for linea in producen
                 for item in type(self).objects.filter(
-                    move_line_ids__in=linea.produce_line_ids.all()
+                    move_line_ids__in=linea.produce_line_ids.ids
                 )
                 if item.pk not in lot_path
             }
@@ -939,9 +939,7 @@ class StockLot(models.BaseModel, MailThread, MailActivityMixin,
             cola = []
             for linea in lineas:
                 lote_id = linea.lot_id
-                hijos = list(
-                    linea.produce_line_ids.values_list('lot_id', flat=True)
-                )
+                hijos = [line.lot_id for line in linea.produce_line_ids]
                 if hijos:
                     for hijo in hijos:
                         if hijo is not None:
