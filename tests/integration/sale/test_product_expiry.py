@@ -211,11 +211,11 @@ def test_display_name_carries_the_expiration_and_relays_without_it(db):
         product=producto,
         expiration_date=timezone.now() - datetime.timedelta(days=1),
     )
-    with context_scope(formatted_display_name=True):
-        assert caduca.display_name == 'L9\t--Expired--'
+    formatted = caduca.with_context(formatted_display_name=True)
+    assert formatted.display_name == 'L9\t--Expired--'
     sin_fecha = StockLot.objects.create(name='L10', product=producto)
-    with context_scope(formatted_display_name=True):
-        assert sin_fecha.display_name == 'L10'
+    formatted = sin_fecha.with_context(formatted_display_name=True)
+    assert formatted.display_name == 'L10'
 
 
 @pytest.mark.parametrize(
@@ -268,8 +268,8 @@ def test_expiry_display_obeys_context_flags_and_time_boundaries(
             f'BOUNDARY\t--Expire on {fields.Datetime.to_string(expiration)}--'
         ),
     }[state]
-    with context_scope(formatted_display_name=formatted):
-        assert lot.display_name == expected
+    lot = lot.with_context(formatted_display_name=formatted)
+    assert lot.display_name == expected
 
 
 def test_expiry_display_keeps_contexts_and_field_changes_separate(db):
@@ -280,33 +280,38 @@ def test_expiry_display_keeps_contexts_and_field_changes_separate(db):
         expiration_date=timezone.now() - datetime.timedelta(days=1),
     )
     assert lot.display_name == 'CONTEXT'
-    with context_scope(formatted_display_name=True):
-        assert lot.display_name == 'CONTEXT\t--Expired--'
-        lot.expiration_date = timezone.now() + datetime.timedelta(days=1)
-        lot.alert_date = None
-        assert lot.display_name == 'CONTEXT'
-        lot.name = 'RENAMED'
-        assert lot.display_name == 'RENAMED'
+    formatted = lot.with_context(formatted_display_name=True)
+    assert formatted.display_name == 'CONTEXT\t--Expired--'
+    lot.expiration_date = timezone.now() + datetime.timedelta(days=1)
+    lot.alert_date = None
+    formatted = lot.with_context(formatted_display_name=True)
+    assert formatted.display_name == 'CONTEXT'
+    lot.name = 'RENAMED'
+    formatted = lot.with_context(formatted_display_name=True)
+    assert formatted.display_name == 'RENAMED'
     assert lot.display_name == 'RENAMED'
 
 
 def test_new_expiry_lot_assigns_computed_label_without_sql(
     db, django_assert_num_queries
 ):
-    """Un lote nuevo con producto ya cacheado también recibe el resultado."""
-    product = _product()
-    assert product.use_expiration_date
-    lot = StockLot(
-        name='NEW',
-        product=product,
-        expiration_date=timezone.now() - datetime.timedelta(days=1),
-    )
-    with (
-        context_scope(formatted_display_name=True),
-        django_assert_num_queries(0),
-    ):
-        assert lot.display_name == 'NEW\t--Expired--'
-        assert lot.pk is None
+    """Un lote nuevo con producto ya cacheado también recibe el resultado.
+
+    El producto se crea en el mismo contexto que el lote: un registro leído
+    desde un entorno con otro contexto vuelve a leer su Many2one
+    (sucesor ``orm-cross-context-record-cache-0397``).
+    """
+    with context_scope(formatted_display_name=True):
+        product = _product()
+        assert product.use_expiration_date
+        lot = StockLot(
+            name='NEW',
+            product=product,
+            expiration_date=timezone.now() - datetime.timedelta(days=1),
+        )
+        with django_assert_num_queries(0):
+            assert lot.display_name == 'NEW\t--Expired--'
+            assert lot.pk is None
 
 
 def test_disabling_template_expiry_invalidates_the_cached_lot_label(db):
@@ -316,12 +321,12 @@ def test_disabling_template_expiry_invalidates_the_cached_lot_label(db):
         product=_product(),
         expiration_date=timezone.now() - datetime.timedelta(days=1),
     )
-    with context_scope(formatted_display_name=True):
-        assert lot.display_name == 'DISABLED\t--Expired--'
-        template = lot.product.product_tmpl_id
-        template.use_expiration_date = False
-        template.save(update_fields=['use_expiration_date'])
-        assert lot.display_name == 'DISABLED'
+    formatted = lot.with_context(formatted_display_name=True)
+    assert formatted.display_name == 'DISABLED\t--Expired--'
+    template = formatted.product.product_tmpl_id
+    template.use_expiration_date = False
+    template.save(update_fields=['use_expiration_date'])
+    assert formatted.display_name == 'DISABLED'
 
 
 # -- FEFO y disponibilidad ---------------------------------------------------

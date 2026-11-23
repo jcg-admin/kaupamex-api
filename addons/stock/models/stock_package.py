@@ -195,7 +195,7 @@ from tools.translate import _
 ONGOING_EXCLUDED_STATES = ('done', 'cancel')
 
 
-class StockPackage(models.DefaultGetMixin, TimeStampedModel):
+class StockPackage(models.BaseModel, TimeStampedModel):
     """``stock.package`` — contenedor de existencias y/o de otros paquetes."""
 
     # Atributos de clase de modelo — los seis que la referencia declara
@@ -211,24 +211,36 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
     _parent_store = True
     _rec_name = 'complete_name'
 
-    name              = fields.Char(
-        max_length=120, db_index=True,
+    name = fields.Char(
+        max_length=120,
+        db_index=True,
         help_text='Referencia del paquete (Odoo name, requerido).',
     )
-    complete_name     = fields.Char(
-        max_length=512, blank=True, default='',
-        help_text='Nombre jerárquico «A > B > C» (Odoo complete_name, almacenado).',
+    complete_name = fields.Char(
+        max_length=512,
+        blank=True,
+        default='',
+        help_text='Nombre jerárquico «A > B > C» (Odoo complete_name, '
+                  'almacenado).',
     )
-    package_type      = fields.Many2one(
-        'stock.StockPackageType', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='package_ids', db_index=True,
+    package_type = fields.Many2one(
+        'stock.StockPackageType',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='package_ids',
+        db_index=True,
         help_text='Tipo de paquete (Odoo package_type_id).',
     )
-    location          = fields.Many2one(
-        'stock.StockLocation', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='package_ids', db_index=True,
+    location = fields.Many2one(
+        'stock.StockLocation',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='package_ids',
+        db_index=True,
         help_text='Ubicación actual, derivada de su contenido '
-                  '(Odoo location_id, computado y almacenado).',
+        '(Odoo location_id, computado y almacenado).',
     )
     company = fields.Many2one(
         'base.ResCompany', null=True, blank=True, on_delete=models.SET_NULL,
@@ -236,28 +248,42 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
         help_text='Empresa, derivada de su contenido '
                   '(Odoo company_id, computado y almacenado).',
     )
-    parent_package    = fields.Many2one(
-        'self', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='child_package_ids', db_index=True,
+    parent_package = fields.Many2one(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='child_package_ids',
+        db_index=True,
         help_text='Contenedor ACTUAL (Odoo parent_package_id).',
     )
-    package_dest      = fields.Many2one(
-        'self', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='child_package_dest_ids', db_index=True,
+    package_dest = fields.Many2one(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='child_package_dest_ids',
+        db_index=True,
         help_text='Contenedor DESTINO al validar (Odoo package_dest_id).',
     )
-    shipping_weight   = fields.Monetary(
-        max_digits=12, decimal_places=3, null=True, blank=True,
+    shipping_weight = fields.Monetary(
+        max_digits=12,
+        decimal_places=3,
+        null=True,
+        blank=True,
         help_text='Peso total declarado del paquete (Odoo shipping_weight).',
     )
-    pack_date         = fields.Date(
+    pack_date = fields.Date(
         default=datetime.date.today,
         help_text='Fecha de empaquetado (Odoo pack_date).',
     )
-    parent_path       = fields.Char(
-        max_length=512, blank=True, default='', db_index=True,
+    parent_path = fields.Char(
+        max_length=512,
+        blank=True,
+        default='',
+        db_index=True,
         help_text='Ruta materializada del árbol de contenedores ACTUALES '
-                  '(Odoo parent_path).',
+        '(Odoo parent_path).',
     )
 
     class Meta:
@@ -314,14 +340,17 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
 
     def compute_complete_name(self):
         """≙ ``_compute_complete_name`` (``odoo19c: :92-98``)."""
-        if self.parent_package is not None:
-            self.complete_name = f'{self.parent_package.complete_name} > {self.name}'
+        if self.parent_package:
+            self.complete_name = (
+                f'{self.parent_package.complete_name} > {self.name}'
+            )
         else:
             self.complete_name = self.name
         return self.complete_name
 
     def compute_parent_path(self):
-        """Materializa ``parent_path`` — ≙ el ``_parent_store`` de la referencia.
+        """Materializa ``parent_path`` — ≙ el ``_parent_store`` de la
+        referencia.
 
         Sólo del árbol de contenedores **actuales**: el de destino no se puede
         materializar (un solo campo padre por modelo), y por eso la referencia
@@ -329,8 +358,11 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
         """
         if self.pk is None:
             return self.parent_path
-        if self.parent_package is not None:
-            raiz = self.parent_package.parent_path or self.parent_package.compute_parent_path()
+        if self.parent_package:
+            raiz = (
+                self.parent_package.parent_path
+                or self.parent_package.compute_parent_path()
+            )
             self.parent_path = f'{raiz}{self.pk}/'
         else:
             self.parent_path = f'{self.pk}/'
@@ -347,14 +379,14 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
         """
         self.location = None
         self.company = None
-        positivos = [q for q in self.quant_ids.all() if (q.quantity or 0) > 0]
+        positivos = [q for q in self.quant_ids if (q.quantity or 0) > 0]
         if positivos:
             self.location = positivos[0].location
-            todos = list(self.quant_ids.all())
+            todos = list(self.quant_ids)
             if all(q.company_id == todos[0].company_id for q in todos):
                 self.company = todos[0].company
             return
-        hijos = list(self.child_package_ids.all())
+        hijos = list(self.child_package_ids)
         if hijos:
             self.location = hijos[0].location
             if all(p.company_id == hijos[0].company_id for p in hijos):
@@ -381,7 +413,9 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
         self.refresh_computed_fields()
 
     def refresh_computed_fields(self):
-        """Recalcula y persiste los cuatro campos almacenados de la referencia."""
+        """Recalcula y persiste los cuatro campos almacenados de la
+        referencia.
+        """
         self.compute_parent_path()
         self.compute_complete_name()
         self.compute_package_info()
@@ -392,11 +426,12 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
 
     @property
     def dest_complete_name(self):
-        """≙ ``dest_complete_name`` / ``_compute_dest_complete_name`` (``:27``, ``:100-106``).
+        """≙ ``dest_complete_name`` / ``_compute_dest_complete_name`` (``:27``,
+        ``:100-106``).
 
         El mismo nombre jerárquico, pero sobre el árbol de **destino**.
         """
-        if self.package_dest is not None:
+        if self.package_dest:
             return f'{self.package_dest.dest_complete_name} > {self.name}'
         return self.name
 
@@ -414,18 +449,22 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
 
     @property
     def contained_quant_ids(self):
-        """≙ ``contained_quant_ids`` / ``_compute_contained_quant_ids`` (``:30``, ``:108-111``).
+        """≙ ``contained_quant_ids`` / ``_compute_contained_quant_ids``
+        (``:30``, ``:108-111``).
 
         Los quants propios más los de todos los descendientes.
         """
         StockQuant = apps.get_model('stock', 'StockQuant')
-        descendientes = self.all_children_package_ids.values_list('pk', flat=True)
+        descendientes = self.all_children_package_ids.values_list(
+            'pk', flat=True
+        )
         return StockQuant.objects.filter(
             models.Q(package=self) | models.Q(package__in=descendientes))
 
     @property
     def content_description(self):
-        """≙ ``content_description`` / ``_compute_content_description`` (``:31``, ``:113-122``).
+        """≙ ``content_description`` / ``_compute_content_description``
+        (``:31``, ``:113-122``).
 
         «2 Unidades Camiseta, 3 kg Café» — la cantidad se imprime sin decimales
         cuando es entera, que es lo que hace el ``int(qty) if qty == int(qty)``
@@ -433,7 +472,9 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
         """
         agrupado = defaultdict(lambda: 0)
         unidades = {}
-        for quant in self.contained_quant_ids.select_related('product', 'product_uom'):
+        for quant in self.contained_quant_ids.select_related(
+            'product', 'product_uom'
+        ):
             clave = (quant.product_uom_id, quant.product_id)
             agrupado[clave] += quant.quantity or 0
             unidades[clave] = (quant.product_uom, quant.product)
@@ -446,17 +487,19 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
 
     @property
     def json_popover(self):
-        """≙ ``json_popover`` / ``_compute_json_popover`` (``:56``, ``:124-136``).
+        """≙ ``json_popover`` / ``_compute_json_popover`` (``:56``,
+        ``:124-136``).
 
         El aviso de destinos múltiples, o ``None`` si no hay conflicto.
         """
         if not self.has_issues():
             return None
-        destinos = sorted({str(l.location_dest) for l in self.move_line_ids})
+        destinos = sorted(
+            {str(line.location_dest) for line in self.move_line_ids})
         return {
             'title': _('Destinos múltiples'),
             'msg': _('Este paquete está configurado para enviarse a %s.')
-                   % ', '.join(destinos),
+            % ', '.join(destinos),
             'color': 'text-warning',
             'icon': 'fa-exclamation-triangle',
         }
@@ -473,7 +516,8 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
 
     @property
     def move_line_ids(self):
-        """≙ ``move_line_ids`` / ``_compute_move_line_ids`` (``:50``, ``:143-155``).
+        """≙ ``move_line_ids`` / ``_compute_move_line_ids`` (``:50``,
+        ``:143-155``).
 
         Las líneas en curso que apuntan a este paquete como destino, más las
         de todos sus contenedores-hijos de destino.
@@ -481,16 +525,19 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
         StockMoveLine = apps.get_model('stock', 'StockMoveLine')
         _por_paquete, todos = self.get_all_children_package_dest_ids()
         return StockMoveLine.objects.filter(
-            result_package_id__in=todos).exclude(state__in=ONGOING_EXCLUDED_STATES)
+            result_package_id__in=todos
+        ).exclude(state__in=ONGOING_EXCLUDED_STATES)
 
     @property
     def picking_ids(self):
-        """≙ ``picking_ids`` / ``_compute_picking_ids`` (``:51``, ``:172-183``).
+        """≙ ``picking_ids`` / ``_compute_picking_ids`` (``:51``,
+        ``:172-183``).
 
         Las transferencias donde este paquete es el destino.
         """
         StockPicking = apps.get_model('stock', 'StockPicking')
-        ids = {l.picking_id for l in self.move_line_ids if l.picking_id}
+        ids = {line.picking_id for line in self.move_line_ids
+               if line.picking_id}
         return StockPicking.objects.filter(pk__in=ids)
 
     @property
@@ -500,7 +547,7 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
         Sólo hay dueño si **todos** los quants coinciden — mismo criterio que
         la empresa en ``compute_package_info``.
         """
-        quants = list(self.quant_ids.all())
+        quants = list(self.quant_ids)
         if not quants:
             return None
         if all(q.owner_id == quants[0].owner_id for q in quants):
@@ -513,13 +560,15 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
 
         La raíz del árbol de **destino**; si no tiene destino, es él mismo.
         """
-        if self.package_dest is not None:
+        if self.package_dest:
             return self.package_dest.outermost_package
         return self
 
     @property
     def valid_sscc(self):
-        """≙ ``valid_sscc`` / ``_compute_valid_sscc`` (``:53``, ``:202-206``)."""
+        """≙ ``valid_sscc`` / ``_compute_valid_sscc`` (``:53``,
+        ``:202-206``).
+        """
         return bool(self.name) and check_barcode_encoding(self.name, 'sscc')
 
     # -- las siete búsquedas --
@@ -576,12 +625,15 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
         ``(False,)``.
         """
         StockMoveLine = apps.get_model('stock', 'StockMoveLine')
-        consulta = StockMoveLine.objects.exclude(state__in=ONGOING_EXCLUDED_STATES)
+        consulta = StockMoveLine.objects.exclude(
+            state__in=ONGOING_EXCLUDED_STATES
+        )
         if not unassigned and move_lines is not None:
-            consulta = consulta.filter(pk__in=[l.pk for l in move_lines])
+            consulta = consulta.filter(pk__in=[line.pk for line in move_lines])
         pks = set()
-        for linea in consulta.exclude(result_package__isnull=True).select_related(
-                'result_package'):
+        for linea in consulta.exclude(
+            result_package__isnull=True
+        ).select_related('result_package'):
             pks.update(linea.result_package.get_all_package_dest_ids())
         if unassigned:
             return cls.objects.exclude(pk__in=pks)
@@ -591,7 +643,9 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
     def _search_outermost_package_id(cls, packages):
         """≙ ``_search_outermost_package_id`` (``odoo19c: :250-259``)."""
         directos = cls.objects.filter(package_dest__in=packages)
-        _por_paquete, todos = cls.get_all_children_package_dest_ids_for(directos)
+        _por_paquete, todos = cls.get_all_children_package_dest_ids_for(
+            directos
+        )
         return cls.objects.filter(pk__in=todos)
 
     @classmethod
@@ -625,9 +679,11 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
         nombre se pide el siguiente a la secuencia del tipo de paquete.
 
         La referencia recibe ``vals_list`` y devuelve el recordset; desde
-        :ref:`h-api-1108` la firma es la misma aquí — ``@api.model_create_multi``
+        :ref:`h-api-1108` la firma es la misma aquí —
+        ``@api.model_create_multi``
         convierte un dict suelto en ``[vals]`` — y ``super().create`` es
-        ``DefaultGetMixin.create`` (``orm/models.py``), el porte por contenido de
+        ``DefaultGetMixin.create`` (``orm/models.py``), el porte por contenido
+        de
         ``BaseModel.create``.
         """
         for vals in vals_list:
@@ -642,7 +698,7 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
             package.refresh_computed_fields()
         return packages
 
-    def write(self, **vals):
+    def write(self, vals):
         """≙ ``write`` (``odoo19c: :289-314``).
 
         Tres guardas de la referencia:
@@ -654,38 +710,46 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
            sería una recursión, y el ``parent_path`` no la detecta porque
            materializa el **otro** árbol.
         """
-        if 'name' in vals and not vals['name']:
-            tipo = vals.get('package_type', self.package_type)
-            vals['name'] = tipo._get_next_name_by_sequence() if tipo is not None else ''
+        if 'name' in vals and not vals.get('name'):
+            for package in self:
+                package_type = vals.get('package_type', package.package_type)
+                package.name = (package_type._get_next_name_by_sequence()
+                                if package_type else '')
+                package.save(update_fields=['name'])
+            vals = {key: value for key, value in vals.items()
+                    if key != 'name'}
 
         if 'location' in vals:
-            vacio = not self.contained_quant_ids.exists()
-            if not vals['location'] and not vacio:
+            is_pack_empty = any(not pack.contained_quant_ids.exists()
+                                for pack in self)
+            if not vals['location'] and not is_pack_empty:
                 raise UserError(_(
                     'No se puede quitar la ubicación de un paquete no vacío.'))
             if vals['location']:
-                if vacio:
+                if is_pack_empty:
                     raise UserError(_('No se puede mover un paquete vacío.'))
-                a_mover = self.contained_quant_ids.filter(quantity__gt=0)
-                for quant in a_mover:
-                    quant.move_quants(
-                        vals['location'],
-                        message=_('Paquete reubicado manualmente'),
-                        up_to_parent_packages=[self])
+                for package in self:
+                    quants = package.contained_quant_ids.filter(
+                        quantity__gt=0)
+                    for quant in quants:
+                        quant.move_quants(
+                            vals['location'],
+                            message=_('Paquete reubicado manualmente'),
+                            up_to_parent_packages=[package])
 
         if vals.get('package_dest'):
-            _por_paquete, contenidos = self.get_all_children_package_dest_ids()
-            destino = getattr(vals['package_dest'], 'pk', vals['package_dest'])
-            if destino in contenidos:
-                raise ValidationError(_(
-                    'Un paquete no puede tener como contenedor destino a uno '
-                    'de los paquetes que contiene.'))
+            dest = getattr(vals['package_dest'], 'pk', vals['package_dest'])
+            for package in self:
+                children = package.get_all_children_package_dest_ids()[1]
+                if dest in children:
+                    raise ValidationError(_(
+                        'Un paquete no puede tener como contenedor destino a '
+                        'uno de los paquetes que contiene.'))
 
-        for clave, valor in vals.items():
-            setattr(self, clave, valor)
-        self.save()
-        self.refresh_computed_fields()
-        return self
+        result = super().write(vals)
+        for package in self:
+            package.refresh_computed_fields()
+        return result
 
     # -- acciones --
 
@@ -697,8 +761,9 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
         quedan dos quants del mismo producto y una reserva de 100 sobre dos
         paquetes de 50 crea un quant de −50 al validar.
         """
-        self.child_package_ids.update(parent_package=None)
-        quants = list(self.quant_ids.all())
+        type(self).objects.filter(parent_package=self).update(
+            parent_package=None)
+        quants = list(self.quant_ids)
         if quants:
             for quant in quants:
                 quant.move_quants(message=_('Cantidades desempaquetadas'),
@@ -730,7 +795,9 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
             'wizard': 'stock.action_put_in_pack_wizard',
             'context': {
                 'default_package_ids': [self.pk],
-                'default_location_dest_id': destino.pk if destino is not None else None,
+                'default_location_dest_id': (
+                    destino.pk if destino is not None else None
+                ),
             },
         }
 
@@ -761,7 +828,9 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
             package = StockPackage.create(
                 package_type=package_type, name=package_name)
 
-        previos = StockPackage.objects.filter(pk__in=self.get_all_package_dest_ids())
+        previos = StockPackage.objects.filter(
+            pk__in=self.get_all_package_dest_ids()
+        )
         self.package_dest = package
         self.save(update_fields=['package_dest'])
 
@@ -786,7 +855,7 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
         StockMoveLine = apps.get_model('stock', 'StockMoveLine')
 
         todos_destinos = self.get_all_package_dest_ids()
-        todas_lineas = {l.pk for l in self.move_line_ids}
+        todas_lineas = {line.pk for line in self.move_line_ids}
         a_borrar, a_actualizar, movimientos = set(), set(), set()
 
         for linea in self.move_line_ids:
@@ -800,11 +869,15 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
                     a_actualizar.add(linea.pk)
 
         StockMoveLine.objects.filter(pk__in=a_borrar).delete()
-        StockMoveLine.objects.filter(pk__in=a_actualizar).update(result_package=None)
+        StockMoveLine.objects.filter(pk__in=a_actualizar).update(
+            result_package=None
+        )
         StockMove.objects.filter(
-            pk__in=movimientos, product_uom_qty=0, move_line_ids__isnull=True).delete()
+            pk__in=movimientos, product_uom_qty=0, move_line_ids__isnull=True
+        ).delete()
 
-        self.child_package_dest_ids.update(package_dest=None)
+        type(self).objects.filter(package_dest=self).update(
+            package_dest=None)
         self.package_dest = None
         self.save(update_fields=['package_dest'])
 
@@ -813,7 +886,9 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
                 paquete.package_dest = None
                 paquete.save(update_fields=['package_dest'])
 
-        restantes = StockMoveLine.objects.filter(pk__in=todas_lineas - a_borrar)
+        restantes = StockMoveLine.objects.filter(
+            pk__in=todas_lineas - a_borrar
+        )
         if restantes.exists():
             restantes.first().apply_putaway_strategy(restantes)
         return True
@@ -846,14 +921,19 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
 
         del_paquete = defaultdict(lambda: 0)
         for quant in self.contained_quant_ids:
-            del_paquete[(quant.product_id, quant.lot_id)] += quant.quantity or 0
+            del_paquete[(quant.product_id, quant.lot_id)] += (
+                quant.quantity or 0
+            )
 
         de_lineas = defaultdict(lambda: 0)
         for linea in move_lines:
-            de_lineas[(linea.product_id, linea.lot_id)] += linea.quantity_product_uom or 0
+            de_lineas[(linea.product_id, linea.lot_id)] += (
+                linea.quantity_product_uom or 0
+            )
 
-        return (all(del_paquete[k] == de_lineas.get(k, 0) for k in del_paquete)
-                and all(de_lineas[k] == del_paquete.get(k, 0) for k in de_lineas))
+        return all(
+            del_paquete[k] == de_lineas.get(k, 0) for k in del_paquete
+        ) and all(de_lineas[k] == del_paquete.get(k, 0) for k in de_lineas)
 
     def get_weight(self, picking=None):
         """≙ ``_get_weight`` (``odoo19c: :435-470``).
@@ -863,20 +943,31 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
         Con transferencia, el contenido son las **líneas de esa** transferencia
         —no los quants—, porque el paquete todavía no está formado.
         """
-        peso = float(self.package_type.base_weight or 0) if self.package_type else 0.0
+        peso = (
+            float(self.package_type.base_weight or 0)
+            if self.package_type
+            else 0.0
+        )
 
         if picking is None:
-            for hijo in self.all_children_package_ids.select_related('package_type'):
+            for hijo in self.all_children_package_ids.select_related(
+                'package_type'
+            ):
                 if hijo.package_type is not None:
                     peso += float(hijo.package_type.base_weight or 0)
             for quant in self.contained_quant_ids.select_related('product'):
-                peso += float(quant.quantity or 0) * float(quant.product.weight or 0)
+                peso += float(quant.quantity or 0) * float(
+                    quant.product.weight or 0
+                )
             return peso
 
         StockMoveLine = apps.get_model('stock', 'StockMoveLine')
         _por_paquete, todos = self.get_all_children_package_dest_ids()
-        for hijo in StockPackage.objects.filter(
-                pk__in=todos).exclude(pk=self.pk).select_related('package_type'):
+        for hijo in (
+            StockPackage.objects.filter(pk__in=todos)
+            .exclude(pk=self.pk)
+            .select_related('package_type')
+        ):
             if hijo.package_type is not None:
                 peso += float(hijo.package_type.base_weight or 0)
         lineas = (StockMoveLine.objects
@@ -884,7 +975,9 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
                   .exclude(product__isnull=True)
                   .select_related('product'))
         for linea in lineas:
-            peso += float(linea.quantity_product_uom or 0) * float(linea.product.weight or 0)
+            peso += float(linea.quantity_product_uom or 0) * float(
+                linea.product.weight or 0
+            )
         return peso
 
     def has_issues(self) -> bool:
@@ -892,7 +985,7 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
 
         Hay conflicto si sus líneas apuntan a más de una ubicación destino.
         """
-        destinos = {l.location_dest_id for l in self.move_line_ids}
+        destinos = {line.location_dest_id for line in self.move_line_ids}
         return len(destinos) > 1
 
     # -- el árbol de destino, recorrido a mano --
@@ -989,14 +1082,18 @@ class StockPackage(models.DefaultGetMixin, TimeStampedModel):
         """
         contenedor = self.parent_package
         if contenedor is not None:
-            hermanos = set(contenedor.child_package_ids.values_list('pk', flat=True))
+            hermanos = set(contenedor.child_package_ids.ids)
             if hermanos == {self.pk} or hermanos <= {self.pk}:
                 permitido = (not allowed_package_ids
                              or contenedor.pk in allowed_package_ids)
-                reutilizable = (contenedor.package_type is not None
-                                and contenedor.package_type.package_use == 'reusable')
+                reutilizable = (
+                    contenedor.package_type
+                    and contenedor.package_type.package_use == 'reusable'
+                )
                 if permitido and not reutilizable:
                     self.package_dest = contenedor
                     self.save(update_fields=['package_dest'])
-        if self.package_dest is not None:
-            self.package_dest._apply_package_dest_for_entire_packs(allowed_package_ids)
+        if self.package_dest:
+            self.package_dest._apply_package_dest_for_entire_packs(
+                allowed_package_ids
+            )

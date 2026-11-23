@@ -241,7 +241,8 @@ PY_OPERATORS = {
 }
 
 
-class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
+class StockLot(models.BaseModel, MailThread, MailActivityMixin,
+               TimeStampedModel):
     """``stock.lot`` — lote / número de serie de un producto."""
 
     _name = 'stock.lot'
@@ -377,7 +378,7 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         """
         ubicaciones = {
             q.location
-            for q in self.quants.filter(quantity__gt=0)
+            for q in self.quants.filtered(lambda q: q.quantity > 0)
             if q.location is not None
         }
         self.location = (
@@ -394,7 +395,7 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         Desbloqueado en este pase: ``StockQuant.move_quants``
         (``stock_quant.py:2142``) es la pieza que faltaba.
         """
-        quants = list(self.quants.filter(quantity__gt=0))
+        quants = list(self.quants.filtered(lambda q: q.quantity > 0))
         ubicaciones = {q.location for q in quants if q.location is not None}
         if len(ubicaciones) > 1:
             raise UserError(
@@ -407,8 +408,8 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
             return
         # ``unpack`` replica la fuente: si el paquete tiene más quants que los
         # que se mueven, se rompe el paquete en vez de arrastrarlo entero.
-        paquetes = {q.package for q in quants if q.package is not None}
-        unpack = any(p.quant_ids.count() > len(quants) for p in paquetes)
+        paquetes = {q.package for q in quants if q.package}
+        unpack = any(len(p.quant_ids) > len(quants) for p in paquetes)
         for quant in quants:
             quant.move_quants(
                 location_dest=self.location,
@@ -429,7 +430,8 @@ class StockLot(MailThread, MailActivityMixin, TimeStampedModel):
         contexto que la fuente lee (``to_date``, ``owner_id``, ``package_id``);
         este ORM no tiene contexto, así que viajan como argumentos.
         """
-        quants = self.quants.all()
+        quants = apps.get_model('stock', 'StockQuant').objects.filter(
+            lot=self)
         if owner is not None:
             quants = quants.filter(owner=owner)
         if package is not None:

@@ -2517,7 +2517,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
             transfer = next(iter(transfers))
             if not transfer._check_move_lines_map_quant_package(package):
                 continue
-            reusable = (package.package_type is not None
+            reusable = (package.package_type
                         and package.package_type.package_use == 'reusable')
             if reusable:
                 continue

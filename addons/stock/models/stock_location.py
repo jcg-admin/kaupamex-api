@@ -819,11 +819,13 @@ class StockLocation(models.DefaultGetMixin, TimeStampedModel):
 
         previsto = self.get_weight(exclude_sml_ids)[self.pk]['forecast_weight']
 
-        if package is not None and package.package_type is not None:
+        if package and package.package_type:
             lineas = StockMoveLine.objects.filter(
                 result_package=package).exclude(state__in=['done', 'cancel'])
-            peso_paquete = sum((l.quantity_product_uom or 0) * (l.product.weight or 0)
-                               for l in lineas)
+            peso_paquete = sum(
+                (line.quantity_product_uom or 0) * (line.product.weight or 0)
+                for line in lineas
+            )
             if categoria.max_weight < previsto + peso_paquete:
                 return False
             capacidad = categoria.package_capacity_ids.filter(

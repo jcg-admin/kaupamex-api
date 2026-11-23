@@ -295,7 +295,7 @@ class StockPackageType(models.BaseModel, TimeStampedModel):
         computa el lote entero de una vez; aquí la property responde por
         instancia con la misma pregunta.
         """
-        return self.package_ids.filter(quant_ids__isnull=False).exists()
+        return bool(self.package_ids.filtered(lambda pack: pack.quant_ids))
 
     # -- el par lectura/escritura del código de secuencia --
 

@@ -1,7 +1,8 @@
 r"""``product.removal`` y ``stock.putaway.rule`` — addon ``stock``.
 
-Adaptación de Odoo ``stock/models/product_strategy.py`` (``odoo-tools@622ddc2a``,
-``odoo19c:``, LGPL-3) — atribución y aviso de licencia preservados (DEC-KX-03).
+Adaptación de Odoo ``stock/models/product_strategy.py``
+(``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3) — atribución y aviso de
+licencia preservados (DEC-KX-03).
 
 Qué son las dos, y por qué van juntas: la **estrategia de retiro** decide de
 qué lote se saca (FIFO, LIFO, FEFO…) y la **regla de colocación** decide dónde
@@ -12,7 +13,8 @@ Porte símbolo por símbolo — 2 clases, 22 símbolos
 ==================================================
 
 Medido sobre ``odoo19c: addons/stock/models/product_strategy.py`` (183 líneas):
-``ProductRemoval`` con 2 campos; ``StockPutawayRule`` con 10 campos y 10 métodos.
+``ProductRemoval`` con 2 campos; ``StockPutawayRule`` con 10 campos y 10
+métodos.
 
 ``ProductRemoval`` — 2 de 2
 -----------------------------
@@ -22,31 +24,31 @@ Medido sobre ``odoo19c: addons/stock/models/product_strategy.py`` (183 líneas):
 ``StockPutawayRule`` — 20 de 20
 ---------------------------------
 
-===============================================  ======================================
-Símbolo de la referencia (línea)                 Aquí
-===============================================  ======================================
-``_default_category_id`` (22-24)                 ``_default_category_id`` (classmethod)
-``_default_location_id`` (26-32)                 ``_default_location_id`` (classmethod)
-``_default_product_id`` (34-40)                  ``_default_product_id`` (classmethod)
-``product_id`` (42-48)                           ``product``
-``category_id`` (49-50)                          ``category``
-``location_in_id`` (51-55)                       ``location_in``
-``location_out_id`` (56-59)                      ``location_out``
-``sequence`` (60)                                ``sequence``
-``company_id`` (61-63)                           ``company``
-``package_type_ids`` (64)                        ``package_type_ids`` (M2M)
-``storage_category_id`` (65-68)                  ``storage_category``
-``active`` (69)                                  ``active``
-``sublocation`` (70-74)                          ``sublocation``
-``_compute_storage_category`` (76-80)            ``compute_storage_category``
-``_onchange_sublocation`` (82-94)                ``_onchange_sublocation``
-``_onchange_location_in`` (96-100)               ``_onchange_location_in``
-``create`` (102-105)                             ``create`` (classmethod)
-``write`` (107-112)                              ``write``
-``_get_last_used_search_domain`` (114-124)       ``get_last_used_search_domain``
-``_get_last_used_location`` (126-132)            ``get_last_used_location``
-``_get_putaway_location`` (134-183)              ``get_putaway_location``
-===============================================  ======================================
+========================================== ===================================
+Símbolo de la referencia (línea)           Aquí
+========================================== ===================================
+``_default_category_id`` (22-24)           ``_default_category_id`` (de clase)
+``_default_location_id`` (26-32)           ``_default_location_id`` (de clase)
+``_default_product_id`` (34-40)            ``_default_product_id`` (de clase)
+``product_id`` (42-48)                     ``product``
+``category_id`` (49-50)                    ``category``
+``location_in_id`` (51-55)                 ``location_in``
+``location_out_id`` (56-59)                ``location_out``
+``sequence`` (60)                          ``sequence``
+``company_id`` (61-63)                     ``company``
+``package_type_ids`` (64)                  ``package_type_ids`` (M2M)
+``storage_category_id`` (65-68)            ``storage_category``
+``active`` (69)                            ``active``
+``sublocation`` (70-74)                    ``sublocation``
+``_compute_storage_category`` (76-80)      ``_compute_storage_category``
+``_onchange_sublocation`` (82-94)          ``_onchange_sublocation``
+``_onchange_location_in`` (96-100)         ``_onchange_location_in``
+``create`` (102-105)                       ``create`` (de clase)
+``write`` (107-112)                        ``write``
+``_get_last_used_search_domain`` (114-124) ``get_last_used_search_domain``
+``_get_last_used_location`` (126-132)      ``get_last_used_location``
+``_get_putaway_location`` (134-183)        ``get_putaway_location``
+========================================== ===================================
 
 Divergencias declaradas
 =========================
@@ -98,6 +100,7 @@ bajo **no existe en ningún punto del árbol** — fallaba con ``AttributeError`
 en tiempo de EJECUCIÓN, sólo alcanzable con ``multi_warehouse=False``, rama
 que ningún test previo ejercitaba. Corregido en el mismo pase.
 """
+
 import fields
 import api
 import models
@@ -221,6 +224,7 @@ class StockPutawayRule(models.BaseModel, TimeStampedModel):
         related_name='putaway_rule_ids',
         help_text='Categoría de almacenamiento exigida a la sububicación '
                   '(Odoo storage_category_id, computado y almacenado).',
+        compute='_compute_storage_category', store=True, readonly=False,
     )
     active = fields.Boolean(
         default=True, help_text='Regla activa (Odoo active).',
@@ -293,16 +297,17 @@ class StockPutawayRule(models.BaseModel, TimeStampedModel):
 
     # -- compute y onchange --
 
-    def compute_storage_category(self):
+    @api.depends('sublocation')
+    def _compute_storage_category(self):
         """≙ ``_compute_storage_category`` (``odoo19c: :76-80``).
 
         La categoría de almacenamiento sólo tiene sentido con
         ``sublocation='closest_location'``: en los otros dos modos la regla no
         la consulta, así que dejarla puesta engañaría al lector.
         """
-        if self.sublocation != SUBLOCATION_CLOSEST:
-            self.storage_category = None
-        return self.storage_category
+        for rule in self:
+            if rule.sublocation != SUBLOCATION_CLOSEST:
+                rule.storage_category = False
 
     def _onchange_sublocation(self):
         """≙ ``_onchange_sublocation`` (``odoo19c: :82-94``).
@@ -362,28 +367,22 @@ class StockPutawayRule(models.BaseModel, TimeStampedModel):
         ``BaseModel.create``.
         """
         rules = super().create(vals_list)
-        for rule in rules:
-            rule.compute_storage_category()
-            rule.save(update_fields=['storage_category'])
         return rules
 
-    def write(self, **vals):
+    def write(self, vals):
         """≙ ``write`` (``odoo19c: :107-112``).
 
         Cambiar de empresa está prohibido: se archiva y se crea otra.
         """
-        if 'company' in vals and self.company is not None:
+        if 'company' in vals:
             new_company = getattr(vals['company'], 'pk', vals['company'])
-            if new_company != self.company_id:
-                raise UserError(_(
-                    'Cambiar la empresa de este registro está prohibido '
-                    'en este '
-                    'punto; archívalo y crea uno nuevo.'))
-        for clave, valor in vals.items():
-            setattr(self, clave, valor)
-        self.compute_storage_category()
-        self.save()
-        return self
+            for rule in self:
+                if rule.company_id != new_company:
+                    raise UserError(_(
+                        'Cambiar la empresa de este registro está '
+                        'prohibido en este punto; archívalo y crea uno '
+                        'nuevo.'))
+        return super().write(vals)
 
     # -- la última ubicación usada --
 

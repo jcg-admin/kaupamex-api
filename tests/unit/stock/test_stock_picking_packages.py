@@ -355,7 +355,7 @@ class TestPackagesCount:
         history = StockPackageHistory.objects.create(
             company=company, package=package, package_name=package.name
         )
-        history.picking_ids.add(picking)
+        picking.package_history_ids.add(history)
         picking.state = StockPicking.STATE_DONE
         picking.save(update_fields=['state', 'write_date'])
         assert picking.packages_count == 1
@@ -369,7 +369,7 @@ class TestPackagesCount:
         history = StockPackageHistory.objects.create(
             company=company, package=package, package_name=package.name
         )
-        history.picking_ids.add(picking)
+        picking.package_history_ids.add(history)
         assert list(picking.package_history_ids.all()) == [history]
 
 

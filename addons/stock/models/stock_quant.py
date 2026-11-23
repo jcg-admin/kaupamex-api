@@ -357,7 +357,7 @@ PackageQty = namedtuple('PackageQty', ['package_id', 'available_qty'])
 UNBOUNDED_QTY = Decimal('999999999.00')
 
 
-class StockQuant(models.DefaultGetMixin, TimeStampedModel):
+class StockQuant(models.BaseModel, TimeStampedModel):
     """``stock.quant`` — existencia de un producto en una ubicación."""
 
     # Atributos de clase de modelo — los cuatro que la referencia declara
@@ -394,54 +394,71 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         null=True, blank=True,
         help_text='Lote / número de serie (Odoo lot_id). NULL = sin lote.',
     )
-    package           = fields.Many2one(
-        'stock.StockPackage', on_delete=models.RESTRICT, related_name='quant_ids',
-        null=True, blank=True,
+    package = fields.Many2one(
+        'stock.StockPackage',
+        on_delete=models.RESTRICT,
+        related_name='quant_ids',
+        null=True,
+        blank=True,
         help_text='Paquete que contiene esta existencia (Odoo package_id).',
     )
-    owner             = fields.Many2one(
-        'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
+    owner = fields.Many2one(
+        'base.ResPartner',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='owned_quants',
         help_text='Propietario de la existencia (Odoo owner_id).',
     )
-    quantity          = fields.Monetary(
-        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+    quantity = fields.Monetary(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
         help_text='Cantidad a la mano (Odoo stock.quant.quantity).',
     )
     reserved_quantity = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('0.00'),
         help_text='Cantidad reservada (Odoo reserved_quantity).',
     )
-    in_date           = fields.Datetime(
+    in_date = fields.Datetime(
         default=timezone.now,
         help_text='Fecha de entrada al quant (Odoo stock.quant.in_date; '
-                  'clave de orden de la estrategia FIFO).',
+        'clave de orden de la estrategia FIFO).',
     )
 
     # -- campos de ajuste de inventario --
     # (≙ el bloque "Inventory Fields", :95-117)
 
-    inventory_quantity      = fields.Monetary(
-        max_digits=12, decimal_places=2, default=Decimal('0.00'),
+    inventory_quantity = fields.Monetary(
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
         help_text='Cantidad contada (Odoo inventory_quantity).',
     )
     inventory_diff_quantity = fields.Monetary(
-        max_digits=12, decimal_places=2, default=Decimal('0.00'),
-        help_text='Diferencia contada − teórica (Odoo inventory_diff_quantity, '
-                  'almacenado; lo recalcula compute_inventory_diff_quantity).',
+        max_digits=12,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        help_text='Diferencia contada − teórica (Odoo '
+                  'inventory_diff_quantity, '
+        'almacenado; lo recalcula compute_inventory_diff_quantity).',
     )
-    inventory_date          = fields.Date(
-        null=True, blank=True,
+    inventory_date = fields.Date(
+        null=True,
+        blank=True,
         help_text='Próximo conteo planeado (Odoo inventory_date, almacenado y '
-                  'editable: readonly=False en la referencia).',
+        'editable: readonly=False en la referencia).',
     )
-    inventory_quantity_set  = fields.Boolean(
+    inventory_quantity_set = fields.Boolean(
         default=False,
         help_text='Marca que alguien ya fijó la cantidad contada (Odoo '
-                  'inventory_quantity_set, almacenado y editable).',
+        'inventory_quantity_set, almacenado y editable).',
     )
-    user                    = fields.Many2one(
-        'base.ResUsers', on_delete=models.SET_NULL, null=True, blank=True,
+    user = fields.Many2one(
+        'base.ResUsers',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='assigned_quants',
         help_text='Usuario asignado al conteo (Odoo user_id).',
     )
@@ -506,12 +523,14 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
     def product_tmpl_id(self):
         """≙ ``product_tmpl_id`` (related a ``product_id``, ``:49-51``)."""
         return (self.product.product_tmpl_id
-                if self.product is not None else None)
+                if self.product else None)
 
     @property
     def product_uom(self):
-        """≙ ``product_uom_id`` (related a ``product_id.uom_id``, ``:52-54``)."""
-        return self.product.uom_id if self.product is not None else None
+        """≙ ``product_uom_id`` (related a ``product_id.uom_id``,
+        ``:52-54``).
+        """
+        return self.product.uom_id if self.product else None
 
     @property
     def is_favorite(self):
@@ -527,11 +546,17 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
     @property
     def storage_category(self):
         """≙ ``storage_category_id`` (related a ``location_id``, ``:62``)."""
-        return self.location.storage_category if self.location is not None else None
+        return (
+            self.location.storage_category
+            if self.location is not None
+            else None
+        )
 
     @property
     def cyclic_inventory_frequency(self):
-        """≙ ``cyclic_inventory_frequency`` (related a ``location_id``, ``:63``)."""
+        """≙ ``cyclic_inventory_frequency`` (related a ``location_id``,
+        ``:63``).
+        """
         if self.location is None:
             return 0
         return self.location.cyclic_inventory_frequency
@@ -553,7 +578,9 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
 
     @property
     def product_categ(self):
-        """≙ ``product_categ_id`` (related a ``product_tmpl_id.categ_id``, ``:94``)."""
+        """≙ ``product_categ_id`` (related a ``product_tmpl_id.categ_id``,
+        ``:94``).
+        """
         plantilla = self.product_tmpl_id
         return plantilla.categ_id if plantilla is not None else None
 
@@ -563,23 +590,26 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
 
     @property
     def available_quantity(self):
-        """≙ ``available_quantity`` / ``_compute_available_quantity`` (``:87-90``, ``:119-122``).
+        """≙ ``available_quantity`` / ``_compute_available_quantity``
+        (``:87-90``, ``:119-122``).
 
         La resta cruda, sin acotar en cero y sin trato de ubicación — que es
         exactamente lo que hace la referencia. El acotamiento vive en
-        ``_get_available_quantity``, y el trato de ubicación en ``available_qty``
+        ``_get_available_quantity``, y el trato de ubicación en
+        ``available_qty``
         (D-7).
         """
         return self.quantity - self.reserved_quantity
 
     @property
     def sn_duplicated(self):
-        """≙ ``sn_duplicated`` / ``_compute_sn_duplicated`` (``:69``, ``:216-223``).
+        """≙ ``sn_duplicated`` / ``_compute_sn_duplicated`` (``:69``,
+        ``:216-223``).
 
         ``True`` si el mismo número de serie está en otro quant con existencia
         positiva en una ubicación interna o de tránsito.
         """
-        if self.lot is None or self.tracking != 'serial':
+        if not self.lot or self.tracking != 'serial':
             return False
         return (
             type(self).objects
@@ -591,7 +621,8 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
 
     @property
     def last_count_date(self):
-        """≙ ``last_count_date`` / ``_compute_last_count_date`` (``:112``, ``:131-177``).
+        """≙ ``last_count_date`` / ``_compute_last_count_date`` (``:112``,
+        ``:131-177``).
 
         La fecha del último movimiento de inventario hecho que tocó esta
         combinación. La referencia agrupa por siete ejes y cruza origen y
@@ -599,7 +630,7 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         el ORM permite el ``OR`` sobre los dos extremos sin desdoblar el grupo.
         """
         move_line = apps.get_model('stock', 'StockMoveLine')
-        if move_line is None or self.product is None:
+        if move_line is None or not self.product:
             return None
         filtro = (
             Q(state='done') & Q(is_inventory=True) & Q(product=self.product)
@@ -607,17 +638,20 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
             & (Q(owner=self.owner) | Q(owner__isnull=True))
             & (Q(location=self.location) | Q(location_dest=self.location))
         )
-        agregado = move_line.objects.filter(filtro).aggregate(ultima=models.Max('date'))
+        agregado = move_line.objects.filter(filtro).aggregate(
+            ultima=models.Max('date')
+        )
         return agregado['ultima']
 
     @property
     def is_outdated(self):
-        """≙ ``is_outdated`` / ``_compute_is_outdated`` (``:114``, ``:197-202``).
+        """≙ ``is_outdated`` / ``_compute_is_outdated`` (``:114``,
+        ``:197-202``).
 
         La cantidad se movió desde el último conteo: lo contado menos la
         diferencia registrada ya no coincide con lo que hay.
         """
-        if self.product is None or not self.inventory_quantity_set:
+        if not self.product or not self.inventory_quantity_set:
             return False
         uom = self.product_uom
         izquierda = self.inventory_quantity - self.inventory_diff_quantity
@@ -639,7 +673,8 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
     @property
     def inventory_quantity_auto_apply(self):
         """≙ ``inventory_quantity_auto_apply`` /
-        ``_compute_inventory_quantity_auto_apply`` (``:100-104``, ``:211-215``).
+        ``_compute_inventory_quantity_auto_apply`` (``:100-104``,
+        ``:211-215``).
 
         Lee la cantidad a la mano; al **escribirla** dispara el ajuste, que es
         lo que hace el ``inverse='_set_inventory_quantity'`` de la referencia.
@@ -665,8 +700,12 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
     # ------------------------------------------------------------------ #
 
     def compute_company(self):
-        """≙ ``company_id`` (related a ``location_id.company_id``, ``store=True``)."""
-        self.company = self.location.company if self.location is not None else None
+        """≙ ``company_id`` (related a ``location_id.company_id``,
+        ``store=True``).
+        """
+        self.company = (
+            self.location.company if self.location is not None else None
+        )
 
     def _compute_inventory_date(self):
         """≙ ``_compute_inventory_date`` (``odoo19c: :124-129``).
@@ -676,14 +715,19 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         """
         if self.inventory_date is not None:
             return
-        if self.location is None or self.location.usage not in ('internal', 'transit'):
+        if self.location is None or self.location.usage not in (
+            'internal',
+            'transit',
+        ):
             return
         self.inventory_date = self.location.get_next_inventory_date()
 
     def _compute_inventory_diff_quantity(self):
         """≙ ``_compute_inventory_diff_quantity`` (``odoo19c: :185-192``)."""
         if self.inventory_quantity_set:
-            self.inventory_diff_quantity = self.inventory_quantity - self.quantity
+            self.inventory_diff_quantity = (
+                self.inventory_quantity - self.quantity
+            )
         else:
             self.inventory_diff_quantity = Decimal('0.00')
 
@@ -754,12 +798,18 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
     # ------------------------------------------------------------------ #
 
     def copy(self, default=None):
-        """≙ ``copy`` (``odoo19c: :245-246``) — duplicar un quant está prohibido."""
-        raise UserError(_('No se puede duplicar una existencia de inventario.'))
+        """≙ ``copy`` (``odoo19c: :245-246``) — duplicar un quant está
+        prohibido.
+        """
+        raise UserError(
+            _('No se puede duplicar una existencia de inventario.')
+        )
 
     @classmethod
     def name_create(cls, name):
-        """≙ ``name_create`` (``odoo19c: :248-250``) — crear por nombre no aplica."""
+        """≙ ``name_create`` (``odoo19c: :248-250``) — crear por nombre no
+        aplica.
+        """
         return False
 
     @api.model_create_multi
@@ -777,9 +827,11 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         con lo reescrito (``quants |= ...``) son los de la referencia.
 
         La referencia recibe ``vals_list`` y devuelve el recordset; desde
-        :ref:`h-api-1108` la firma es la misma aquí — ``@api.model_create_multi``
+        :ref:`h-api-1108` la firma es la misma aquí —
+        ``@api.model_create_multi``
         convierte un dict suelto en ``[vals]`` — y ``super().create`` es
-        ``DefaultGetMixin.create`` (``orm/models.py``), el porte por contenido de
+        ``DefaultGetMixin.create`` (``orm/models.py``), el porte por contenido
+        de
         ``BaseModel.create``.
         """
         modo_inventario = cls._is_inventory_mode()
@@ -788,7 +840,10 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         for vals in vals_list:
             trae_conteo = any(
                 campo in vals
-                for campo in ('inventory_quantity', 'inventory_quantity_auto_apply')
+                for campo in (
+                    'inventory_quantity',
+                    'inventory_quantity_auto_apply',
+                )
             )
             if not (modo_inventario and trae_conteo):
                 if 'inventory_quantity' not in vals:
@@ -797,11 +852,19 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                 quants.append(quant)
                 continue
 
-            invasores = [c for c in vals if not c.startswith('x_') and c not in permitidos]
+            invasores = [
+                c
+                for c in vals
+                if not c.startswith('x_') and c not in permitidos
+            ]
             if invasores:
                 raise UserError(
-                    _('La creación de existencias está restringida; no se puede '
-                      'realizar esta operación.'))
+                    _(
+                        'La creación de existencias está restringida; no se '
+                        'puede '
+                        'realizar esta operación.'
+                    )
+                )
 
             auto_aplicar = 'inventory_quantity_auto_apply' in vals
             contado = (vals.pop('inventory_quantity_auto_apply', None)
@@ -809,11 +872,17 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                        or Decimal('0.00'))
 
             quant = cls._gather(
-                vals.get('product'), vals.get('location'), lot=vals.get('lot'),
-                package=vals.get('package'), owner=vals.get('owner'), strict=True,
+                vals.get('product'),
+                vals.get('location'),
+                lot=vals.get('lot'),
+                package=vals.get('package'),
+                owner=vals.get('owner'),
+                strict=True,
             ).first()
             if quant is None:
-                with sudo():  # ``self.sudo().create(vals)`` (``odoo19c: :295``)
+                with (
+                    sudo()
+                ):  # ``self.sudo().create(vals)`` (``odoo19c: :295``)
                     quant, = super().create([vals])
             if auto_aplicar:
                 quant.inventory_quantity_auto_apply = contado
@@ -850,7 +919,7 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         """
         resultados = []
         for quant, vals in values:
-            resultados.append(quant.write(**vals))
+            resultados.append(quant.write(vals))
         return resultados
 
     @classmethod
@@ -895,25 +964,25 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         """
         return ['product', 'location', 'lot', 'package', 'owner']
 
-    def write(self, **vals):
+    def write(self, vals):
         """≙ ``write`` (``odoo19c: :351-361``).
 
         En modo inventario las características del quant son inmutables: quien
         cuenta ajusta la cantidad, no mueve la existencia de sitio.
         """
-        prohibidos = self._get_forbidden_fields_write()
-        if self._is_inventory_mode() and any(c in vals for c in prohibidos):
-            if self.location is not None and self.location.usage == 'inventory':
+        forbidden_fields = self._get_forbidden_fields_write()
+        if (self._is_inventory_mode()
+                and any(field in vals for field in forbidden_fields)):
+            if any(quant.location is not None
+                   and quant.location.usage == 'inventory'
+                   for quant in self):
                 # La referencia no hace nada cuando se intenta editar a mano
                 # una pérdida de inventario.
                 return None
             raise UserError(
                 _('La edición de existencias está restringida; no se puede '
                   'realizar esta operación.'))
-        for clave, valor in vals.items():
-            setattr(self, clave, valor)
-        self.save()
-        return self
+        return super().write(vals)
 
     def _unlink_except_wrong_permission(self):
         """≙ ``_unlink_except_wrong_permission`` (``odoo19c: :363-369``).
@@ -930,14 +999,17 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
 
     @staticmethod
     def _action_by_xmlid(xmlid):
-        """Lee el descriptor de una acción de ventana por identificador externo.
+        """Lee el descriptor de una acción de ventana por identificador
+        externo.
 
         Mismo ayudante que ``stock_picking.py``; se repite aquí porque es el
         puente al registro de acciones y no un símbolo de la referencia.
         """
         ir_model_data = apps.get_model('base', 'IrModelData')
         modulo, _sep, nombre = xmlid.partition('.')
-        registro = ir_model_data.objects.filter(module=modulo, name=nombre).first()
+        registro = ir_model_data.objects.filter(
+            module=modulo, name=nombre
+        ).first()
         if registro is None:
             return None
         act_window = apps.get_model('base', 'IrActionsActWindow')
@@ -961,10 +1033,10 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
             'view_mode': 'list,form',
         }
         dominio = (Q(location=self.location) | Q(location_dest=self.location))
-        if self.lot is not None:
+        if self.lot:
             dominio &= Q(lot=self.lot)
-        if self.package is not None:
-            dominio &= (Q(package=self.package) | Q(result_package=self.package))
+        if self.package:
+            dominio &= Q(package=self.package) | Q(result_package=self.package)
         accion['domain'] = dominio
         contexto = dict(accion.get('context') or {})
         contexto['search_default_product_id'] = self.product_id
@@ -1033,14 +1105,20 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         return None
 
     @classmethod
-    def action_stock_quant_relocate(cls, quants, lot=None, single_product=False):
+    def action_stock_quant_relocate(
+        cls, quants, lot=None, single_product=False
+    ):
         """≙ ``action_stock_quant_relocate`` (``odoo19c: :452-466``).
 
         Sólo se reubica cantidad positiva de una sola empresa; la referencia lo
         exige porque el asistente crea un movimiento por empresa.
         """
         empresas = {q.company_id for q in quants}
-        if len(empresas) > 1 or None in empresas or any(q.quantity <= 0 for q in quants):
+        if (
+            len(empresas) > 1
+            or None in empresas
+            or any(q.quantity <= 0 for q in quants)
+        ):
             raise UserError(
                 _('Sólo se pueden mover cantidades positivas almacenadas en '
                   'ubicaciones de una única empresa por reubicación.'))
@@ -1062,9 +1140,9 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
             'search_default_done': 1,
             'search_default_product_id': self.product_id,
         }
-        if self.lot is not None:
+        if self.lot:
             contexto['search_default_lot_id'] = self.lot_id
-        if self.package is not None:
+        if self.package:
             contexto['search_default_package_id'] = self.package_id
             contexto['search_default_result_package_id'] = self.package_id
         if self.owner is not None:
@@ -1075,8 +1153,10 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
             'res_model': 'stock.move.line',
             'type': 'ir.actions.act_window',
             'context': contexto,
-            'domain': (Q(company=self.company)
-                       & (Q(location=self.location) | Q(location_dest=self.location))),
+            'domain': (
+                Q(company=self.company)
+                & (Q(location=self.location) | Q(location_dest=self.location))
+            ),
         }
 
     @classmethod
@@ -1116,7 +1196,9 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
             'type': 'ir.actions.act_window',
             'res_model': 'stock.inventory.adjustment.name',
             'target': 'new',
-            'context': {'default_quant_ids': list(quants.values_list('pk', flat=True))},
+            'context': {
+                'default_quant_ids': list(quants.values_list('pk', flat=True))
+            },
         }
 
     @classmethod
@@ -1171,9 +1253,9 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         por guion — el orden es el de la referencia.
         """
         partes = [str(self.location)]
-        if self.lot is not None:
+        if self.lot:
             partes.append(self.lot.name)
-        if self.package is not None:
+        if self.package:
             partes.append(str(self.package))
         if self.owner is not None:
             partes.append(str(self.owner))
@@ -1189,13 +1271,17 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         lo que sí se puede verificar —que haya producto— y se completará con
         él en el mismo lote. No es una omisión silenciosa.
         """
-        if self.product is None:
+        if not self.product:
             raise ValidationError(
                 _('No se pueden crear existencias sin producto.'))
         almacenable = getattr(self.product, 'is_storable', None)
         if almacenable is False:
             raise ValidationError(
-                _('No se pueden crear existencias de consumibles ni servicios.'))
+                _(
+                    'No se pueden crear existencias de consumibles ni '
+                    'servicios.'
+                )
+            )
 
     @classmethod
     def check_quantity(cls, quants):
@@ -1207,7 +1293,7 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         seriales = [
             q for q in quants
             if q.tracking == 'serial'
-            and q.lot is not None
+            and q.lot
             and (q.location is None or q.location.usage != 'inventory')
         ]
         if not seriales:
@@ -1221,14 +1307,22 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         )
         for grupo in grupos:
             if abs(grupo['total'] or Decimal('0.00')) > Decimal('1'):
-                lote = apps.get_model('stock', 'StockLot').objects.get(pk=grupo['lot'])
+                lote = apps.get_model('stock', 'StockLot').objects.get(
+                    pk=grupo['lot']
+                )
                 raise ValidationError(
-                    _('El número de serie ya está asignado: '
-                      'producto %(product)s, número de serie %(serial_number)s')
-                    % {'product': lote.product, 'serial_number': lote.name})
+                    _(
+                        'El número de serie ya está asignado: '
+                        'producto %(product)s, número de serie '
+                        '%(serial_number)s'
+                    )
+                    % {'product': lote.product, 'serial_number': lote.name}
+                )
 
     def check_location_id(self):
-        """≙ ``check_location_id`` (``odoo19c: :606-610``, ``@api.constrains``)."""
+        """≙ ``check_location_id`` (``odoo19c: :606-610``,
+        ``@api.constrains``).
+        """
         if self.location is not None and self.location.usage == 'view':
             raise ValidationError(
                 _('No se pueden tomar ni entregar productos en una ubicación '
@@ -1236,11 +1330,15 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
 
     def check_lot_id(self):
         """≙ ``check_lot_id`` (``odoo19c: :612-616``, ``@api.constrains``)."""
-        if self.lot is not None and self.lot.product is not None \
+        if self.lot and self.lot.product \
                 and self.lot.product != self.product:
             raise ValidationError(
-                _('El lote / número de serie (%s) está ligado a otro producto.')
-                % self.lot.name)
+                _(
+                    'El lote / número de serie (%s) está ligado a otro '
+                    'producto.'
+                )
+                % self.lot.name
+            )
 
     # ------------------------------------------------------------------ #
     # Estrategia de retiro y recolección                                  #
@@ -1266,8 +1364,11 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         return 'fifo'
 
     @classmethod
-    def _run_least_packages_removal_strategy_astar(cls, queryset: QuerySet, qty):
-        """≙ ``_run_least_packages_removal_strategy_astar`` (``odoo19c: :630-739``).
+    def _run_least_packages_removal_strategy_astar(
+        cls, queryset: QuerySet, qty
+    ):
+        """≙ ``_run_least_packages_removal_strategy_astar`` (``odoo19c:
+        :630-739``).
 
         Elige el **menor número de paquetes** que cubre ``qty``, con una
         búsqueda A* sobre el conjunto de paquetes disponibles.
@@ -1280,11 +1381,13 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         resumirlo:
 
         1. los quants **sin paquete** se explotan en unidades sueltas de 1 —
-           un artículo suelto es su propio «paquete» de tamaño 1 (``:645-647``);
+           un artículo suelto es su propio «paquete» de tamaño 1
+           (``:645-647``);
         2. las ramas con la **misma cantidad** se saltan (``last_count``), o el
            árbol se multiplica sin explorar nada nuevo (``:711-714``);
         3. hay dos casos de fallo con memoria del **mejor intento**
-           (``best_leaf``): pasarse (``:723-727``) y no alcanzar (``:729-733``);
+           (``best_leaf``): pasarse (``:723-727``) y no alcanzar
+           (``:729-733``);
         4. el ``MemoryError`` se atrapa y se devuelve el dominio sin acotar
            (``:736-738``) — quedarse sin memoria no debe romper la reserva.
         """
@@ -1296,7 +1399,8 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
             .order_by('-disponible')
         )
         qty_by_package = [
-            PackageQty(fila['package'], fila['disponible']) for fila in por_paquete
+            PackageQty(fila['package'], fila['disponible'])
+            for fila in por_paquete
         ]
 
         # ≙ ``:641-653``: los sueltos se explotan en unidades de 1 y van al
@@ -1307,7 +1411,9 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         for elem in qty_by_package:
             if elem.package_id is None:
                 none_elements.extend(
-                    PackageQty(None, Decimal('1')) for _ in range(int(elem.available_qty)))
+                    PackageQty(None, Decimal('1'))
+                    for _ in range(int(elem.available_qty))
+                )
             elif elem.available_qty != 0:
                 new_qty_by_package.append(elem)
                 pkg_found = True
@@ -1319,7 +1425,9 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         size = len(qty_by_package)
 
         class PriorityQueue:
-            """≙ ``PriorityQueue`` (``odoo19c: :659-669``) — la frontera del A*."""
+            """≙ ``PriorityQueue`` (``odoo19c: :659-669``) — la frontera del
+            A*.
+            """
 
             def __init__(self):
                 self.elements = []
@@ -1333,9 +1441,11 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                 """≙ ``put`` (``:665-666``).
 
                 Divergencia mínima: la referencia empuja ``(priority, item)`` y
-                se apoya en que su ``Node`` sea comparable. Aquí se intercala un
+                se apoya en que su ``Node`` sea comparable. Aquí se intercala
+                un
                 contador monótono para que ``heapq`` nunca tenga que comparar
-                dos ``Node`` con la misma prioridad — el desempate es de llegada,
+                dos ``Node`` con la misma prioridad — el desempate es de
+                llegada,
                 igual que allá en la práctica.
                 """
                 self._contador += 1
@@ -1380,7 +1490,8 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                 filtro |= Q(pk__in=selected_single_items)
             return queryset.filter(filtro)
 
-        #: ≙ ``Node = namedtuple("Node", "count_remaining taken_packages next_index")``
+        #: ≙ ``Node = namedtuple("Node", "count_remaining taken_packages
+        #: next_index")``
         #: (``odoo19c: :692``).
         Node = namedtuple('Node', 'count_remaining taken_packages next_index')
 
@@ -1412,10 +1523,17 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                         # ≙ ``:722-727``: se pasó. Se guarda si mejora al mejor
                         # intento — menos paquetes, o el mismo número dejando
                         # menos sobrante.
-                        if (best_leaf.count_remaining > 0
-                                or len(node.taken_packages) < len(best_leaf.taken_packages)
-                                or (len(node.taken_packages) == len(best_leaf.taken_packages)
-                                    and node.count_remaining > best_leaf.count_remaining)):
+                        if (
+                            best_leaf.count_remaining > 0
+                            or len(node.taken_packages)
+                            < len(best_leaf.taken_packages)
+                            or (
+                                len(node.taken_packages)
+                                == len(best_leaf.taken_packages)
+                                and node.count_remaining
+                                > best_leaf.count_remaining
+                            )
+                        ):
                             best_leaf = node
                         continue
 
@@ -1447,7 +1565,9 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         if removal_strategy == 'closest':
             return None
         raise UserError(
-            _('La estrategia de retiro %s no está implementada.') % removal_strategy)
+            _('La estrategia de retiro %s no está implementada.')
+            % removal_strategy
+        )
 
     @classmethod
     def _get_gather_domain(cls, product, location, lot=None, package=None,
@@ -1461,7 +1581,9 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         dominios = [Q(product=product)]
         if not strict:
             if lot is not None:
-                dominios.append(expression.OR([Q(lot=lot), Q(lot__isnull=True)]))
+                dominios.append(
+                    expression.OR([Q(lot=lot), Q(lot__isnull=True)])
+                )
             if package is not None:
                 dominios.append(Q(package=package))
             if owner is not None:
@@ -1471,18 +1593,29 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                 # (``odoo19c: :759``) — el OPERADOR, no el predicado.
                 dominios.append(location.child_of_domain())
         else:
-            dominios.extend((
-                Q(lot=lot) if lot is not None else Q(lot__isnull=True),
-                Q(package=package) if package is not None else Q(package__isnull=True),
-                Q(owner=owner) if owner is not None else Q(owner__isnull=True),
-                Q(location=location),
-            ))
+            dominios.extend(
+                (
+                    Q(lot=lot) if lot is not None else Q(lot__isnull=True),
+                    (
+                        Q(package=package)
+                        if package is not None
+                        else Q(package__isnull=True)
+                    ),
+                    (
+                        Q(owner=owner)
+                        if owner is not None
+                        else Q(owner__isnull=True)
+                    ),
+                    Q(location=location),
+                )
+            )
         if with_expiration is not None:
             dominios.append(expression.OR([
                 Q(lot__removal_date__gte=with_expiration),
                 Q(lot__removal_date__isnull=True),
             ]))
-        # ≙ ``Domain.AND(domains)`` (``odoo19c: :769``) — el espejo del proyecto
+        # ≙ ``Domain.AND(domains)`` (``odoo19c: :769``) — el espejo del
+        # proyecto
         # de ``odoo.fields.Domain`` es ``osv.expression``, cuyo tipo de llegada
         # es el ``Q`` de Django (``src/orm/domains.py``).
         return expression.AND(dominios)
@@ -1505,7 +1638,9 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                                         strict, with_expiration)
         queryset = cls.objects.filter(filtro)
         if estrategia == 'least_packages' and qty:
-            queryset = cls._run_least_packages_removal_strategy_astar(queryset, qty)
+            queryset = cls._run_least_packages_removal_strategy_astar(
+                queryset, qty
+            )
         orden = cls._get_removal_strategy_order(estrategia)
         if orden:
             orden_final = orden
@@ -1515,7 +1650,8 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
             orden_final = ('id',)
         # ≙ ``res.sorted(lambda q: not q.lot_id)`` (``:791``): los quants CON
         # lote van primero, y dentro de cada grupo manda la estrategia — el
-        # ``sorted`` de la fuente es estable, así que no reordena lo ya ordenado.
+        # ``sorted`` de la fuente es estable, así que no reordena lo ya
+        # ordenado.
         #
         # Dos cuidados que costaron el orden FIFO:
         #
@@ -1523,17 +1659,26 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         #   rama y otro al final descartaba el de la estrategia (y con él las
         #   ramas ``least_packages`` y ``closest``). Va una sola llamada.
         # - la clave es «¿tiene lote?», un booleano, **no** el valor del lote:
-        #   ``F('lot').desc(nulls_last=True)`` ordena por id de lote descendente,
+        #   ``F('lot').desc(nulls_last=True)`` ordena por id de lote
+        #   descendente,
         #   que es otra cosa y pisaba el ``in_date``.
         return (queryset
-                .annotate(without_lot=Case(
+                .annotate(_without_lot=Case(
                     When(lot__isnull=True, then=Value(1)),
                     default=Value(0), output_field=IntegerField()))
-                .order_by('without_lot', *orden_final))
+                .order_by('_without_lot', *orden_final))
 
     @classmethod
-    def _get_available_quantity(cls, product, location, lot=None, package=None,
-                                owner=None, strict=False, allow_negative=False):
+    def _get_available_quantity(
+        cls,
+        product,
+        location,
+        lot=None,
+        package=None,
+        owner=None,
+        strict=False,
+        allow_negative=False,
+    ):
         """≙ ``_get_available_quantity`` (``odoo19c: :793-832``).
 
         Docstring de la referencia: *"Return the available quantity, i.e. the
@@ -1544,31 +1689,42 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         trazabilidad la suma se hace **por lote**, porque un lote en déficit no
         debe consumir el disponible de otro.
         """
-        with sudo():  # ``self = self.sudo()`` de la referencia (``odoo19c: :812``)
+        with (
+            sudo()
+        ):  # ``self = self.sudo()`` de la referencia (``odoo19c: :812``)
             quants = cls._gather(product, location, lot=lot, package=package,
                                  owner=owner, strict=strict)
             cero = Decimal('0.00')
             if getattr(product, 'tracking', 'none') == 'none':
                 agregado = quants.aggregate(
                     q=Sum('quantity'), r=Sum('reserved_quantity'))
-                disponible = ((agregado['q'] or cero) - (agregado['r'] or cero))
+                disponible = (agregado['q'] or cero) - (agregado['r'] or cero)
                 if allow_negative:
                     return disponible
                 return disponible if disponible >= cero else cero
 
             por_lote = defaultdict(lambda: cero)
             for quant in quants:
-                if quant.lot is None and strict and lot is not None:
+                if not quant.lot and strict and lot is not None:
                     continue
-                clave = quant.lot_id if quant.lot is not None else 'untracked'
+                clave = quant.lot_id if quant.lot else 'untracked'
                 por_lote[clave] += quant.quantity - quant.reserved_quantity
             if allow_negative:
                 return sum(por_lote.values(), start=cero)
             return sum((v for v in por_lote.values() if v > cero), start=cero)
 
     @classmethod
-    def _get_reserve_quantity(cls, product, location, quantity, uom=None, lot=None,
-                              package=None, owner=None, strict=False):
+    def _get_reserve_quantity(
+        cls,
+        product,
+        location,
+        quantity,
+        uom=None,
+        lot=None,
+        package=None,
+        owner=None,
+        strict=False,
+    ):
         """≙ ``_get_reserve_quantity`` (``odoo19c: :834-914``).
 
         Docstring de la referencia: *"return: a list of tuples (quant,
@@ -1584,29 +1740,49 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         3. una cantidad negativa es una **liberación**, y no puede liberar más
            de lo reservado.
         """
-        with sudo():  # ``self = self.sudo()`` de la referencia (``odoo19c: :844``)
+        with (
+            sudo()
+        ):  # ``self = self.sudo()`` de la referencia (``odoo19c: :844``)
             cero = Decimal('0.00')
-            quants = list(cls._gather(product, location, lot=lot, package=package,
-                                      owner=owner, strict=strict, qty=quantity))
+            quants = list(
+                cls._gather(
+                    product,
+                    location,
+                    lot=lot,
+                    package=package,
+                    owner=owner,
+                    strict=strict,
+                    qty=quantity,
+                )
+            )
             disponible = cls._get_available_quantity(
                 product, location, lot, package, owner, strict)
             cantidad = min(Decimal(quantity), disponible)
 
-            if getattr(product, 'tracking', 'none') == 'serial' and cantidad != int(cantidad):
+            if getattr(
+                product, 'tracking', 'none'
+            ) == 'serial' and cantidad != int(cantidad):
                 cantidad = cero
 
             reservados = []
             if cantidad > cero:
-                disponible = (
-                    sum((q.quantity for q in quants if q.quantity > cero), start=cero)
-                    - sum((q.reserved_quantity for q in quants), start=cero)
-                )
+                disponible = sum(
+                    (q.quantity for q in quants if q.quantity > cero),
+                    start=cero,
+                ) - sum((q.reserved_quantity for q in quants), start=cero)
             elif cantidad < cero:
-                disponible = sum((q.reserved_quantity for q in quants), start=cero)
+                disponible = sum(
+                    (q.reserved_quantity for q in quants), start=cero
+                )
                 if abs(cantidad) > disponible:
                     raise UserError(
-                        _('No es posible liberar más productos de %s de los que hay '
-                          'en existencia.') % product)
+                        _(
+                            'No es posible liberar más productos de %s de los '
+                            'que hay '
+                            'en existencia.'
+                        )
+                        % product
+                    )
             else:
                 return reservados
 
@@ -1618,7 +1794,12 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                                quant.package_id, quant.owner_id)] += saldo
 
             for quant in quants:
-                clave = (quant.location_id, quant.lot_id, quant.package_id, quant.owner_id)
+                clave = (
+                    quant.location_id,
+                    quant.lot_id,
+                    quant.package_id,
+                    quant.owner_id,
+                )
                 if cantidad > cero:
                     tope = quant.quantity - quant.reserved_quantity
                     if tope <= cero:
@@ -1644,7 +1825,9 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
             return reservados
 
     @classmethod
-    def _get_quants_by_products_locations(cls, products, locations, extra_domain=None):
+    def _get_quants_by_products_locations(
+        cls, products, locations, extra_domain=None
+    ):
         """≙ ``_get_quants_by_products_locations`` (``odoo19c: :916-933``).
 
         Índice de quants por las cinco características, para no golpear la base
@@ -1655,10 +1838,14 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
             return resultado
         # ≙ ``('location_id', 'child_of', locations.ids)`` — el operador de
         # dominio, que sobre varias raíces es la unión de sus descendencias.
-        filtro = expression.AND([
-            Q(product__in=products),
-            expression.OR([location.child_of_domain() for location in locations]),
-        ])
+        filtro = expression.AND(
+            [
+                Q(product__in=products),
+                expression.OR(
+                    [location.child_of_domain() for location in locations]
+                ),
+            ]
+        )
         if extra_domain is not None:
             # ≙ ``domain &= Domain(extra_domain)`` (``odoo19c: :925``).
             filtro = expression.AND([filtro, extra_domain])
@@ -1680,17 +1867,23 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         arranca en 1.
         """
         cambios = {}
-        if self.product is None or self.location is None:
+        if not self.product or self.location is None:
             return cambios
-        if self.lot is not None:
+        if self.lot:
             if self.tracking == 'none' or self.product != self.lot.product:
                 cambios['lot'] = None
-        quants = self._gather(self.product, self.location, lot=self.lot,
-                              package=self.package, owner=self.owner, strict=True)
+        quants = self._gather(
+            self.product,
+            self.location,
+            lot=self.lot,
+            package=self.package,
+            owner=self.owner,
+            strict=True,
+        )
         self.quantity = sum(
             (q.quantity for q in quants if q.lot_id == self.lot_id),
             start=Decimal('0.00'))
-        if self.lot is not None and self.tracking == 'serial':
+        if self.lot and self.tracking == 'serial':
             cambios['inventory_quantity'] = Decimal('1')
             cambios['inventory_quantity_auto_apply'] = Decimal('1')
         return cambios
@@ -1698,21 +1891,30 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
     def _onchange_inventory_quantity(self):
         """≙ ``_onchange_inventory_quantity`` (``odoo19c: :959-970``)."""
         if self.location is not None and self.location.usage == 'inventory':
-            return {'warning': {
-                'title': _('No se puede modificar la cantidad de pérdida de inventario'),
-                'message': _('Editar cantidades en una ubicación de ajuste de '
-                             'inventario está prohibido: esas ubicaciones son la '
-                             'contrapartida al corregir las cantidades.'),
-            }}
+            return {
+                'warning': {
+                    'title': _(
+                        'No se puede modificar la cantidad de pérdida de '
+                        'inventario'
+                    ),
+                    'message': _(
+                        'Editar cantidades en una ubicación de ajuste de '
+                        'inventario está prohibido: esas ubicaciones son la '
+                        'contrapartida al corregir las cantidades.'
+                    ),
+                }
+            }
         return None
 
     def _onchange_serial_number(self):
         """≙ ``_onchange_serial_number`` (``odoo19c: :972-979``)."""
-        if self.lot is not None and self.tracking == 'serial':
+        if self.lot and self.tracking == 'serial':
             mensaje, _location = self._check_serial_number(
                 self.product, self.lot, self.company)
             if mensaje:
-                return {'warning': {'title': _('Advertencia'), 'message': mensaje}}
+                return {
+                    'warning': {'title': _('Advertencia'), 'message': mensaje}
+                }
         return None
 
     def _onchange_product_id(self):
@@ -1735,8 +1937,11 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                 self.location = previo.location
         if self.location is None:
             warehouse_model = apps.get_model('stock', 'StockWarehouse')
-            almacen = (warehouse_model.objects.filter(company=self.company).first()
-                       if warehouse_model else None)
+            almacen = (
+                warehouse_model.objects.filter(company=self.company).first()
+                if warehouse_model
+                else None
+            )
             if almacen is not None:
                 self.location = almacen.lot_stock
         return None
@@ -1800,19 +2005,31 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                 raise ValidationError(
                     _('Se debe indicar la cantidad o la cantidad reservada.'))
             cero = Decimal('0.00')
-            quants = list(cls._gather(product, location, lot=lot, package=package,
-                                      owner=owner, strict=True))
+            quants = list(
+                cls._gather(
+                    product,
+                    location,
+                    lot=lot,
+                    package=package,
+                    owner=owner,
+                    strict=True,
+                )
+            )
             if lot is not None:
                 if Decimal(quantity or cero) > cero:
-                    quants = [q for q in quants if q.lot is not None]
+                    quants = [q for q in quants if q.lot]
                 else:
                     # No se descuenta de un quant negativo sin lote.
-                    quants = [q for q in quants if q.quantity > cero or q.lot is not None]
+                    quants = [q for q in quants if q.quantity > cero or q.lot]
 
             if location is not None and location.should_bypass_reservation():
                 fechas = []
             else:
-                fechas = [q.in_date for q in quants if q.in_date and q.quantity > cero]
+                fechas = [
+                    q.in_date
+                    for q in quants
+                    if q.in_date and q.quantity > cero
+                ]
             if in_date is not None:
                 fechas.append(in_date)
             in_date = min(fechas) if fechas else timezone.now()
@@ -1829,7 +2046,9 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                 if quantity:
                     quant.quantity = quant.quantity + Decimal(quantity)
                 if reserved_quantity:
-                    nueva = quant.reserved_quantity + Decimal(reserved_quantity)
+                    nueva = quant.reserved_quantity + Decimal(
+                        reserved_quantity
+                    )
                     quant.reserved_quantity = nueva if nueva > cero else cero
                 quant.save(update_fields=[
                     'in_date', 'quantity', 'reserved_quantity',
@@ -1872,12 +2091,14 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         with connection.cursor() as cursor:
             cursor.execute(
                 """SELECT id FROM stock_quant
-                    WHERE (round(quantity::numeric, %s) = 0 OR quantity IS NULL)
+                    WHERE (round(quantity::numeric, %s) = 0 OR quantity IS
+                    NULL)
                       AND round(reserved_quantity::numeric, %s) = 0
                       AND (round(inventory_quantity::numeric, %s) = 0
                            OR inventory_quantity IS NULL)
                       AND user_id IS NULL""",
-                [digitos, digitos, digitos])
+                [digitos, digitos, digitos],
+            )
             ids = [fila[0] for fila in cursor.fetchall()]
         if ids:
             with sudo():  # ``quants.sudo().unlink()`` (``odoo19c: :1139``)
@@ -1900,12 +2121,19 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         )
         reservado_lineas = {}
         if move_line is not None:
-            for fila in (move_line.objects
-                         .filter(state__in=['assigned', 'partially_available',
-                                            'waiting', 'confirmed'])
-                         .exclude(quantity_product_uom=cero)
-                         .values('product', 'location', 'lot', 'package', 'owner')
-                         .annotate(total=Sum('quantity_product_uom'))):
+            for fila in (
+                move_line.objects.filter(
+                    state__in=[
+                        'assigned',
+                        'partially_available',
+                        'waiting',
+                        'confirmed',
+                    ]
+                )
+                .exclude(quantity_product_uom=cero)
+                .values('product', 'location', 'lot', 'package', 'owner')
+                .annotate(total=Sum('quantity_product_uom'))
+            ):
                 clave = (fila['product'], fila['location'], fila['lot'],
                          fila['package'], fila['owner'])
                 reservado_lineas[clave] = fila['total'] or cero
@@ -1916,7 +2144,9 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
             clave = (fila['product'], fila['location'], fila['lot'],
                      fila['package'], fila['owner'])
             en_lineas = reservado_lineas.pop(clave, cero)
-            location = location_model.objects.filter(pk=fila['location']).first()
+            location = location_model.objects.filter(
+                pk=fila['location']
+            ).first()
             product = product_model.objects.filter(pk=fila['product']).first()
             if location is not None and location.should_bypass_reservation():
                 delta = -(fila['total'] or cero)
@@ -1925,9 +2155,13 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
             else:
                 continue
             cls._update_reserved_quantity(
-                product, location, delta, lot=cls._by_pk('stock', 'StockLot', fila['lot']),
+                product,
+                location,
+                delta,
+                lot=cls._by_pk('stock', 'StockLot', fila['lot']),
                 package=cls._by_pk('stock', 'StockPackage', fila['package']),
-                owner=cls._by_pk('base', 'ResPartner', fila['owner']))
+                owner=cls._by_pk('base', 'ResPartner', fila['owner']),
+            )
 
         for clave, cantidad in reservado_lineas.items():
             product_pk, location_pk, lot_pk, package_pk, owner_pk = clave
@@ -1945,7 +2179,8 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
 
     @staticmethod
     def _by_pk(app_label, model_name, pk):
-        """Resuelve un FK opcional desde su clave — ayudante local, no de la referencia.
+        """Resuelve un FK opcional desde su clave — ayudante local, no de la
+        referencia.
 
         En la referencia el ``_read_group`` ya devuelve recordsets; aquí
         ``values()`` devuelve claves, así que hace falta el paso de vuelta.
@@ -1972,9 +2207,11 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         consulta = """
             WITH dupes AS (
                 SELECT min(id) AS to_update_quant_id,
-                       (array_agg(id ORDER BY id))[2:array_length(array_agg(id), 1)]
+                       (array_agg(id ORDER BY
+                       id))[2:array_length(array_agg(id), 1)]
                            AS to_delete_quant_ids,
-                       GREATEST(0, SUM(reserved_quantity)) AS reserved_quantity,
+                       GREATEST(0, SUM(reserved_quantity)) AS
+                       reserved_quantity,
                        SUM(inventory_quantity) AS inventory_quantity,
                        SUM(quantity) AS quantity,
                        MIN(in_date) AS in_date
@@ -2000,7 +2237,9 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
 
     @classmethod
     def _quant_tasks(cls):
-        """≙ ``_quant_tasks`` (``odoo19c: :1225-1229``) — las tres, en orden."""
+        """≙ ``_quant_tasks`` (``odoo19c: :1225-1229``) — las tres, en
+        orden.
+        """
         cls._merge_quants()
         cls._clean_reservations()
         cls._unlink_zero_quants()
@@ -2013,7 +2252,8 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         written on or created during an 'inventory session'"*.
 
         Allá lo decide el contexto del entorno más el grupo del usuario; aquí
-        el contexto se pasa explícito, porque este stack no tiene ``env.context``
+        el contexto se pasa explícito, porque este stack no tiene
+        ``env.context``
         (misma divergencia que ``stock_picking.py`` declara).
         """
         return bool(inventory_mode)
@@ -2081,7 +2321,9 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         almacen = warehouse_model.objects.first() if warehouse_model else None
         if almacen is not None:
             contexto.setdefault('default_location_id', almacen.lot_stock_id)
-            contexto.setdefault('hide_location', not contexto.get('always_show_loc'))
+            contexto.setdefault(
+                'hide_location', not contexto.get('always_show_loc')
+            )
         contexto['inventory_mode'] = True
         return contexto
 
@@ -2098,7 +2340,9 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
             'res_model': 'stock.quant',
         }
         accion['context'] = {'inventory_report_mode': True}
-        accion['view_mode'] = 'list,form,pivot,graph' if extend else 'list,form'
+        accion['view_mode'] = (
+            'list,form,pivot,graph' if extend else 'list,form'
+        )
         accion['path'] = 'stock-locations'
         return accion
 
@@ -2126,7 +2370,7 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         cantidad = int(self.quantity)
         if cantidad:
             barcode += f'{ai_cantidad}{str(cantidad).rjust(8, "0")}'
-        if self.lot is not None:
+        if self.lot:
             ai_lote = '21' if self.tracking == 'serial' else '10'
             barcode += f'{ai_lote}{self.lot.name}'
         return barcode
@@ -2172,11 +2416,16 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                      .exists())
         if duplicado:
             mensaje = (
-                _('El número de serie %s ya existe en otra empresa.') % lot.name)
+                _('El número de serie %s ya existe en otra empresa.')
+                % lot.name
+            )
             return mensaje, recomendada
 
-        quants = cls.objects.filter(lot=lot, quantity__gt=0,
-                                    location__usage__in=['internal', 'transit'])
+        quants = cls.objects.filter(
+            lot=lot,
+            quantity__gt=0,
+            location__usage__in=['internal', 'transit'],
+        )
         if source_location is not None:
             quants = quants.exclude(location=source_location)
         ubicaciones = [q.location for q in quants]
@@ -2190,12 +2439,14 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
                        'other_locations': recomendada,
                        'source_location': source_location})
             else:
-                mensaje = (
-                    _('El número de serie %(serial_number)s está en varias '
-                      'ubicaciones (%(other_locations)s). Corrígelo para evitar '
-                      'datos inconsistentes.')
-                    % {'serial_number': lot.name,
-                       'other_locations': ', '.join(str(u) for u in ubicaciones)})
+                mensaje = _(
+                    'El número de serie %(serial_number)s está en varias '
+                    'ubicaciones (%(other_locations)s). Corrígelo para evitar '
+                    'datos inconsistentes.'
+                ) % {
+                    'serial_number': lot.name,
+                    'other_locations': ', '.join(str(u) for u in ubicaciones),
+                }
         return mensaje, recomendada
 
     # ------------------------------------------------------------------ #
@@ -2246,8 +2497,15 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         return movimiento
 
     @classmethod
-    def _should_bypass_product(cls, product=None, location=None, reserved_quantity=0,
-                               lot=None, package=None, owner=None):
+    def _should_bypass_product(
+        cls,
+        product=None,
+        location=None,
+        reserved_quantity=0,
+        lot=None,
+        package=None,
+        owner=None,
+    ):
         """≙ ``_should_bypass_product`` (``odoo19c: :1562-1563``).
 
         Devuelve ``False`` en la base — es el punto de extensión que los
@@ -2286,9 +2544,13 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         """
         qty = Decimal(qty)
         if not location_src.should_bypass_reservation():
-            cls._update_available_quantity(product, location_src, quantity=-qty)
+            cls._update_available_quantity(
+                product, location_src, quantity=-qty
+            )
         if not location_dest.should_bypass_reservation():
-            cls._update_available_quantity(product, location_dest, quantity=qty)
+            cls._update_available_quantity(
+                product, location_dest, quantity=qty
+            )
 
     @classmethod
     def set_on_hand(cls, product, location, qty, lot=None):

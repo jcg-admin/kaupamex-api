@@ -63,8 +63,10 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class StockPackageHistory(TimeStampedModel):
-    """``stock.package.history`` — la fotografía de un movimiento de paquete."""
+class StockPackageHistory(models.BaseModel, TimeStampedModel):
+    """``stock.package.history`` — la fotografía de un movimiento de
+    paquete.
+    """
 
     # Atributos de clase de modelo — los tres que la referencia declara
     # (``odoo19c: :6-8``), verbatim. No declara ``_order``: su orden por
@@ -78,51 +80,76 @@ class StockPackageHistory(TimeStampedModel):
         related_name='package_histories',
         help_text='Empresa (Odoo company_id, requerido).',
     )
-    location          = fields.Many2one(
-        'stock.StockLocation', null=True, blank=True, on_delete=models.SET_NULL,
+    location = fields.Many2one(
+        'stock.StockLocation',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
         related_name='package_history_origins',
         help_text='Ubicación de origen (Odoo location_id).',
     )
-    location_dest     = fields.Many2one(
-        'stock.StockLocation', null=True, blank=True, on_delete=models.SET_NULL,
+    location_dest = fields.Many2one(
+        'stock.StockLocation',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
         related_name='package_history_destinations',
         help_text='Ubicación de destino (Odoo location_dest_id).',
     )
-    package           = fields.Many2one(
-        'stock.StockPackage', null=False, on_delete=models.CASCADE,
+    package = fields.Many2one(
+        'stock.StockPackage',
+        null=False,
+        on_delete=models.CASCADE,
         related_name='history_ids',
         help_text='Paquete movido (Odoo package_id, requerido).',
     )
-    package_name      = fields.Char(
+    package_name = fields.Char(
         max_length=512,
         help_text='Nombre completo del paquete al momento del movimiento '
-                  '(Odoo package_name, requerido).',
+        '(Odoo package_name, requerido).',
     )
-    parent_orig       = fields.Many2one(
-        'stock.StockPackage', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='history_as_origin_container', db_index=True,
+    parent_orig = fields.Many2one(
+        'stock.StockPackage',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='history_as_origin_container',
+        db_index=True,
         help_text='Contenedor de origen (Odoo parent_orig_id).',
     )
-    parent_orig_name  = fields.Char(
-        max_length=512, blank=True, default='',
+    parent_orig_name = fields.Char(
+        max_length=512,
+        blank=True,
+        default='',
         help_text='Nombre del contenedor de origen (Odoo parent_orig_name).',
     )
-    parent_dest       = fields.Many2one(
-        'stock.StockPackage', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='history_as_dest_container', db_index=True,
+    parent_dest = fields.Many2one(
+        'stock.StockPackage',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='history_as_dest_container',
+        db_index=True,
         help_text='Contenedor de destino (Odoo parent_dest_id).',
     )
-    parent_dest_name  = fields.Char(
-        max_length=512, blank=True, default='',
+    parent_dest_name = fields.Char(
+        max_length=512,
+        blank=True,
+        default='',
         help_text='Nombre del contenedor de destino (Odoo parent_dest_name).',
     )
-    outermost_dest    = fields.Many2one(
-        'stock.StockPackage', null=True, blank=True, on_delete=models.SET_NULL,
+    outermost_dest = fields.Many2one(
+        'stock.StockPackage',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
         related_name='history_as_outermost_container',
         help_text='Contenedor destino más externo (Odoo outermost_dest_id).',
     )
-    picking_ids       = fields.Many2many(
-        'stock.StockPicking', blank=True, related_name='package_history_ids',
+    picking_ids = fields.Many2many(
+        'stock.StockPicking',
+        blank=True,
+        related_name='package_history_ids',
         help_text='Transferencias implicadas (Odoo picking_ids).',
     )
 
@@ -137,11 +164,14 @@ class StockPackageHistory(TimeStampedModel):
 
     @property
     def package_type(self):
-        """≙ ``package_type_id`` (``related='package_id.package_type_id'``, ``:16``)."""
-        return self.package.package_type if self.package is not None else None
+        """≙ ``package_type_id`` (``related='package_id.package_type_id'``,
+        ``:16``).
+        """
+        return self.package.package_type if self.package else None
 
     def _get_complete_dest_name_except_outermost(self):
-        """≙ ``_get_complete_dest_name_except_outermost`` (``odoo19c: :24-32``).
+        """≙ ``_get_complete_dest_name_except_outermost`` (``odoo19c:
+        :24-32``).
 
         El nombre jerárquico del destino **sin** el contenedor más externo.
         Sirve para mostrar la posición relativa dentro del envío: repetir el
@@ -151,10 +181,10 @@ class StockPackageHistory(TimeStampedModel):
         vacía; si el contenedor destino **es** el más externo, el nombre del
         propio paquete; en otro caso, el nombre completo menos su primer tramo.
         """
-        if self.parent_dest is None:
+        if not self.parent_dest:
             return ''
         if self.parent_dest_id == self.outermost_dest_id:
-            return self.package.name if self.package is not None else ''
+            return self.package.name if self.package else ''
         return ' > '.join(self.package_name.split(' > ')[1:])
 
     def action_show_package(self):

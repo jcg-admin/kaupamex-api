@@ -674,7 +674,7 @@ class StockMoveLine(TimeStampedModel):
         falta. Si al movimiento no le falta nada, propone todo lo disponible.
         """
         quant = self.quant_id
-        if quant is None or self.quantity:
+        if not quant or self.quantity:
             return
         uom_producto = self.product.uom_id
         uom_linea = self.product_uom
