@@ -1736,6 +1736,13 @@
         "sale-basemodel-u3b-0397"
       ],
       "writtenAt": "2026-11-22T22:33:19Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "sale-basemodel-u3c-0397"
+      ],
+      "writtenAt": "2026-11-23T00:02:10Z"
     }
   ]
 }
