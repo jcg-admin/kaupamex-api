@@ -121,7 +121,7 @@ SUBLOCATION_CHOICES = [
 ]
 
 
-class ProductRemoval(TimeStampedModel):
+class ProductRemoval(models.BaseModel, TimeStampedModel):
     """``product.removal`` — la estrategia que decide de qué lote se saca.
 
     Primer modelo del árbol con ``_name`` y ``_description`` declarados
@@ -147,7 +147,7 @@ class ProductRemoval(TimeStampedModel):
     _name = 'product.removal'
     _description = 'Removal Strategy'
 
-    name   = fields.Char(
+    name = fields.Char(
         'Name', max_length=120, required=True, translate=True,
         help='Nombre de la estrategia (Odoo name).',
     )
@@ -167,7 +167,7 @@ class ProductRemoval(TimeStampedModel):
         return self.name
 
 
-class StockPutawayRule(models.DefaultGetMixin, TimeStampedModel):
+class StockPutawayRule(models.BaseModel, TimeStampedModel):
     """``stock.putaway.rule`` — dónde se guarda lo que entra."""
 
     # Atributos de clase de modelo — los cuatro que la referencia declara
@@ -177,29 +177,31 @@ class StockPutawayRule(models.DefaultGetMixin, TimeStampedModel):
     _description = 'Putaway Rule'
     _check_company_auto = True
 
-    product            = fields.Many2one(
-        'product.ProductProduct', null=True, blank=True, on_delete=models.CASCADE,
+    product = fields.Many2one(
+        'product.ProductProduct', null=True, blank=True,
+        on_delete=models.CASCADE,
         related_name='putaway_rule_ids', db_index=True,
         help_text='Producto al que aplica la regla (Odoo product_id).',
     )
-    category           = fields.Many2one(
-        'product.ProductCategory', null=True, blank=True, on_delete=models.CASCADE,
+    category = fields.Many2one(
+        'product.ProductCategory', null=True, blank=True,
+        on_delete=models.CASCADE,
         related_name='putaway_rule_ids', db_index=True,
         help_text='Categoría de producto a la que aplica (Odoo category_id).',
     )
-    location_in        = fields.Many2one(
+    location_in = fields.Many2one(
         'stock.StockLocation', null=False, on_delete=models.CASCADE,
         related_name='putaway_rule_ids', db_index=True,
         help_text='Ubicación donde llega el producto '
                   '(Odoo location_in_id, requerido).',
     )
-    location_out       = fields.Many2one(
+    location_out = fields.Many2one(
         'stock.StockLocation', null=False, on_delete=models.CASCADE,
         related_name='putaway_destination_ids',
         help_text='Sububicación donde se almacena '
                   '(Odoo location_out_id, requerido).',
     )
-    sequence           = fields.Integer(
+    sequence = fields.Integer(
         default=0,
         help_text='Prioridad; mayor para la categoría más específica '
                   '(Odoo sequence).',
@@ -209,20 +211,21 @@ class StockPutawayRule(models.DefaultGetMixin, TimeStampedModel):
         related_name='putaway_rules', db_index=True,
         help_text='Empresa (Odoo company_id, requerido).',
     )
-    package_type_ids   = fields.Many2many(
+    package_type_ids = fields.Many2many(
         'stock.StockPackageType', blank=True, related_name='putaway_rule_ids',
         help_text='Tipos de paquete a los que aplica (Odoo package_type_ids).',
     )
-    storage_category   = fields.Many2one(
-        'stock.StockStorageCategory', null=True, blank=True, on_delete=models.CASCADE,
+    storage_category = fields.Many2one(
+        'stock.StockStorageCategory', null=True, blank=True,
+        on_delete=models.CASCADE,
         related_name='putaway_rule_ids',
         help_text='Categoría de almacenamiento exigida a la sububicación '
                   '(Odoo storage_category_id, computado y almacenado).',
     )
-    active             = fields.Boolean(
+    active = fields.Boolean(
         default=True, help_text='Regla activa (Odoo active).',
     )
-    sublocation        = fields.Selection(
+    sublocation = fields.Selection(
         max_length=20, choices=SUBLOCATION_CHOICES, default=SUBLOCATION_NO,
         help_text='Cómo elegir la sububicación concreta (Odoo sublocation).',
     )
@@ -251,7 +254,8 @@ class StockPutawayRule(models.DefaultGetMixin, TimeStampedModel):
         return None
 
     @classmethod
-    def _default_location_id(cls, active_model=None, active_id=None, company=None,
+    def _default_location_id(cls, active_model=None, active_id=None,
+                             company=None,
                              multi_warehouse=True):
         """≙ ``_default_location_id`` (``odoo19c: :26-32``).
 
@@ -350,9 +354,11 @@ class StockPutawayRule(models.DefaultGetMixin, TimeStampedModel):
         la misma razón.
 
         La referencia recibe ``vals_list`` y devuelve el recordset; desde
-        :ref:`h-api-1108` la firma es la misma aquí — ``@api.model_create_multi``
+        :ref:`h-api-1108` la firma es la misma aquí —
+        ``@api.model_create_multi``
         convierte un dict suelto en ``[vals]`` — y ``super().create`` es
-        ``DefaultGetMixin.create`` (``orm/models.py``), el porte por contenido de
+        ``DefaultGetMixin.create`` (``orm/models.py``), el porte por
+        contenido de
         ``BaseModel.create``.
         """
         rules = super().create(vals_list)
@@ -367,9 +373,11 @@ class StockPutawayRule(models.DefaultGetMixin, TimeStampedModel):
         Cambiar de empresa está prohibido: se archiva y se crea otra.
         """
         if 'company' in vals and self.company is not None:
-            if getattr(vals['company'], 'pk', vals['company']) != self.company_id:
+            new_company = getattr(vals['company'], 'pk', vals['company'])
+            if new_company != self.company_id:
                 raise UserError(_(
-                    'Cambiar la empresa de este registro está prohibido en este '
+                    'Cambiar la empresa de este registro está prohibido '
+                    'en este '
                     'punto; archívalo y crea uno nuevo.'))
         for clave, valor in vals.items():
             setattr(self, clave, valor)
@@ -388,7 +396,8 @@ class StockPutawayRule(models.DefaultGetMixin, TimeStampedModel):
         """
         dominio = models.Q(
             state='done',
-            location_dest__parent_path__startswith=self.location_out.parent_path,
+            location_dest__parent_path__startswith=(
+                self.location_out.parent_path),
             product=product,
         )
         if self.package_type_ids.exists():
@@ -439,7 +448,7 @@ class StockPutawayRule(models.DefaultGetMixin, TimeStampedModel):
             ultima = self.get_last_used_location(product)
             destino = ultima or destino
 
-        if self.storage_category is None:
+        if not self.storage_category:
             if destino.pk in descartadas:
                 return None
             if destino.check_can_be_used(
@@ -477,7 +486,8 @@ class StockPutawayRule(models.DefaultGetMixin, TimeStampedModel):
             if ubicacion.pk in descartadas:
                 continue
             if ubicacion.check_can_be_used(
-                    product, quantity, package, cantidades.get(ubicacion.pk, 0)):
+                    product, quantity, package,
+                    cantidades.get(ubicacion.pk, 0)):
                 return ubicacion
             descartadas.add(ubicacion.pk)
 

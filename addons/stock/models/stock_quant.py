@@ -1255,12 +1255,12 @@ class StockQuant(models.DefaultGetMixin, TimeStampedModel):
         """
         categoria = getattr(product, 'categ_id', None)
         estrategia = getattr(categoria, 'removal_strategy', None)
-        if estrategia is not None:
+        if estrategia:
             return estrategia.method
         actual = location
         while actual is not None:
             propia = getattr(actual, 'removal_strategy', None)
-            if propia is not None:
+            if propia:
                 return propia.method
             actual = actual.location
         return 'fifo'

@@ -105,7 +105,7 @@ PACKAGE_USE_CHOICES = [
 SEQUENCE_PADDING = 7
 
 
-class StockPackageType(models.DefaultGetMixin, TimeStampedModel):
+class StockPackageType(models.BaseModel, TimeStampedModel):
     """``stock.package.type`` — el contenedor físico y sus límites."""
 
     # Atributos de clase de modelo — los tres que la referencia declara

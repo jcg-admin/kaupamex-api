@@ -111,7 +111,7 @@ ALLOW_NEW_PRODUCT_CHOICES = [
 ]
 
 
-class StockStorageCategory(TimeStampedModel):
+class StockStorageCategory(models.BaseModel, TimeStampedModel):
     """``stock.storage.category`` — qué y cuánto admite una ubicación."""
 
     # Atributos de clase de modelo — los tres que la referencia declara
@@ -120,13 +120,14 @@ class StockStorageCategory(TimeStampedModel):
     _description = "Storage Category"
     _order = "name"
 
-    name              = fields.Char(
+    name = fields.Char(
         max_length=120,
         help_text='Nombre de la categoría de almacenamiento (Odoo name).',
     )
-    max_weight        = fields.Monetary(
+    max_weight = fields.Monetary(
         max_digits=12, decimal_places=2, default=Decimal('0.00'),
-        help_text='Peso máximo admitido (Odoo max_weight, digits Stock Weight).',
+        help_text='Peso máximo admitido (Odoo max_weight, digits Stock '
+                  'Weight).',
     )
     allow_new_product = fields.Selection(
         max_length=8, choices=ALLOW_NEW_PRODUCT_CHOICES, default=ALLOW_MIXED,
@@ -176,7 +177,8 @@ class StockStorageCategory(TimeStampedModel):
 
     @property
     def weight_uom_name(self):
-        """≙ ``weight_uom_name`` / ``_compute_weight_uom_name`` (``odoo19c: :23``, ``:36-37``).
+        """≙ ``weight_uom_name`` / ``_compute_weight_uom_name``
+        (``odoo19c: :23``, ``:36-37``).
 
         Etiqueta de la unidad de peso, leída del parámetro de sistema — igual
         que la referencia, que delega en
@@ -184,17 +186,22 @@ class StockStorageCategory(TimeStampedModel):
         """
         return ProductTemplate.get_weight_uom_name_from_ir_config_parameter()
 
-    def _set_storage_capacity_ids(self, product_capacities=(), package_capacities=()):
+    def _set_storage_capacity_ids(self, product_capacities=(),
+                                  package_capacities=()):
         """≙ ``_set_storage_capacity_ids`` (``odoo19c: :39-41``).
 
         El ``inverse`` de las dos properties: reescribe ``capacity_ids`` con la
         unión de ambas listas. Se porta como método explícito porque este ORM
         no cablea compute/inverse sobre un descriptor (tarea **#191**).
         """
-        self.capacity_ids.set(list(product_capacities) + list(package_capacities))
+        self.capacity_ids.set(
+            list(product_capacities) + list(package_capacities))
 
     def copy_data(self, default=None):
-        """≙ ``copy_data`` (``odoo19c: :43-45``) — el duplicado lleva «(copia)»."""
+        """≙ ``copy_data`` (``odoo19c: :43-45``).
+
+        El duplicado lleva «(copia)».
+        """
         valores = dict(default or {})
         valores.setdefault('name', f'{self.name} (copia)')
         valores.setdefault('max_weight', self.max_weight)
@@ -203,8 +210,11 @@ class StockStorageCategory(TimeStampedModel):
         return valores
 
 
-class StockStorageCategoryCapacity(TimeStampedModel):
-    """``stock.storage.category.capacity`` — cuánto de X cabe en la categoría."""
+class StockStorageCategoryCapacity(models.BaseModel, TimeStampedModel):
+    """``stock.storage.category.capacity``.
+
+    Cuánto de X cabe en la categoría.
+    """
 
     # Atributos de clase de modelo — los cuatro que la referencia declara
     # (``odoo19c: :49-52``), verbatim.
@@ -219,24 +229,27 @@ class StockStorageCategoryCapacity(TimeStampedModel):
         help_text='Categoría a la que pertenece la regla '
                   '(Odoo storage_category_id, requerido).',
     )
-    product          = fields.Many2one(
-        'product.ProductProduct', null=True, blank=True, on_delete=models.CASCADE,
+    product = fields.Many2one(
+        'product.ProductProduct', null=True, blank=True,
+        on_delete=models.CASCADE,
         related_name='storage_category_capacity_ids', db_index=True,
         help_text='Producto acotado (Odoo product_id).',
     )
-    package_type     = fields.Many2one(
-        'stock.StockPackageType', null=True, blank=True, on_delete=models.CASCADE,
+    package_type = fields.Many2one(
+        'stock.StockPackageType', null=True, blank=True,
+        on_delete=models.CASCADE,
         related_name='storage_category_capacity_ids', db_index=True,
         help_text='Tipo de paquete acotado (Odoo package_type_id).',
     )
-    quantity         = fields.Monetary(
+    quantity = fields.Monetary(
         max_digits=12, decimal_places=2,
         help_text='Cantidad admitida (Odoo quantity, requerido).',
     )
 
     class Meta:
         db_table = 'stock_storage_category_capacity'
-        ordering = ['storage_category_id']   # ≙ ``_order = "storage_category_id"``
+        # ≙ ``_order = "storage_category_id"``
+        ordering = ['storage_category_id']
         verbose_name = 'Capacidad de categoría de almacenamiento'
         verbose_name_plural = 'Capacidades de categoría de almacenamiento'
         constraints = [
@@ -244,19 +257,23 @@ class StockStorageCategoryCapacity(TimeStampedModel):
             models.CheckConstraint(
                 condition=models.Q(quantity__gt=0),
                 name='stock_storage_capacity_positive_quantity',
-                violation_error_message='La cantidad debe ser un número positivo.',
+                violation_error_message=(
+                    'La cantidad debe ser un número positivo.'),
             ),
             # ≙ ``_unique_product`` (``odoo19c: :69-72``).
             models.UniqueConstraint(
                 fields=['product', 'storage_category'],
                 name='stock_storage_capacity_unique_product',
-                violation_error_message='Varias reglas de capacidad para un producto.',
+                violation_error_message=(
+                    'Varias reglas de capacidad para un producto.'),
             ),
             # ≙ ``_unique_package_type`` (``odoo19c: :73-76``).
             models.UniqueConstraint(
                 fields=['package_type', 'storage_category'],
                 name='stock_storage_capacity_unique_package_type',
-                violation_error_message='Varias reglas de capacidad para un tipo de paquete.',
+                violation_error_message=(
+                    'Varias reglas de capacidad para un tipo de '
+                    'paquete.'),
             ),
         ]
 
@@ -267,9 +284,14 @@ class StockStorageCategoryCapacity(TimeStampedModel):
     @property
     def product_uom(self):
         """≙ ``product_uom_id`` (``related='product_id.uom_id'``, ``:62``)."""
-        return self.product.uom_id if self.product is not None else None
+        return self.product.uom_id if self.product else None
 
     @property
     def company(self):
-        """≙ ``company_id`` (``related='storage_category_id.company_id'``, ``:63``)."""
-        return self.storage_category.company if self.storage_category is not None else None
+        """≙ ``company_id``.
+
+        ``related='storage_category_id.company_id'`` (``:63``).
+        """
+        if self.storage_category:
+            return self.storage_category.company
+        return None

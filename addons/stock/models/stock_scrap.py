@@ -581,21 +581,21 @@ class StockScrap(MailThread, TimeStampedModel):
         }
 
 
-class StockScrapReasonTag(TimeStampedModel):
+class StockScrapReasonTag(models.BaseModel, TimeStampedModel):
     """``stock.scrap.reason.tag`` — motivo por el que se desecha."""
 
     _name = 'stock.scrap.reason.tag'
     _description = 'Scrap Reason Tag'
     _order = 'sequence, id'
 
-    name     = fields.Char(
+    name = fields.Char(
         max_length=64,
         help_text='Nombre del motivo (Odoo name, requerido y traducible).',
     )
     sequence = fields.Integer(
         default=10, help_text='Orden de presentación (Odoo sequence).',
     )
-    color    = fields.Char(
+    color = fields.Char(
         max_length=16, default='#3C3C3C', help_text='Color (Odoo color).',
     )
 

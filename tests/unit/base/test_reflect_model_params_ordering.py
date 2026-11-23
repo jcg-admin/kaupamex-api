@@ -9,20 +9,27 @@ término se traduce a su texto, ``nombre`` o ``nombre desc``. Diseño:
 ``designs/module-install-cycle.md``, L2.
 """
 from django.apps import apps
+from django.db.models import F
 from django.db.models.expressions import OrderBy
 
 from addons.base.models.ir_model import IrModel
 
 
-def test_an_expression_ordering_is_reflected_as_text():
-    removal = apps.get_model('stock', 'ProductRemoval')
-    assert not getattr(removal, '_order', None)
-    assert IrModel._reflect_model_params(removal)['order'] == 'name'
+# Un modelo de Django sin ``_order``; ``product.removal``, el sujeto anterior,
+# es ``BaseModel`` desde la unidad U1 de ``stock`` y ya lleva el ``_order``
+# por defecto de la fuente.
+SUBJECT = ('stock', 'StockRoute')
+
+
+def test_an_expression_ordering_is_reflected_as_text(monkeypatch):
+    route = apps.get_model(*SUBJECT)
+    assert not getattr(route, '_order', None)
+    monkeypatch.setattr(route._meta, 'ordering', [F('name').asc()])
+    assert IrModel._reflect_model_params(route)['order'] == 'name'
 
 
 def test_a_descending_expression_keeps_its_direction(monkeypatch):
-    removal = apps.get_model('stock', 'ProductRemoval')
-    term = removal._meta.ordering[0]
-    monkeypatch.setattr(removal._meta, 'ordering',
-                        [OrderBy(term.expression, descending=True)])
-    assert IrModel._reflect_model_params(removal)['order'] == 'name desc'
+    route = apps.get_model(*SUBJECT)
+    monkeypatch.setattr(route._meta, 'ordering',
+                        [OrderBy(F('name'), descending=True)])
+    assert IrModel._reflect_model_params(route)['order'] == 'name desc'
