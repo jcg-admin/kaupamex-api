@@ -48,7 +48,6 @@ NAMED = _named_models_by_app()
 PENDING = {
     'account',
     'base',
-    'stock',
 }
 
 
