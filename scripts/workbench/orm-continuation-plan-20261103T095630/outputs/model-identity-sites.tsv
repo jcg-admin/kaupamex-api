@@ -1,0 +1,300 @@
+# Procedencia: subagente de sólo lectura (2026-11-23), nivel 3. Clasificación W (escribe una columna de identidad), M (coteja), R (resuelve a clase), X (otro uso), X-vocab (vocabulario de otra tabla, unidad posterior).
+file	line	class	column_or_purpose	change
+src/orm/models.py	411	M	ir_model.model via IrModelAccess.check(label)	label = identity_of(self.model) (check ya normaliza con _model_label)
+src/orm/models.py	567	M	ir_model_data.model	model=identity_of(self.model)
+src/orm/models.py	710	X-vocab	ir_default.model (_get_model_defaults)	-
+src/orm/models.py	808	X	comentario	-
+src/orm/models.py	1629	X	mensaje de assert	-
+src/orm/models.py	1637	X	mensaje de assert	-
+src/orm/models.py	1644	X	mensaje de assert	-
+src/orm/models.py	1765	X	log	-
+src/orm/models.py	2087	X	clave interna de visitados (seen)	-
+src/orm/models.py	2089	X	clave interna de visitados (seen)	-
+src/orm/models.py	2603	X	mensaje de error de acceso a campo	-
+src/orm/models.py	2609	X	mensaje de error de acceso a campo	-
+src/orm/models.py	2628	M	ir_model.model (nombre mostrado)	filter(model=identity_of(type(self)))
+src/orm/models.py	2630	X	respaldo de display name	-
+src/orm/models.py	2727	X	mensaje de error	-
+src/orm/models.py	3062	X	mensaje de error	-
+src/orm/models.py	4145	M	ir_model_data.model (compara fila existente d_model con la clase)	comparar identity_of(cls) != d_model
+src/orm/models.py	4149	X	mensaje de error	-
+src/orm/models.py	4292	X	log	-
+src/orm/models.py	4418	X	log	-
+src/orm/models.py	4735	X	texto de display_name	-
+src/orm/models.py	4747	X	texto de display_name	-
+src/orm/models.py	4787	X	log	-
+src/orm/models.py	9084	M	ir_rule.model_name (IrRule._compute_domain)	pasar identity_of(cls)
+src/orm/models.py	9325	M	ir_model_data.model (get_external_id)	model=identity_of(type(self))
+src/orm/models.py	9363	M	ir_model_data.model (export xml_data)	model=identity_of(type(self))
+src/orm/models.py	10867	X	split de expresion de campo (dotname)	-
+src/orm/models.py	11029	W	ir_model_data.model (_ensure_xml_id, bulk_create)	model=identity_of(type(record)) (hoy record._name; verificar que sea la identidad y no una etiqueta)
+src/modules/db.py	94	M	ir_model_data.model (identidad de categoria de modulo)	comparar contra identity_of(category_model) (clase historica via apps: ver dudoso)
+src/modules/db.py	113	W	ir_model_data.model	model=identity_of(category_model) o identity_for_key(label)
+src/orm/models_transient.py	142	X	valor de retorno de vacuum (nombre de modelo)	-
+src/orm/commands.py	391	X	mensaje de error	-
+src/orm/fields_relational.py	444	X	Field.model_name en memoria (alimenta apps.get_model interno)	-
+src/orm/fields_relational.py	1041	X	mensaje de error	-
+src/orm/fields_relational.py	1191	X	docstring	-
+src/orm/fields_relational.py	1202	X	comodel de company_dependent, clave de registry.many2one_company_dependents (registro interno por label)	-
+src/orm/registry.py	556	R	implementacion de model_by_key (split + apps.get_model)	-
+src/orm/registry.py	2446	X	set de labels para comparar clases con django_model (ambos lados clases)	-
+src/orm/registry.py	2450	X	idem, label contra label de clase	-
+src/orm/registry.py	2479	M	ir_model.model__in (reflejo)	ya usa m._name; cambiar a identity_of(m) (clase sin _name hoy no casa)
+src/orm/fields.py	944	X-vocab	ir_default.model (_evaluate_condition_with_fallback)	-
+src/orm/fields.py	1873	X	mensaje de error	-
+src/orm/fields.py	2992	X	Field.comodel_name en memoria (name_of or label)	-
+src/orm/fields.py	3297	X-vocab	comentario sobre llave de ir_default	-
+src/orm/fields.py	3363	X-vocab	ir_default.model (_get_model_defaults)	-
+src/orm/domains.py	1105	X	mensaje de error	-
+src/orm/domains.py	1189	X	mensaje de error	-
+src/orm/domains.py	1543	X	mensaje de error	-
+src/orm/fields_reference.py	47	X	nombre de referencia de una fila (ya _name, respaldo label); valor de campo Reference, no tabla de catalogo	-
+src/orm/model_classes.py	259	X	mensaje de error	-
+src/orm/model_classes.py	636	X	docstring de clave de cola pendiente	-
+src/orm/fields_company_dependent.py	388	X-vocab	ir_default.model	-
+src/orm/fields_company_dependent.py	405	X-vocab	ir_default.model	-
+src/addons/base/wizard/base_partner_merge.py	428	X	clave de registry.many2one_company_dependents (registro interno por label)	-
+src/addons/base/wizard/base_partner_merge.py	478	M	ir_model_fields.relation (SQL f.relation = name_of)	ya name_of(); cambiar a identity_of(type(dst_record)) (clase sin _name da None hoy)
+src/addons/base/wizard/base_partner_merge.py	471	M	ir_model_fields.model = ir_default.model (join SQL)	ir_default.model es X-vocab; el join cruza dos columnas: coordinar con unidad posterior
+src/addons/base/wizard/base_partner_merge.py	536	M	model_id__model en lista de referencias genericas (ir_attachment/mail res_model)	revisar _update_reference_fields_generic: 'calendar' etiqueta literal; cruza con res_model (X-vocab)
+src/addons/base/wizard/base_partner_merge.py	153	X	resolutor de clase por (app_label, class_name) literales	-
+src/addons/base/models/ir_actions.py	2399	M	ir_model_fields.model / ir_model.model (travesia de update_path)	label = identity_of(last.model)
+src/addons/base/models/ir_actions.py	2400	M	ir_model.model	filter(model=identity_of(...))
+src/addons/base/models/ir_actions.py	2402	M	ir_model_fields.model	filter(model=identity_of(...))
+src/addons/base/models/ir_actions.py	2419	M	ir_model.model <- ir_act_server.model_name	identidad ya viene en model_name; sin cambio si se escribe identidad (W en la siembra)
+src/addons/base/models/ir_actions.py	2434	M	ir_model.model <- ir_model_fields.relation	sin cambio si relation guarda identidad
+src/addons/base/models/ir_actions.py	2439	M	ir_model.model <- ir_act_server.model_name	idem 2419
+src/addons/base/models/ir_actions.py	2306	R	ir_model.model / ir_act_server.model_name -> clase	model_by_key(name) en vez de apps.get_model(name)
+src/addons/base/models/ir_actions.py	2311	R	idem	model_by_key
+src/addons/base/models/ir_actions.py	2321	R	ir_act_server.model_name -> clase	model_by_key(self.model_name)
+src/addons/base/models/ir_actions.py	2370	R	ir_act_server.model_name -> clase	model_by_key(self.model_name)
+src/addons/base/models/ir_actions.py	2513	R	ir_act_server.model_name -> clase	model_by_key(action.model_name)
+src/addons/base/models/ir_actions.py	2519	M	compara active_model de contexto con ir_act_server.model_name	comparar con identidad (active_model llega en forma de la fuente)
+src/addons/base/models/ir_actions.py	1546	M	compara model_name de acciones hijas	-  (igualdad entre filas, sin cambio)
+src/addons/base/models/ir_actions.py	2638	W	ir_act_window.binding_model_name <- model_name	copia directa; sin cambio si model_name ya es identidad (X-vocab en destino)
+src/addons/base/models/ir_actions.py	634	R	valida res_model/binding_model_name (ya model_by_key)	-
+src/addons/base/models/soft_delete_mixin.py	118	X	clave de dict de retorno de delete (cuenta por modelo)	-
+src/addons/base/models/ir_model.py	266	R	helper _model_class(label) -> clase (MODELS_BY_NAME o apps.get_model)	model_by_key(key); cubre los R siguientes
+src/addons/base/models/ir_model.py	287	R	apps.get_model dentro del helper	reemplazar por model_by_key
+src/addons/base/models/ir_model.py	419	R	ir_model.model -> clase (django_model, split + get_model)	model_by_key(self.model)
+src/addons/base/models/ir_model.py	423	R	idem	idem
+src/addons/base/models/ir_model.py	454	M	ir_model.model__in (padres en MRO)	parent_labels = [identity_of(base) ...]
+src/addons/base/models/ir_model.py	463	M	ir_model.model__in	filter(model__in=parent identities)
+src/addons/base/models/ir_model.py	713	M	ir_model_data.model (borrado de ir_model)	filter(model=model_name) ya recibe identidad si el llamador es ir_model.model
+src/addons/base/models/ir_model.py	712	M	ir_cron -> ir_act_server.model_name	igual: model_name del IrModel borrado (identidad)
+src/addons/base/models/ir_model.py	748	M	ir_model.model (_get_id/_get)	filter(model=name): llamantes pasan nombre fuente; normalizar con identity_for_key(name)
+src/addons/base/models/ir_model.py	834	W	ir_model.model (_reflect_models, clave de expected)	label = identity_of(model) (expected/classes indexados por identidad)
+src/addons/base/models/ir_model.py	840	M	ir_model.model__in / stored	filtro por identidades
+src/addons/base/models/ir_model.py	850	W	ir_model.model (bulk_create, unique_fields)	cls(model=identity)
+src/addons/base/models/ir_model.py	1125	X	modules: split del label para extraer app_label	usar model._meta.app_label o _module; no es columna (revisar: con _name 'res.partner' devolveria 'res')
+src/addons/base/models/ir_model.py	1327	M	ir_model_fields.model (_get_ids)	filter(model=model_name) con identidad
+src/addons/base/models/ir_model.py	1339	M	ir_model_fields.model (_get_fields_cached)	idem
+src/addons/base/models/ir_model.py	1386	M	ir_model_fields.model	-
+src/addons/base/models/ir_model.py	1617	M	ir_model_fields.model=self.relation (one2many)	-  (relation ya identidad)
+src/addons/base/models/ir_model.py	1689	W	ir_model_fields.model <- fila de ir_model	sin cambio (copia de model_row.model)
+src/addons/base/models/ir_model.py	1700	W	ir_model_fields.relation	relation = identity_of(remote)
+src/addons/base/models/ir_model.py	1729	M	ir_model_fields.model	filter(model=model_row.model) sin cambio
+src/addons/base/models/ir_model.py	1740	W	ir_model_fields.model	sin cambio (model_row.model)
+src/addons/base/models/ir_model.py	1832	M	ir_model.model (padres _inherits en MRO)	label = identity_of(base)
+src/addons/base/models/ir_model.py	1833	M	ir_model.model	filter(model=identity_of(base))
+src/addons/base/models/ir_model.py	1915	M	ir_model_fields.model (field_id__model)	filter con identidad
+src/addons/base/models/ir_model.py	1940	M	ir_model_fields.model	filter con identidad
+src/addons/base/models/ir_model.py	2012	X	mensaje de ofensores	-
+src/addons/base/models/ir_model.py	2013	M	pending (label, campo) que luego filtra ir_model_fields.model	identity_of(model_cls)
+src/addons/base/models/ir_model.py	2020	M	ir_model_fields.model	filter con identidad (viene de pending)
+src/addons/base/models/ir_model.py	2070	R	ir_model_fields.model -> clase (via _model_class)	cubierto por helper
+src/addons/base/models/ir_model.py	2133	X	log	-
+src/addons/base/models/ir_model.py	2148	R	field_id.model -> clase (via _model_class)	cubierto por helper
+src/addons/base/models/ir_model.py	1259	R	ir_model.model -> clase (via _model_class)	cubierto por helper
+src/addons/base/models/ir_model.py	1415	R	nombres de modelo -> clase (via _model_class)	cubierto por helper
+src/addons/base/models/ir_model.py	1416	R	idem	cubierto por helper
+src/addons/base/models/ir_model.py	1506	R	ir_model_fields.relation -> clase (via _model_class)	cubierto por helper
+src/addons/base/models/ir_model.py	1570	R	ir_model_fields.model -> clase	cubierto por helper
+src/addons/base/models/ir_model.py	2339	M	ir_model.model (constraint)	label = identity_of(model_cls)
+src/addons/base/models/ir_model.py	2340	M	ir_model.model	filter(model=identity)
+src/addons/base/models/ir_model.py	2415	X	log	-
+src/addons/base/models/ir_model.py	2537	M	ir_model.model (relation table)	label = identity_of(model_cls)
+src/addons/base/models/ir_model.py	2538	M	ir_model.model	filter(model=identity)
+src/addons/base/models/ir_model.py	2666	M	ir_model.model via model_id__model (ACL group names)	_model_label devuelve identity
+src/addons/base/models/ir_model.py	2692	M	normalizador _model_label (devuelve etiqueta)	return identity_of(model_class)
+src/addons/base/models/ir_model.py	2748	M	model_id__model (valores devueltos de ACL permitida)	valores ya serian identidad; consumidores deben tratarlos como tal
+src/addons/base/models/ir_model.py	2805	M	ir_model.model (nombre mostrado en error de acceso)	filter(model=model) con identidad
+src/addons/base/models/ir_model.py	2833	M	ir_model.model via model_id__model	via _model_label
+src/addons/base/models/ir_model.py	2877	M	ir_model.model via model_id__model	via _model_label
+src/addons/base/models/ir_model.py	3032	R	ir_model_data.model -> clase (via _model_class)	cubierto por helper
+src/addons/base/models/ir_model.py	3151	R	ir_model_data.model -> clase (apps.get_model(model_label))	model_by_key(model_label)
+src/addons/base/models/ir_model.py	3175	R	ir_model_data.model -> clase (via _model_class)	cubierto por helper
+src/addons/base/models/ir_model.py	3320	W	ir_model_data.model (_update_xmlids, upsert SQL)	type(record)._meta.label -> identity_of(type(record))
+src/addons/base/models/ir_model.py	3360	W	ir_model_data.model (columnas del INSERT)	sin cambio (placeholder)
+src/addons/base/models/ir_model.py	3433	R	ir_model_data.model (toggle_noupdate model -> clase)	cubierto por helper
+src/addons/base/models/ir_model.py	3437	M	ir_model_data.model	filter(model=model): el parametro model debe ser identidad
+src/addons/base/models/ir_model.py	3489	R	ir_model_data.model -> clase (via _model_class)	cubierto por helper
+src/addons/base/models/ir_model.py	3553	M	ir_model_data.model (uninstall: otros xmlids)	model=identity_of(model_cls)
+src/addons/base/models/ir_model.py	3570	R	ir_model_data.model -> clase (via _model_class)	cubierto por helper
+src/addons/base/models/ir_model.py	3589	W	ir_model_data.model (set_xmlid)	escribe via _update_xmlids (3320)
+src/addons/base/models/ir_ui_view.py	759	X	docstring	-
+src/addons/base/models/ir_ui_view.py	811	M	ir_model_data.model (vistas por xmlid)	model=identity_of(cls)
+src/addons/base/models/ir_module.py	96	X	docstring	-
+src/addons/base/models/ir_module.py	100	M	ir_model_data.model (xml_id de modulo)	model=identity_of(type(self))
+src/addons/base/models/ir_default.py	212	X-vocab	ir_default.model -> clase	-
+src/addons/base/models/ir_default.py	271	X-vocab	ir_default.model -> clase	-
+src/addons/base/models/ir_default.py	488	X-vocab	target_label para limpiar defaults de FK	-
+src/addons/base/models/ir_default.py	497	X-vocab	ir_default.model (condicion Q)	-
+src/addons/base/models/ir_default.py	519	X-vocab	ir_default.model (pares many2one)	-
+src/addons/base/models/ir_default.py	531	X-vocab	comparacion label de related con target_label (ir_default)	-
+src/addons/base/models/ir_default.py	602	X-vocab	ir_default.model -> clase	-
+src/addons/base/models/ir_rule.py	269	M	compara ir_rule.model_name con self._name (constraint)	-
+src/addons/base/models/ir_rule.py	306	R	ir_rule.model_name -> clase (split + apps.get_model)	model_by_key(self.model_name)
+src/addons/base/models/ir_rule.py	307	R	idem	idem
+src/addons/base/models/ir_rule.py	421	M	ir_rule.model_name (_get_rules)	filter(model_name=identity); llamadores pasan identidad
+src/addons/base/models/ir_rule.py	504	R	model_name -> clase en _compute_domain	model_by_key(model_name)
+src/addons/base/models/ir_rule.py	520	R	model_name -> clase en _parent_rule_domains	model_by_key(model_name)
+src/addons/base/models/ir_rule.py	525	M	nombre de padre _inherits -> etiqueta (MODELS_BY_NAME)	-
+src/addons/base/models/ir_rule.py	531	M	ir_rule.model_name (dominio del padre)	identity_of(parent)
+src/addons/base/models/ir_rule.py	549	M	ir_rule.model_name (_get_failing)	identity_of(queryset.model)
+src/addons/base/models/ir_rule.py	579	M	ir_rule.model_name (_failing_rules)	identity_of(model)
+src/addons/base/models/ir_rule.py	637	M	ir_model.model (nombre mostrado en error)	model = identity_of(records.model); tambien lo consume el log
+src/addons/base/models/ir_rule.py	641	M	ir_model.model	-
+src/addons/base/models/ir_rule.py	649	M	ir_model.model	filter(model=model)
+src/addons/base/models/ir_rule.py	819	W	ir_rule.model_name <- ir_model.model	sin cambio (copia de model_id.model)
+src/addons/base/models/ir_rule.py	821	M	ir_model.model <- ir_rule.model_name	sin cambio si model_name es identidad
+src/addons/base/models/ir_rule.py	882	M	ir_rule.model_name (for_current_company)	identity_of(self.model)
+src/addons/base/models/ir_fields.py	699	M	ir_model_data.model (valida xmlid importado contra modelo)	expected = identity_of(model)
+src/addons/base/models/properties_base_definition_mixin.py	132	W	ir_model_fields.model (properties_model_label, formado a mano app.Object)	identity_of(cls)
+src/addons/base/models/properties_base_definition.py	303	M	ir_model_fields.model	filter(model=model_name) con identidad
+src/addons/base/data/res_groups_data.py	176	W	ir_model_data.model	identity_of(type(record))
+src/addons/base/data/res_country_data.py	344	W	ir_model_data.model	identity_of(ResCountry)
+src/addons/base/data/res_country_data.py	353	W	ir_model_data.model	identity_of(ResCountryGroup)
+src/addons/base/data/cron.py	133	W	ir_model_data.model literal 'base.IrCron' (siembra de cron)	identity_for_key('base.IrCron')
+src/addons/base/data/cron.py	158	M	ir_act_server.model_name (get_or_create por spec['model_name'])	spec literal de etiqueta; normalizar con identity_for_key
+src/addons/base/data/__init__.py	15	W	ir_act_server.model_name literal 'base.IrAutovacuum'	identity_for_key
+addons/auto_backup/data/__init__.py	13	W	ir_act_server.model_name literal 'auto_backup.DbBackup'	identity_for_key
+addons/base_automation/data/__init__.py	23	W	ir_act_server.model_name literal 'base_automation.BaseAutomation'	identity_for_key
+addons/website_sale/models/website.py	212	W	ir_act_server.model_name literal (spec de cron)	identity_for_key
+addons/mail/data/__init__.py	46	W	ir_act_server.model_name literal 'mail.MailMail'	identity_for_key
+addons/loyalty/data/__init__.py	18	W	ir_act_server.model_name literal 'loyalty.Voucher'	identity_for_key
+addons/helpdesk/data/__init__.py	16	W	ir_act_server.model_name literal 'helpdesk.SupportTicket'	identity_for_key
+addons/account_edi/data/__init__.py	13	W	ir_act_server.model_name literal 'account_edi.AccountEdiDocument'	identity_for_key
+addons/mail/data/__init__.py	78	W	ir_model_data.model literal 'mail.message.subtype' (nombre fuente, no etiqueta)	ya forma de fuente; usar identity_for_key para uniformar
+addons/analytic/data/__init__.py	55	W	ir_model_data.model literal 'analytic.AccountAnalyticPlan'	identity_for_key
+addons/base_install_request/data/__init__.py	79	W	ir_model_data.model constante 'mail.MailTemplate' (usada en 106)	identity_for_key('mail.MailTemplate')
+addons/base_install_request/data/__init__.py	106	W	ir_model_data.model	ver 79
+addons/account_check_printing/data/check_payment_method.py	64	W	ir_model_data.model (label usado en defaults linea 99)	identity_of(AccountPaymentMethod) (clase historica: ver dudoso)
+addons/account_check_printing/data/check_payment_method.py	99	W	ir_model_data.model	model=identity
+addons/hr/data/hr_departure_reason_data.py	63	W	ir_model_data.model (label usado en 92)	identity_of / identity_for_key
+addons/hr/data/hr_departure_reason_data.py	92	W	ir_model_data.model	model=identity
+addons/account/data/sequences.py	71	W	ir_model_data.model	identity de IrSequence
+addons/account/data/payment_methods.py	28	W	ir_model_data.model (label usado en 44)	identity
+addons/account/data/payment_methods.py	44	W	ir_model_data.model	model=identity
+addons/account/data/account_tags.py	55	W	ir_model_data.model (label usado en 89)	identity
+addons/account/data/account_tags.py	89	W	ir_model_data.model	model=identity
+addons/l10n_mx/data/account_tags_mx.py	107	W	ir_model_data.model (label usado en 141)	identity
+addons/l10n_mx/data/account_tags_mx.py	141	W	ir_model_data.model	model=identity
+addons/account_test/data/accounting_assert_tests.py	193	W	ir_model_data.model (label usado en 213)	identity
+addons/account_test/data/accounting_assert_tests.py	213	W	ir_model_data.model	model=identity
+addons/account_fleet/data/fleet_service_types.py	56	W	ir_model_data.model (label usado en 85)	identity
+addons/account_fleet/data/fleet_service_types.py	85	W	ir_model_data.model	model=identity
+addons/account/demo/account_demo.py	164	M	ir_model_data.model literal 'product.template' (forma fuente; hoy no casa con la etiqueta)	ya correcto tras el cambio si ProductTemplate declara _name
+addons/account/demo/account_demo.py	171	M	ir_model_data.model literal 'product.product'	idem
+addons/account/demo/account_demo.py	921	M	ir_model_data.model literal 'account.account'	idem
+addons/uom/models/uom_uom.py	49	X	docstring	-
+addons/uom/models/uom_uom.py	320	M	ir_model_data.model (proteccion de UoM maestras)	model=identity_of(cls)
+addons/utm/models/utm_medium.py	163	X	comentario	-
+addons/product/models/product_document.py	14	X	docstring	-
+addons/product/models/product_document.py	74	X-vocab	ir_attachment.res_model	-
+addons/project_todo/wizard/mail_activity_todo_create.py	54	X	docstring	-
+addons/project_todo/wizard/mail_activity_todo_create.py	127	X-vocab	mail_activity.res_model	-
+addons/project_todo/wizard/mail_activity_todo_create.py	133	X-vocab	mail_activity default por res_model	-
+addons/mail/models/mail_thread.py	95	X-vocab	nombre de modelo para mail (_name o label)	-
+addons/mail/models/mail_thread.py	360	X	nombre de modelo para fuente de plantilla	-
+addons/mail/models/mail_activity_mixin.py	162	X-vocab	nombre de modelo para actividades (_name o label)	-
+addons/html_editor/models/ir_qweb_fields.py	384	X	split de snippet_key	-
+addons/html_editor/models/ir_qweb_fields.py	598	X	atributo HTML data-oe-many2one-model (ya _name)	-
+addons/html_editor/models/ir_qweb_fields.py	604	X	idem	-
+addons/html_editor/tools.py	123	X	helper nombre de modelo del editor (ya _name, respaldo label)	-
+addons/html_editor/tools.py	391	X	mensaje de error	-
+addons/bus/models/bus_listener_mixin.py	80	X	clave de CHANNEL_RESOLVERS	-
+addons/authz/declaration.py	160	X	split de codigo de capacidad (modulo.recurso)	-
+addons/account_test/security/authz_catalog.py	10	X	comentario	-
+addons/web/controllers/export.py	258	X	log	-
+addons/web/controllers/export.py	497	X	resuelve label recibido por HTTP a clase (protocolo, no columna)	-
+addons/web/controllers/export.py	508	X	protocolo HTTP: 'relation' de fields (no ir_model_fields)	-
+addons/web/controllers/export.py	524	X	protocolo HTTP	-
+addons/web/controllers/export.py	533	X	protocolo HTTP	-
+addons/web/controllers/export.py	812	X	split de grupo de lectura	-
+addons/web/controllers/json.py	238	X-vocab	ir_filters.model_id (get_default_domain)	-
+addons/web/controllers/domain.py	114	X	resuelve label recibido por HTTP	-
+addons/web/models/ir_model.py	140	M	ir_model.model__in (display names)	model_names ya llegan del cliente en forma fuente: filter por identidad
+addons/web/models/ir_model.py	119	M	ir_model.model (get)	model=model_name; normalizar con identity_for_key
+addons/base_automation/models/base_automation.py	554	M	ir_model.model <- base_automation.model_name	sin cambio si model_name guarda identidad
+addons/base_automation/models/base_automation.py	549	W	base_automation.model_name <- model_id.model	sin cambio (copia)
+addons/base_automation/models/base_automation.py	865	M	ir_act_server.model_name = model_id.model	sin cambio
+addons/base_automation/models/base_automation.py	932	W	ir_act_server.model_name = model_id.model	sin cambio
+addons/base_automation/models/base_automation.py	1175	R	base_automation.model_name -> clase (django_apps.get_model)	model_by_key
+addons/base_automation/models/base_automation.py	1294	R	idem	model_by_key
+addons/base_automation/models/base_automation.py	1357	M	base_automation.model_name (filtro por disparo)	llamador pasa identity_of(cls)
+addons/base_automation/models/base_automation.py	1489	R	automation.model_name -> clase	model_by_key
+src/addons/base/models/ir_cron.py	1505	R	ir_act_server.model_name (model) -> clase (apps.get_model)	model_by_key(model)
+src/addons/base/models/ir_binary.py	144	X-vocab	res_model de ir_attachment -> clase	-
+src/addons/base/models/ir_actions_report.py	597	M	ir_act_report_xml.model -> ir_model (IrModel._get)	sin cambio si model guarda identidad (via _get con identity_for_key)
+src/addons/base/models/ir_actions_report.py	954	M	ir_act_report_xml.model (valid_reports_for)	filter(model=model_name) con identidad
+src/addons/base/models/ir_actions_report.py	1361	R	ir_act_report_xml.model -> clase (via _model_class)	cubierto por helper
+src/addons/base/models/ir_actions_report.py	1943	R	idem	cubierto por helper
+src/addons/base/models/ir_actions_report.py	2087	R	idem	cubierto por helper
+addons/sale/report/report_catalog.py	138	W	ir_act_report_xml.model literal 'sale.SaleOrder' (ReportSpec)	identity_for_key; revisar src/addons/base/report_catalog.py (ReportSpec.model, linea 186) que la persiste
+src/addons/base/report_catalog.py	186	W	ir_act_report_xml.model (ReportSpec.model, formato de este arbol)	normalizar a identidad al persistir
+src/addons/base/report/report_base_report_irmodulereference.py	85	M	ir_model_data.model literal 'ir.model'	ya forma fuente; correcto tras el cambio
+src/addons/base/security/ir_model_access.py	522	M	ir_model_data.model literal 'base.ResGroups' (busqueda de grupo por xmlid)	identity_for_key('base.ResGroups')
+src/addons/base/security/ir_model_access.py	542	R	literal de etiqueta de _ACCESS -> clase (registry.get_model)	sin cambio de logica; en migracion es apps historico
+src/addons/base/security/ir_model_access.py	551	W	ir_model.model (get_or_create en siembra de ACL; filas de ACL cuelgan por FK model_id)	model=identity_of(model_class) (en migracion: historico, ver dudoso)
+src/addons/base/security/ir_model_access.py	552	W	ir_model.name defaults	-
+src/addons/base/security/base_security.py	38	W	ir_rule.model_name (siembra; _RULES literal ('base.CompanySetting'))	identity_for_key(model_name)
+src/addons/base/security/base_security.py	27	W	literal 'base.CompanySetting' de _RULES	fuente del nombre: tupla de etiquetas literales
+addons/sale/security/ir_rules.py	17	W	ir_rule.model_name literal 'sale.SaleOrder' (_RULES)	reusa base_security._seed: se arregla alli
+addons/sale_subscription/security/ir_rules.py	17	W	ir_rule.model_name literales sale_subscription.CompanyModuleSubscription / SubscriptionInvoice	idem, via _seed
+src/tools/convert.py	148	X	resuelve model="..." de XML (modelo fuente) -> clase; ya model_by_name primero	-
+src/tools/convert.py	804	X	atributo model del <template> XML	-
+src/orm/fields_properties.py	90	R	definicion de propiedad 'comodel' -> clase (ya model_by_name + apps.get_model)	model_by_key
+src/orm/fields_relational.py	337	X	comodel_name de Field en memoria (model_by_key ya)	-
+src/orm/fields_relational.py	339	X	Field.model_name en memoria	-
+src/orm/fields_relational.py	464	X	comodel_name en memoria	-
+src/orm/fields_relational.py	535	X	comodel_name en memoria	-
+src/orm/fields_relational.py	1454	X	comodel de declaracion de campo	-
+src/orm/environments.py	988	X	env['app.Model'] por etiqueta (indexado de entorno)	-
+addons/web/controllers/json.py	229	X	docstring	-
+src/addons/base/models/ir_model.py	2677	X	docstring de _model_label	-
+src/addons/base/models/ir_model.py	3067	X	comentario sobre la convencion de ir_model_data.model	actualizar comentario
+src/addons/base/models/ir_model.py	3069	X	comentario	actualizar comentario
+addons/hr_recruitment_skills/models/hr_applicant.py	248	X	get_model con app/clase literales (resolucion de clase fija)	-
+addons/account_check_printing/data/check_payment_method.py	119	X	get_model literal	-
+addons/hr_recruitment/wizard/applicant_refuse_reason.py	58	X	get_model literal	-
+addons/hr_recruitment/models/hr_applicant.py	480	X	get_model literal	-
+addons/hr_recruitment/models/hr_applicant.py	656	X	get_model literal	-
+addons/hr_recruitment/models/hr_applicant.py	755	X	get_model literal	-
+addons/hr_recruitment/models/utm_source.py	26	X	get_model literal	-
+addons/account/models/chart_template.py	999	X	get_model literal	-
+addons/purchase_requisition/models/purchase_requisition.py	725	X	get_model literal	-
+addons/onboarding/models/onboarding_onboarding_step.py	318	X	get_model literal	-
+addons/onboarding/models/onboarding_progress.py	207	X	get_model literal	-
+addons/stock/models/stock_orderpoint.py	1435	X	get_model literal	-
+addons/stock/models/stock_quant.py	1955	X	get_model(app_label, nombre) de claves internas literales	-
+addons/stock/models/stock_move_line.py	1229	X	get_model de triggers internos literales	-
+addons/purchase_stock/models/product.py	417	X	get_model de claves literales de contexto	-
+addons/stock/models/product.py	301	X	get_model literal ('product', ProductTemplate/Product)	-
+addons/base_sparse_field/models/fields.py	361	X	relational_model del campo Sparse -> clase (declaracion de campo, no columna)	-
+src/orm/registry.py	561	R	cuerpo de model_by_key (apps.get_model)	-
+src/service/db.py	396	X	get_model sobre estado de migracion historico	-
+src/orm/migration_operations.py	38	X	operacion de migracion (app_label, model_name de Django)	-
+src/orm/migration_operations.py	60	X	operacion de migracion	-
+src/orm/migration_operations.py	118	X	operacion de migracion	-
+src/orm/migration_operations.py	165	X	operacion de migracion	-
+src/addons/base/models/ir_autovacuum.py	165	X	docstring	-
+# TOTAL	289
+# W	54
+# M	78
+# R	38
+# X	99
+# X-vocab	20
+# Tablas/columnas escritas por W: ir_model.model (ir_model_access siembra via get_or_create; ACL cuelga por FK model_id); ir_model_fields.model y .relation; ir_model_data.model; ir_rule.model_name; ir_act_server.model_name (ir_actions_server, siembras de cron); ir_act_report_xml.model (ReportSpec); copias derivadas: ir_act_window.binding_model_name, base_automation.model_name
+# Metrica: filas clasificadas leyendo el contexto de los hits de grep (patron del encargo + get_or_create/filter de IrModel/IrModelData/model_id__model + get_model + literales de 'model_name'/'model'), no recorrido AST; ~15 hits de get_model/_model_class cubiertos por el helper se listan como R sin cambio propio.
+# Ciega a: sitios que construyen la etiqueta sin _meta.label/object_name (p.ej. f-strings con app_label/model_name separados, claves que viajan en variables desde otros modulos), SQL crudo sobre ir_model*/ir_rule (solo se vieron base_partner_merge y _update_xmlids), data XML/CSV cargados por convert.py, y migraciones (excluidas por pedido: 0xxx_seed_* llaman a las siembras con apps historico).
