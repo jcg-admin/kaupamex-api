@@ -62,6 +62,17 @@ como antes.
 | `addons/stock/models/stock_location.py` | `check_can_be_used` |
 | `addons/stock/models/product_strategy.py` | `StockPutawayRule`, `storage_category`, `_compute_storage_category`, `create`, `write` |
 
+## Cambios sólo de forma
+
+Al cambiar las bases, la huella de estilo de cada clase pasa a ser del corte,
+así que se resolvió su deuda E501/E221/E741. Siete funciones cambian de AST
+sin cambiar de conducta: `StockPackage._search_move_line_ids`, `has_issues`,
+`json_popover` y `picking_ids` (variable `l` renombrada a `line`), y
+`StockQuant._merge_quants`, `_run_least_packages_removal_strategy_astar` y
+`_unlink_zero_quants` (SQL y docstrings partidos en el espacio, literales
+concatenados de forma adyacente). Las cubre el mismo subconjunto de
+`tests/unit/stock` y `tests/integration/stock`.
+
 ## Lo que este corte no cierra
 
 Los cálculos almacenados de `StockPackage` siguen recalculándose a mano en
