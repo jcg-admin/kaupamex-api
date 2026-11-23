@@ -1,0 +1,110 @@
+addon	source_names	covered	missing_model	missing_transient	missing_abstract	missing_list	source_data	our_data	source_security	our_security	missing_data	migrations	tests
+account	57	35	3	12	7	account.accrued.orders.wizard account.automatic.entry.wizard account.autopost.bills.wizard account.chart.template account.code.mapping account.document.import.mixin account.invoice.report account.merge.wizard account.merge.wizard.line account.move.reversal account.move.send account.move.send.batch.wizard account.move.send.wizard account.payment.register account.resequence.wizard account.root account.secure.entries.wizard report.account.report_hash_integrity report.account.report_invoice report.account.report_invoice_with_payments sequence.mixin validate.account.move	72	2	2	2	70	yes	2
+account_add_gln	0	0	0	0	0	-	1	0	0	0	1	yes	1
+account_check_printing	1	0	0	1	0	print.prenumbered.checks	6	0	1	0	6	yes	1
+account_debit_note	1	0	0	1	0	account.debit.note	5	0	1	0	5	yes	1
+account_edi	2	2	0	0	0	-	5	1	1	1	4	yes	1
+account_edi_proxy_client	1	1	0	0	0	-	3	2	2	2	1	yes	1
+account_edi_ubl_cii	14	0	0	0	14	account.edi.common account.edi.ubl account.edi.ubl_cen_en16931 account.edi.ubl_pint account.edi.ubl_pint_eu account.edi.xml.cii account.edi.xml.ubl_20 account.edi.xml.ubl_21 account.edi.xml.ubl_a_nz account.edi.xml.ubl_bis3 account.edi.xml.ubl_de account.edi.xml.ubl_efff account.edi.xml.ubl_nl account.edi.xml.ubl_sg	6	0	0	0	6	no	1
+account_fleet	0	0	0	0	0	-	4	0	0	0	4	yes	1
+account_payment	1	0	0	1	0	payment.refund.wizard	15	0	2	0	15	yes	1
+account_peppol	3	0	0	3	0	account_peppol.service peppol.config.wizard peppol.registration	11	0	1	0	11	no	1
+account_peppol_advanced_fields	0	0	0	0	0	-	1	0	0	0	1	no	0
+account_qr_code_emv	0	0	0	0	0	-	1	0	0	0	1	no	1
+account_qr_code_sepa	0	0	0	0	0	-	0	0	0	0	0	yes	1
+account_tax_python	0	0	0	0	0	-	1	0	0	0	1	yes	1
+account_test	2	0	1	0	1	accounting.assert.test report.account_test.report_accounttest	5	0	1	0	5	yes	1
+account_update_tax_tags	1	0	0	1	0	account.update.tax.tags.wizard	3	0	1	0	3	yes	1
+analytic	7	4	1	0	2	account.analytic.distribution.model analytic.mixin analytic.plan.fields.mixin	7	0	2	0	7	yes	1
+base_address_extended	1	1	0	0	0	-	4	1	1	1	3	yes	1
+base_automation	1	1	0	0	0	-	5	1	1	1	4	yes	1
+base_geolocalize	2	0	1	0	1	base.geo_provider base.geocoder	5	0	1	0	5	yes	2
+base_iban	0	0	0	0	0	-	2	0	0	0	2	yes	1
+base_import	2	0	1	1	0	base_import.import base_import.mapping	1	0	1	0	1	no	1
+base_import_module	1	1	0	0	0	-	3	1	1	1	2	yes	1
+base_install_request	2	2	0	0	0	-	5	1	1	1	4	yes	1
+base_setup	1	0	0	0	1	kpi.provider	3	0	0	0	3	yes	2
+base_sparse_field	1	0	0	1	0	sparse_fields.test	2	0	1	0	2	yes	1
+base_vat	0	0	0	0	0	-	3	0	0	0	3	yes	2
+bus	8	4	2	0	2	bus.bus bus.listener.mixin ir.websocket res.users.settings	1	0	1	0	1	yes	2
+certificate	2	2	0	0	0	-	6	1	2	1	5	yes	1
+crm	13	7	1	5	0	crm.activity.report crm.lead.lost crm.lead.pls.update crm.lead2opportunity.partner crm.lead2opportunity.partner.mass crm.merge.opportunity	35	2	2	2	33	yes	2
+crm_sms	0	0	0	0	0	-	3	0	2	0	3	no	0
+delivery	5	1	3	1	0	choose.delivery.carrier delivery.carrier delivery.price.rule delivery.zip.prefix	16	0	2	0	16	yes	2
+digest	2	0	2	0	0	digest.digest digest.tip	8	0	1	0	8	yes	1
+fleet	14	11	2	1	0	fleet.vehicle.cost.report fleet.vehicle.odometer.report fleet.vehicle.send.mail	14	2	2	2	12	yes	1
+hr	15	10	0	4	1	hr.bank.account.allocation.wizard hr.bank.account.allocation.wizard.line hr.departure.wizard hr.manager.department.report hr.version.wizard	29	2	2	2	27	yes	2
+hr_fleet	0	0	0	0	0	-	7	0	2	0	7	no	0
+hr_homeworking	1	1	0	0	0	-	4	2	2	2	2	yes	1
+hr_hourly_cost	0	0	0	0	0	-	1	0	0	0	1	no	0
+hr_recruitment	13	9	0	4	0	applicant.get.refuse.reason applicant.send.mail job.add.applicants talent.pool.add.applicants	27	2	2	2	25	yes	1
+hr_recruitment_skills	1	1	0	0	0	-	5	0	2	0	5	yes	1
+hr_recruitment_sms	0	0	0	0	0	-	1	0	0	0	1	no	0
+hr_skills	13	7	3	1	2	hr.employee.certification.report hr.employee.cv.wizard hr.employee.skill.history.report hr.employee.skill.report hr.individual.skill.mixin report.hr_skills.report_employee_cv	18	2	2	2	16	yes	1
+hr_timesheet	3	0	2	1	0	account.analytic.line.calendar.employee hr.employee.delete.wizard timesheets.analysis.report	21	0	3	0	21	yes	1
+hr_work_entry	4	3	0	1	0	hr.work.entry.regeneration.wizard	9	2	2	2	7	yes	1
+html_builder	0	0	0	0	0	-	0	0	0	0	0	no	1
+html_editor	17	2	0	0	15	html.field.history.mixin ir.qweb.field ir.qweb.field.contact ir.qweb.field.date ir.qweb.field.datetime ir.qweb.field.duration ir.qweb.field.float ir.qweb.field.html ir.qweb.field.image ir.qweb.field.integer ir.qweb.field.many2one ir.qweb.field.qweb ir.qweb.field.relative ir.qweb.field.selection ir.qweb.field.text	1	1	1	1	0	yes	1
+http_routing	0	0	0	0	0	-	2	0	0	0	2	no	1
+l10n_mx	0	0	0	0	0	-	9	0	0	0	9	yes	1
+loyalty	8	0	6	2	0	loyalty.card loyalty.card.update.balance loyalty.generate.wizard loyalty.history loyalty.mail loyalty.program loyalty.reward loyalty.rule	16	0	2	0	16	yes	1
+mail	58	5	34	7	12	discuss.call.history discuss.channel discuss.channel.member discuss.channel.rtc.session discuss.gif.favorite discuss.voice.metadata fetchmail.server mail.activity.mixin mail.activity.plan mail.activity.plan.template mail.activity.schedule mail.activity.schedule.line mail.alias mail.alias.domain mail.alias.mixin mail.alias.mixin.optional mail.blacklist mail.blacklist.remove mail.canned.response mail.compose.message mail.composer.mixin mail.followers mail.followers.edit mail.gateway.allowed mail.guest mail.ice.server mail.link.preview mail.mail mail.message mail.message.link.preview mail.message.reaction mail.message.schedule mail.message.subtype mail.message.translation mail.notification mail.presence mail.push mail.push.device mail.render.mixin mail.scheduled.message mail.template mail.template.preview mail.template.reset mail.thread mail.thread.blacklist mail.thread.cc mail.thread.main.attachment mail.tracking.duration.mixin mail.tracking.value publisher_warranty.contract res.role res.users.settings.volumes template.reset.mixin	65	2	2	1	63	yes	2
+mass_mailing	13	5	3	5	0	mailing.contact.import mailing.contact.to.list mailing.filter mailing.list.merge mailing.mailing.schedule.date mailing.mailing.test mailing.subscription.optout mailing.trace.report	49	4	3	3	45	yes	1
+mrp	26	0	14	10	2	change.production.qty mrp.bom mrp.bom.byproduct mrp.bom.line mrp.consumption.warning mrp.consumption.warning.line mrp.production mrp.production.backorder mrp.production.backorder.line mrp.production.group mrp.production.serials mrp.production.split mrp.production.split.line mrp.production.split.multi mrp.routing.workcenter mrp.unbuild mrp.workcenter mrp.workcenter.capacity mrp.workcenter.productivity mrp.workcenter.productivity.loss mrp.workcenter.productivity.loss.type mrp.workcenter.tag mrp.workorder report.mrp.report_bom_structure report.mrp.report_mo_overview stock.warn.insufficient.qty.unbuild	39	0	2	0	39	yes	0
+mrp_subcontracting	0	0	0	0	0	-	13	0	2	0	13	yes	0
+onboarding	4	4	0	0	0	-	4	1	1	1	3	yes	1
+payment	6	0	4	2	0	payment.capture.wizard payment.link.wizard payment.method payment.provider payment.token payment.transaction	16	0	2	0	16	yes	1
+payment_aps	0	0	0	0	0	-	3	0	0	0	3	no	0
+payment_authorize	0	0	0	0	0	-	4	0	0	0	4	no	0
+payment_custom	0	0	0	0	0	-	4	0	0	0	4	no	0
+payment_demo	0	0	0	0	0	-	6	0	0	0	6	no	0
+payment_mercado_pago	0	0	0	0	0	-	4	0	0	0	4	no	0
+payment_paypal	0	0	0	0	0	-	4	0	0	0	4	no	0
+payment_stripe	0	0	0	0	0	-	4	0	0	0	4	no	0
+portal	4	0	0	3	1	portal.mixin portal.share portal.wizard portal.wizard.user	8	0	1	0	8	no	1
+product	26	17	0	2	7	product.catalog.mixin product.label.layout report.product.report_pricelist report.product.report_producttemplatelabel2x7 report.product.report_producttemplatelabel4x12 report.product.report_producttemplatelabel4x12noprice report.product.report_producttemplatelabel4x7 report.product.report_producttemplatelabel_dymo update.product.attribute.value	26	2	2	2	24	yes	2
+product_expiry	1	0	0	1	0	expiry.picking.confirmation	11	0	2	0	11	yes	0
+product_matrix	0	0	0	0	0	-	2	0	0	0	2	yes	0
+project	20	2	10	7	1	project.collaborator project.milestone project.project.stage project.project.stage.delete.wizard project.role project.share.collaborator.wizard project.share.wizard project.tags project.task.burndown.chart.report project.task.recurrence project.task.stage.personal project.task.type project.task.type.delete.wizard project.template.create.wizard project.template.role.to.users.map project.update report.project.task.user task.share.wizard	38	0	3	0	38	yes	1
+project_account	0	0	0	0	0	-	4	0	0	0	4	no	0
+project_hr_skills	0	0	0	0	0	-	1	0	0	0	1	no	0
+project_sms	0	0	0	0	0	-	6	0	2	0	6	no	0
+project_stock	0	0	0	0	0	-	2	0	0	0	2	no	0
+project_todo	1	0	0	1	0	mail.activity.todo.create	6	0	2	0	6	no	0
+purchase	6	2	3	1	0	bill.to.po.wizard purchase.bill.line.match purchase.bill.union purchase.report	22	2	2	2	20	yes	2
+purchase_requisition	5	3	0	2	0	purchase.requisition.alternative.warning purchase.requisition.create.alternative	11	2	2	2	9	yes	1
+purchase_stock	1	0	1	0	0	vendor.delay.report	19	0	1	0	19	no	1
+rating	3	0	1	0	2	rating.mixin rating.parent.mixin rating.rating	4	0	1	0	4	yes	1
+resource	5	4	0	0	1	resource.mixin	8	2	2	2	6	yes	1
+rpc	0	0	0	0	0	-	0	0	0	0	0	no	1
+sale	7	3	1	3	0	sale.advance.payment.inv sale.mass.cancel.orders sale.order.discount sale.report	34	1	3	1	33	yes	2
+sale_crm	1	0	0	1	0	crm.quotation.partner	6	0	1	0	6	yes	0
+sale_loyalty	3	0	1	2	0	sale.loyalty.coupon.wizard sale.loyalty.reward.wizard sale.order.coupon.points	10	0	1	0	10	yes	0
+sale_loyalty_delivery	0	0	0	0	0	-	1	0	0	0	1	yes	0
+sale_management	2	0	2	0	0	sale.order.template sale.order.template.line	9	0	2	0	9	yes	0
+sale_margin	0	0	0	0	0	-	1	0	0	0	1	yes	0
+sale_mrp	0	0	0	0	0	-	4	0	1	0	4	yes	0
+sale_mrp_margin	0	0	0	0	0	-	0	0	0	0	0	yes	0
+sale_product_matrix	0	0	0	0	0	-	3	0	0	0	3	yes	0
+sale_project	0	0	0	0	0	-	13	0	2	0	13	yes	0
+sale_purchase	0	0	0	0	0	-	4	0	0	0	4	yes	0
+sale_service	0	0	0	0	0	-	0	0	0	0	0	yes	0
+sale_sms	0	0	0	0	0	-	2	0	2	0	2	yes	0
+sale_stock	0	0	0	0	0	-	16	0	2	0	16	yes	0
+sale_stock_margin	0	0	0	0	0	-	0	0	0	0	0	yes	0
+sale_stock_product_expiry	0	0	0	0	0	-	0	0	0	0	0	yes	0
+sale_timesheet	1	1	0	0	0	-	16	0	2	0	16	yes	1
+sales_team	3	3	0	0	0	-	7	2	2	2	5	yes	1
+sms	9	0	3	6	0	sms.account.code sms.account.phone sms.account.sender sms.composer sms.sms sms.template sms.template.preview sms.template.reset sms.tracker	17	0	2	0	17	yes	0
+stock	51	19	3	21	8	lot.label.layout picking.label.type product.replenish report.stock.label_lot_template_view report.stock.label_product_product_view report.stock.quantity report.stock.report_reception report.stock.report_stock_rule stock.backorder.confirmation stock.backorder.confirmation.line stock.forecasted_product_product stock.forecasted_product_template stock.inventory.adjustment.name stock.inventory.conflict stock.inventory.warning stock.location stock.orderpoint.snooze stock.package.destination stock.put.in.pack stock.quant.relocate stock.quantity.history stock.replenish.mixin stock.replenishment.info stock.replenishment.option stock.request.count stock.return.picking stock.return.picking.line stock.route stock.rules.report stock.traceability.report stock.warn.insufficient.qty stock.warn.insufficient.qty.scrap	67	0	2	0	67	yes	2
+stock_account	3	0	1	0	2	product.value stock.avco.report stock_account.stock.valuation.report	18	0	2	0	18	yes	0
+stock_landed_costs	3	0	3	0	0	stock.landed.cost stock.landed.cost.lines stock.valuation.adjustment.lines	7	0	2	0	7	yes	0
+uom	1	1	0	0	0	-	4	3	2	2	1	yes	2
+utm	7	5	0	0	2	utm.mixin utm.source.mixin	11	1	1	1	10	yes	1
+web	2	0	1	1	0	base.document.layout res.users.settings.embedded.action	13	0	2	0	13	yes	2
+website	35	10	10	4	10	theme.ir.asset theme.ir.attachment theme.ir.ui.view theme.utils theme.website.menu theme.website.page website.assets website.controller.page website.cover_properties.mixin website.custom_blocked_third_party_domains website.html.text.processor website.multi.mixin website.page.properties website.page.properties.base website.page_options.mixin website.page_visibility_options.mixin website.published.mixin website.published.multi.mixin website.robots website.searchable.mixin website.seo.metadata website.snippet.filter website.technical.page website.track website.visitor	184	2	2	2	182	yes	2
+website_mass_mailing	0	0	0	0	0	-	4	0	1	0	4	no	1
+website_sale	10	2	8	0	0	delivery.carrier product.feed product.image product.public.category product.ribbon website.base.unit website.checkout.step website.sale.extra.field	54	2	3	2	52	yes	1
+website_sale_wishlist	1	0	1	0	0	product.wishlist	4	0	2	0	4	yes	1
+base	124	54	16	20	34	_unknown avatar.mixin base base.language.export base.language.import base.language.install base.module.uninstall base.module.update base.module.upgrade base.partner.merge.automatic.wizard base.partner.merge.line change.password.own change.password.user change.password.wizard format.address.mixin format.vat.label.mixin image.mixin ir.actions.act_url ir.actions.act_window ir.actions.act_window.view ir.actions.act_window_close ir.actions.actions ir.actions.client ir.actions.todo ir.binary ir.demo ir.demo_failure ir.demo_failure.wizard ir.embedded.actions ir.fields.converter ir.filters ir.http ir.logging ir.qweb ir.qweb.field ir.qweb.field.barcode ir.qweb.field.contact ir.qweb.field.date ir.qweb.field.datetime ir.qweb.field.duration ir.qweb.field.float ir.qweb.field.float_time ir.qweb.field.html ir.qweb.field.image ir.qweb.field.image_url ir.qweb.field.integer ir.qweb.field.many2many ir.qweb.field.many2one ir.qweb.field.monetary ir.qweb.field.one2many ir.qweb.field.qweb ir.qweb.field.relative ir.qweb.field.selection ir.qweb.field.text ir.qweb.field.time my.settings properties.base.definition.mixin report.base.report_irmodulereference report.layout res.config res.country.group res.partner.industry res.users.apikeys.description res.users.apikeys.show res.users.deletion res.users.identitycheck res.users.log res.users.settings reset.view.arch.wizard wizard.ir.model.menu.create	65	0	3	0	65	yes	2
+test_orm	152	54	94	2	2	decimal.precision.test domain.bool test_orm.attachment test_orm.attachment.host test_orm.binary_svg test_orm.cascade test_orm.company test_orm.company.attr test_orm.compute.created test_orm.compute.creator test_orm.compute.dynamic.depends test_orm.compute.readonly test_orm.compute.readwrite test_orm.compute.sudo test_orm.compute.unassigned test_orm.compute_editable test_orm.compute_editable.line test_orm.computed.modifier test_orm.course test_orm.creativework.book test_orm.creativework.edition test_orm.creativework.movie test_orm.custom.table_query test_orm.custom.table_query_sql test_orm.custom.view test_orm.display test_orm.emailmessage test_orm.employer test_orm.field_with_caps test_orm.indexed_translation test_orm.inverse_m2o_ref test_orm.lesson test_orm.mixin test_orm.model2.some_access test_orm.model3.some_access test_orm.model_binary test_orm.model_constrained_unlinks test_orm.model_image test_orm.model_many2one_reference test_orm.model_selection_company_dependent test_orm.model_selection_non_stored test_orm.model_selection_related test_orm.model_selection_related_updatable test_orm.model_selection_required test_orm.model_selection_required_for_write_override test_orm.model_shared_cache_compute_line test_orm.model_shared_cache_compute_parent test_orm.modified test_orm.modified.line test_orm.monetary_base test_orm.monetary_custom test_orm.monetary_inherits test_orm.monetary_order test_orm.monetary_order_line test_orm.monetary_related test_orm.move test_orm.move_line test_orm.multi.line2 test_orm.multi_compute_inverse test_orm.one2many test_orm.one2many.line test_orm.partner test_orm.payment test_orm.person test_orm.person.account test_orm.precompute test_orm.precompute.combo test_orm.precompute.editable test_orm.precompute.line test_orm.precompute.monetary test_orm.precompute.readonly test_orm.precompute.required test_orm.prefetch test_orm.prefetch.line test_orm.recursive test_orm.recursive.line test_orm.recursive.order test_orm.recursive.task test_orm.recursive.tree test_orm.related_translation_1 test_orm.related_translation_2 test_orm.related_translation_3 test_orm.req_m2o test_orm.req_m2o_transient test_orm.selection test_orm.state_mixin test_orm.transient_model test_orm.trigger.left test_orm.trigger.middle test_orm.trigger.right test_orm.view.str.id test_performance.bacon test_performance.base test_performance.eggs test_performance.line test_performance.mozzarella test_performance.simple.minded test_performance.tag	4	0	2	0	4	yes	1
