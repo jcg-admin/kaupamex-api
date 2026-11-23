@@ -87,3 +87,34 @@ base de pruebas: 0 choques, 0 etiquetas restantes en las ocho columnas.
 `ir_model_fields.model` e `ir_default.model` son el vocabulario de otras
 tablas (cubo `X-vocab` de `outputs/model-identity-sites.tsv`). Sucesor:
 `model-identity-vocab-columns-0397`.
+
+## Verificación (2026-11-23)
+
+Subconjunto derivado (191 archivos que nombran los símbolos) y suite
+completa de la worktree: `15 failed, 14717 passed` en la primera pasada
+completa. Las 13 que no son `TestBenchRoot` de `check_workbench` (falla de
+entorno de toda worktree) eran pruebas que fijaban la etiqueta y se llevaron
+a la identidad; las de otro vocabulario (`ir_default.model`, el parámetro
+`model` del endpoint de dominio de `web`, `ir_ui_view.model`) se restauraron
+tal cual. Tres hallazgos más de la verificación:
+
+1. **`registry.identity_of` recibía registros**, no sólo clases: `name_of`
+   lee el `__dict__` de la clase y con una instancia daba `None`, así que la
+   identidad caía a la etiqueta. Ahora usa la clase del registro, como
+   `record._name` en la fuente (`tests/unit/orm/test_model_identity.py`,
+   `test_a_record_has_the_identity_of_its_class`).
+2. **La migración histórica `website_sale.0003`** comparaba la fila
+   `sales_team.salesteam_website_sales` con la etiqueta de `CrmTeam`; tras C3
+   el sembrador escribe `crm.team`. Acepta las dos formas sin tocar modelos
+   vivos (`tests/unit/website_sale/test_salesteam_migration.py`, caso
+   `identity`; anulado el cambio, cae exactamente ese caso).
+3. **Los specs de cron** nombraban el modelo por su etiqueta; se reescribieron
+   a su identidad (`ir.autovacuum`, `db.backup`, `base.automation`,
+   `support.ticket`, `account.edi.document`). Los tres que aún no declaran
+   `_name` (`mail.MailMail`, `loyalty.Voucher`,
+   `website_sale.WebsiteSaleSettings`) conservan su etiqueta, que es su
+   identidad hoy.
+
+Controles de anulación de las pruebas del corte: retirada la normalización de
+`IrRule._get_rules` cae `test_rules_are_found_by_either_spelling`; retirado
+`_reject_collisions` cae `test_the_rewrite_refuses_to_duplicate_a_unique_key`.
