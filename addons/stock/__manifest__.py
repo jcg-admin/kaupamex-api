@@ -24,6 +24,14 @@
         'product',  # Product — lo que se mueve y se cuenta
         'mail',  # el aviso de reabastecimiento y de albarán listo
     ],
+    # Seguridad de la fuente (``odoo19c: stock/__manifest__.py``), cargada
+    # por ``load_data`` en el ciclo de instalación, en el orden de la fuente.
+    # Copia fiel; las omisiones se declaran en la cabecera del XML y en
+    # designs/stock-security-data.md.
+    'data': [
+        'security/stock_security.xml',
+        'security/ir.model.access.csv',
+    ],
     'author': 'Odoo S.A.',
     'license': 'LGPL-3',
     'application': True,  # módulo vendible del catálogo L0
