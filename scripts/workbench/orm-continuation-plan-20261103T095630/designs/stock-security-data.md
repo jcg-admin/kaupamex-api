@@ -77,3 +77,16 @@ tapar una divergencia de `ir.model`. Prerrequisito declarado:
 `ir-model-model-is-odoo-name-0397`. Esta unidad queda en la rama
 `wt/stock-security` y se retoma sobre ella.
 
+
+## Desbloqueo (2026-11-23)
+
+El corte C3 de `model-identity-contract.md` (`api@c6095235`, asentado en
+`api@a2927ca8`) hace que `ir.model.model` guarde el `_name`, y la regla de
+`stock_security.xml:88` encuentra `stock.picking` sin tocar el XML de la
+fuente. La prueba se corrigió en dos puntos: `implied_ids` de `res.groups`
+es todavía un gestor de Django (`.all()`), y dos de los tres casos pasaban
+sin la carga porque la sesión ya había sembrado los datos por manifiesto.
+Ahora cada caso borra lo que mide antes de cargar: las aristas
+`implied_ids` de los dos grupos, las filas de ACL de `stock.picking` y las
+reglas multiempresa con sus `xml_id`. Anulación: retiradas del manifiesto
+las dos entradas de `security/`, caen exactamente los tres casos.
