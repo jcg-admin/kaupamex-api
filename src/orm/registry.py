@@ -95,6 +95,7 @@ _schema = logging.getLogger('kaupamex.schema')
 __all__ = [
     'apps', 'connections',
     'MODELS_BY_NAME', 'name_of', 'model_by_name', 'model_by_key',
+    'identity_of', 'identity_for_key',
     'resolve_model_key', 'check_table_matches_name',
     'registrants_without_table',
     'clear_cache', 'clear_all_caches', 'cache_of', 'registry_of',
@@ -3264,3 +3265,33 @@ def unit_of_work(alias=DEFAULT_DB_ALIAS):
         registry.reset_changes()
         raise
     registry.signal_changes()
+
+
+def identity_of(model):
+    """La identidad que guardan las columnas de modelo del ORM.
+
+    ≙ ``'model': model._name`` en ``_reflect_model_params``
+    (``odoo19c: odoo/addons/base/models/ir_model.py:428``): la fuente guarda
+    en ``ir_model.model`` —y en las columnas que cruzan con ella por valor—
+    el ``_name`` del modelo. Aquí, el ``_name`` que la clase declara
+    (:func:`name_of`).
+
+    Una clase que aún no declara ``_name`` guarda su etiqueta de Django, la
+    misma que guardaba antes: a un modelo de la fuente pendiente de portar
+    su ``_name`` no se le fabrica uno aquí, y un modelo propio recibe su
+    identidad pública en su propia unidad
+    (``designs/model-identity-contract.md``).
+    """
+    return name_of(model) or model._meta.label
+
+
+def identity_for_key(key):
+    """La identidad guardada que corresponde a ``key``, en cualquiera de sus
+    dos formas (``'res.partner'`` o ``'base.ResPartner'``).
+
+    Un nombre que el registro no resuelve se devuelve tal cual: puede nombrar
+    una fila que sobrevivió a su modelo, y traducirlo a otra cosa la
+    escondería.
+    """
+    model = model_by_key(key)
+    return identity_of(model) if model is not None else key
