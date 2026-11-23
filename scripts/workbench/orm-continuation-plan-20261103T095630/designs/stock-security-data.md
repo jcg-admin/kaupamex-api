@@ -54,3 +54,26 @@ una instalación nueva de `stock`.
 *Ciega a:* el efecto de la ACL sobre modelos que todavía no son `BaseModel`
 (lo mide cada sub-unidad al adoptarlo) y el de las reglas sobre los gestores
 de Django de `stock`, que mide la suite completa.
+
+## Bloqueo medido al ejecutar (2026-11-23)
+
+La carga revienta en `stock_security.xml:88`, la primera regla que nombra su
+modelo con `search="[('model','=','stock.picking')]"`, con
+`Dominio inválido: not enough values to unpack (expected 2, got 1)`. La causa
+no está en `stock`:
+
+- `ir.model.model` guarda aquí la etiqueta de Django (`stock.StockPicking`,
+  medido sobre la fila de `stock.model_stock_picking`), y ninguna fila tiene
+  `model='stock.picking'`, `'stock.warehouse'` ni `'sale.order'`.
+- La fuente guarda el `_name`: `'model': model._name` en
+  `_reflect_model_params` (`odoo19c: odoo/addons/base/models/ir_model.py:428`).
+  Nuestro `_reflect_model_params` porta las otras siete claves y fija `model`
+  aparte.
+- Con la búsqueda vacía, `model_id` queda nulo, `model_name` vacío, y
+  `IrRule._check_domain` hace `''.split('.', 1)`.
+
+No se esquiva reescribiendo el XML a `ref=`: sería cambiar la fuente para
+tapar una divergencia de `ir.model`. Prerrequisito declarado:
+`ir-model-model-is-odoo-name-0397`. Esta unidad queda en la rama
+`wt/stock-security` y se retoma sobre ella.
+
