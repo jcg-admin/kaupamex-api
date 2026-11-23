@@ -7,6 +7,7 @@ referenciado desde ReturnItem y ReturnHistoryEntry via CASCADE.
 import pytest
 from addons.stock.models import ReturnRequest
 from addons.base.models import SoftDeleteModel
+from orm.models import BaseModel
 
 pytestmark = pytest.mark.integration
 
@@ -49,3 +50,14 @@ class TestReturnRequestSoftDelete:
         pk = return_request.pk
         return_request.hard_delete()
         assert not ReturnRequest.all_objects.filter(pk=pk).exists()
+
+    @pytest.mark.django_db
+    def test_unlink_on_the_recordset_is_logical(self, return_request):
+        """DEC-DOC-007 sobre ``BaseModel.unlink``: la fila se conserva."""
+        pk = return_request.pk
+        assert isinstance(return_request, BaseModel)
+        return_request.unlink()
+        assert not ReturnRequest.objects.filter(pk=pk).exists()
+        ghost = ReturnRequest.all_objects.get(pk=pk)
+        assert ghost.is_deleted is True
+        assert ghost.deleted_at is not None

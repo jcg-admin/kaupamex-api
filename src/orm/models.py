@@ -9135,7 +9135,7 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
         # en el colector leerían la fila ya sin ellos.
         _run_ondelete_checks(
             self, at_uninstall=bool(get_context().get('module_uninstall')))
-        rows = AccessQuerySet(model=type(self)).filter(pk__in=self.ids)
+        rows = type(self)._unlink_queryset().filter(pk__in=self.ids)
         environment = env()
         registry_ = model_field_registry(type(self))
         for field in set(registry_.values()):
@@ -9732,6 +9732,18 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
             parent=SQL.identifier(_parent_column(cls)),
         ))
         self.invalidate_model(['parent_path'])
+
+    @classmethod
+    def _unlink_queryset(cls):
+        """El ``QuerySet`` con el que :meth:`unlink` emite el borrado.
+
+        Sin contraparte en la fuente, cuyo ``unlink`` siempre borra la fila.
+        Por defecto es el ``AccessQuerySet`` del modelo: un ``DELETE``.
+        ``SoftDeleteModel`` lo redefine para que el borrado sea lógico, como
+        fija DEC-DOC-007; las guardas ``@api.ondelete`` y el
+        ``modified(before=True)`` corren igual en los dos casos.
+        """
+        return AccessQuerySet(model=cls)
 
     @api.private
     def browse(self, ids=()):

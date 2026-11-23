@@ -117,6 +117,16 @@ class SoftDeleteModel(models.Model):
         )
         return (1, {self._meta.label: 1})
 
+    @classmethod
+    def _unlink_queryset(cls):
+        """El ``QuerySet`` del borrado de ``BaseModel.unlink``: lógico.
+
+        DEC-DOC-007: borrar conserva la fila. ``SoftDeleteQuerySet.delete``
+        es el ``UPDATE is_deleted = true``; ``hard_delete`` sigue siendo el
+        borrado físico.
+        """
+        return SoftDeleteQuerySet(model=cls)
+
     def hard_delete(self, using=None, keep_parents=False):
         """Borrado fisico real. Usar solo en migraciones/cleanup."""
         return super().delete(using=using, keep_parents=keep_parents)
