@@ -632,7 +632,8 @@
   "sale-basemodel-u3c-0397",
   "model-identity-c1-c3-0397",
   "stock-security-data-0397",
-  "stock-basemodel-u1-0397"
+  "stock-basemodel-u1-0397",
+  "stock-basemodel-u2-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
