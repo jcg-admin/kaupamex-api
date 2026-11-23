@@ -1,33 +1,15 @@
 """Porta ``stock.picking.scheduled_date`` (``odoo19c: :595-598``).
 
-El campo es almacenado y calculado: las filas existentes reciben el valor
-que ``_compute_scheduled_date`` (``:864-873``) les daría, y las que no
-tienen movimientos pendientes conservan su fecha de alta, que es lo que el
-``default=fields.Datetime.now`` de la fuente les habría puesto al crearse.
+El campo es almacenado y calculado: ``ComputeStoredFields`` lo calcula
+sobre las filas existentes con ``_compute_scheduled_date`` (``:864-873``),
+como la fuente marca para cómputo las filas de una columna calculada nueva
+(``odoo19c: odoo/orm/models.py:3220-3238``).
 """
 
 import django.utils.timezone
 from django.db import migrations, models
-from django.db.models import Max, Min, Q
 
-
-def backfill_scheduled_date(apps, schema_editor):
-    """Rellena ``scheduled_date`` con la regla de
-    ``_compute_scheduled_date``.
-    """
-
-    StockPicking = apps.get_model("stock", "StockPicking")
-    StockMove = apps.get_model("stock", "StockMove")
-    pending = ~Q(state__in=("done", "cancel"))
-    for picking in StockPicking.objects.all().iterator():
-        moves = StockMove.objects.filter(pending, picking_id=picking.pk)
-        aggregate = (
-            Min("date") if picking.move_type == "direct" else Max("date")
-        )
-        date = moves.aggregate(value=aggregate)["value"]
-        StockPicking.objects.filter(pk=picking.pk).update(
-            scheduled_date=date or picking.create_date
-        )
+from orm.migration_operations import ComputeStoredFields
 
 
 class Migration(migrations.Migration):
@@ -59,7 +41,5 @@ class Migration(migrations.Migration):
                 verbose_name="Fecha prevista",
             ),
         ),
-        migrations.RunPython(
-            backfill_scheduled_date, migrations.RunPython.noop
-        ),
+        ComputeStoredFields("stock", "stockpicking", ["scheduled_date"]),
     ]
