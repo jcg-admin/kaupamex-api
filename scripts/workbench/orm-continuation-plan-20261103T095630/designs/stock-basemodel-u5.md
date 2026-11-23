@@ -30,7 +30,10 @@ DEC-DOC-007. La instancia sigue teniendo `delete()` lógico (el de
    `delete()` es el `UPDATE is_deleted = true` que DEC-DOC-007 fija. Un
    `unlink` sobre el recordset conserva la fila; `hard_delete()` sigue
    siendo el borrado físico.
-3. `ReturnRequest` hereda `models.BaseModel`. Sus hijos (`ReturnItem`,
+3. `ReturnRequest` hereda `BaseModel`, con `SoftDeleteModel` **primero** en
+   las bases: el gancho se resuelve por el MRO, y con `BaseModel` delante su
+   `_unlink_queryset` por defecto gana y el borrado vuelve a ser físico
+   (medido: la prueba nueva cae con ese orden). Sus hijos (`ReturnItem`,
    `ReturnHistoryEntry`, `ReturnEvidence`) no declaran `_name` y siguen
    como modelos de Django: sus reversos (`items`, `history_entries`,
    `evidence`) siguen siendo gestores.
@@ -41,6 +44,15 @@ del proyecto (DEC-DOC-007), y el gancho es el punto donde se aplica.
 
 Prueba: `tests/integration/stock/test_soft_delete_returnrequest.py` — el
 `unlink` del recordset marca la fila y la oculta del gestor por defecto.
+Anulación, restaurada con `cmp`: retirar `SoftDeleteModel._unlink_queryset`
+tumba sólo `test_unlink_on_the_recordset_is_logical`.
+
+Símbolos tocados: `BaseModel.unlink` y `BaseModel._unlink_queryset`
+(`src/orm/models.py`), `SoftDeleteModel._unlink_queryset`
+(`src/addons/base/models/soft_delete_mixin.py`), `ReturnRequest`
+(`addons/stock/models/return_request.py`). `BaseModel.unlink` es un
+mecanismo transversal: su cobertura es el gate completo, y la rama por
+defecto devuelve el mismo `AccessQuerySet` que antes.
 
 ## Lo que este corte no cierra
 
