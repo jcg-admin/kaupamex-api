@@ -628,7 +628,8 @@
   "sale-security-acl-0397",
   "sale-basemodel-u3a-0397",
   "orm-record-env-x2many-unlink-0397",
-  "sale-basemodel-u3b-0397"
+  "sale-basemodel-u3b-0397",
+  "sale-basemodel-u3c-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
