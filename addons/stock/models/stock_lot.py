@@ -691,7 +691,8 @@ class StockLot(models.BaseModel, MailThread, MailActivityMixin,
         """
         if self.product == anterior.product:
             return
-        if anterior.move_line_ids.exclude(product=self.product).exists():
+        if any(line.product != self.product
+               for line in anterior.move_line_ids):
             raise UserError(
                 _(
                     'No se puede cambiar el producto de un número de serie o'

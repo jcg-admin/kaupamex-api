@@ -251,9 +251,8 @@ def _prepare_move_split_vals(self, qty, force_split_uom=None):
         self.procure_method == self.PROCURE_MAKE_TO_ORDER
         and self.created_purchase_line_ids.exists()
     ):
-        vals['created_purchase_line_ids'] = list(
-            self.created_purchase_line_ids.all()
-        )
+        vals['created_purchase_line_ids'] = [
+            fields.Command.set(self.created_purchase_line_ids.ids)]
     return vals
 
 
@@ -268,7 +267,7 @@ def _clean_merged(self):
     previo (relevo por ``None``) — que es lo que la fuente consigue con su
     ``super()._clean_merged()`` en la primera línea.
     """
-    self.created_purchase_line_ids.clear()
+    self.write({'created_purchase_line_ids': [fields.Command.clear()]})
     return None
 
 
@@ -299,7 +298,7 @@ def _is_purchase_return(self):
     if self.location_dest_usage == 'supplier':
         return True
     source_move = self.origin_returned_move
-    if source_move is None:
+    if not source_move:
         return False
     ir_model_data = apps.get_model('base', 'IrModelData')
     inter_company = ir_model_data.objects.filter(
@@ -339,7 +338,7 @@ def _get_purchase_line_and_partner_from_chain(self):
         seen_moves.add(current_move.pk)
         moves_to_check.extend(
             move
-            for move in current_move.move_orig_ids.all()
+            for move in current_move.move_orig_ids
             if move.pk not in seen_moves
             and all(move.pk != pending.pk for pending in moves_to_check)
         )

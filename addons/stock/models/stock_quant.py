@@ -894,7 +894,8 @@ class StockQuant(models.BaseModel, TimeStampedModel):
                     'inventory_quantity', 'user', 'inventory_date',
                     'inventory_diff_quantity', 'write_date'])
             quants.append(quant)
-        return browse(cls, [quant.pk for quant in quants])
+        return cls._create_result(
+            browse(cls, [quant.pk for quant in quants]))
 
     @classmethod
     def _load_records_create(cls, values):

@@ -32,6 +32,7 @@ from addons.stock.models import (
     StockPickingType,
 )
 from exceptions import UserError
+from orm.commands import Command
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -218,7 +219,7 @@ def test_unlink_refuses_a_chained_move_that_is_neither_draft_nor_cancel(
         **_move(variant, source, destination, company),
         state=StockMove.STATE_CONFIRMED,
     )
-    destino.move_orig_ids.add(origen)
+    destino.write({'move_orig_ids': [Command.link(origen.id)]})
     with pytest.raises(UserError):
         destino.unlink()
 
@@ -234,7 +235,7 @@ def test_unlink_accepts_a_draft_move_with_a_chain(
         **_move(variant, source, destination, company),
         state=StockMove.STATE_DRAFT,
     )
-    destino.move_orig_ids.add(origen)
+    destino.write({'move_orig_ids': [Command.link(origen.id)]})
     destino.unlink()
     assert not StockMove.objects.filter(pk=destino.pk).exists()
 

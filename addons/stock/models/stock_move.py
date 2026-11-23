@@ -375,7 +375,7 @@ PRODUCT_LOCATION_INDEX = models.Index(
 )
 
 
-class StockMove(models.DefaultGetMixin, TimeStampedModel):
+class StockMove(models.BaseModel, TimeStampedModel):
     """``stock.move`` — un movimiento de inventario."""
 
     # Atributos de clase de modelo — los cuatro de ORM que la referencia
@@ -401,13 +401,13 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
     # ``partially_available``
     # faltaba: lo consume la agregación de cantidades del producto y lo escribe
     # ``_recompute_state`` (D-3 del docstring).
-    STATE_DRAFT               = 'draft'
-    STATE_WAITING             = 'waiting'
-    STATE_CONFIRMED           = 'confirmed'
+    STATE_DRAFT = 'draft'
+    STATE_WAITING = 'waiting'
+    STATE_CONFIRMED = 'confirmed'
     STATE_PARTIALLY_AVAILABLE = 'partially_available'
-    STATE_ASSIGNED            = 'assigned'
-    STATE_DONE                = 'done'
-    STATE_CANCEL              = 'cancel'
+    STATE_ASSIGNED = 'assigned'
+    STATE_DONE = 'done'
+    STATE_CANCEL = 'cancel'
     STATE_CHOICES = [
         (STATE_DRAFT, 'Nuevo'),
         (STATE_WAITING, 'Esperando otro movimiento'),
@@ -420,22 +420,27 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
 
     # --- identificación y agenda -------------------------------------------
 
-    sequence        = fields.Integer(
-        default=10, help_text='Orden dentro del albarán (Odoo sequence).',
+    sequence = fields.Integer(
+        default=10,
+        help_text='Orden dentro del albarán (Odoo sequence).',
     )
-    priority        = fields.Selection(
-        max_length=1, choices=PRIORITY_CHOICES, default='0',
+    priority = fields.Selection(
+        max_length=1,
+        choices=PRIORITY_CHOICES,
+        default='0',
         help_text='Prioridad (Odoo priority, compute+store desde el albarán).',
     )
-    date            = fields.Datetime(
-        db_index=True, default=timezone.now,
+    date = fields.Datetime(
+        db_index=True,
+        default=timezone.now,
         help_text='Fecha planificada hasta que se hace; después, la real '
-                  '(Odoo date, requerido, default=Datetime.now).',
+        '(Odoo date, requerido, default=Datetime.now).',
     )
-    date_deadline   = fields.Datetime(
-        null=True, blank=True,
+    date_deadline = fields.Datetime(
+        null=True,
+        blank=True,
         help_text='Fecha límite propagada por la cadena (Odoo date_deadline, '
-                  'readonly; lo escribe _set_date_deadline).',
+        'readonly; lo escribe _set_date_deadline).',
     )
     reservation_date = fields.Date(
         null=True, blank=True,
@@ -450,15 +455,23 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
 
     # --- qué se mueve --------------------------------------------------------
 
-    company         = fields.Many2one(
-        'base.ResCompany', null=False, on_delete=models.PROTECT, db_index=True,
-        related_name='stock_moves', default=get_current_company,
+    company = fields.Many2one(
+        'base.ResCompany',
+        null=False,
+        on_delete=models.PROTECT,
+        db_index=True,
+        related_name='stock_moves',
+        default=get_current_company,
         help_text='Empresa (Odoo company_id, requerido, '
-                  'default=lambda self: self.env.company).',
+        'default=lambda self: self.env.company).',
     )
-    product         = fields.Many2one(
-        'product.ProductProduct', null=False, on_delete=models.PROTECT, related_name='stock_moves',
-        db_index=True, help_text='Producto (Odoo product_id; el dominio excluye servicios).',
+    product = fields.Many2one(
+        'product.ProductProduct',
+        null=False,
+        on_delete=models.PROTECT,
+        related_name='stock_moves',
+        db_index=True,
+        help_text='Producto (Odoo product_id; el dominio excluye servicios).',
     )
     never_product_template_attribute_value_ids = fields.Many2many(
         'product.ProductTemplateAttributeValue', blank=True,
@@ -467,80 +480,111 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         help_text='Valores de atributo excluidos (Odoo '
                   'never_product_template_attribute_value_ids).',
     )
-    product_uom     = fields.Many2one(
-        'uom.Uom', on_delete=models.PROTECT, null=True, blank=True,
+    product_uom = fields.Many2one(
+        'uom.Uom',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
         related_name='stock_moves',
         help_text='Unidad del movimiento (Odoo product_uom, compute+store con '
-                  'readonly=False; la recalcula compute_product_uom).',
+        'readonly=False; la recalcula compute_product_uom).',
     )
     product_uom_qty = fields.Monetary(
         max_digits=16, decimal_places=4, default=Decimal('0.0000'),
         help_text='Cantidad demandada, en la unidad del movimiento (Odoo '
                   'product_uom_qty). Bajarla NO genera pedido pendiente.',
     )
-    product_qty     = fields.Monetary(
-        max_digits=16, decimal_places=4, default=Decimal('0.0000'),
+    product_qty = fields.Monetary(
+        max_digits=16,
+        decimal_places=4,
+        default=Decimal('0.0000'),
         help_text='La misma demanda en la unidad del PRODUCTO (Odoo '
-                  'product_qty, compute+store; su inverso lanza error a '
-                  'propósito — se escribe product_uom_qty).',
+        'product_qty, compute+store; su inverso lanza error a '
+        'propósito — se escribe product_uom_qty).',
     )
-    quantity        = fields.Monetary(
-        max_digits=16, decimal_places=4, default=Decimal('0.0000'),
+    quantity = fields.Monetary(
+        max_digits=16,
+        decimal_places=4,
+        default=Decimal('0.0000'),
         help_text='Suma de las cantidades de las líneas (Odoo quantity, '
-                  'compute+store con inverso).',
+        'compute+store con inverso).',
     )
-    packaging_uom   = fields.Many2one(
-        'uom.Uom', on_delete=models.PROTECT, null=True, blank=True,
+    packaging_uom = fields.Many2one(
+        'uom.Uom',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
         related_name='stock_moves_packaging',
         help_text='Unidad de empaque de la orden de origen (Odoo '
-                  'packaging_uom_id, compute+store precompute).',
+        'packaging_uom_id, compute+store precompute).',
     )
     packaging_uom_qty = fields.Monetary(
         max_digits=16, decimal_places=4, default=Decimal('0.0000'),
         help_text='La demanda en la unidad de empaque (Odoo '
                   'packaging_uom_qty, compute+store).',
     )
-    price_unit      = fields.Monetary(
-        max_digits=16, decimal_places=4, default=Decimal('0.0000'),
+    price_unit = fields.Monetary(
+        max_digits=16,
+        decimal_places=4,
+        default=Decimal('0.0000'),
         help_text='Coste unitario fijado al confirmar, en la divisa de la '
-                  'empresa (Odoo price_unit; campo técnico, sin digits).',
+        'empresa (Odoo price_unit; campo técnico, sin digits).',
     )
 
     # --- de dónde a dónde ----------------------------------------------------
 
-    location        = fields.Many2one(
-        'stock.StockLocation', null=False, on_delete=models.PROTECT, related_name='moves_out',
-        db_index=True, help_text='Ubicación origen (Odoo location_id, compute+store).',
+    location = fields.Many2one(
+        'stock.StockLocation',
+        null=False,
+        on_delete=models.PROTECT,
+        related_name='moves_out',
+        db_index=True,
+        help_text='Ubicación origen (Odoo location_id, compute+store).',
     )
-    location_dest   = fields.Many2one(
-        'stock.StockLocation', null=False, on_delete=models.PROTECT, related_name='moves_in',
+    location_dest = fields.Many2one(
+        'stock.StockLocation',
+        null=False,
+        on_delete=models.PROTECT,
+        related_name='moves_in',
         db_index=True,
         help_text='Ubicación destino INTERMEDIA (Odoo location_dest_id, '
-                  'compute+store con inverso).',
+        'compute+store con inverso).',
     )
-    location_final  = fields.Many2one(
-        'stock.StockLocation', on_delete=models.PROTECT, null=True, blank=True,
-        related_name='moves_final', db_index=True,
+    location_final = fields.Many2one(
+        'stock.StockLocation',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name='moves_final',
+        db_index=True,
         help_text='Ubicación destino FINAL de la cadena (Odoo '
-                  'location_final_id). El destino intermedio es el siguiente '
-                  'salto; éste es el fin del encargo.',
+        'location_final_id). El destino intermedio es el siguiente '
+        'salto; éste es el fin del encargo.',
     )
-    warehouse       = fields.Many2one(
-        'stock.StockWarehouse', on_delete=models.PROTECT, null=True, blank=True,
+    warehouse = fields.Many2one(
+        'stock.StockWarehouse',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
         related_name='stock_moves',
         help_text='Almacén a considerar al elegir ruta en el siguiente '
-                  'aprovisionamiento (Odoo warehouse_id).',
+        'aprovisionamiento (Odoo warehouse_id).',
     )
-    route_ids       = fields.Many2many(
-        'stock.StockRoute', blank=True, related_name='stock_moves',
+    route_ids = fields.Many2many(
+        'stock.StockRoute',
+        blank=True,
+        related_name='stock_moves',
         db_table='stock_route_move',
         help_text='Rutas de destino preferidas (Odoo route_ids).',
     )
-    partner         = fields.Many2one(
-        'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
+    partner = fields.Many2one(
+        'base.ResPartner',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='stock_moves',
         help_text='Dirección de entrega opcional (Odoo partner_id, '
-                  'compute+store desde el albarán).',
+        'compute+store desde el albarán).',
     )
     restrict_partner = fields.Many2one(
         'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
@@ -556,24 +600,33 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         related_name='move_ids', db_index=True,
         help_text='Transferencia (Odoo picking_id).',
     )
-    picking_type    = fields.Many2one(
-        'stock.StockPickingType', null=True, blank=True, on_delete=models.PROTECT,
+    picking_type = fields.Many2one(
+        'stock.StockPickingType',
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
         related_name='stock_moves',
         help_text='Tipo de operación (Odoo picking_type_id, compute+store con '
-                  'readonly=False).',
+        'readonly=False).',
     )
-    rule            = fields.Many2one(
-        'stock.StockRule', null=True, blank=True, on_delete=models.PROTECT,
+    rule = fields.Many2one(
+        'stock.StockRule',
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
         related_name='stock_moves',
         help_text='Regla que creó el movimiento (Odoo rule_id, '
-                  "ondelete='restrict').",
+        "ondelete='restrict').",
     )
-    move_orig_ids   = fields.Many2many(
-        'self', symmetrical=False, blank=True, related_name='move_dest_ids',
+    move_orig_ids = fields.Many2many(
+        'self',
+        symmetrical=False,
+        blank=True,
+        related_name='move_dest_ids',
         db_table='stock_move_move_rel',
         help_text='Movimientos origen que abastecen a éste (Odoo '
-                  'move_orig_ids). El inverso es move_dest_ids, el nombre que '
-                  'la referencia le da a la otra mitad.',
+        'move_orig_ids). El inverso es move_dest_ids, el nombre que '
+        'la referencia le da a la otra mitad.',
     )
     origin_returned_move = fields.Many2one(
         'self', null=True, blank=True, on_delete=models.SET_NULL,
@@ -588,50 +641,62 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                   'inverso que ``stock.scrap.move_ids`` declara '
                   '(odoo19c: addons/stock/models/stock_scrap.py:37).',
     )
-    origin          = fields.Char(
-        max_length=255, blank=True, default='',
+    origin = fields.Char(
+        max_length=255,
+        blank=True,
+        default='',
         help_text='Documento de origen, en texto (Odoo origin).',
     )
-    reference       = fields.Char(
-        max_length=255, blank=True, default='',
+    reference = fields.Char(
+        max_length=255,
+        blank=True,
+        default='',
         help_text='Etiqueta del movimiento (Odoo reference, compute+store). '
-                  'Es el _rec_name: sale del albarán, del desecho o del '
-                  'nombre de inventario, en ese orden.',
+        'Es el _rec_name: sale del albarán, del desecho o del '
+        'nombre de inventario, en ese orden.',
     )
 
     # --- estado y banderas ---------------------------------------------------
 
-    state           = fields.Selection(
-        max_length=20, choices=STATE_CHOICES, default=STATE_DRAFT, db_index=True,
+    state = fields.Selection(
+        max_length=20,
+        choices=STATE_CHOICES,
+        default=STATE_DRAFT,
+        db_index=True,
         help_text='Estado (Odoo state, readonly). Los SIETE de la referencia.',
     )
-    picked          = fields.Boolean(
+    picked = fields.Boolean(
         default=False,
         help_text='Marca indicativa de recogido (Odoo picked, compute+store '
-                  'con inverso). No valida ni genera movimientos por sí sola.',
+        'con inverso). No valida ni genera movimientos por sí sola.',
     )
-    procure_method  = fields.Selection(
-        max_length=16, choices=PROCURE_METHOD_CHOICES, default=PROCURE_MAKE_TO_STOCK,
+    procure_method = fields.Selection(
+        max_length=16,
+        choices=PROCURE_METHOD_CHOICES,
+        default=PROCURE_MAKE_TO_STOCK,
         help_text='Método de suministro (Odoo procure_method). make_to_stock '
-                  'espera disponibilidad; make_to_order dispara una regla.',
+        'espera disponibilidad; make_to_order dispara una regla.',
     )
     propagate_cancel = fields.Boolean(
         default=True,
         help_text='Si al cancelar éste se cancela el movimiento enlazado '
                   '(Odoo propagate_cancel).',
     )
-    is_inventory    = fields.Boolean(
+    is_inventory = fields.Boolean(
         default=False,
-        help_text='El movimiento es un ajuste de inventario (Odoo is_inventory).',
+        help_text='El movimiento es un ajuste de inventario (Odoo '
+                  'is_inventory).',
     )
-    inventory_name  = fields.Char(
-        max_length=255, blank=True, default='',
+    inventory_name = fields.Char(
+        max_length=255,
+        blank=True,
+        default='',
         help_text='Nombre del ajuste (Odoo inventory_name, readonly).',
     )
-    additional      = fields.Boolean(
+    additional = fields.Boolean(
         default=False,
         help_text='El movimiento se añadió DESPUÉS de confirmar el albarán '
-                  '(Odoo additional).',
+        '(Odoo additional).',
     )
     description_picking_manual = fields.Text(
         blank=True, default='',
@@ -639,19 +704,25 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                   'description_picking_manual, readonly). Cuando está, gana '
                   'sobre la derivada del producto.',
     )
-    next_serial     = fields.Char(
-        max_length=255, blank=True, default='',
+    next_serial = fields.Char(
+        max_length=255,
+        blank=True,
+        default='',
         help_text='Primer número de serie a generar (Odoo next_serial).',
     )
     next_serial_count = fields.Integer(
         default=0,
         help_text='Cuántos números de serie generar (Odoo next_serial_count).',
     )
-    orderpoint      = fields.Many2one(
-        'stock.StockWarehouseOrderpoint', on_delete=models.SET_NULL,
-        null=True, blank=True, related_name='stock_moves', db_index=True,
+    orderpoint = fields.Many2one(
+        'stock.StockWarehouseOrderpoint',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='stock_moves',
+        db_index=True,
         help_text='La regla de reabastecimiento que originó el movimiento '
-                  '(Odoo orderpoint_id, «Original Reordering Rule», index).',
+        '(Odoo orderpoint_id, «Original Reordering Rule», index).',
     )
 
     class Meta:
@@ -683,7 +754,9 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
 
     @property
     def location_dest_usage(self):
-        """Tipo de la ubicación destino (≙ ``location_dest_usage``, related)."""
+        """Tipo de la ubicación destino (≙ ``location_dest_usage``,
+        related).
+        """
         return self.location_dest.usage if self.location_dest_id else None
 
     @property
@@ -703,16 +776,24 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
 
     @property
     def show_operations(self):
-        """≙ ``show_operations`` (related del tipo de operación del albarán)."""
-        return bool(self.picking_type.show_operations) if self.picking_type_id else False
+        """≙ ``show_operations`` (related del tipo de operación del
+        albarán).
+        """
+        return (
+            bool(self.picking_type.show_operations)
+            if self.picking_type_id
+            else False
+        )
 
     @property
     def allowed_uom_ids(self):
-        """Unidades admisibles para este movimiento (≙ ``_compute_allowed_uom_ids``).
+        """Unidades admisibles para este movimiento (≙
+        ``_compute_allowed_uom_ids``).
 
         La fuente une tres conjuntos: la unidad del producto, sus empaquetados
         y las unidades de sus proveedores. Los tres los declara
-        ``product.template``, así que se leen por el delegado (``product_tmpl``)
+        ``product.template``, así que se leen por el delegado
+        (``product_tmpl``)
         — la variante no los tiene propios.
         """
         if not self.product_id:
@@ -729,7 +810,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
     @property
     def move_lines_count(self) -> int:
         """Número de líneas (≙ ``_compute_move_lines_count``)."""
-        return self.move_line_ids.count()
+        return len(self.move_line_ids)
 
     @property
     def is_initial_demand_editable(self) -> bool:
@@ -759,13 +840,15 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         Cierto sólo si **alguna** línea ya tiene paquete de destino y **otra**
         no — un movimiento sin ningún paquete no cuenta.
         """
-        lineas = list(self.move_line_ids.all())
-        return any(l.result_package_id for l in lineas) and \
-            any(not l.result_package_id for l in lineas)
+        lineas = list(self.move_line_ids)
+        return any(line.result_package_id for line in lineas) and \
+            any(not line.result_package_id for line in lineas)
 
     @property
     def display_import_lot(self) -> bool:
-        """≙ ``_compute_display_assign_serial`` (la primera de las dos salidas)."""
+        """≙ ``_compute_display_assign_serial`` (la primera de las dos
+        salidas).
+        """
         return bool(
             self.has_tracking and self.has_tracking != 'none'
             and self.product_id
@@ -822,11 +905,13 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
 
     @property
     def procurement_values(self):
-        """Portapapeles entre pasos del aprovisionamiento (≙ ``procurement_values``).
+        """Portapapeles entre pasos del aprovisionamiento (≙
+        ``procurement_values``).
 
         La referencia lo declara ``fields.Json(store=False)`` y su propio
         ``help`` lo llama *dummy field*: no es un dato del movimiento, es un
-        valor que viaja entre pasos de la misma transacción. Aquí es atributo de
+        valor que viaja entre pasos de la misma transacción. Aquí es atributo
+        de
         instancia — lo mismo, sin columna (D-1 del docstring).
         """
         return getattr(self, '_procurement_values', None)
@@ -854,8 +939,14 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         self.description_picking_manual = value
 
     def _get_description(self) -> str:
-        """≙ ``_get_description`` — la descripción del producto para este tipo."""
-        return self.product._get_description(self.picking_type) if self.product_id else ''
+        """≙ ``_get_description`` — la descripción del producto para este
+        tipo.
+        """
+        return (
+            self.product._get_description(self.picking_type)
+            if self.product_id
+            else ''
+        )
 
     # --- máquina de estados (los cuatro con consumidores vivos) --------------
 
@@ -873,7 +964,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         redondear aquí perdería el resto que la comparación posterior necesita.
         """
         cantidad = Decimal('0')
-        for linea in self.move_line_ids.all():
+        for linea in self.move_line_ids:
             cantidad += linea.product_uom._compute_quantity(
                 linea.quantity, self.product_uom, round=False)
         return cantidad
@@ -912,7 +1003,9 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         otro distinto.
         """
         wh_origen = self.location.warehouse if self.location_id else None
-        wh_destino = self.location_dest.warehouse if self.location_dest_id else None
+        wh_destino = (
+            self.location_dest.warehouse if self.location_dest_id else None
+        )
         if self.picking_code in ('internal', 'outgoing'):
             return True
         return bool(wh_origen and wh_destino and wh_origen != wh_destino)
@@ -932,7 +1025,10 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         """≙ ``_should_assign_at_confirm`` (``odoo19c: :1967-1968``)."""
         if self._should_bypass_reservation():
             return True
-        if self.picking_type_id and self.picking_type.reservation_method == 'at_confirm':
+        if (
+            self.picking_type_id
+            and self.picking_type.reservation_method == 'at_confirm'
+        ):
             return True
         return bool(self.reservation_date
                     and self.reservation_date <= timezone.now().date())
@@ -947,7 +1043,9 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
 
     def _can_create_lot(self):
         """≙ ``_can_create_lot`` (``odoo19c: :1046-1047``)."""
-        return bool(self.picking_type_id and self.picking_type.use_existing_lots)
+        return bool(
+            self.picking_type_id and self.picking_type.use_existing_lots
+        )
 
     def _skip_push(self):
         """≙ ``_skip_push`` (``odoo19c: :2226-2232``).
@@ -958,7 +1056,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         """
         if self.is_inventory:
             return True
-        destinos = list(self.move_dest_ids.all())
+        destinos = list(self.move_dest_ids)
         if not destinos:
             return False
         return any(
@@ -988,7 +1086,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         líneas no lo está, la cantidad recogida es la suma sólo de las que sí
         —no ``quantity``, que incluiría las no recogidas—.
         """
-        lineas = list(self.move_line_ids.all())
+        lineas = list(self.move_line_ids)
         if self.picked and any(not ml.picked for ml in lineas):
             recogida = Decimal('0')
             for ml in lineas:
@@ -999,8 +1097,15 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             return recogida
         return self.quantity
 
-    def _get_available_quantity(self, location, lot=None, package=None,
-                                owner=None, strict=False, allow_negative=False):
+    def _get_available_quantity(
+        self,
+        location,
+        lot=None,
+        package=None,
+        owner=None,
+        strict=False,
+        allow_negative=False,
+    ):
         """≙ ``_get_available_quantity`` (``odoo19c: :1983-1987``).
 
         Si la ubicación se salta la reserva, todo está disponible por
@@ -1076,27 +1181,34 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         los movimientos origen entra en la clave **sólo** si el movimiento no
         trae referencias propias: con referencia, ésta manda.
         """
-        key_of = (tuple(self.reference_ids.values_list('pk', flat=True)),
-                 self.location_id, self.location_dest_id, self.picking_type_id)
+        key_of = (
+            tuple(self.reference_ids.ids),
+            self.location_id,
+            self.location_dest_id,
+            self.picking_type_id,
+        )
         if not self.reference_ids.exists():
             origen_pickings = tuple(sorted(
-                self.move_orig_ids.exclude(picking__isnull=True)
-                .values_list('picking', flat=True)))
+                move.picking_id for move in self.move_orig_ids
+                if move.picking_id))
             if origen_pickings:
                 key_of += (origen_pickings,)
         return key_of
 
     def _prepare_merge_moves_distinct_fields(self, merge_extra=False):
-        """≙ ``_prepare_merge_moves_distinct_fields`` (``odoo19c: :1275-1288``).
+        """≙ ``_prepare_merge_moves_distinct_fields`` (``odoo19c:
+        :1275-1288``).
 
         Los campos que **impiden** fusionar dos movimientos: si difieren en
         alguno, son movimientos distintos.
 
         > **Corregido en el pase de la ola D.** Esta lista era la de **18c**
-        > (``odoo18c: addons/stock/models/stock_move.py``): traía ``scrapped`` y
+        > (``odoo18c: addons/stock/models/stock_move.py``): traía ``scrapped``
+        y
         > ``package_level``, que 19 retiró del modelo y **este árbol nunca
         > declaró** —dos atributos fantasma—, y omitía
-        > ``never_product_template_attribute_value_ids``, que sí existe. Nada lo
+        > ``never_product_template_attribute_value_ids``, que sí existe. Nada
+        lo
         > delataba porque la ola D es su primer consumidor. Ver
         > :ref:`h-api-625`.
 
@@ -1113,9 +1225,17 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         método es funcional; lo que se difiere es su configurabilidad.
         """
         campos = [
-            'product', 'price_unit', 'procure_method', 'location', 'location_dest',
-            'location_final', 'product_uom', 'restrict_partner',
-            'origin_returned_move', 'propagate_cancel', 'description_picking',
+            'product',
+            'price_unit',
+            'procure_method',
+            'location',
+            'location_dest',
+            'location_final',
+            'product_uom',
+            'restrict_partner',
+            'origin_returned_move',
+            'propagate_cancel',
+            'description_picking',
             'never_product_template_attribute_value_ids',
         ]
         if merge_extra:
@@ -1165,7 +1285,9 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         return
 
     def _action_synch_order(self):
-        """≙ ``_action_synch_order`` (``odoo19c: :2311-2312``) — punto de extensión."""
+        """≙ ``_action_synch_order`` (``odoo19c: :2311-2312``) — punto de
+        extensión.
+        """
         return True
 
     def _post_process_created_moves(self):
@@ -1182,7 +1304,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         Rompe el encadenamiento con el movimiento padre y devuelve este
         movimiento a fabricar-contra-existencias.
         """
-        self.move_orig_ids.remove(parent_move)
+        self.write({'move_orig_ids': [fields.Command.unlink(parent_move.id)]})
         self.procure_method = self.PROCURE_MAKE_TO_STOCK
         self.save(update_fields=['procure_method', 'write_date'])
         self._recompute_state()
@@ -1274,9 +1396,16 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         3. Todo movimiento hecho está recogido, por definición.
         """
         values = dict(values)
-        if (values.get('quantity') or values.get('move_line_ids')) and 'lot_ids' in values:
+        if (
+            values.get('quantity') or values.get('move_line_ids')
+        ) and 'lot_ids' in values:
             values.pop('lot_ids')
-        albaran = values.get('picking')
+        # ≙ ``self.env['stock.picking'].browse(vals.get('picking_id'))``: el
+        # albarán llega como registro o como id (``copy_data`` entrega ids).
+        albaran = values.get('picking', values.get('picking_id'))
+        if albaran is not None and not hasattr(albaran, 'state'):
+            albaran = apps.get_model('stock', 'StockPicking').objects.filter(
+                pk=albaran).first()
         if albaran is not None and albaran.state == 'done' \
                 and values.get('state') != StockMove.STATE_DONE:
             values['state'] = StockMove.STATE_DONE
@@ -1294,12 +1423,16 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         movimiento hereda las referencias de su albarán.
 
         La referencia recibe ``vals_list`` y devuelve el recordset; desde
-        :ref:`h-api-1108` la firma es la misma aquí — ``@api.model_create_multi``
+        :ref:`h-api-1108` la firma es la misma aquí —
+        ``@api.model_create_multi``
         convierte un dict suelto en ``[vals]`` — y ``super().create`` es
-        ``DefaultGetMixin.create`` (``orm/models.py``), el porte por contenido de
+        ``DefaultGetMixin.create`` (``orm/models.py``), el porte por contenido
+        de
         ``BaseModel.create``.
         """
-        moves = super().create([cls._normalize_create_values(vals) for vals in vals_list])
+        moves = super().create(
+            [cls._normalize_create_values(vals) for vals in vals_list]
+        )
         for move in moves:
             move._update_orderpoints()
             move._set_references()
@@ -1326,26 +1459,30 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         portan ahí y no antes, para no dejar medio mecanismo en pie. Cobertura
         declarada en el docstring del módulo.
         """
-        for campo, valor in vals.items():
-            if campo == 'quantity' and self.state == self.STATE_CANCEL:
+        for move in self:
+            if 'quantity' in vals and move.state == move.STATE_CANCEL:
                 raise UserError(_(
-                    'No puede cambiar un movimiento cancelado; cree una línea nueva.'))
-            if (campo == 'product_uom' and self.state == self.STATE_DONE
+                    'No puede cambiar un movimiento cancelado; cree una '
+                    'línea nueva.'))
+            if ('product_uom' in vals and move.state == move.STATE_DONE
                     and not skip_uom_conversion):
                 raise UserError(_(
-                    "No puede cambiar la unidad de un movimiento en estado 'Hecho'."))
-            setattr(self, campo, valor)
+                    "No puede cambiar la unidad de un movimiento en estado "
+                    "'Hecho'."))
         if {'product', 'location', 'location_dest'} & set(vals):
-            self._update_orderpoints()
-        self.save()
+            for move in self:
+                move._update_orderpoints()
+        res = super().write(vals)
         if {'product', 'state', 'date', 'product_uom_qty',
                 'location', 'location_dest'} & set(vals):
-            self._update_orderpoints()
+            for move in self:
+                move._update_orderpoints()
         if 'picking' in vals:
-            self._set_references()
-        return True
+            for move in self:
+                move._set_references()
+        return res
 
-    def unlink(self, *args, **kwargs):
+    def unlink(self):
         """≙ ``unlink`` (``odoo19c: :2337-2343``).
 
         El orden importa y es el de la fuente: primero las líneas, después la
@@ -1356,10 +1493,12 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         Las reglas de reabastecimiento se capturan **antes** de borrar: después
         el movimiento ya no está para decir a cuáles tocaba.
         """
-        self._unlink_if_draft_or_cancel()
-        self.move_line_ids.all().delete()
-        reglas = list(self._get_orderpoints_to_update())
-        resultado = super().delete(*args, **kwargs)
+        reglas = []
+        for move in self:
+            move._unlink_if_draft_or_cancel()
+            move.move_line_ids.unlink()
+            reglas.extend(move._get_orderpoints_to_update())
+        resultado = super().unlink()
         type(self)._mark_orderpoints_for_recompute(reglas)
         return resultado
 
@@ -1372,11 +1511,24 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         que hace que los documentos de un mismo encargo compartan nombre.
         """
         if not self.reference_ids.exists() and self.picking_id:
-            self.reference_ids.set(self.picking.reference_ids)
+            self.write(
+                {
+                    'reference_ids': [
+                        fields.Command.set(
+                            list(
+                                self.picking.reference_ids.values_list(
+                                    'pk', flat=True
+                                )
+                            )
+                        )
+                    ]
+                }
+            )
 
     @api.depends('picking', 'product', 'location', 'location_dest')
     def _compute_display_name(self):
-        """≙ ``display_name`` / ``_compute_display_name`` (``odoo19c: :786-792``).
+        """≙ ``display_name`` / ``_compute_display_name`` (``odoo19c:
+        :786-792``).
 
         ``origen/código: ubicación>destino``, con los dos primeros tramos
         opcionales — la fuente los omite cuando están vacíos en vez de dejar
@@ -1403,7 +1555,9 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         """
         if self.pk is None:
             return
-        type(self)._mark_orderpoints_for_recompute(self._get_orderpoints_to_update())
+        type(self)._mark_orderpoints_for_recompute(
+            self._get_orderpoints_to_update()
+        )
 
     def _get_orderpoints_to_update(self):
         """≙ ``_get_orderpoints_to_update`` (``odoo19c: :918-927``).
@@ -1416,10 +1570,16 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         if self.product_id is None:
             return orderpoint.objects.none()
         almacenes = [
-            a for a in (
+            a
+            for a in (
                 self.location.warehouse_id if self.location_id else None,
-                self.location_dest.warehouse_id if self.location_dest_id else None,
-            ) if a is not None
+                (
+                    self.location_dest.warehouse_id
+                    if self.location_dest_id
+                    else None
+                ),
+            )
+            if a is not None
         ]
         reglas = orderpoint.objects.filter(product_id=self.product_id)
         if almacenes:
@@ -1462,8 +1622,13 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         documentos = self._delay_alert_get_documents()
         if not documentos or not docs_origen:
             return
-        cuerpo = _('La fecha límite se actualizó por un retraso en %s.') % docs_origen[0]
-        asunto = _('Fecha límite actualizada por retraso en %s') % docs_origen[0]
+        cuerpo = (
+            _('La fecha límite se actualizó por un retraso en %s.')
+            % docs_origen[0]
+        )
+        asunto = (
+            _('Fecha límite actualizada por retraso en %s') % docs_origen[0]
+        )
         for doc in documentos:
             ultimo = doc.message_ids.order_by('-id').first()
             if ultimo is not None and ultimo.subject == asunto:
@@ -1478,7 +1643,9 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         """
         if self.state not in (self.STATE_DRAFT, self.STATE_CANCEL) and (
                 self.move_orig_ids.exists() or self.move_dest_ids.exists()):
-            raise UserError(_('No puede eliminar movimientos enlazados a otra operación'))
+            raise UserError(
+                _('No puede eliminar movimientos enlazados a otra operación')
+            )
 
     def _get_relevant_state_among_moves(self, moves=None):
         """≙ ``_get_relevant_state_among_moves`` (``odoo19c: :1406-1446``).
@@ -1492,7 +1659,12 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         completo; con «lo antes posible» manda el **menos** importante, porque
         cualquiera resuelto ya permite enviar.
         """
-        orden = {'assigned': 4, 'waiting': 3, 'partially_available': 2, 'confirmed': 1}
+        orden = {
+            'assigned': 4,
+            'waiting': 3,
+            'partially_available': 2,
+            'confirmed': 1,
+        }
         candidatos = [
             m for m in (moves if moves is not None else [self])
             if m.state not in (self.STATE_CANCEL, self.STATE_DONE)
@@ -1500,7 +1672,9 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         ]
         if not candidatos:
             return self.STATE_ASSIGNED
-        candidatos.sort(key=lambda m: (orden.get(m.state, 0), m.product_uom_qty))
+        candidatos.sort(
+            key=lambda m: (orden.get(m.state, 0), m.product_uom_qty)
+        )
         primero = candidatos[0]
         albaran = primero.picking if primero.picking_id else None
         if albaran is not None and albaran.move_type == 'one':
@@ -1534,7 +1708,9 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         # funcionaba con un cero de por medio —el corto-circuito de
         # ``float_round``—, y con dos cantidades reales levantaba ``TypeError``
         # en ejecución. Ver :ref:`h-api-625` (H-API-588, tarea **#344**).
-        redondeo = float(self.product_uom.rounding) if self.product_uom_id else 0.01
+        redondeo = (
+            float(self.product_uom.rounding) if self.product_uom_id else 0.01
+        )
         if float_compare(float(self.quantity), float(self.product_uom_qty),
                          precision_rounding=redondeo) >= 0:
             nuevo = self.STATE_ASSIGNED
@@ -1546,7 +1722,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
               and not self.move_orig_ids.exists()) or any(
                 orig.product_uom_qty > 0
                 and orig.state not in (self.STATE_DONE, self.STATE_CANCEL)
-                for orig in self.move_orig_ids.all()):
+                for orig in self.move_orig_ids):
             nuevo = self.STATE_WAITING
         else:
             nuevo = self.STATE_CONFIRMED
@@ -1603,7 +1779,8 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         return list(self._rollup_move_origs())
 
     def _get_upstream_documents_and_responsibles(self, visited=None):
-        """≙ ``_get_upstream_documents_and_responsibles`` (``odoo19c: :2450-2459``).
+        """≙ ``_get_upstream_documents_and_responsibles`` (``odoo19c:
+        :2450-2459``).
 
         Asciende por la cadena hasta el documento vivo más alto y devuelve los
         pares (documento, responsable). Un movimiento sin origen vivo es la
@@ -1613,14 +1790,16 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             visited = set()
         if self.pk in visited:
             return set()
-        origenes = [m for m in self.move_orig_ids.all()
+        origenes = [m for m in self.move_orig_ids
                     if m.state not in (self.STATE_DONE, self.STATE_CANCEL)]
         if not origenes:
             return set()
         visited.add(self.pk)
         salida = set()
         for movimiento in origenes:
-            salida |= movimiento._get_upstream_documents_and_responsibles(visited)
+            salida |= movimiento._get_upstream_documents_and_responsibles(
+                visited
+            )
         return salida
 
     # -- ola C · reserva y disponibilidad --
@@ -1674,8 +1853,12 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         Un producto con número de serie no admite fracción: **una línea por
         unidad**, cada una con su lote.
         """
-        return [self._prepare_move_line_vals(quantity=1, reserved_quant=reserved_quant)
-                for _ in range(int(quantity))]
+        return [
+            self._prepare_move_line_vals(
+                quantity=1, reserved_quant=reserved_quant
+            )
+            for _ in range(int(quantity))
+        ]
 
     def _update_reserved_quantity_vals(self, need, location, lot=None,
                                        package=None, owner=None, strict=True):
@@ -1705,7 +1888,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         tomado = 0
         redondeo = DecimalPrecision.precision_get('Product Unit')
         candidatas = {}
-        for linea in self.move_line_ids.all():
+        for linea in self.move_line_ids:
             if linea.result_package_id or linea.product.tracking == 'serial':
                 continue
             candidatas[(linea.location_id, linea.lot_id,
@@ -1714,7 +1897,12 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         valores = []
         agrupados = {}
         for quant, cantidad in quants:
-            key_of = (quant.location_id, quant.lot_id, quant.package_id, quant.owner_id)
+            key_of = (
+                quant.location_id,
+                quant.lot_id,
+                quant.package_id,
+                quant.owner_id,
+            )
             if key_of not in agrupados:
                 agrupados[key_of] = [quant, cantidad]
             else:
@@ -1723,7 +1911,13 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         for quant, cantidad in agrupados.values():
             tomado += cantidad
             actualizable = candidatas.get(
-                (quant.location_id, quant.lot_id, quant.package_id, quant.owner_id))
+                (
+                    quant.location_id,
+                    quant.lot_id,
+                    quant.package_id,
+                    quant.owner_id,
+                )
+            )
             exacta = False
             if actualizable is not None:
                 in_uom = self.product.uom_id._compute_quantity(
@@ -1740,10 +1934,15 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             elif (self.product.tracking == 'serial' and self.picking_type_id
                   and (self.picking_type.use_create_lots
                        or self.picking_type.use_existing_lots)):
-                valores += self._add_serial_move_line_to_vals_list(quant, cantidad)
+                valores += self._add_serial_move_line_to_vals_list(
+                    quant, cantidad
+                )
             else:
                 valores.append(
-                    self._prepare_move_line_vals(quantity=cantidad, reserved_quant=quant))
+                    self._prepare_move_line_vals(
+                        quantity=cantidad, reserved_quant=quant
+                    )
+                )
         return valores, tomado
 
     def _update_reserved_quantity(self, need, location, lot=None, package=None,
@@ -1769,11 +1968,11 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         """
         lineas = [
             linea
-            for origen in self.move_orig_ids.all()
-            for destino in origen.move_dest_ids.all()
-            for hermano in destino.move_orig_ids.all()
+            for origen in self.move_orig_ids
+            for destino in origen.move_dest_ids
+            for hermano in destino.move_orig_ids
             if hermano.state == self.STATE_DONE
-            for linea in hermano.move_line_ids.all()
+            for linea in hermano.move_line_ids
         ]
 
         def key_of(line):
@@ -1798,19 +1997,26 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         loop, there could be moves to consider in what our siblings already
         took"* — es decir, hermanos cuyo estado aún no se ha escrito.
         """
-        hermanos = [m for origen in self.move_orig_ids.all()
-                    for m in origen.move_dest_ids.all() if m.pk != self.pk]
+        hermanos = [m for origen in self.move_orig_ids
+                    for m in origen.move_dest_ids if m.pk != self.pk]
         hechos = [linea for m in hermanos if m.state == self.STATE_DONE
-                  for linea in m.move_line_ids.all()]
+                  for linea in m.move_line_ids]
         en_vuelo = set(assigned_moves_ids) | set(partially_available_moves_ids)
         reservados = [
-            linea for m in hermanos
-            if m.state in (self.STATE_ASSIGNED, 'partially_available') or m.pk in en_vuelo
-            for linea in m.move_line_ids.all()
+            linea
+            for m in hermanos
+            if m.state in (self.STATE_ASSIGNED, 'partially_available')
+            or m.pk in en_vuelo
+            for linea in m.move_line_ids
         ]
 
         def key_of(line):
-            return (line.location_id, line.lot_id, line.package_id, line.owner_id)
+            return (
+                line.location_id,
+                line.lot_id,
+                line.package_id,
+                line.owner_id,
+            )
 
         agrupado = {}
         for k, grupo in groupby(hechos, key=key_of):
@@ -1867,7 +2073,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         plan = []
         qty = self.product_uom._compute_quantity(qty, self.product.uom_id,
                                                  round=False)
-        for linea in self.move_line_ids.all():
+        for linea in self.move_line_ids:
             cantidad_linea = float(linea.quantity)
             if linea.product_uom.compare(cantidad_linea, 0) < 0:
                 continue
@@ -1982,12 +2188,13 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                 _('No puede quitar la reserva de un movimiento ya hecho.'))
         if self.picked:
             return True
-        lineas = list(self.move_line_ids.all())
+        lineas = list(self.move_line_ids)
         recogida_alguna = any(ml.picked for ml in lineas)
         for ml in lineas:
             if not ml.picked:
                 ml.delete()
-        # ``write`` sobre la línea no dispara ``_recompute_state`` (a diferencia
+        # ``write`` sobre la línea no dispara ``_recompute_state`` (a
+        # diferencia
         # de ``unlink``), así que hay que llamarlo donde no se borró ninguna.
         if recogida_alguna:
             self._recompute_state()
@@ -2012,11 +2219,18 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         todos_directos = all(p.move_type == 'direct' for p in albaranes)
         fechas = [m.date for m in conjunto if m.date]
         return {
-            'product_uom_qty': (conjunto[0].product_uom_qty if merge_extra
-                                else sum(m.product_uom_qty for m in conjunto)),
-            'date': (min(fechas) if todos_directos else max(fechas)) if fechas else None,
-            'move_dest_ids': [d for m in conjunto for d in m.move_dest_ids.all()],
-            'move_orig_ids': [o for m in conjunto for o in m.move_orig_ids.all()],
+            'product_uom_qty': (
+                conjunto[0].product_uom_qty
+                if merge_extra
+                else sum(m.product_uom_qty for m in conjunto)
+            ),
+            'date': (
+                (min(fechas) if todos_directos else max(fechas))
+                if fechas
+                else None
+            ),
+            'move_dest_ids': [d for m in conjunto for d in m.move_dest_ids],
+            'move_orig_ids': [o for m in conjunto for o in m.move_orig_ids],
             'state': estado,
             'origin': '/'.join(origenes),
         }
@@ -2059,7 +2273,9 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                 # coma flotante; la columna es ``Decimal``. La conversión va en
                 # el llamador, que es donde la frontera se conoce (H-API-588,
                 # tarea **#344**).
-                redondeado = float_round(float(leido or 0), precision_digits=digitos)
+                redondeado = float_round(
+                    float(leido or 0), precision_digits=digitos
+                )
                 return f'{redondeado:.{digitos}f}'
             if hasattr(leido, 'all'):          # relación múltiple
                 return tuple(sorted(leido.values_list('pk', flat=True)))
@@ -2094,8 +2310,12 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         else:
             candidatos.add(tuple(dict.fromkeys([*merge_into, *conjunto])))
 
-        distintos = self._prepare_merge_moves_distinct_fields(merge_extra=merge_extra)
-        excluidos = self._prepare_merge_negative_moves_excluded_distinct_fields()
+        distintos = self._prepare_merge_moves_distinct_fields(
+            merge_extra=merge_extra
+        )
+        excluidos = (
+            self._prepare_merge_negative_moves_excluded_distinct_fields()
+        )
         key_of = self._merge_move_itemgetter(distintos)
         clave_limitada = self._merge_move_itemgetter(distintos, excluidos)
         of_price = DecimalPrecision.precision_get('Product Price')
@@ -2119,14 +2339,20 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                 if len(iguales) > 1:
                     superviviente = iguales[0]
                     for sobrante in iguales[1:]:
-                        sobrante.move_line_ids.update(move=superviviente)
+                        apps.get_model(
+                            'stock', 'StockMoveLine'
+                        ).objects.filter(move=sobrante).update(
+                            move=superviviente
+                        )
                     valores = superviviente._merge_moves_fields(
                         moves=iguales, merge_extra=merge_extra)
                     superviviente._apply_merge(valores)
                     por_borrar.extend(iguales[1:])
                     fusionados.append(superviviente)
                 if iguales:
-                    por_clave_limitada[clave_limitada(iguales[0])].append(iguales[0])
+                    por_clave_limitada[clave_limitada(iguales[0])].append(
+                        iguales[0]
+                    )
 
         for negativo in negativos:
             for positivo in por_clave_limitada.get(
@@ -2139,12 +2365,24 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                         float_round(total_value / positivo.product_qty,
                                     precision_digits=of_price)
                         if positivo.product_qty else Decimal('0'))
-                    positivo.move_dest_ids.add(*[
-                        d for d in negativo.move_dest_ids.all()
-                        if d.location_id == positivo.location_dest_id])
-                    positivo.move_orig_ids.add(*[
-                        o for o in negativo.move_orig_ids.all()
-                        if o.location_dest_id == positivo.location_id])
+                    positivo.write(
+                        {
+                            'move_dest_ids': [
+                                fields.Command.link(d.id)
+                                for d in negativo.move_dest_ids
+                                if d.location_id == positivo.location_dest_id
+                            ]
+                        }
+                    )
+                    positivo.write(
+                        {
+                            'move_orig_ids': [
+                                fields.Command.link(o.id)
+                                for o in negativo.move_orig_ids
+                                if o.location_dest_id == positivo.location_id
+                            ]
+                        }
+                    )
                     positivo.save(update_fields=[
                         'product_uom_qty', 'price_unit', 'write_date'])
                     fusionados.append(positivo)
@@ -2154,7 +2392,9 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                     break
                 negativo.product_uom_qty += positivo.product_uom_qty
                 negativo.price_unit = float_round(
-                    total_value / negativo.product_qty, precision_digits=of_price)
+                    total_value / negativo.product_qty,
+                    precision_digits=of_price,
+                )
                 negativo.save(update_fields=['product_uom_qty', 'price_unit',
                                              'write_date'])
                 positivo.product_uom_qty = Decimal('0')
@@ -2183,7 +2423,8 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
 
         ``_update_candidate_moves_list`` mete **albaranes** en el conjunto (es
         lo que la fuente hace con ``picking.move_ids``); ``_merge_moves`` con
-        ``merge_into`` mete una tupla de movimientos ya resueltos. Este ayudante
+        ``merge_into`` mete una tupla de movimientos ya resueltos. Este
+        ayudante
         es el punto donde las dos formas se vuelven una lista de movimientos —
         la fuente no lo necesita porque allá ambas son el mismo recordset.
         """
@@ -2209,13 +2450,16 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             setattr(self, campo, valor)
         self.save(update_fields=[*values, 'write_date'])
         if destinos:
-            self.move_dest_ids.add(*destinos)
+            self.write({'move_dest_ids': [
+                fields.Command.link(d.id) for d in destinos]})
         if origenes:
-            self.move_orig_ids.add(*origenes)
+            self.write({'move_orig_ids': [
+                fields.Command.link(o.id) for o in origenes]})
         return self
 
     def _search_picking_for_assignation_domain(self):
-        """≙ ``_search_picking_for_assignation_domain`` (``odoo19c: :1529-1537``).
+        """≙ ``_search_picking_for_assignation_domain`` (``odoo19c:
+        :1529-1537``).
 
         El filtro del albarán al que este movimiento se puede sumar. Un albarán
         ya **impreso** queda fuera: se entregó al operario en papel y añadirle
@@ -2235,7 +2479,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                    or (self.picking_type.default_location_dest_id
                        if self.picking_type_id else None))
         return {
-            'move_ids__reference_ids__in': list(self.reference_ids.all()),
+            'move_ids__reference_ids__in': list(self.reference_ids),
             'location': self.location_id,
             'location_dest': destino,
             'picking_type': self.picking_type_id,
@@ -2376,9 +2620,11 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             origenes = vals.pop('move_orig_ids', [])
             move = type(self).objects.create(**vals)
             if destinos:
-                move.move_dest_ids.add(*destinos)
+                move.write({'move_dest_ids': [
+                    fields.Command.link(d.id) for d in destinos]})
             if origenes:
-                move.move_orig_ids.add(*origenes)
+                move.write({'move_orig_ids': [
+                    fields.Command.link(o.id) for o in origenes]})
             pendientes.append(move)
         for move in pendientes:
             move._action_confirm()
@@ -2405,9 +2651,12 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             'picking_type': self.picking_type,
             'origin': self.origin,
             'state': self.state,
-            'move_dest_ids': [d for d in self.move_dest_ids.all()
-                              if d.state not in (self.STATE_DONE, self.STATE_CANCEL)],
-            'move_orig_ids': list(self.move_orig_ids.all()),
+            'move_dest_ids': [
+                d
+                for d in self.move_dest_ids
+                if d.state not in (self.STATE_DONE, self.STATE_CANCEL)
+            ],
+            'move_orig_ids': list(self.move_orig_ids),
             'origin_returned_move': self.origin_returned_move,
             'price_unit': self.price_unit,
             'date_deadline': self.date_deadline,
@@ -2435,10 +2684,18 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         """
         if self.state in (self.STATE_DONE, self.STATE_CANCEL):
             raise UserError(
-                _("No puede dividir un movimiento en estado 'Hecho' o 'Cancelado'."))
+                _(
+                    "No puede dividir un movimiento en estado 'Hecho' o "
+                    "'Cancelado'."
+                )
+            )
         if self.state == self.STATE_DRAFT:
             raise UserError(
-                _('No puede dividir un movimiento en borrador. Debe confirmarse primero.'))
+                _(
+                    'No puede dividir un movimiento en borrador. Debe '
+                    'confirmarse primero.'
+                )
+            )
         if not qty:
             return []
 
@@ -2483,7 +2740,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         ``quantity != 0``, así que una línea a cero no aporta su lote aunque lo
         tenga asignado.
         """
-        return [linea.lot for linea in self.move_line_ids.all()
+        return [linea.lot for linea in self.move_line_ids
                 if linea.lot_id and linea.quantity]
 
     @lot_ids.setter
@@ -2505,16 +2762,18 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
 
         **DIVERGENCIA de FORMA declarada:** la colección llega como parámetro.
         Allá ``lot_ids`` es un campo y el ``inverse`` lo lee de ``self``; aquí
-        es una property, así que el valor nuevo viaja en la llamada. Es la misma
+        es una property, así que el valor nuevo viaja en la llamada. Es la
+        misma
         convención explícita que fijó ``_get_relevant_state_among_moves``.
         """
         if not self.product_id or self.product.tracking == 'none':
             return self
         lots = list(lots or [])
-        lineas = list(self.move_line_ids.all())
+        lineas = list(self.move_line_ids)
         if (self.state == self.STATE_ASSIGNED
-                and all(l.lot_id for l in lineas)
-                and {l.lot_id for l in lineas} == {lot.pk for lot in lots}):
+                and all(line.lot_id for line in lineas)
+                and {line.lot_id for line in lineas}
+                == {lot.pk for lot in lots}):
             # Ya reservado con exactamente esos lotes: no hay nada que rehacer.
             return self
 
@@ -2546,7 +2805,9 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
 
         sin_reserva = self._should_bypass_reservation()
         # Una línea por lote: la reserva base es 1 y lo que sobre se reparte.
-        extra_uom_qty = free_uom_qty - len({lot.pk for lot in lots} - asignados)
+        extra_uom_qty = free_uom_qty - len(
+            {lot.pk for lot in lots} - asignados
+        )
         quants_by_lot = {}
         if not sin_reserva:
             for quant in StockQuant._gather(product, self.location):
@@ -2590,7 +2851,11 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                         continue
                     reservar = min(
                         disponible,
-                        max(extra_uom_qty if reservado else extra_uom_qty + 1, 1))
+                        max(
+                            extra_uom_qty if reservado else extra_uom_qty + 1,
+                            1,
+                        ),
+                    )
                     if product.uom_id.compare(reservar, 0.0) > 0:
                         vals = self._prepare_move_line_vals(
                             quantity=reservar, reserved_quant=quant)
@@ -2667,8 +2932,10 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                                             company_id=None):
         """≙ ``_create_lot_ids_from_move_line_vals`` (``odoo19c: :1067-1091``).
 
-        Resuelve cada ``lot_name`` a un lote: el que ya exista para ese producto
-        (de la empresa o sin empresa), y si no existe lo crea. Una vez resuelto,
+        Resuelve cada ``lot_name`` a un lote: el que ya exista para ese
+        producto
+        (de la empresa o sin empresa), y si no existe lo crea. Una vez
+        resuelto,
         el nombre sobra y se vacía — el dato vive en la relación.
 
         **DIVERGENCIA declarada:** la fuente escribe ``lot_name = False``; aquí
@@ -2683,8 +2950,11 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
             Q(company=company_id) | Q(company__isnull=True),
             product=product_id, name__in=nombres))
         ya = {lot.name for lot in existentes}
-        existentes += [StockLot.objects.create(product_id=product_id, name=nombre)
-                       for nombre in dict.fromkeys(nombres) if nombre not in ya]
+        existentes += [
+            StockLot.objects.create(product_id=product_id, name=nombre)
+            for nombre in dict.fromkeys(nombres)
+            if nombre not in ya
+        ]
 
         por_nombre = {lot.name: lot.pk for lot in existentes}
         for vals in vals_list:
@@ -2702,7 +2972,8 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         Interpreta lo que el usuario pega en el campo de lotes: un nombre por
         renglón, y —por comodidad— el punto y coma se normaliza a tabulador
         para que el separador de la cantidad sea uno solo. Si la parte extra no
-        se puede interpretar, **no se adivina**: el renglón entero pasa a ser el
+        se puede interpretar, **no se adivina**: el renglón entero pasa a ser
+        el
         nombre del lote.
         """
         salto, separator = '\n', '\t'
@@ -2756,8 +3027,8 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                          'package': origin_move_line.package})
         destino = destino or location_dest
 
-        libres = [l for l in self.move_line_ids.all()
-                  if not l.lot_id and not l.lot_name]
+        libres = [line for line in self.move_line_ids
+                  if not line.lot_id and not line.lot_name]
         ordenes = []
         by_location = defaultdict(float)
         for vals in field_data:
@@ -2770,8 +3041,12 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                 donde = destino or self.location_dest._get_putaway_strategy(
                     self.product, quantity=cantidad,
                     additional_qty=by_location)
-                ordenes.append(('create', {**base, **vals, 'location_dest': donde}))
-                by_location[donde.pk if donde is not None else None] += cantidad
+                ordenes.append(
+                    ('create', {**base, **vals, 'location_dest': donde})
+                )
+                by_location[
+                    donde.pk if donde is not None else None
+                ] += cantidad
         return ordenes
 
     def _generate_serial_numbers(self, next_serial, next_serial_count=False,
@@ -2791,7 +3066,9 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
                 _('The number of Serial Numbers to generate must be greater '
                   'than zero.'))
         nombres = StockLot.generate_lot_names(next_serial, count)
-        field_data = [{'lot_name': n['lot_name'], 'quantity': 1} for n in nombres]
+        field_data = [
+            {'lot_name': n['lot_name'], 'quantity': 1} for n in nombres
+        ]
         if self._can_create_lot():
             self._create_lot_ids_from_move_line_vals(
                 field_data, self.product_id, self.company_id)
@@ -2814,12 +3091,15 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         existe **fuera** de la ubicación de origen, y ``None`` si no hay nada
         que advertir.
 
-        **DIVERGENCIA de FORMA declarada, doble:** la colección nueva llega como
-        parámetro (``lot_ids`` es property, no campo) y la **anterior** también.
+        **DIVERGENCIA de FORMA declarada, doble:** la colección nueva llega
+        como
+        parámetro (``lot_ids`` es property, no campo) y la **anterior**
+        también.
         Allá el ORM compara contra ``self._origin``, el registro tal como está
         en la base mientras el formulario aún no se guarda; aquí no hay ese
         búfer sin asentar, así que por defecto se lee de las líneas actuales —
-        lo que equivale a ``_origin`` **si se llama antes** de ``_set_lot_ids``,
+        lo que equivale a ``_origin`` **si se llama antes** de
+        ``_set_lot_ids``,
         que es el orden en que la fuente lo dispara.
         """
         product = self.product if self.product_id else None
@@ -2830,7 +3110,7 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         asignable = 0.0
         sin_lote = 0
         nuevos = OrderedSet(lot.name for lot in lots if lot.name)
-        for linea in self.move_line_ids.all():
+        for linea in self.move_line_ids:
             in_uom = linea.product_uom._compute_quantity(
                 float(linea.quantity or 0), self.product_uom)
             nombre = linea.lot.name if linea.lot_id else linea.lot_name
@@ -2895,12 +3175,19 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         self.save(update_fields=['quantity', 'write_date'])
 
         if product.tracking == 'serial':
-            problematicos = candidatos.exclude(base.child_of_domain('location'))
+            problematicos = candidatos.exclude(
+                base.child_of_domain('location')
+            )
             if problematicos.exists():
                 detalle = ''.join(
-                    _('\n(%(serial_number)s) exists in location %(location)s',
-                      serial_number=str(quant.lot), location=str(quant.location))
-                    for quant in problematicos)
+                    _(
+                        '\n(%(serial_number)s) exists in location '
+                        '%(location)s',
+                        serial_number=str(quant.lot),
+                        location=str(quant.location),
+                    )
+                    for quant in problematicos
+                )
                 return {'warning': {
                     'title': _('Warning'),
                     'message': _('Unavailable Serial numbers. Please correct '
@@ -2920,17 +3207,21 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         demanda se reparte en tramos de ``count`` y el residuo va en la última
         fila; con seguimiento por serie cada fila vale una unidad.
 
-        **Lo que este método NO porta, y por qué:** el bloque final de la fuente
+        **Lo que este método NO porta, y por qué:** el bloque final de la
+        fuente
         (``:1193-1206``) rebobina el contador de la secuencia tras el botón
         «New» del asistente. Depende de ``_get_current_sequence``,
         ``get_next_char`` y ``number_next_actual``, que ``ir.sequence`` **no
         declara en este árbol** — medido sobre ``src/addons/base/models/
-        ir_sequence.py``. Es completitud de ``ir.sequence``, no de este archivo,
+        ir_sequence.py``. Es completitud de ``ir.sequence``, no de este
+        archivo,
         y corrige un pre-incremento que sólo causa un asistente que aquí no
         existe. Sucesor: tarea **#394**.
         """
         if not context_data.get('default_product_id'):
-            raise UserError(_('No product found to generate Serials/Lots for.'))
+            raise UserError(
+                _('No product found to generate Serials/Lots for.')
+            )
         assert mode in ('generate', 'import')
         StockLot = apps.get_model('stock', 'StockLot')
         StockLocation = apps.get_model('stock', 'StockLocation')
@@ -2939,7 +3230,11 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         def reparto(quantity, qty_per_lot):
             if qty_per_lot <= 0:
                 raise UserError(
-                    _('The quantity per lot should always be a positive value.'))
+                    _(
+                        'The quantity per lot should always be a positive '
+                        'value.'
+                    )
+                )
             tramos = [qty_per_lot] * int(quantity // qty_per_lot)
             residuo = quantity % qty_per_lot
             if residuo:
@@ -2967,8 +3262,13 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         for lote, qty in zip(nombres, cantidades):
             if not lote.get('quantity'):
                 lote['quantity'] = qty
-            donde = (destino._get_putaway_strategy(product, quantity=lote['quantity'])
-                     if destino is not None else None)
+            donde = (
+                destino._get_putaway_strategy(
+                    product, quantity=lote['quantity']
+                )
+                if destino is not None
+                else None
+            )
             valores.append({
                 **por_defecto, **lote,
                 'location_dest_id': donde.pk if donde is not None else None,
@@ -2992,21 +3292,29 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         """
         if self.state in (self.STATE_DONE, self.STATE_CANCEL):
             return self
-        has_pending_orig = self.move_orig_ids.exclude(state=self.STATE_DONE).exists()
-        self.state = self.STATE_WAITING if has_pending_orig else self.STATE_CONFIRMED
+        has_pending_orig = any(
+            move.state != self.STATE_DONE for move in self.move_orig_ids)
+        self.state = (
+            self.STATE_WAITING if has_pending_orig else self.STATE_CONFIRMED
+        )
         self.save(update_fields=['state', 'write_date'])
         return self
 
     def _action_assign(self):
         """Reserva la disponibilidad (≙ ``_action_assign``).
 
-        Reserva desde el stock disponible en la ubicación origen (``StockQuant``):
+        Reserva desde el stock disponible en la ubicación origen
+        (``StockQuant``):
         ``quantity`` = min(demanda, disponible). Si cubre la demanda →
         ``assigned``; si cubre una parte → ``partially_available``, el séptimo
         estado que este pase repone (D-3).
         """
-        if self.state not in (self.STATE_CONFIRMED, self.STATE_WAITING,
-                              self.STATE_PARTIALLY_AVAILABLE, self.STATE_ASSIGNED):
+        if self.state not in (
+            self.STATE_CONFIRMED,
+            self.STATE_WAITING,
+            self.STATE_PARTIALLY_AVAILABLE,
+            self.STATE_ASSIGNED,
+        ):
             return self
         available = StockQuant.available_qty(self.product, self.location)
         self.quantity = min(self.product_uom_qty, available)
@@ -3023,7 +3331,9 @@ class StockMove(models.DefaultGetMixin, TimeStampedModel):
         if self.state == self.STATE_CANCEL:
             return self
         done_qty = self.quantity or self.product_uom_qty
-        StockQuant.apply_move(self.product, self.location, self.location_dest, done_qty)
+        StockQuant.apply_move(
+            self.product, self.location, self.location_dest, done_qty
+        )
         self.quantity = done_qty
         self.state = self.STATE_DONE
         self.save(update_fields=['quantity', 'state', 'write_date'])

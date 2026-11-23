@@ -926,7 +926,7 @@ class StockRule(models.BaseModel, TimeStampedModel):
             move.save()
             # El destino de las líneas tiene que seguir al del movimiento.
             for line in (
-                move.move_line_ids.all()
+                move.move_line_ids
                 if hasattr(move, 'move_line_ids')
                 else []
             ):
@@ -961,11 +961,12 @@ class StockRule(models.BaseModel, TimeStampedModel):
             new_move.save()
         if not new_move.location.should_bypass_reservation():
             (
-                move.move_dest_ids.add(new_move)
+                move.write({'move_dest_ids': [
+                    fields.Command.link(new_move.id)]})
                 if hasattr(move, 'move_dest_ids')
                 else None
             )
-            new_move.move_orig_ids.add(move)
+            new_move.write({'move_orig_ids': [fields.Command.link(move.id)]})
         return new_move
 
     def _push_prepare_move_copy_values(self, move_to_copy, new_date):

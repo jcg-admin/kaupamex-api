@@ -395,12 +395,14 @@ def _add_reference(self, reference):
     nombre del parámetro (singular por plural) se conserva en el nombre para no
     divergir de la firma que sus llamadores usan.
     """
-    self.reference_ids.add(*reference)
+    self.write({'reference_ids': [
+        fields.Command.link(ref.id) for ref in reference]})
 
 
 def _remove_reference(self, reference):
     """≙ ``_remove_reference`` (``odoo19c: :441-444``)."""
-    self.reference_ids.remove(*reference)
+    self.write({'reference_ids': [
+        fields.Command.unlink(ref.id) for ref in reference]})
 
 
 def _is_display_stock_in_catalog(self):

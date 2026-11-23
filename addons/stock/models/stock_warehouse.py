@@ -681,7 +681,8 @@ class StockWarehouse(models.BaseModel, TimeStampedModel):
             # `view_location` (ver `save()`/D-4). No hace falta repetirlo aquí.
 
         cls._check_multiwarehouse_group()
-        return browse(cls, [warehouse.pk for warehouse in warehouses])
+        return cls._create_result(
+            browse(cls, [warehouse.pk for warehouse in warehouses]))
 
     def save(self, *args, **kwargs):
         """Dispara el recálculo de ``StockLocation.warehouse`` en el subárbol.

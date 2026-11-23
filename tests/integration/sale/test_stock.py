@@ -23,6 +23,7 @@ from addons.stock.models.stock_rule import ProcurementException
 from addons.uom.models.uom_uom import Uom
 from orm.environments import get_current_company
 from tests.factories.product_factory import make_product
+from orm.commands import Command
 
 pytestmark = pytest.mark.integration
 
@@ -145,7 +146,7 @@ def test_move_mto_chaining_waiting(db):
         location=mid,
         location_dest=dest,
     )
-    dest_move.move_orig_ids.add(orig)
+    dest_move.write({'move_orig_ids': [Command.link(orig.id)]})
     dest_move._action_confirm()
     # Con origen pendiente (no done) → waiting.
     assert dest_move.state == StockMove.STATE_WAITING

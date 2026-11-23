@@ -1786,7 +1786,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         ids = {
             destino.picking_id
             for m in self.move_ids.all()
-            for destino in m.move_dest_ids.all()
+            for destino in m.move_dest_ids
             if destino.picking_id is not None
         }
         propios = set(self.return_ids.values_list('pk', flat=True))
@@ -2085,10 +2085,12 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         for move in self.move_ids.all():
             if not move.move_orig_ids.exists():
                 continue
-            for ml in move.move_line_ids.all():
+            for ml in move.move_line_ids:
                 if ml.location is None or not ml.location.parent_path:
                     continue
-                ruta = [int(x) for x in ml.location.parent_path.split('/') if x]
+                ruta = [
+                    int(x) for x in ml.location.parent_path.split('/') if x
+                ]
                 if self.location is not None and self.location.pk not in ruta:
                     return {
                         'warning': {
@@ -2183,14 +2185,16 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         if not reference:
             return
         for move in self.move_ids.all():
-            move.reference_ids.add(*reference)
+            move.write({'reference_ids': [
+                fields.Command.link(ref.id) for ref in reference]})
 
     def _remove_reference(self, reference):
         """≙ ``_remove_reference`` (``odoo19c: :2124-2127``)."""
         if not reference:
             return
         for move in self.move_ids.all():
-            move.reference_ids.remove(*reference)
+            move.write({'reference_ids': [
+                fields.Command.unlink(ref.id) for ref in reference]})
 
     def _get_impacted_pickings(self, moves):
         """≙ ``_get_impacted_pickings`` (``odoo19c: :1738-1760``).
@@ -2211,7 +2215,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
             visitados.add(move.pk)
             if move.picking_id is not None:
                 impactados_ids.add(move.picking_id)
-            to_explore.extend(move.move_dest_ids.all())
+            to_explore.extend(move.move_dest_ids)
         if not impactados_ids:
             return stock_picking.objects.none()
         return stock_picking.objects.filter(pk__in=impactados_ids)
@@ -2238,7 +2242,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
             return {}
         move_to_orig = {}
         for orig_obj in orig_obj_changes:
-            for move in getattr(orig_obj, stream_field).all():
+            for move in getattr(orig_obj, stream_field):
                 move_to_orig.setdefault(move.pk, []).append(orig_obj)
 
         grouped = {}
@@ -2247,11 +2251,11 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
                 raise ValueError(
                     'Hace falta un groupby_method para el flujo DOWN.')
             for orig_obj in orig_obj_changes:
-                for move in getattr(orig_obj, stream_field).all():
+                for move in getattr(orig_obj, stream_field):
                     grouped.setdefault(groupby_method(move), []).append(move)
         elif stream == 'UP':
             for orig_obj in orig_obj_changes:
-                for move in getattr(orig_obj, stream_field).all():
+                for move in getattr(orig_obj, stream_field):
                     for documento, responsable in (
                             move._get_upstream_documents_and_responsibles()):
                         grouped.setdefault(

@@ -549,7 +549,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         **Bloqueado:** ``stock.move`` aún no declara ``date`` — ver la tabla de
         símbolos bloqueados del docstring del módulo (tarea #330).
         """
-        return self.move.date if self.move is not None else None
+        return self.move.date if self.move else None
 
     @property
     def location_usage(self):
@@ -601,7 +601,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
 
         **Bloqueado:** ``stock.move`` aún no declara ``partner`` (tarea #330).
         """
-        return self.move.partner if self.move is not None else None
+        return self.move.partner if self.move else None
 
     @property
     def picking_code(self):
@@ -652,21 +652,21 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         """≙ ``scrap_id`` (``related='move_id.scrap_id'``, ``:85``).
         **Bloqueado** (#330).
         """
-        return self.move.scrap if self.move is not None else None
+        return self.move.scrap if self.move else None
 
     @property
     def is_inventory(self):
         """≙ ``is_inventory`` (``related='move_id.is_inventory'``, ``:86``).
         **Bloqueado** (#330).
         """
-        return bool(self.move is not None and self.move.is_inventory)
+        return bool(self.move and self.move.is_inventory)
 
     @property
     def is_locked(self):
         """≙ ``is_locked`` (``related='move_id.is_locked'``, ``:87``).
         **Bloqueado** (#330).
         """
-        return bool(self.move is not None and self.move.is_locked)
+        return bool(self.move and self.move.is_locked)
 
     @property
     def produce_line_ids(self):
@@ -684,7 +684,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         """≙ ``reference`` (``related='move_id.reference'``, ``:90``).
         **Bloqueado** (#330).
         """
-        return self.move.reference if self.move is not None else None
+        return self.move.reference if self.move else None
 
     @property
     def tracking(self):
@@ -696,7 +696,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         """≙ ``origin`` (``related='move_id.origin'``, ``:92``). **Bloqueado**
         (#330).
         """
-        return self.move.origin if self.move is not None else None
+        return self.move.origin if self.move else None
 
     @property
     def description_picking(self):
@@ -705,7 +705,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         **Bloqueado** (#330).
         """
 
-        return self.move.description_picking if self.move is not None else None
+        return self.move.description_picking if self.move else None
 
     @property
     def picking_location(self):
@@ -734,7 +734,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
             return
         del_movimiento = (
             getattr(self.move, 'product_uom', None)
-            if self.move is not None
+            if self.move
             else None
         )
         if del_movimiento is not None:
@@ -789,7 +789,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         (``readonly=False``), así que un ``False`` explícito sobrevive salvo
         que el movimiento termine.
         """
-        if self.move is not None and self.move.state == 'done':
+        if self.move and self.move.state == 'done':
             self.picked = True
 
     def _compute_location_id(self):
@@ -804,7 +804,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         Aquí ``_origin`` es la fila persistida: se lee sólo si la línea ya
         existe, porque una línea nueva no tiene contra qué comparar.
         """
-        movimiento, albaran = self.move, self.picking
+        movimiento, albaran = self.move or None, self.picking
         del_movimiento = getattr(movimiento, 'location_id', None)
         del_albaran = getattr(albaran, 'location_id', None)
         dest_movimiento = getattr(movimiento, 'location_dest_id', None)
@@ -847,7 +847,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         self._compute_location_id()
         self._compute_quantity()
         self._compute_quantity_product_uom()
-        if self.move is not None:
+        if self.move:
             # ≙ ``state = fields.Selection(related='move_id.state',
             # store=True)``
             self.state = self.move.state
@@ -1058,7 +1058,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
                         break
                     base = (
                         line.move.location_dest
-                        if line.move is not None
+                        if line.move
                         else None
                     )
                     if base is None:
@@ -1077,13 +1077,13 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
                     # El paquete no se parte: todas vuelven al destino del
                     # movimiento.
                     for line in grupo:
-                        if line.move is not None:
+                        if line.move:
                             line.location_dest = line.move.location_dest
                 continue
 
             for line in grupo:
                 base = (
-                    line.move.location_dest if line.move is not None else None
+                    line.move.location_dest if line.move else None
                 )
                 if base is None:
                     continue
@@ -1321,15 +1321,15 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
                     in_date=in_date,
                 )
             siguientes = [
-                m for m in ml.move.move_dest_ids.all()
+                m for m in ml.move.move_dest_ids
                 if m.state not in TERMINAL_STATES
-            ] if ml.move is not None else []
+            ] if ml.move else []
             for m in siguientes:
                 m._do_unreserve()
                 m._action_assign()
 
         terminadas = {
-            ml.move for ml in mls if ml.state == 'done' and ml.move is not None
+            ml.move for ml in mls if ml.state == 'done' and ml.move
         }
         for movimiento in terminadas:
             movimiento._check_quantity()
@@ -1424,7 +1424,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
                         action='reserved',
                     )
                 origen = updates.get('location', ml.location)
-                if ml.move is None or not ml.move._should_bypass_reservation(
+                if not ml.move or not ml.move._should_bypass_reservation(
                     origen
                 ):
                     ml._synchronize_quant(
@@ -1434,7 +1434,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
                         owner=updates.get('owner', ml.owner))
                 if (('quantity' in vals and vals['quantity'] != ml.quantity)
                         or 'product_uom_id' in vals):
-                    if ml.move is not None:
+                    if ml.move:
                         moves_to_recompute_state.add(ml.move.pk)
 
         # Editar una línea terminada: deshacer y rehacer el movimiento del
@@ -1443,7 +1443,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         siguientes = set()
         if updates or 'quantity' in vals:
             mls = [line for line in lines
-                   if line.move is not None and line.move.state == 'done'
+                   if line.move and line.move.state == 'done'
                    and getattr(line.product, 'is_storable', True)]
             if not updates:
                 mls = [
@@ -1460,7 +1460,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
                 ml._synchronize_quant(ml.quantity_product_uom, ml.location,
                                       in_date=in_date)
                 siguientes.update(
-                    m.pk for m in ml.move.move_dest_ids.all()
+                    m.pk for m in ml.move.move_dest_ids
                     if m.state not in TERMINAL_STATES)
                 if ml.picking is not None:
                     ml._log_message(
@@ -1568,14 +1568,14 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         package_model = apps.get_model('stock', 'StockPackage')
 
         for ml in lines:
-            if (ml.quantity_product_uom and ml.move is not None
+            if (ml.quantity_product_uom and ml.move
                     and not ml.move._should_bypass_reservation(ml.location)):
                 quant_model._update_reserved_quantity(
                     ml.product, ml.location, -ml.quantity_product_uom,
                     lot_id=ml.lot, package_id=ml.package, owner_id=ml.owner,
                     strict=True)
 
-        movimientos = {line.move for line in lines if line.move is not None}
+        movimientos = {line.move for line in lines if line.move}
         ids_paquete = set()
         for line in lines:
             if line.result_package:
@@ -1666,7 +1666,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
                     continue
                 tipo = (
                     getattr(ml.move, 'picking_type', None)
-                    if ml.move is not None
+                    if ml.move
                     else None
                 )
                 if not ml._exclude_requiring_lot():
@@ -1732,7 +1732,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
             cls._create_and_assign_production_lot(a_crear_lote)
 
         if a_borrar:
-            browse(cls, [line.pk for line in a_borrar]).unlink()
+            lines[0].browse([line.pk for line in a_borrar]).unlink()
         pendientes = [
             move_line for move_line in lines if move_line not in a_borrar
         ]
@@ -1801,7 +1801,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
                 self.product, location, quantity, lot_id=lote,
                 package_id=paquete, owner_id=propietario, in_date=in_date)
         elif action == 'reserved':
-            if self.move is None or not self.move._should_bypass_reservation(
+            if not self.move or not self.move._should_bypass_reservation(
                 location
             ):
                 quant_model._update_reserved_quantity(
@@ -1830,7 +1830,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         conjunto sobre el que se detecta un número de serie repetido.
         """
         albaran = (
-            self.move.picking if self.move is not None else None
+            self.move.picking if self.move else None
         ) or self.picking
         if albaran is None:
             return type(self).objects.none()
@@ -1935,7 +1935,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
     def _free_reservation(self, product_id, location_id, quantity,
                           lot_id=None, package_id=None, owner_id=None,
                           ml_ids_to_ignore=None):
-        """≙ ``_free_reservation`` (``odoo19c: :972-1043``).
+        """≙ ``_free_reservation`` (``odoo19c: :790-852``).
 
         Al editar o validar una línea con cantidad forzada se puede tocar
         existencia que **otra** línea tenía reservada. Este método le quita esa
@@ -1950,7 +1950,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
             ml_ids_to_ignore = set()
         ml_ids_to_ignore = set(ml_ids_to_ignore) | {self.pk}
 
-        if self.move is not None and self.move._should_bypass_reservation(
+        if self.move and self.move._should_bypass_reservation(
             location_id
         ):
             return
@@ -1968,7 +1968,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
                 ~Q(pk__in=tuple(ml_ids_to_ignore)),
             ]))
 
-        mi_albaran = self.move.picking if self.move is not None else None
+        mi_albaran = self.move.picking if self.move else None
 
         def current_picking_first(cand):
             """≙ la closure ``current_picking_first`` (``odoo19c:
@@ -1977,7 +1977,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
             fecha = None
             if cand.picking is not None:
                 fecha = getattr(cand.picking, 'scheduled_date', None)
-            if fecha is None and cand.move is not None:
+            if fecha is None and cand.move:
                 fecha = getattr(cand.move, 'date', None)
             return (
                 cand.picking != mi_albaran,
@@ -1990,7 +1990,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         a_borrar = set()
 
         for candidato in sorted(candidatos, key=current_picking_first):
-            if candidato.move is not None:
+            if candidato.move:
                 a_reasignar.add(candidato.move.pk)
             if self.product_uom.compare(
                     float(candidato.quantity_product_uom),
@@ -2009,15 +2009,16 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
 
         a_desatar = list(type(self).objects.filter(pk__in=a_borrar))
         movimientos = {
-            ml.move.pk for ml in a_desatar if ml.move is not None
+            ml.move.pk for ml in a_desatar if ml.move
         } | a_reasignar
         for movimiento in move_model.objects.filter(pk__in=movimientos):
-            movimiento.procure_method = 'make_to_stock'
-            # ≙ ``'move_orig_ids': [Command.clear()]`` (``odoo19c: :1038``).
-            fields.Command.clear(movimiento.move_orig_ids)
-            movimiento.save()
+            # ≙ ``odoo19c: addons/stock/models/stock_move_line.py:846-850``.
+            movimiento.write({
+                'procure_method': 'make_to_stock',
+                'move_orig_ids': [fields.Command.clear()],
+            })
         if a_desatar:
-            browse(type(self), [line.pk for line in a_desatar]).unlink()
+            self.browse([line.pk for line in a_desatar]).unlink()
         for movimiento in reversed(
             list(move_model.objects.filter(pk__in=movimientos))
         ):
@@ -2099,7 +2100,8 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
             line_key, uom = propiedades['line_key'], propiedades['product_uom']
             cantidad = move_line.product_uom._compute_quantity(
                 float(move_line.quantity), uom)
-            packaging_uom = getattr(move_line.move, 'packaging_uom', None)
+            packaging_uom = (move_line.move.packaging_uom
+                             if move_line.move else None)
             cantidad_pack = (uom._compute_quantity(cantidad, packaging_uom)
                              if packaging_uom else 0)
 
@@ -2320,7 +2322,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         **Divergencia D-2 declarada:** devuelve el descriptor de ventana, que
         es el contrato de datos; el cliente que lo consume no existe aquí.
         """
-        if self.move is not None:
+        if self.move:
             accion = self.move.action_open_reference()
             if accion.get('res_model') != 'stock.move':
                 return accion
@@ -2456,7 +2458,8 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         else:
             vals = {'name': package_name}
             tipos = {
-                getattr(line.move, 'packaging_uom', None) for line in lines
+                line.move.packaging_uom if line.move else None
+                for line in lines
             }
             tipos = {
                 getattr(t, 'package_type_id', None)

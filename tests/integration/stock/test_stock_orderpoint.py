@@ -382,7 +382,7 @@ def test_the_rule_reaches_its_moves_by_the_reverse_accessor(
         location_dest=warehouse.lot_stock,
         orderpoint=orderpoint,
     )
-    assert list(orderpoint.stock_moves.all()) == [move]
+    assert list(orderpoint.stock_moves) == [move]
 
 
 def test_the_notification_answers_when_the_transfer_came_from_another_warehouse(

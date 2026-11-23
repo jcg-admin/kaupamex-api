@@ -156,7 +156,8 @@ def _get_po_line_moves(self):
     devengos de ``account`` (``accrued_orders.py``), que no invoca a este
     método en este árbol. Sin llamador, el filtro no tiene con qué acotarse.
     """
-    return self.move_ids.filter(product=self.product_id)
+    return self.move_ids.filtered(
+        lambda move: move.product_id == self.product_id)
 
 
 def _get_outgoing_incoming_moves(self):
@@ -179,7 +180,7 @@ def _get_outgoing_incoming_moves(self):
     """
     outgoing_moves, incoming_moves = [], []
 
-    for move in self.move_ids.all():
+    for move in self.move_ids:
         if (
             move.state == 'cancel'
             or move.location_dest_usage == USAGE_INVENTORY
@@ -204,10 +205,12 @@ def _update_move_date_deadline(self, new_date):
     completed.» Si la línea no tiene movimientos propios pendientes, la fuente
     cae a los movimientos **destino** — los que esta línea abastece.
     """
-    pending_moves = list(self.move_ids.exclude(state__in=('done', 'cancel')))
+    pending_moves = [move for move in self.move_ids
+                     if move.state not in ('done', 'cancel')]
     if not pending_moves:
         pending_moves = list(
-            self.move_dest_ids.exclude(state__in=('done', 'cancel'))
+            self.move_dest_ids.filtered(
+                lambda move: move.state not in ('done', 'cancel'))
         )
     for move in pending_moves:
         move.date_deadline = new_date
@@ -228,10 +231,8 @@ def _check_orderpoint_picking_type(self):
     warehouse = picking_type.warehouse if picking_type is not None else None
     warehouse_loc = warehouse.view_location if warehouse is not None else None
 
-    destination_loc = self.move_dest_ids.first()
-    dest_loc = (
-        destination_loc.location if destination_loc is not None else None
-    )
+    destination_loc = self.move_dest_ids[:1]
+    dest_loc = destination_loc.location if destination_loc else None
     if dest_loc is None and self.orderpoint_id:
         dest_loc = self.orderpoint.location
 
@@ -264,18 +265,19 @@ def delete_cancelling_moves(self, *args, **kwargs):
     Devuelve ``None``: ``chain_method`` ejecuta a continuación el ``delete``
     previo, que es el ``return super().unlink()`` de la fuente.
     """
-    for move in self.move_ids.all():
+    for move in self.move_ids:
         move._action_cancel()
 
-    for move in list(self.move_dest_ids.all()):
-        if move.created_purchase_line_ids.count() > 1:
-            move.created_purchase_line_ids.remove(self)
+    for move in list(self.move_dest_ids):
+        if len(move.created_purchase_line_ids) > 1:
+            move.write({'created_purchase_line_ids': [
+                fields.Command.unlink(self.id)]})
 
     if self.propagate_cancel:
-        for move in self.move_dest_ids.all():
+        for move in self.move_dest_ids:
             move._action_cancel()
     else:
-        for move in self.move_dest_ids.all():
+        for move in self.move_dest_ids:
             move.procure_method = move.PROCURE_MAKE_TO_STOCK
             move.save(update_fields=['procure_method', 'write_date'])
             move._recompute_state()

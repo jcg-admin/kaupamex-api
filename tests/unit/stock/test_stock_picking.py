@@ -30,11 +30,13 @@ from addons.product.models import ProductProduct, ProductTemplate
 from addons.stock.models import (
     StockLocation,
     StockMove,
+    StockMoveLine,
     StockPicking,
     StockPickingType,
     StockReference,
 )
 from exceptions import UserError
+from orm.commands import Command
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -295,8 +297,8 @@ def test_get_next_transfers_excludes_returns(
     # ``salida`` es el ORIGEN de las dos — se añaden por el lado reverso
     # (``move_dest_ids``) para que ``entrada_siguiente``/``return_move``
     # aparezcan como su destino, no al revés.
-    salida.move_dest_ids.add(entrada_siguiente)
-    salida.move_dest_ids.add(return_move)
+    salida.write({'move_dest_ids': [Command.link(entrada_siguiente.id)]})
+    salida.write({'move_dest_ids': [Command.link(return_move.id)]})
 
     siguientes = set(origen._get_next_transfers().values_list('pk', flat=True))
     assert siguientes == {siguiente.pk}
@@ -647,7 +649,7 @@ def test_unlink_refuses_when_a_done_move_is_chained(
     siguiente = _move(
         picking, variant, source, destination, company, state='confirmed'
     )
-    siguiente.move_orig_ids.add(anterior)
+    siguiente.write({'move_orig_ids': [Command.link(anterior.id)]})
 
     with pytest.raises(UserError):
         picking.delete()
@@ -858,11 +860,12 @@ def test_onchange_location_id_warns_when_chained_reservation_breaks(
     chained = _move(
         picking, variant, source, destination, company, state='confirmed'
     )
-    chained.move_orig_ids.add(origin_move)
+    chained.write({'move_orig_ids': [Command.link(origin_move.id)]})
     other_branch = StockLocation.objects.create(
         name='OtraRama521', usage='internal'
     )
-    chained.move_line_ids.create(
+    StockMoveLine.objects.create(
+        move=chained,
         picking=picking,
         product=variant,
         location=other_branch,
@@ -922,7 +925,7 @@ def test_action_next_transfer_single_result(
         company,
         state='confirmed',
     )
-    move.move_dest_ids.add(siguiente_move)
+    move.write({'move_dest_ids': [Command.link(siguiente_move.id)]})
 
     action = picking.action_next_transfer()
 
@@ -952,7 +955,7 @@ def test_action_next_transfer_multiple_results(
             company,
             state='confirmed',
         )
-        move.move_dest_ids.add(siguiente_move)
+        move.write({'move_dest_ids': [Command.link(siguiente_move.id)]})
 
     action = picking.action_next_transfer()
 
@@ -1022,8 +1025,8 @@ def test_add_reference_links_to_all_moves(
 
     picking._add_reference([reference_obj])
 
-    assert reference_obj in list(move_a.reference_ids.all())
-    assert reference_obj in list(move_b.reference_ids.all())
+    assert reference_obj in list(move_a.reference_ids)
+    assert reference_obj in list(move_b.reference_ids)
 
 
 def test_remove_reference_unlinks_from_all_moves(
@@ -1037,11 +1040,11 @@ def test_remove_reference_unlinks_from_all_moves(
         picking, variant, source, destination, company, state='confirmed'
     )
     reference_obj = StockReference.objects.create(name='SO522')
-    move.reference_ids.add(reference_obj)
+    move.write({'reference_ids': [Command.link(reference_obj.id)]})
 
     picking._remove_reference([reference_obj])
 
-    assert reference_obj not in list(move.reference_ids.all())
+    assert reference_obj not in list(move.reference_ids)
 
 
 def test_get_impacted_pickings_follows_move_dest_chain(
@@ -1063,7 +1066,7 @@ def test_get_impacted_pickings_follows_move_dest_chain(
     mid_move = _move(
         mid_picking, variant, destination, source, company, state='confirmed'
     )
-    origin_move.move_dest_ids.add(mid_move)
+    origin_move.write({'move_dest_ids': [Command.link(mid_move.id)]})
 
     final_picking = StockPicking.objects.create(
         picking_type=picking_type, company=company
@@ -1071,7 +1074,7 @@ def test_get_impacted_pickings_follows_move_dest_chain(
     final_move = _move(
         final_picking, variant, source, destination, company, state='confirmed'
     )
-    mid_move.move_dest_ids.add(final_move)
+    mid_move.write({'move_dest_ids': [Command.link(final_move.id)]})
 
     impactados = origin_picking._get_impacted_pickings([origin_move])
 
@@ -1150,7 +1153,7 @@ def test_log_less_quantities_than_expected_posts_activity_with_note(
     dest_move = _move(
         dest_picking, variant, destination, source, company, state='confirmed'
     )
-    orig_move.move_dest_ids.add(dest_move)
+    orig_move.write({'move_dest_ids': [Command.link(dest_move.id)]})
 
     orig_picking._log_less_quantities_than_expected(
         {orig_move: (Decimal('4'), Decimal('10'))}

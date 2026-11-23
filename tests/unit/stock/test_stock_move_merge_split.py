@@ -52,6 +52,7 @@ from addons.stock.models import (
 )
 from addons.uom.models import Uom
 from exceptions import UserError
+from orm.commands import Command
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -156,9 +157,9 @@ def test_merge_fields_keeps_the_first_quantity_when_absorbing_an_extra(
     assert valores['product_uom_qty'] == Decimal('3')
 
 
-def test_merge_fields_takes_the_earliest_date_when_shipping_as_soon_as_possible(
-        make_move,
-        picking):
+def test_merge_fields_takes_the_earliest_date_for_direct_shipping(
+    make_move, picking
+):
     """``:1269`` — con «lo antes posible» el primer envío parcial ya sale."""
     temprano = timezone.now()
     uno = make_move(picking=picking, date=temprano)
@@ -365,10 +366,10 @@ def test_a_referenced_move_finds_the_matching_picking(make_move, picking):
     """
     referencia = StockReference.objects.create(name='OUT/0001')
     ya_dentro = make_move(picking=picking, picking_type=picking.picking_type)
-    referencia.move_ids.add(ya_dentro)
+    referencia.write({'move_ids': [Command.link(ya_dentro.id)]})
 
     move = make_move(picking_type=picking.picking_type)
-    referencia.move_ids.add(move)
+    referencia.write({'move_ids': [Command.link(move.id)]})
 
     assert move._search_picking_for_assignation() == picking
 
@@ -498,7 +499,9 @@ def test_split_vals_exclude_the_destinations_already_settled(make_move):
     move = make_move()
     vivo = make_move(state=StockMove.STATE_CONFIRMED)
     hecho = make_move(state=StockMove.STATE_DONE)
-    move.move_dest_ids.add(vivo, hecho)
+    move.write(
+        {'move_dest_ids': [Command.link(vivo.id), Command.link(hecho.id)]}
+    )
 
     destinos = move._prepare_move_split_vals(Decimal('2'))['move_dest_ids']
 

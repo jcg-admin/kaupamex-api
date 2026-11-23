@@ -252,7 +252,7 @@ def test_setting_lots_reuses_a_line_without_lot(
 
     libre.refresh_from_db()
     assert libre.lot_id == nuevo.pk
-    assert move.move_line_ids.count() == 1
+    assert len(move.move_line_ids) == 1
 
 
 def test_setting_lots_creates_a_line_when_none_is_free(make_move, make_lot):
@@ -262,7 +262,7 @@ def test_setting_lots_creates_a_line_when_none_is_free(make_move, make_lot):
 
     move._set_lot_ids([uno, dos])
 
-    assert {item.lot_id for item in move.move_line_ids.all()} == {
+    assert {item.lot_id for item in move.move_line_ids} == {
         uno.pk, dos.pk}
 
 
@@ -272,7 +272,7 @@ def test_a_serial_line_carries_exactly_one_unit(make_move, make_lot):
 
     move._set_lot_ids([make_lot('SN-001')])
 
-    linea = move.move_line_ids.get()
+    linea = move.move_line_ids.ensure_one()
     assert linea.quantity == Decimal('1')
 
 
@@ -287,7 +287,7 @@ def test_setting_the_same_lots_on_an_assigned_move_is_a_no_op(
 
     move._set_lot_ids([lote])
 
-    assert [item.pk for item in move.move_line_ids.all()] == [antes]
+    assert [item.pk for item in move.move_line_ids] == [antes]
 
 
 def test_the_setter_of_the_property_delegates(make_move, make_lot):
@@ -467,7 +467,7 @@ def test_generating_serials_creates_one_line_per_unit(make_move):
 
     move._generate_serial_numbers('SN-001', next_serial_count=3)
 
-    nombres = sorted(item.lot_name for item in move.move_line_ids.all())
+    nombres = sorted(item.lot_name for item in move.move_line_ids)
     assert nombres == ['SN-001', 'SN-002', 'SN-003']
 
 
@@ -482,7 +482,7 @@ def test_generating_serials_resolves_the_lot_when_the_type_reuses_lots(
     move._generate_serial_numbers('SN-100', next_serial_count=2)
 
     assert StockLot.objects.filter(name__in=['SN-100', 'SN-101']).count() == 2
-    assert all(item.lot_id for item in move.move_line_ids.all())
+    assert all(item.lot_id for item in move.move_line_ids)
 
 
 def test_generating_serials_falls_back_to_the_field_count(make_move):
@@ -491,7 +491,7 @@ def test_generating_serials_falls_back_to_the_field_count(make_move):
 
     move._generate_serial_numbers('SN-001')
 
-    assert move.move_line_ids.count() == 2
+    assert len(move.move_line_ids) == 2
 
 
 # -- _onchange_lot_ids (``:1449-1520``) ---------------------------------------

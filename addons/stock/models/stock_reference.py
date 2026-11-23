@@ -61,24 +61,28 @@ import models
 from addons.base.models import TimeStampedModel
 
 
-class StockReference(TimeStampedModel):
-    """``stock.reference`` — el nombre que comparten los documentos de un encargo."""
+class StockReference(models.BaseModel, TimeStampedModel):
+    """``stock.reference`` — el nombre que comparten los documentos de un
+    encargo.
+    """
 
     # Atributos de clase de modelo — los dos que la referencia declara
     # (``odoo19c: addons/stock/models/stock_reference.py:5-6``), verbatim.
     _name = 'stock.reference'
     _description = 'Reference between stock documents'
 
-    name      = fields.Char(
+    name = fields.Char(
         max_length=255,
         help_text='Referencia compartida (Odoo name, requerido y readonly).',
     )
-    move_ids  = fields.Many2many(
-        'stock.StockMove', blank=True, related_name='reference_ids',
+    move_ids = fields.Many2many(
+        'stock.StockMove',
+        blank=True,
+        related_name='reference_ids',
         db_table='stock_reference_move_rel',
         help_text='Movimientos que comparten esta referencia (Odoo move_ids). '
-                  'El inverso es ``move.reference_ids``, el nombre que la '
-                  'referencia le da a la otra mitad del M2M.',
+        'El inverso es ``move.reference_ids``, el nombre que la '
+        'referencia le da a la otra mitad del M2M.',
     )
 
     class Meta:
@@ -92,7 +96,8 @@ class StockReference(TimeStampedModel):
 
     @property
     def picking_ids(self):
-        """Albaranes de los movimientos de esta referencia (≙ ``_compute_picking_ids``).
+        """Albaranes de los movimientos de esta referencia (≙
+        ``_compute_picking_ids``).
 
         La fuente lo declara ``compute='_compute_picking_ids'`` sin almacenar,
         y su cuerpo es ``reference.move_ids.picking_id`` — la proyección del
@@ -100,4 +105,6 @@ class StockReference(TimeStampedModel):
         ``distinct()`` hace esa deduplicación explícita.
         """
         StockPicking = apps.get_model('stock', 'StockPicking')
-        return StockPicking.objects.filter(move_ids__in=self.move_ids.all()).distinct()
+        return StockPicking.objects.filter(
+            move_ids__in=self.move_ids.ids
+        ).distinct()
