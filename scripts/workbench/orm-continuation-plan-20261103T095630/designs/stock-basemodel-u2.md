@@ -17,6 +17,7 @@ Referencia:
   el cambio de empresa (`odoo19c: addons/stock/models/product_strategy.py:63-112`).
 
 Prueba del corte: `tests/integration/stock/test_putaway_rule_storage_category.py`,
+`tests/integration/sale/test_product_expiry.py`, `tests/unit/stock/test_stock_picking_packages.py`,
 más `tests/unit/stock`, `tests/integration/stock` y el subconjunto derivado
 de los símbolos tocados.
 
@@ -56,11 +57,38 @@ como antes.
 | `addons/stock/models/stock_package.py` | `StockPackage`, `write`, `unpack`, `dest_complete_name`, `_apply_package_dest_for_entire_packs`, `action_remove_package`, `compute_complete_name`, `compute_package_info`, `compute_parent_path`, `outermost_package`, `owner` |
 | `addons/stock/models/stock_package_history.py` | `StockPackageHistory`, `_get_complete_dest_name_except_outermost`, `package_type` |
 | `addons/stock/models/stock_lot.py` | `StockLot`, `_compute_single_location`, `_product_qty`, `_set_single_location` |
-| `addons/stock/models/stock_quant.py` | `StockQuant`, `write`, `_load_records_write`, `_compute_display_name`, `_get_available_quantity`, `_get_gs1_barcode`, `_onchange_location_or_product_id`, `_onchange_serial_number`, `_update_available_quantity`, `action_inventory_history`, `action_view_stock_moves`, `check_lot_id`, `check_product_id`, `check_quantity`, `is_outdated`, `last_count_date`, `product_tmpl_id`, `product_uom`, `sn_duplicated` |
+| `addons/stock/models/stock_quant.py` | `StockQuant`, `write`, `_load_records_write`, `_gather`, `_compute_display_name`, `_get_available_quantity`, `_get_gs1_barcode`, `_onchange_location_or_product_id`, `_onchange_serial_number`, `_update_available_quantity`, `action_inventory_history`, `action_view_stock_moves`, `check_lot_id`, `check_product_id`, `check_quantity`, `is_outdated`, `last_count_date`, `product_tmpl_id`, `product_uom`, `sn_duplicated` |
 | `addons/stock/models/stock_package_type.py` | `has_quants` |
 | `addons/stock/models/stock_picking.py` | `_check_entire_pack` |
 | `addons/stock/models/stock_location.py` | `check_can_be_used` |
+| `addons/stock/models/stock_move_line.py` | `_compute_quantity` |
+| `addons/product_expiry/models/stock_move_line.py` | `_compute_expiration_date` |
 | `addons/stock/models/product_strategy.py` | `StockPutawayRule`, `storage_category`, `_compute_storage_category`, `create`, `write` |
+
+## Lo que destapó el subconjunto
+
+La primera ejecución del subconjunto derivado dio 22 fallos, con cinco causas:
+
+- `_gather` anotaba `without_lot`, y un registro `BaseModel` no admite un
+  atributo público que su modelo no declare (`__setattr__`, ≙ los
+  `__slots__` de la fuente): la anotación pasa a `_without_lot`.
+- `StockLot._product_qty` filtraba y agregaba sobre `self.quants`, que ahora
+  es un recordset: la consulta sale del gestor de `StockQuant`.
+- `quant_id` de la línea de movimiento es un Many2one no almacenado hacia un
+  `BaseModel`, y vacío vale un recordset vacío: `_compute_quantity`
+  (`addons/stock/models/stock_move_line.py`) y `_compute_expiration_date`
+  (`addons/product_expiry/models/stock_move_line.py`) lo leen por verdad.
+- La etiqueta de caducidad de `product_expiry` depende del contexto
+  `formatted_display_name`. Un registro `BaseModel` lleva el contexto de su
+  entorno, como en la fuente (`lot.with_context(...)`), no el del ámbito en
+  que se lee; las pruebas pasan a `with_context`.
+- La prueba de la categoría con `sublocation='no'` en `create` contradecía la
+  fuente: un valor dado en `create` protege al campo calculado. Se retiró; la
+  de `write` cubre el cálculo.
+
+Control de anulación: sin `@api.depends('sublocation')` cae
+`test_writing_the_sublocation_clears_the_category`, y sin la guarda de
+empresa cae `test_changing_the_company_is_refused`; ninguna otra.
 
 ## Cambios sólo de forma
 
@@ -78,4 +106,8 @@ concatenados de forma adyacente). Las cubre el mismo subconjunto de
 Los cálculos almacenados de `StockPackage` siguen recalculándose a mano en
 `refresh_computed_fields`; llevarlos a `compute=` es trabajo de la misma
 regla, pendiente y registrado en el sucesor `stock-package-stored-computes-0397`.
-U3–U6 siguen en la partición.
+Un registro leído desde un entorno con otro contexto vuelve a leer su
+Many2one, cuando en la fuente la caché de registros se comparte entre
+contextos; lo destapó `test_new_expiry_lot_assigns_computed_label_without_sql`
+y queda en el sucesor `orm-cross-context-record-cache-0397`. U3–U6 siguen en
+la partición.
