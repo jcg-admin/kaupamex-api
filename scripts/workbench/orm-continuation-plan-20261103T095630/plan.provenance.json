@@ -1743,6 +1743,13 @@
         "sale-basemodel-u3c-0397"
       ],
       "writtenAt": "2026-11-23T00:02:10Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "model-identity-c1-c3-0397"
+      ],
+      "writtenAt": "2026-11-23T11:26:45Z"
     }
   ]
 }
