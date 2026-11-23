@@ -33,10 +33,27 @@ censo de lectores y escritores: `outputs/ir-model-model-census.md`.
 | 4 — interno de Django | `django-internal` | 7 | 0 |
 | 5 — tablas automáticas de infraestructura | `infrastructure` | 102 | 97 |
 
-Los 107 sin contraparte por nombre ni por tabla se verifican modelo a modelo
-(`outputs/model-identity-own-classified.tsv`, al cerrar la verificación): la
-heurística léxica no decide entre «extensión de un modelo de la fuente»
-(categoría 2) y «propio de Kaupamex» (3).
+Los 107 sin contraparte por nombre ni por tabla se verificaron modelo a
+modelo, leyendo clase y fuente (`outputs/model-identity-own-classified.tsv`,
+nivel 3: lo produjeron dos subagentes de sólo lectura; la sesión re-midió la
+procedencia de `account_test.AccountingAssertTest` y las tres identidades
+propias ya declaradas):
+
+| Resultado | Modelos |
+|---|---|
+| 2 — extensión o porte de un modelo de `odoo19c` (tablas laterales de campos que la fuente añade por `_inherit`, portes sin `_name`) | 51 |
+| 2 — contraparte sólo en otro árbol (`odoo19e`, `odoo18c`, `app_auto_backup`) | 5 |
+| 3 — propio de Kaupamex que participa en el ORM | 47 |
+| 3 — propio sin consumidores, ACL ni reglas medidos | 4 |
+| 4 — interno de Django mal ubicado | 0 |
+
+La identidad pública de los propios no se fija aquí. La convención verificable
+es la de los tres propios que ya declaran `_name` (`return.request`,
+`settings.static.page`, `support.ticket`): el `_name` se deriva de su tabla,
+y `check_table_matches_name` (`src/orm/registry.py`) exige
+`_name.replace('.', '_') == db_table`. Esa regla no fija dónde van los puntos
+(`voucher_voucher`), así que cada propio recibe su identidad en su unidad, con
+su segmentación comprobada contra la tabla.
 
 ### Escritura
 
@@ -88,7 +105,7 @@ fuera de esta fase (no hay cliente web).
 
 | Corte | Qué | Prueba discriminante |
 |---|---|---|
-| C1 | `IrModel.model_identity(model)`: `_name` declarado, o la etiqueta mientras no lo tenga; único punto de verdad | unidad sobre un modelo de cada categoría |
+| C1 | `orm.registry.identity_of(model)` —`_name` declarado o, mientras no lo tenga, la etiqueta— e `identity_for_key(key)`, su vuelta desde cualquiera de las dos formas; único punto de verdad junto a `name_of` y `model_by_key` (`odoo19c: odoo/addons/base/models/ir_model.py:428`) | `tests/unit/orm/test_model_identity.py`: un modelo de cada categoría; anulado `identity_of` a la etiqueta caen exactamente las dos pruebas que dependen del `_name` |
 | C2 | lectores que esperan etiqueta (`django_model`, ACL, `ir_rule`, acciones, `base_automation`, `web`) resuelven por `registry.model_by_key`, que acepta las dos formas | las pruebas de ACL/reglas existentes con filas en las dos formas |
 | C3 | el reflejo escribe `model_identity`; migración que reescribe `ir_model.model` y las columnas que cruzan por valor (`ir_model_data.model`, `ir_rule.model_name`, `ir_act_server.model_name`, `ir_act_report_xml.model`, `ir_model_fields.model/relation`) de etiqueta a `_name`, rechazando duplicados | `stock.picking` se encuentra por `('model','=','stock.picking')`; control negativo: la etiqueta deja de casar en `ir.model` |
 | C4 | lectores que ya esperaban `_name` y estaban latentes (`registry.py:2447`, `IrRule._check_model_name`) | sus ramas se ejercitan |
