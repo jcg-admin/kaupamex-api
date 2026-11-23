@@ -1120,7 +1120,7 @@ class PickingTypeFavoriteUserRel(models.RecordLoaderMixin, models.Model):
         return f'{self.picking_type_id}:{self.user_id}'
 
 
-class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
+class StockPicking(models.BaseModel, MailThread, MailActivityMixin,
                    TimeStampedModel):
     """``stock.picking`` — una transferencia (albarán).
 
@@ -1260,11 +1260,10 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
          cada uno (mensajería sin plantilla QWeb, actividad sin ``sudo()``,
          ``mail.activity.user`` NOT NULL sin fallback a un usuario de
          sesión implícito).
-       - **Estado reactivo/ubicación/UI — 28** (``_compute_location_id``,
-         ``_compute_scheduled_date``,
-         ``scheduled_date``, ``_set_scheduled_date``,
+       - **Estado reactivo/ubicación/UI — 25** (``_compute_location_id``,
          ``has_deadline_issue`` + ``_compute_has_deadline_issue`` — lee
-         ``scheduled_date``, que está en este mismo grupo —,
+         ``scheduled_date``, ya portado en U4c de TASK-API-0397, y
+         ``date_deadline``, que aquí sigue siendo ``property`` —,
          ``signature``, ``is_signed`` + ``_compute_is_signed``,
          ``_attach_sign``, ``json_popover`` + ``_compute_json_popover``,
          ``show_lots_text`` + ``_compute_show_lots_text``,
@@ -1304,9 +1303,9 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
 
        Dos consecuencias de la cabecera, ya resueltas en este pase:
 
-       - ``_order`` está declarado verbatim; ``Meta.ordering`` ahora incluye
-         ``-priority`` (portado) y sustituye ``scheduled_date`` (aún
-         BLOQUEADO) por ``-create_date`` hasta que ese campo aterrice.
+       - ``_order`` está declarado verbatim y ``Meta.ordering`` lo deriva:
+         ``['-priority', 'scheduled_date', '-id']`` (``scheduled_date``
+         portado en U4c de TASK-API-0397).
        - ``_name_uniq`` (``odoo19c: :710``) sigue sin `Meta.constraints`
          —``company`` ya existe, pero es nulable y ``name`` tiene datos con
          ``''``/``None`` heredados; añadir la restricción ahora arriesga una
@@ -1323,11 +1322,12 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
          ``related`` de ``picking_type``— son ``property`` sin ``store``,
          **aunque** en la referencia ``date_deadline`` sí sea ``store=True``.
          El motor de recálculo condicional vive en el grupo BLOQUEADO
-         (``_compute_state``/``_compute_scheduled_date``); duplicar su
+         (``_compute_state``); duplicar su
          lógica de invalidación en ``save()`` antes de portar ese grupo
          habría arriesgado una segunda fuente de verdad.
          ``has_deadline_issue`` **no** entró en este bloque —depende de
-         ``scheduled_date``, que sigue BLOQUEADO— y quedó ahí mismo (arriba).
+         ``date_deadline`` almacenado, que aquí es ``property``— y quedó en
+         el grupo de arriba.
        - **D-7.** ``calculate_date_category``/``date_category_to_domain``
          usan ``django.utils.timezone.localtime`` en vez de
          ``fields.Datetime.context_timestamp(self.env.user, ...)`` + pytz —
@@ -1353,12 +1353,12 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
     _description = "Transfer"
     _order = "priority desc, scheduled_date asc, id desc"
 
-    STATE_DRAFT     = 'draft'
-    STATE_WAITING   = 'waiting'
+    STATE_DRAFT = 'draft'
+    STATE_WAITING = 'waiting'
     STATE_CONFIRMED = 'confirmed'
-    STATE_ASSIGNED  = 'assigned'
-    STATE_DONE      = 'done'
-    STATE_CANCEL    = 'cancel'
+    STATE_ASSIGNED = 'assigned'
+    STATE_DONE = 'done'
+    STATE_CANCEL = 'cancel'
     STATE_CHOICES = [
         (STATE_DRAFT, 'Borrador'),
         (STATE_WAITING, 'Esperando otro movimiento'),
@@ -1368,28 +1368,43 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         (STATE_CANCEL, 'Cancelada'),
     ]
 
-    name             = fields.Char(
-        max_length=32, blank=True, default='',
+    name = fields.Char(
+        max_length=32,
+        blank=True,
+        default='',
         help_text='Referencia (Odoo stock.picking.name).',
     )
-    state            = fields.Selection(
-        max_length=16, choices=STATE_CHOICES, default=STATE_DRAFT,
+    state = fields.Selection(
+        max_length=16,
+        choices=STATE_CHOICES,
+        default=STATE_DRAFT,
         help_text='Estado (Odoo stock.picking.state).',
     )
-    location         = fields.Many2one(
-        'stock.StockLocation', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='pickings_out', help_text='Origen (Odoo location_id).',
+    location = fields.Many2one(
+        'stock.StockLocation',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='pickings_out',
+        help_text='Origen (Odoo location_id).',
     )
-    location_dest    = fields.Many2one(
-        'stock.StockLocation', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='pickings_in', help_text='Destino (Odoo location_dest_id).',
+    location_dest = fields.Many2one(
+        'stock.StockLocation',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='pickings_in',
+        help_text='Destino (Odoo location_dest_id).',
     )
     # ≙ ``origin`` (``odoo19c: :556-558``, ``index='trigram'``). Entra en este
     # pase porque ``stock_move._compute_display_name`` lo lee: sin el campo, el
     # nombre visible del movimiento no se puede portar sin inventar una
     # divergencia. El índice trigram es la tarea **#95**.
-    origin           = fields.Char(
-        max_length=64, blank=True, default='', db_index=True,
+    origin = fields.Char(
+        max_length=64,
+        blank=True,
+        default='',
+        db_index=True,
         help_text='Documento de origen (Odoo origin).',
     )
     # Odoo stock.picking.sale_id — el enlace lo añade el módulo sale_stock
@@ -1398,19 +1413,23 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
     # albarán conoce su orden de venta canónica; el sub-estado de preparación
     # (state confirmed/assigned) se proyecta a IN_PREPARATION cuando aún no hay
     # guía de transportista (V5a de analisis-unificar-orders-sale, H-SALE-09).
-    sale_order       = fields.Many2one(
-        'sale.SaleOrder', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='pickings', help_text='Orden de venta (Odoo stock.picking.sale_id).',
+    sale_order = fields.Many2one(
+        'sale.SaleOrder',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='pickings',
+        help_text='Orden de venta (Odoo stock.picking.sale_id).',
     )
     # ≙ ``is_locked`` (``odoo19c: :658-660``). Entra en este pase porque el
     # movimiento lo consume en tres derivados (``is_locked``,
     # ``is_initial_demand_editable``, ``is_date_editable``) — declararlo aquí
     # es
     # más barato que fabricar una divergencia en ``stock_move``.
-    is_locked        = fields.Boolean(
+    is_locked = fields.Boolean(
         default=True,
         help_text='Odoo is_locked. Con el albarán sin validar permite cambiar '
-                  'la demanda inicial; ya validado, las cantidades hechas.',
+        'la demanda inicial; ya validado, las cantidades hechas.',
     )
     # ≙ ``picking_type_id`` (``odoo19c: :620-623``). La referencia lo declara
     # **requerido** con default por contexto; aquí es nulable porque el default
@@ -1422,12 +1441,16 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
     # —portados como property que leen ``self.picking.picking_type``— fallaban
     # con ``AttributeError``: la pareja lector/campo estaba rota por el lado
     # del campo. Ver :ref:`h-api-608`.
-    picking_type     = fields.Many2one(
-        'stock.StockPickingType', null=True, blank=True,
-        on_delete=models.SET_NULL, related_name='pickings', db_index=True,
+    picking_type = fields.Many2one(
+        'stock.StockPickingType',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='pickings',
+        db_index=True,
         verbose_name='Tipo de operación',
         help_text='Tipo de operación que gobierna el albarán '
-                  '(Odoo picking_type_id).',
+        '(Odoo picking_type_id).',
     )
     # ≙ ``move_type`` (``odoo19c: :571-574``, ``compute='_compute_move_type'``
     # ``store=True required=True readonly=False precompute=True``). Entra en
@@ -1447,30 +1470,40 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
     # ``default=`` aquí borra la distinción entre «no lo dieron» y «lo dieron
     # igual al del tipo», que es justo la que ``save()`` necesita para no
     # pisar al llamador. Ver :ref:`h-api-687`.
-    move_type        = fields.Selection(
-        max_length=8, choices=MOVE_TYPE_CHOICES,
+    move_type = fields.Selection(
+        max_length=8,
+        choices=MOVE_TYPE_CHOICES,
         verbose_name='Política de envío',
         help_text='Parcial o todo junto (Odoo move_type). Sale del tipo de '
-                  'operación y se puede sobreescribir por albarán.',
+        'operación y se puede sobreescribir por albarán.',
     )
     # ≙ ``partner_id`` (``odoo19c: :631-633``, ``index='btree_not_null'``).
     # El índice parcial de la referencia es la tarea **#95**; aquí un índice
     # normal sobre una columna nulable.
-    partner          = fields.Many2one(
-        'base.ResPartner', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='pickings', db_index=True, verbose_name='Contacto',
+    partner = fields.Many2one(
+        'base.ResPartner',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='pickings',
+        db_index=True,
+        verbose_name='Contacto',
         help_text='Contacto del albarán (Odoo partner_id). Lo borra '
-                  '``_assign_picking_values`` cuando el albarán agrupa '
-                  'movimientos de contactos distintos.',
+        '``_assign_picking_values`` cuando el albarán agrupa '
+        'movimientos de contactos distintos.',
     )
     # ≙ ``company_id`` (``odoo19c: :634-636``,
     # ``related='picking_type_id.company_id'``
     # ``store=True readonly=True index=True``). Nulable aquí porque
     # ``picking_type`` lo es (ver arriba): con el tipo ausente no hay empresa
     # de la que derivarla.
-    company          = fields.Many2one(
-        'base.ResCompany', null=True, blank=True, on_delete=models.PROTECT,
-        related_name='stock_pickings', db_index=True,
+    company = fields.Many2one(
+        'base.ResCompany',
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name='stock_pickings',
+        db_index=True,
         help_text='Empresa (Odoo company_id, related del tipo de operación).',
     )
     # ≙ ``user_id`` (``odoo19c: :637-641``, ``tracking=True copy=False``). Su
@@ -1478,76 +1511,106 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
     # ``stock.group_stock_user``;
     # el grupo aún no se siembra, así que la acotación queda declarada y no
     # inventada — la impone quien asigne, no el campo.
-    user             = fields.Many2one(
-        ResUsers, null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='stock_pickings', verbose_name='Responsable',
+    user = fields.Many2one(
+        ResUsers,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='stock_pickings',
+        verbose_name='Responsable',
         help_text='Responsable del albarán (Odoo user_id).',
     )
     # ≙ ``printed`` (``odoo19c: :655``, ``copy=False``). Lo lee
     # ``stock_move._search_picking_for_assignation_domain``: un albarán ya
     # impreso no admite que se le añadan movimientos.
-    printed          = fields.Boolean(
-        default=False, verbose_name='Impreso',
+    printed = fields.Boolean(
+        default=False,
+        verbose_name='Impreso',
         help_text='El albarán ya se imprimió (Odoo printed). Un albarán '
-                  'impreso no recibe movimientos nuevos por asignación.',
+        'impreso no recibe movimientos nuevos por asignación.',
     )
     # ≙ ``note`` (``odoo19c: :559``, ``fields.Html``). Desde #554 ``Html``
     # tiene identidad de clase (misma columna TEXT; el saneo sigue siendo de
     # la capa UI), así que se declara fiel a la fuente.
-    note             = fields.Html(
-        blank=True, default='', verbose_name='Notas',
+    note = fields.Html(
+        blank=True,
+        default='',
+        verbose_name='Notas',
         help_text='Notas libres del albarán (Odoo note).',
     )
     # ≙ ``priority`` (``odoo19c: :592-594``). Reusa ``PROCUREMENT_PRIORITIES``
     # de ``stock.move`` — el mismo símbolo, no un duplicado.
-    priority         = fields.Selection(
-        max_length=1, choices=PROCUREMENT_PRIORITIES, default='0',
+    priority = fields.Selection(
+        max_length=1,
+        choices=PROCUREMENT_PRIORITIES,
+        default='0',
         verbose_name='Prioridad',
         help_text='Los productos con prioridad alta se reservan primero '
-                  '(Odoo priority).',
+        '(Odoo priority).',
+    )
+    # ≙ ``scheduled_date`` (``odoo19c: :595-598``): almacenado, calculado de
+    # las fechas de los movimientos e inverso hacia ellos.
+    scheduled_date = fields.Datetime(
+        compute='_compute_scheduled_date', inverse='_set_scheduled_date',
+        store=True, index=True, default=timezone.now,
+        verbose_name='Fecha prevista',
+        help_text='Fecha prevista para procesar la primera parte del envío. '
+                  'Fijarla a mano la fija como fecha prevista de todos los '
+                  'movimientos (Odoo scheduled_date).',
     )
     # ≙ ``date_done`` (``odoo19c: :610``).
-    date_done        = fields.Datetime(
-        null=True, blank=True, verbose_name='Fecha de proceso',
+    date_done = fields.Datetime(
+        null=True,
+        blank=True,
+        verbose_name='Fecha de proceso',
         help_text='Fecha en que el albarán se procesó o canceló '
-                  '(Odoo date_done).',
+        '(Odoo date_done).',
     )
     # ≙ ``backorder_id``/``backorder_ids`` (``odoo19c: :560-565``). D-9: sólo
     # la relación estructural — quién CREA el backorder es
     # ``_create_backorder``, en el grupo bloqueado.
-    backorder        = fields.Many2one(
-        'self', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='backorder_ids', db_index=True,
+    backorder = fields.Many2one(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='backorder_ids',
+        db_index=True,
         verbose_name='Backorder de',
         help_text='Si este albarán se dividió, apunta al albarán que ya se '
-                  'procesó (Odoo backorder_id).',
+        'procesó (Odoo backorder_id).',
     )
     # ≙ ``return_id``/``return_ids`` (``odoo19c: :566-568``). El nombre
     # cambia de ``return_id`` a ``return_of`` — ``return`` es palabra
     # reservada de Python y no puede ser un atributo de instancia sin
     # comillas; mismo criterio que D-1 en ``StockPickingType.sequence_id``.
-    return_of        = fields.Many2one(
-        'self', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='return_ids', db_index=True,
+    return_of = fields.Many2one(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='return_ids',
+        db_index=True,
         verbose_name='Devolución de',
         help_text='Si este albarán se creó como devolución de otro, apunta '
-                  'al original (Odoo return_id).',
+        'al original (Odoo return_id).',
     )
     # ≙ ``owner_id`` (``odoo19c: :649-651``).
-    owner            = fields.Many2one(
-        'base.ResPartner', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='owned_pickings', verbose_name='Propietario asignado',
+    owner = fields.Many2one(
+        'base.ResPartner',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='owned_pickings',
+        verbose_name='Propietario asignado',
         help_text='Al validar, los productos se asignan a este propietario '
-                  '(Odoo owner_id).',
+        '(Odoo owner_id).',
     )
 
     class Meta:
         db_table = 'stock_picking'
-        # ≙ ``_order = "priority desc, scheduled_date asc, id desc"``. Con
-        # ``priority`` ya portado, ``create_date`` sustituye al segundo eje:
-        # BLOQUEADO por ``_compute_scheduled_date`` — sin ese cómputo no existe
-        # ``scheduled_date``.
-        ordering = ['-priority', '-create_date', '-id']
+        # ≙ ``_order = "priority desc, scheduled_date asc, id desc"``.
+        ordering = ['-priority', 'scheduled_date', '-id']
         verbose_name = 'Transferencia de inventario'
         verbose_name_plural = 'Transferencias de inventario'
 
@@ -1555,9 +1618,11 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         return self.name or f'{self.state}:{self.pk}'
 
     def save(self, *args, **kwargs):
-        """Aplica los dos ``compute`` almacenados que dependen del tipo de operación.
+        """Aplica los dos ``compute`` almacenados que dependen del tipo de
+        operación.
 
-        ≙ ``_compute_move_type`` (``odoo19c: :719-721``, ``@api.depends('picking_type_id')``)
+        ≙ ``_compute_move_type`` (``odoo19c: :719-721``,
+        ``@api.depends('picking_type_id')``)
         y el ``related='picking_type_id.company_id'`` de ``company_id``
         (``odoo19c: :634-636``). Los dos son ``store=True``, así que su hogar
         aquí es ``save()`` — el mecanismo que este árbol ya usa para los
@@ -1586,7 +1651,9 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
                 self.move_type = self.picking_type.move_type
                 tocados.append('move_type')
             if campos is not None:
-                kwargs['update_fields'] = list(dict.fromkeys([*campos, *tocados]))
+                kwargs['update_fields'] = list(
+                    dict.fromkeys([*campos, *tocados])
+                )
         return super().save(*args, **kwargs)
 
     # -- ciclo de vida: crear, escribir, borrar --
@@ -1608,12 +1675,52 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         clase); aquí el llamador confirma explícitamente con
         :meth:`action_confirm`.
         """
+        scheduled_dates = []
         for vals in vals_list:
             picking_type = vals.get('picking_type')
             if vals.get('name', '') in ('', '/') and picking_type is not None \
                     and picking_type.sequence_id is not None:
                 vals['name'] = picking_type.sequence_id.next_by_id()
-        return super().create(vals_list)
+            # ≙ ``:1126-1128``: la fecha se escribe después de crear los
+            # movimientos, para que ``_set_scheduled_date`` sea determinista.
+            scheduled_dates.append(vals.pop('scheduled_date', False))
+        pickings = super().create(vals_list)
+        for picking, scheduled_date in zip(pickings, scheduled_dates):
+            if scheduled_date:
+                picking.write({'scheduled_date': scheduled_date})
+        return pickings
+
+    @api.depends('move_ids.state', 'move_ids.date', 'move_type')
+    def _compute_scheduled_date(self):
+        """≙ ``_compute_scheduled_date`` (``odoo19c: :864-873``).
+
+        La fecha más temprana de los movimientos pendientes si el albarán se
+        envía en cuanto pueda (``direct``), la más tardía si se envía de una
+        vez.
+        """
+        for picking in self:
+            if not picking.id:
+                continue
+            moves_dates = picking.move_ids.filtered(
+                lambda move: move.state not in (
+                    self.STATE_DONE, self.STATE_CANCEL)
+            ).mapped('date')
+            fallback = picking.scheduled_date or timezone.now()
+            if picking.move_type == 'direct':
+                picking.scheduled_date = min(moves_dates, default=fallback)
+            else:
+                picking.scheduled_date = max(moves_dates, default=fallback)
+
+    def _set_scheduled_date(self):
+        """≙ ``_set_scheduled_date`` (``odoo19c: :925-931``)."""
+        for picking in self:
+            if picking.state == self.STATE_CANCEL:
+                raise UserError(_(
+                    'You cannot change the Scheduled Date on a cancelled '
+                    'transfer.'))
+            if picking.state == self.STATE_DONE:
+                continue
+            picking.move_ids.write({'date': picking.scheduled_date})
 
     def write(self, vals):
         """≙ ``write`` (``odoo19c: :1139-1170``).
@@ -1628,87 +1735,72 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
            de ubicación/contacto se propaga a los movimientos cuyo destino no
            sea una pérdida de inventario.
         """
-        if 'picking_type' in vals and self.state in (
-                self.STATE_DONE, self.STATE_CANCEL):
+        nuevo_tipo = vals.get('picking_type')
+        if nuevo_tipo and any(
+                picking.state in (self.STATE_DONE, self.STATE_CANCEL)
+                for picking in self):
             raise UserError(_(
                 'Cambiar el tipo de operación de este registro está '
                 'prohibido en este punto.'))
+        if nuevo_tipo:
+            for picking in self:
+                if picking.picking_type != nuevo_tipo:
+                    if nuevo_tipo.sequence_id is not None:
+                        picking.write({
+                            'name': nuevo_tipo.sequence_id.next_by_id()})
+                    vals['location'] = nuevo_tipo.default_location_src
+                    vals['location_dest'] = nuevo_tipo.default_location_dest
+        res = super().write(vals)
 
-        nuevo_tipo = vals.get('picking_type')
-        if nuevo_tipo is not None and nuevo_tipo != self.picking_type:
-            if nuevo_tipo.sequence_id is not None:
-                self.name = nuevo_tipo.sequence_id.next_by_id()
-            vals.setdefault('location', nuevo_tipo.default_location_src)
-            vals.setdefault(
-                'location_dest', nuevo_tipo.default_location_dest)
-
-        for nombre, valor in vals.items():
-            setattr(self, nombre, valor)
-        self.save()
-
-        stock_move = apps.get_model('stock', 'StockMove')
-        if 'date_done' in vals:
-            stock_move.objects.filter(
-                picking=self, state=self.STATE_DONE,
-            ).update(date=vals['date_done'])
+        if vals.get('date_done'):
+            for picking in self:
+                if picking.state == self.STATE_DONE:
+                    picking.move_ids.write({'date': vals['date_done']})
 
         siguientes = {}
-        if 'location' in vals:
+        if vals.get('location'):
             siguientes['location'] = vals['location']
-        if 'location_dest' in vals:
+        if vals.get('location_dest'):
             siguientes['location_dest'] = vals['location_dest']
         if 'partner' in vals:
             siguientes['partner'] = vals['partner']
         if siguientes:
-            stock_move.objects.filter(picking=self).exclude(
-                location_dest__usage=USAGE_INVENTORY,
-            ).update(**siguientes)
+            for picking in self:
+                picking.move_ids.filtered(
+                    lambda move: move.location_dest_usage != USAGE_INVENTORY
+                ).write(siguientes)
+        return res
 
-        return self
-
-    def unlink(self, *args, **kwargs):
-        """≙ ``unlink`` (``odoo19c: :1170-1175``:
+    def unlink(self):
+        """≙ ``unlink`` (``odoo19c: :1170-1173``:
         ``self.move_ids._action_cancel(); self.move_ids.unlink()``).
 
-        Dos fases, en el orden de la fuente — cancelar **todos**, verificar
-        **todos**, recién entonces borrar. La guarda real la trae
-        ``StockMove._unlink_if_draft_or_cancel`` (``stock_move.py:1458-1466``,
-        ≙ ``odoo19c: :2333-2335``): bloquea un movimiento que **no** esté en
-        ``draft``/``cancel`` **y además** esté encadenado
-        (``move_orig_ids``/``move_dest_ids``). Un movimiento ``done`` aislado
-        —sin cadena— sí se cancela y se borra; uno encadenado no, porque
-        borrarlo dejaría la cadena rota.
-
-        **Por qué NO es un simple ``for`` cancelar-y-borrar de una pasada:**
-        borrar el primer movimiento de una cadena hace que el segundo, al
-        revisarse, ya no la vea —``move_dest_ids.exists()`` cambia de valor
-        entre movimientos— y el resultado dependería del orden de iteración.
-        La referencia no tiene ese problema: en Odoo el ``unlink()`` de un
-        recordset verifica la guarda de **todos** los registros contra el
-        estado que tenían al invocarse, antes de borrar el primero. Aquí se
-        replica con tres pasadas explícitas sobre la misma lista materializada,
-        envueltas en una transacción — si la verificación revienta, la
-        cancelación tampoco queda a medias.
-
-        **Por qué se borra uno por uno y no con** ``self.move_ids.all().delete()``:
-        un ``QuerySet.delete()`` de Django es SQL a granel y **no** pasa por
-        ``Model.delete()`` de cada fila — saltaría la guarda entera.
+        Los movimientos de **todos** los albaranes se reúnen en un solo
+        recordset antes de cancelar y borrar: ``StockMove.unlink`` aplica la
+        guarda de cadena (``_unlink_if_draft_or_cancel``, ≙ ``:2333-2335``) a
+        cada movimiento antes de borrar el primero, igual que el ``unlink`` de
+        un recordset en la fuente. Borrar albarán por albarán haría que el
+        movimiento de un segundo albarán, al revisarse, ya no viera la cadena
+        que lo unía al primero. La transacción evita dejar la cancelación a
+        medias si la guarda rechaza el borrado.
         """
-        moves = list(self.move_ids.all())
         with transaction.atomic():
-            for move in moves:
-                move._action_cancel()
-            for move in moves:
-                move._unlink_if_draft_or_cancel()
-            for move in moves:
-                move.delete()
-            return super().delete(*args, **kwargs)
+            move_ids = [
+                move.id for picking in self for move in picking.move_ids
+            ]
+            if move_ids:
+                moves = self[:1].move_ids.browse(move_ids)
+                for move in moves:
+                    move._action_cancel()
+                moves.unlink()
+            return super().unlink()
 
     delete = unlink   # el nombre de Django apunta al de la referencia
 
     @property
     def reference_ids(self):
-        """≙ ``reference_ids`` (``related="move_ids.reference_ids"``, ``odoo19c: :590-591``).
+        """≙ ``reference_ids`` (``related="move_ids.reference_ids"``,
+        ``odoo19c: :590-591``).
 
         Las referencias de un albarán son las de sus movimientos — no tiene
         ninguna propia. Es ``related`` sin ``store`` allá, así que es property
@@ -1716,7 +1808,9 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         ``stock_move._set_references``.
         """
         reference = apps.get_model('stock', 'StockReference')
-        return reference.objects.filter(move_ids__picking_id=self.pk).distinct()
+        return reference.objects.filter(
+            move_ids__picking_id=self.pk
+        ).distinct()
 
     @property
     def is_date_editable(self) -> bool:
@@ -1736,31 +1830,38 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
 
     @property
     def return_count(self):
-        """≙ ``return_count`` / ``_compute_return_count`` (``:569``, ``:1007-1009``)."""
-        return self.return_ids.count()
+        """≙ ``return_count`` / ``_compute_return_count`` (``:569``,
+        ``:1007-1009``).
+        """
+        return len(self.return_ids)
 
     @property
     def has_tracking(self):
-        """≙ ``has_tracking`` / ``_compute_has_tracking`` (``:680``, ``:715-717``)."""
-        return any(m.has_tracking != 'none' for m in self.move_ids.all())
+        """≙ ``has_tracking`` / ``_compute_has_tracking`` (``:680``,
+        ``:715-717``).
+        """
+        return any(m.has_tracking != 'none' for m in self.move_ids)
 
     @property
     def has_scrap_move(self):
-        """≙ ``has_scrap_move`` / ``_has_scrap_move`` (``:618-619``, ``:933-940``)."""
+        """≙ ``has_scrap_move`` / ``_has_scrap_move`` (``:618-619``,
+        ``:933-940``).
+        """
         return any(
             m.location_dest_usage == USAGE_INVENTORY
-            for m in self.move_ids.all())
+            for m in self.move_ids)
 
     @property
     def date_deadline(self):
-        """≙ ``date_deadline`` / ``_compute_date_deadline`` (``:599-600``, ``:917-923``).
+        """≙ ``date_deadline`` / ``_compute_date_deadline`` (``:599-600``,
+        ``:917-923``).
 
         Con envío ``direct`` (parcial en cuanto se pueda), el límite es el más
         temprano de los movimientos abiertos; con ``one`` (todo junto), el
         más tardío.
         """
         fechas = [
-            m.date_deadline for m in self.move_ids.all()
+            m.date_deadline for m in self.move_ids
             if m.state != self.STATE_CANCEL and m.date_deadline is not None
         ]
         if not fechas:
@@ -1769,9 +1870,11 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
 
     @property
     def delay_alert_date(self):
-        """≙ ``delay_alert_date`` / ``_compute_delay_alert_date`` (``:607``, ``:737-742``)."""
+        """≙ ``delay_alert_date`` / ``_compute_delay_alert_date`` (``:607``,
+        ``:737-742``).
+        """
         fechas = [
-            m.delay_alert_date for m in self.move_ids.all()
+            m.delay_alert_date for m in self.move_ids
             if m.delay_alert_date is not None
         ]
         return max(fechas) if fechas else None
@@ -1785,83 +1888,93 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         stock_picking = apps.get_model('stock', 'StockPicking')
         ids = {
             destino.picking_id
-            for m in self.move_ids.all()
+            for m in self.move_ids
             for destino in m.move_dest_ids
             if destino.picking_id is not None
         }
-        propios = set(self.return_ids.values_list('pk', flat=True))
+        propios = set(self.return_ids.ids)
         return stock_picking.objects.filter(
             pk__in=[p for p in ids if p not in propios])
 
     @property
     def show_next_pickings(self) -> bool:
-        """≙ ``show_next_pickings`` / ``_compute_show_next_pickings`` (``:693``, ``:1028-1029``)."""
+        """≙ ``show_next_pickings`` / ``_compute_show_next_pickings``
+        (``:693``, ``:1028-1029``).
+        """
         return self._get_next_transfers().exists()
 
     @property
     def warehouse_address(self):
-        """≙ ``warehouse_address_id`` (``odoo19c: :624``, ``related`` de dos saltos)."""
-        if self.picking_type is None or not self.picking_type.warehouse:
+        """≙ ``warehouse_address_id`` (``odoo19c: :624``, ``related`` de dos
+        saltos).
+        """
+        if not self.picking_type or not self.picking_type.warehouse:
             return None
         return self.picking_type.warehouse.partner
 
     @property
     def picking_type_code(self):
         """≙ ``picking_type_code`` (``odoo19c: :625-627``, ``related``)."""
-        return self.picking_type.code if self.picking_type is not None else None
+        return self.picking_type.code if self.picking_type else None
 
     @property
     def picking_type_entire_packs(self) -> bool:
         """≙ ``picking_type_entire_packs`` (``odoo19c: :628``, ``related``)."""
         return bool(
-            self.picking_type is not None
+            bool(self.picking_type)
             and self.picking_type.show_entire_packs)
 
     @property
     def use_create_lots(self) -> bool:
         """≙ ``use_create_lots`` (``odoo19c: :629``, ``related``).
 
-        ≙ ``_compute_use_create_lots`` (``odoo19c: stock/models/stock_picking.py``).
+        ≙ ``_compute_use_create_lots`` (``odoo19c:
+        stock/models/stock_picking.py``).
         """
         return bool(
-            self.picking_type is not None and self.picking_type.use_create_lots)
+            bool(self.picking_type) and self.picking_type.use_create_lots)
 
     @property
     def use_existing_lots(self) -> bool:
         """≙ ``use_existing_lots`` (``odoo19c: :630``, ``related``).
 
-        ≙ ``_compute_use_existing_lots`` (``odoo19c: stock/models/stock_picking.py``).
+        ≙ ``_compute_use_existing_lots`` (``odoo19c:
+        stock/models/stock_picking.py``).
         """
         return bool(
-            self.picking_type is not None
+            bool(self.picking_type)
             and self.picking_type.use_existing_lots)
 
     @property
     def show_operations(self) -> bool:
         """≙ ``show_operations`` (``odoo19c: :678``, ``related``)."""
         return bool(
-            self.picking_type is not None and self.picking_type.show_operations)
+            bool(self.picking_type) and self.picking_type.show_operations)
 
     @property
     def product(self):
-        """≙ ``product_id`` (``odoo19c: :675``, ``related='move_ids.product_id'``).
+        """≙ ``product_id`` (``odoo19c: :675``,
+        ``related='move_ids.product_id'``).
 
         La referencia relaciona por un one2many — sirve sobre todo para
         búsqueda. Aquí, para lectura, el producto del primer movimiento; sin
         movimientos, ``None``.
         """
-        primero = self.move_ids.first()
-        return primero.product if primero is not None else None
+        primero = self.move_ids[:1]
+        return primero.product if primero else None
 
     @property
     def lot(self):
-        """≙ ``lot_id`` (``odoo19c: :676``, ``related='move_line_ids.lot_id'``)."""
-        primera = self.move_line_ids.first()
-        return primera.lot if primera is not None else None
+        """≙ ``lot_id`` (``odoo19c: :676``,
+        ``related='move_line_ids.lot_id'``).
+        """
+        primera = self.move_line_ids[:1]
+        return primera.lot if primera else None
 
     @property
     def picking_warning_text(self) -> str:
-        """≙ ``picking_warning_text`` / ``_compute_picking_warning_text`` (``:705-708``, ``:1002-1011``).
+        """≙ ``picking_warning_text`` / ``_compute_picking_warning_text``
+        (``:705-708``, ``:1002-1011``).
 
         Concatena el aviso del contacto y, si tiene empresa matriz, el de
         ella. Sin ``self.env.user.has_group('stock.group_warning_stock')`` —
@@ -1900,7 +2013,9 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         inicio_dia_1 = inicio_hoy + datetime.timedelta(days=1)
         inicio_dia_2 = inicio_hoy + datetime.timedelta(days=2)
         inicio_dia_3 = inicio_hoy + datetime.timedelta(days=3)
-        fecha = timezone.localtime(fecha) if timezone.is_aware(fecha) else fecha
+        fecha = (
+            timezone.localtime(fecha) if timezone.is_aware(fecha) else fecha
+        )
         if fecha < inicio_ayer:
             return 'before'
         if fecha < inicio_hoy:
@@ -1947,12 +2062,14 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         return by_category.get(categoria)
 
     def action_confirm(self):
-        """Confirma la transferencia y sus movimientos (Odoo action_confirm)."""
+        """Confirma la transferencia y sus movimientos (Odoo
+        action_confirm).
+        """
         if not self.name:
             self.name = f'WH/{uuid.uuid4().hex[:8].upper()}'
         self.state = self.STATE_CONFIRMED
         self.save(update_fields=['name', 'state', 'write_date'])
-        for move in self.move_ids.all():
+        for move in self.move_ids:
             move._action_confirm()
         return self
 
@@ -1960,13 +2077,13 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         """Reserva/asigna la disponibilidad (Odoo action_assign)."""
         self.state = self.STATE_ASSIGNED
         self.save(update_fields=['state', 'write_date'])
-        for move in self.move_ids.all():
+        for move in self.move_ids:
             move._action_assign()
         return self
 
     def button_validate(self):
         """Valida la transferencia → hecho (Odoo button_validate)."""
-        for move in self.move_ids.all():
+        for move in self.move_ids:
             move._action_done()
         self.state = self.STATE_DONE
         self.save(update_fields=['state', 'write_date'])
@@ -1976,7 +2093,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         """Cancela la transferencia (Odoo action_cancel)."""
         self.state = self.STATE_CANCEL
         self.save(update_fields=['state', 'write_date'])
-        for move in self.move_ids.all():
+        for move in self.move_ids:
             move._action_cancel()
         return self
 
@@ -2023,7 +2140,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         ya hace para ``assigned``.
         """
         stock_move = apps.get_model('stock', 'StockMove')
-        moves = list(self.move_ids.all())
+        moves = list(self.move_ids)
         if not moves or any(m.state == stock_move.STATE_DRAFT for m in moves):
             nuevo_estado = self.STATE_DRAFT
         elif all(m.state == stock_move.STATE_CANCEL for m in moves):
@@ -2062,7 +2179,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         movimientos existentes se realinean al mismo tipo y empresa — evita
         que un albarán en edición arrastre movimientos de un tipo distinto.
         """
-        if self.picking_type is None or self.state != self.STATE_DRAFT:
+        if not self.picking_type or self.state != self.STATE_DRAFT:
             return
         stock_move = apps.get_model('stock', 'StockMove')
         stock_move.objects.filter(picking=self).exclude(
@@ -2082,7 +2199,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         """
         stock_move = apps.get_model('stock', 'StockMove')
         stock_move.objects.filter(picking=self).update(location=self.location)
-        for move in self.move_ids.all():
+        for move in self.move_ids:
             if not move.move_orig_ids.exists():
                 continue
             for ml in move.move_line_ids:
@@ -2128,7 +2245,8 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
                 'default_location_dest': self.location_dest_id,
                 'default_company': self.company_id,
                 'picking_code': self.picking_type_code,
-                'create': self.state not in (self.STATE_DONE, self.STATE_CANCEL),
+                'create': self.state
+                not in (self.STATE_DONE, self.STATE_CANCEL),
             },
         }
 
@@ -2155,7 +2273,8 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         """≙ ``get_empty_list_help`` (``odoo19c: :1079-1084``).
 
         **Divergencia declarada:** sin motor QWeb (``ir.ui.view.
-        _render_template`` no existe en este stack — ver ``ir_template_expressions.py``), el
+        _render_template`` no existe en este stack — ver
+        ``ir_template_expressions.py``), el
         mensaje se arma como texto plano equivalente por tipo de operación.
         """
         if help_message:
@@ -2184,7 +2303,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         """
         if not reference:
             return
-        for move in self.move_ids.all():
+        for move in self.move_ids:
             move.write({'reference_ids': [
                 fields.Command.link(ref.id) for ref in reference]})
 
@@ -2192,7 +2311,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         """≙ ``_remove_reference`` (``odoo19c: :2124-2127``)."""
         if not reference:
             return
-        for move in self.move_ids.all():
+        for move in self.move_ids:
             move.write({'reference_ids': [
                 fields.Command.unlink(ref.id) for ref in reference]})
 
@@ -2317,20 +2436,23 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
 
         **Divergencia declarada:** el render QWeb de la referencia
         (plantilla ``stock.exception_on_picking``) no existe en este stack
-        (sin compilador QWeb activo — ver ``ir_template_expressions.py``); la nota se arma
+        (sin compilador QWeb activo — ver ``ir_template_expressions.py``); la
+        nota se arma
         como texto plano equivalente.
         """
         def keys_in_groupby(move):
-            responsable = move.picking.user if move.picking is not None else None
+            responsable = move.picking.user if move.picking else None
             return (move.picking, responsable)
 
         def render_note(rendering_context):
-            origin_moves = [orig for (orig, _cambio) in rendering_context.values()]
+            origin_moves = [
+                orig for (orig, _cambio) in rendering_context.values()
+            ]
             origin_pickings = {
-                m.picking for m in origin_moves if m.picking is not None}
+                m.picking for m in origin_moves if m.picking}
             move_dest_ids = list(rendering_context.keys())
             destinos_pickings = {
-                m.picking for m in move_dest_ids if m.picking is not None}
+                m.picking for m in move_dest_ids if m.picking}
             impactados = set(
                 self._get_impacted_pickings(move_dest_ids)) - destinos_pickings
             lineas = [
@@ -2367,9 +2489,12 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         plantilla de la empresa, cuando ``stock_move_email_validation`` está
         activo y el tipo de operación es de salida.
         """
-        if self.company is None or not self.company.stock_move_email_validation:
+        if (
+            self.company is None
+            or not self.company.stock_move_email_validation
+        ):
             return
-        if self.picking_type is None or self.picking_type.code != 'outgoing':
+        if not self.picking_type or self.picking_type.code != 'outgoing':
             return
         template = self.company.stock_mail_confirmation_template
         if template is not None:
@@ -2397,14 +2522,15 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         es exactamente ``StockPackage._search_picking_ids``.
         """
         if self.state == self.STATE_DONE:
-            return self.package_history_ids.count()
+            return len(self.package_history_ids)
         StockPackage = apps.get_model('stock', 'StockPackage')
         return StockPackage._search_picking_ids([self]).count()
 
     @property
     def show_check_availability(self):
         """≙ ``show_check_availability`` / ``_compute_show_check_availability``
-        (``odoo19c: addons/stock/models/stock_picking.py:645-647``, ``:964-980``).
+        (``odoo19c: addons/stock/models/stock_picking.py:645-647``,
+        ``:964-980``).
 
         ¿Debe ofrecerse «Comprobar disponibilidad»? Sólo con el albarán en
         confirmado/esperando/disponible, con demanda aún no cubierta, y con
@@ -2413,7 +2539,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         if self.state not in (self.STATE_CONFIRMED, self.STATE_WAITING,
                               self.STATE_ASSIGNED):
             return False
-        moves = list(self.move_ids.all())
+        moves = list(self.move_ids)
         if all(m.picked or m.product_uom_qty == m.quantity for m in moves):
             return False
         return any(
@@ -2444,9 +2570,9 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         terminó) mercancía almacenable de los mismos productos, dentro del
         almacén de este tipo de operación.
         """
-        if picking_type is None or picking_type.code == 'outgoing':
+        if not picking_type or picking_type.code == 'outgoing':
             return False
-        lines = [m for m in self.move_ids.all()
+        lines = [m for m in self.move_ids
                  if m.product is not None and m.product.is_storable
                  and m.state != self.STATE_CANCEL]
         if not lines:
@@ -2455,7 +2581,9 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         if self.state == self.STATE_DONE:
             allowed_states.append('assigned')
         warehouse = picking_type.warehouse
-        view_location = warehouse.view_location if warehouse is not None else None
+        view_location = (
+            warehouse.view_location if warehouse is not None else None
+        )
         if view_location is None:
             # ≙ un ``child_of`` sobre un id falsy en la fuente: conjunto vacío.
             return False
@@ -2486,7 +2614,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
             return None
         StockMoveLine = apps.get_model('stock', 'StockMoveLine')
         return StockMoveLine.action_put_in_pack(
-            list(self.move_line_ids.all()), package_id=package_id,
+            list(self.move_line_ids), package_id=package_id,
             package_type_id=package_type_id, package_name=package_name)
 
     def action_add_entire_packs(self, package_ids):
@@ -2509,15 +2637,17 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
                 tree_domain |= Q(parent_path__startswith=root.parent_path)
         all_packages = StockPackage.objects.filter(tree_domain)
         all_package_ids = set(all_packages.values_list('pk', flat=True))
-        self.move_line_ids.filter(package_id__in=all_package_ids).delete()
+        # ≙ ``odoo19c: addons/stock/models/stock_picking.py:1910``.
+        self.move_line_ids.filtered(
+            lambda ml: ml.package_id in all_package_ids).unlink()
         move_line_vals = self._prepare_entire_pack_move_line_vals(all_packages)
         pack_move_lines = [
             StockMoveLine.objects.create(**vals) for vals in move_line_vals]
         if pack_move_lines:
             StockMoveLine._apply_putaway_strategy(pack_move_lines)
         for container in {
-                l.result_package for l in self.move_line_ids.all()
-                if l.result_package_id is not None}:
+                line.result_package for line in self.move_line_ids
+                if line.result_package_id is not None}:
             container._apply_package_dest_for_entire_packs(
                 allowed_package_ids=all_package_ids)
         return True
@@ -2567,7 +2697,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         descendants = set(
             package.all_children_package_ids.values_list('pk', flat=True))
         lines = [
-            move_line for move_line in self.move_line_ids.all()
+            move_line for move_line in self.move_line_ids
             if move_line.product and move_line.product.is_storable
             and (move_line.package_id == package.pk
                  or move_line.package_id in descendants)]
@@ -2578,7 +2708,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
 
         El destino común de las líneas, o ``False`` si no hay uno solo.
         """
-        location_dest_ids = {l.location_dest_id for l in move_line_ids}
+        location_dest_ids = {line.location_dest_id for line in move_line_ids}
         if len(location_dest_ids) != 1:
             return False
         return next(iter(location_dest_ids))
@@ -2604,12 +2734,12 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
         final, los contenedores completos propagan su propio destino.
         """
         by_package = defaultdict(list)
-        for line in self.move_line_ids.all():
+        for line in self.move_line_ids:
             if line.package_id is not None:
                 by_package[line.package].append(line)
         for package, package_move_lines in by_package.items():
-            transfers = {l.picking for l in package_move_lines
-                         if l.picking_id is not None}
+            transfers = {ml.picking for ml in package_move_lines
+                         if ml.picking_id is not None}
             # ≙ ``pickings._is_single_transfer()`` sobre el recordset: aquí el
             # conjunto de albaranes se compara directo (ver el docstring de
             # ``_is_single_transfer``).
@@ -2631,8 +2761,8 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
                     line.save(
                         update_fields=['result_package', 'is_entire_pack'])
         for container in {
-                l.result_package for l in self.move_line_ids.all()
-                if l.result_package_id is not None}:
+                ml.result_package for ml in self.move_line_ids
+                if ml.result_package_id is not None}:
             container._apply_package_dest_for_entire_packs()
 
     def _prepare_entire_pack_move_line_vals(self, packages):

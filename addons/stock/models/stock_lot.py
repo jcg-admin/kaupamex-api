@@ -912,7 +912,7 @@ class StockLot(models.BaseModel, MailThread, MailActivityMixin,
                     if lote_id in {item.pk for item in siguientes}:
                         entregas.update(ids)
         entregas.update(
-            item.picking.pk for item in esteriles if item.picking is not None
+            item.picking.pk for item in esteriles if item.picking
         )
 
         delivery_by_lot[self.pk] = list(entregas)

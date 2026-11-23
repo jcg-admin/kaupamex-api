@@ -277,7 +277,6 @@ from decimal import Decimal
 import fields
 import api
 import models
-from orm.utils import browse
 from django.apps import apps
 from django.db.models import Q
 from django.utils import timezone
@@ -578,7 +577,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         albaran = self.picking
         tipo = (
             getattr(albaran, 'picking_type', None)
-            if albaran is not None
+            if albaran
             else None
         )
         if tipo is not None and rastreado:
@@ -593,7 +592,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         **Bloqueado:** ``StockPicking`` aún no declara ``partner`` (tarea
         #330).
         """
-        return self.picking.partner if self.picking is not None else None
+        return self.picking.partner if self.picking else None
 
     @property
     def move_partner(self):
@@ -618,7 +617,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         en falso.
         """
         albaran = self.picking
-        return albaran.picking_type if albaran is not None else None
+        return albaran.picking_type if albaran else None
 
     @classmethod
     def _search_picking_type_id(cls, operator, value):
@@ -712,12 +711,12 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         """≙ ``picking_location_id`` (``related='picking_id.location_id'``,
         ``:95``).
         """
-        return self.picking.location if self.picking is not None else None
+        return self.picking.location if self.picking else None
 
     @property
     def picking_location_dest(self):
         """≙ ``picking_location_dest_id`` (related, ``:96``)."""
-        return self.picking.location_dest if self.picking is not None else None
+        return self.picking.location_dest if self.picking else None
 
     # ------------------------------------------------------------------ #
     # Campos calculados y almacenados (≙ los cinco `compute` con store)    #
@@ -804,7 +803,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         Aquí ``_origin`` es la fila persistida: se lee sólo si la línea ya
         existe, porque una línea nueva no tiene contra qué comparar.
         """
-        movimiento, albaran = self.move or None, self.picking
+        movimiento, albaran = self.move or None, self.picking or None
         del_movimiento = getattr(movimiento, 'location_id', None)
         del_albaran = getattr(albaran, 'location_id', None)
         dest_movimiento = getattr(movimiento, 'location_dest_id', None)
@@ -814,7 +813,8 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         if self.pk:
             origen = type(self).objects.filter(pk=self.pk).select_related(
                 'picking').first()
-        albaran_previo = origen.picking if origen is not None else None
+        albaran_previo = (
+            (origen.picking or None) if origen is not None else None)
 
         # La rama "el albarán cambió" sólo aplica a líneas EXISTENTES: en una
         # nueva no hay ``_origin`` y dispararía siempre, pisando el valor que
@@ -960,7 +960,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
                         self.location,
                         (
                             self.picking.location
-                            if self.picking is not None
+                            if self.picking
                             else None
                         ),
                     )
@@ -1112,7 +1112,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
             )
             or (
                 getattr(albaran, 'location_dest', None)
-                if albaran is not None
+                if albaran
                 else None
             )
             or self.location_dest
@@ -1462,7 +1462,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
                 siguientes.update(
                     m.pk for m in ml.move.move_dest_ids
                     if m.state not in TERMINAL_STATES)
-                if ml.picking is not None:
+                if ml.picking:
                     ml._log_message(
                         ml.picking, ml, 'stock.track_move_template', vals
                     )
@@ -1832,7 +1832,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         albaran = (
             self.move.picking if self.move else None
         ) or self.picking
-        if albaran is None:
+        if not albaran:
             return type(self).objects.none()
         return type(self).objects.filter(
             picking=albaran, product_id=self.product_id,
@@ -1975,7 +1975,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
             :1012-1018``).
             """
             fecha = None
-            if cand.picking is not None:
+            if cand.picking:
                 fecha = getattr(cand.picking, 'scheduled_date', None)
             if fecha is None and cand.move:
                 fecha = getattr(cand.move, 'date', None)
@@ -2082,7 +2082,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         picking_model = apps.get_model('stock', 'StockPicking')
 
         pendientes = set()
-        actuales = {line.picking for line in lines if line.picking is not None}
+        actuales = {line.picking for line in lines if line.picking}
         while actuales:
             siguientes = set()
             for albaran in actuales:
@@ -2161,7 +2161,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         # validar parcialmente se parten y el trozo pendiente queda sin líneas.
         move_model = apps.get_model('stock', 'StockMove')
         albaranes = {
-            line.picking for line in lines if line.picking is not None
+            line.picking for line in lines if line.picking
         } | pendientes
         for empty_move in move_model.objects.filter(picking__in=albaranes):
             saltar = False
@@ -2282,7 +2282,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
             'product_id': self.product_id,
             'product_uom_qty': (
                 0
-                if albaran is not None and albaran.state != 'done'
+                if albaran and albaran.state != 'done'
                 else self.quantity
             ),
             'product_uom': self.product_uom_id,
@@ -2425,7 +2425,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
 
         for package_id, grupo in por_paquete.items():
             albaranes = {
-                line.picking for line in grupo if line.picking is not None
+                line.picking for line in grupo if line.picking
             }
             for albaran in albaranes:
                 paquete = grupo[0].package
@@ -2479,9 +2479,11 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
             )
             linea.save()
 
-        cls.objects.filter(pk__in=[line.pk for line in lines]).update(
-            result_package=paquete
-        )
+        # ≙ ``self.write({'result_package_id': package.id})``
+        # (``odoo19c: addons/stock/models/stock_move_line.py:1111``).
+        if lines:
+            lines[0].browse([line.pk for line in lines]).write(
+                {'result_package': paquete})
         return paquete
 
     @classmethod
@@ -2693,7 +2695,7 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
         hace falta y no donde ya sobra.
         """
         albaran = self.picking
-        if albaran is None:
+        if not albaran:
             return []
         move_model = apps.get_model('stock', 'StockMove')
         candidatos = list(move_model.objects.filter(

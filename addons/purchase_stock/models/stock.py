@@ -291,10 +291,10 @@ def picking_purchase(self):
     Es ``related='move_ids.purchase_line_id.order_id'``: no una columna, sino
     la proyección de la orden de compra sobre los movimientos del albarán. La
     fuente toma el primero (un ``related`` sobre un to-many se queda con uno);
-    aquí se hace explícito con ``.first()``.
+    aquí se hace explícito con ``[:1]``.
     """
-    move = self.move_ids.exclude(purchase_line__isnull=True).first()
-    return move.purchase_line.order_id if move is not None else None
+    move = self.move_ids.filtered(lambda move: move.purchase_line)[:1]
+    return move.purchase_line.order_id if move else None
 
 
 def _compute_effective_date(self):

@@ -53,7 +53,7 @@ class TestPickingAnchorsToCanonical:
         picking.refresh_from_db()
         assert picking.sale_order_id == sale_order.pk
         assert picking.state == StockPicking.STATE_ASSIGNED
-        assert list(sale_order.pickings.all()) == [picking]
+        assert list(sale_order.pickings) == [picking]
 
     def test_sale_order_fk_is_nullable_for_legacy_rows(self, db):
         picking = StockPicking.objects.create(state=StockPicking.STATE_DRAFT)
@@ -68,7 +68,7 @@ class TestInPreparationIsProjectable:
         self, sale_order
     ):
         # PAID: sin albarán, sin guía.
-        assert not sale_order.pickings.exists()
+        assert not sale_order.pickings
         assert not hasattr(sale_order, 'shipment_guide')
         # Transición a preparación: albarán asignado + delivery_status started.
         picking = StockPicking.objects.create(
@@ -78,9 +78,9 @@ class TestInPreparationIsProjectable:
         delivery = SaleOrderDelivery.objects.create(
             order=sale_order, delivery_status=SaleOrderDelivery.STATUS_STARTED
         )
-        assert sale_order.pickings.filter(
-            state=StockPicking.STATE_ASSIGNED
-        ).exists()
+        assert sale_order.pickings.filtered(
+            lambda picking: picking.state == StockPicking.STATE_ASSIGNED
+        )
         assert delivery.delivery_status == SaleOrderDelivery.STATUS_STARTED
         assert not hasattr(sale_order, 'shipment_guide')
 
@@ -98,7 +98,7 @@ class TestConfirmPopulatesFulfillmentAxis:
             draft, address_data=dict(ADDR), guest_email='v5b@test.mx'
         )
         draft.refresh_from_db()
-        picking = draft.pickings.get()
+        picking = draft.pickings.ensure_one()
         assert picking.state == StockPicking.STATE_ASSIGNED
         assert (
             draft.delivery.delivery_status == SaleOrderDelivery.STATUS_STARTED

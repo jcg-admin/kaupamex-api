@@ -146,12 +146,12 @@ def test_backorder_and_return_of_are_self_referencing(picking_type, company):
         picking_type=picking_type, company=company, backorder=original
     )
     assert dividido.backorder_id == original.pk
-    assert list(original.backorder_ids.all()) == [dividido]
+    assert list(original.backorder_ids) == [dividido]
 
     return_picking = StockPicking.objects.create(
         picking_type=picking_type, company=company, return_of=original
     )
-    assert list(original.return_ids.all()) == [return_picking]
+    assert list(original.return_ids) == [return_picking]
 
 
 def test_owner_field_accepts_a_partner(picking_type, company):
@@ -554,18 +554,22 @@ def test_write_propagates_date_done_to_finished_moves(
     picking_type, company, source, destination, variant
 ):
     """
-    ``:1155-1157`` — ``date_done`` se propaga a los movimientos ya hechos.
+    ``:1150-1151`` — ``date_done`` se propaga a los movimientos de los
+    albaranes hechos, y sólo a ésos.
     """
     picking = StockPicking.objects.create(
         picking_type=picking_type, company=company, state='done'
     )
+    open_picking = StockPicking.objects.create(
+        picking_type=picking_type, company=company, state='assigned'
+    )
     hecho = _move(picking, variant, source, destination, company, state='done')
     pendiente = _move(
-        picking, variant, source, destination, company, state='confirmed'
+        open_picking, variant, source, destination, company, state='confirmed'
     )
 
     when = timezone.now()
-    picking.write({'date_done': when})
+    (picking | open_picking).write({'date_done': when})
 
     hecho.refresh_from_db()
     pendiente.refresh_from_db()

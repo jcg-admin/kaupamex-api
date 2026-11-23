@@ -135,6 +135,7 @@ Divergencias declaradas
    cuatro relaciones que la referencia marca (``product``, ``lot``,
    ``package``, ``owner``, ``picking``, ``location``, ``scrap_location``).
 """
+import api
 import fields
 import models
 from django.db.models import Min
@@ -160,7 +161,7 @@ PRODUCT_UNIT_PRECISION = 'Product Unit'
 SCRAP_SEQUENCE_CODE = 'stock.scrap'
 
 
-class StockScrap(MailThread, TimeStampedModel):
+class StockScrap(models.BaseModel, MailThread, TimeStampedModel):
     """``stock.scrap`` — orden de desecho de una cantidad de producto."""
 
     _name = 'stock.scrap'
@@ -175,66 +176,109 @@ class StockScrap(MailThread, TimeStampedModel):
         (STATE_DONE, 'Hecho'),
     ]
 
-    name             = fields.Char(
-        max_length=64, blank=True, default='',
+    name = fields.Char(
+        max_length=64,
+        blank=True,
+        default='',
         help_text='Referencia, de la secuencia stock.scrap (Odoo name).',
     )
-    company          = fields.Many2one(
-        'base.ResCompany', null=False, on_delete=models.PROTECT, related_name='stock_scraps',
-        db_index=True, help_text='Empresa (Odoo company_id, requerido).',
+    company = fields.Many2one(
+        'base.ResCompany',
+        null=False,
+        on_delete=models.PROTECT,
+        related_name='stock_scraps',
+        db_index=True,
+        help_text='Empresa (Odoo company_id, requerido).',
     )
-    origin           = fields.Char(
-        max_length=255, blank=True, default='',
+    origin = fields.Char(
+        max_length=255,
+        blank=True,
+        default='',
         help_text='Documento de origen (Odoo origin).',
     )
-    product          = fields.Many2one(
-        'product.ProductProduct', null=False, on_delete=models.PROTECT, related_name='scraps',
-        db_index=True, help_text='Producto a desechar (Odoo product_id, requerido).',
+    product = fields.Many2one(
+        'product.ProductProduct',
+        null=False,
+        on_delete=models.PROTECT,
+        related_name='scraps',
+        db_index=True,
+        help_text='Producto a desechar (Odoo product_id, requerido).',
     )
-    product_uom      = fields.Many2one(
-        'uom.Uom', null=False, on_delete=models.PROTECT, related_name='scraps',
+    product_uom = fields.Many2one(
+        'uom.Uom',
+        null=False,
+        on_delete=models.PROTECT,
+        related_name='scraps',
         help_text='Unidad (Odoo product_uom_id, computado y almacenado).',
     )
-    lot              = fields.Many2one(
-        'stock.StockLot', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='scraps', help_text='Lote/serie (Odoo lot_id).',
+    lot = fields.Many2one(
+        'stock.StockLot',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='scraps',
+        help_text='Lote/serie (Odoo lot_id).',
     )
-    package          = fields.Many2one(
-        'stock.StockPackage', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='scraps', help_text='Paquete (Odoo package_id).',
+    package = fields.Many2one(
+        'stock.StockPackage',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='scraps',
+        help_text='Paquete (Odoo package_id).',
     )
-    owner            = fields.Many2one(
-        'base.ResPartner', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='owned_scraps', help_text='Propietario (Odoo owner_id).',
+    owner = fields.Many2one(
+        'base.ResPartner',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='owned_scraps',
+        help_text='Propietario (Odoo owner_id).',
     )
-    picking          = fields.Many2one(
-        'stock.StockPicking', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='scraps', help_text='Albarán de origen (Odoo picking_id).',
+    picking = fields.Many2one(
+        'stock.StockPicking',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='scraps',
+        help_text='Albarán de origen (Odoo picking_id).',
     )
-    location         = fields.Many2one(
-        'stock.StockLocation', null=False, on_delete=models.PROTECT, related_name='scraps_out',
+    location = fields.Many2one(
+        'stock.StockLocation',
+        null=False,
+        on_delete=models.PROTECT,
+        related_name='scraps_out',
         help_text='Ubicación origen, interna '
-                  '(Odoo location_id, computado y almacenado).',
+        '(Odoo location_id, computado y almacenado).',
     )
-    scrap_location   = fields.Many2one(
-        'stock.StockLocation', null=False, on_delete=models.PROTECT, related_name='scraps_in',
+    scrap_location = fields.Many2one(
+        'stock.StockLocation',
+        null=False,
+        on_delete=models.PROTECT,
+        related_name='scraps_in',
         help_text='Ubicación de desecho, de tipo inventory '
-                  '(Odoo scrap_location_id, computado y almacenado).',
+        '(Odoo scrap_location_id, computado y almacenado).',
     )
-    scrap_qty        = fields.Float(
+    scrap_qty = fields.Float(
         default=1.0,
-        help_text='Cantidad a desechar (Odoo scrap_qty, computado y almacenado).',
+        help_text='Cantidad a desechar (Odoo scrap_qty, computado y '
+                  'almacenado).',
     )
-    state            = fields.Selection(
-        max_length=8, choices=STATE_CHOICES, default=STATE_DRAFT,
+    state = fields.Selection(
+        max_length=8,
+        choices=STATE_CHOICES,
+        default=STATE_DRAFT,
         help_text='Estado (Odoo state: draft/done).',
     )
-    date_done        = fields.Datetime(
-        null=True, blank=True, help_text='Fecha de validación (Odoo date_done).',
+    date_done = fields.Datetime(
+        null=True,
+        blank=True,
+        help_text='Fecha de validación (Odoo date_done).',
     )
     should_replenish = fields.Boolean(
         default=False,
-        help_text='Dispara abastecimiento por lo desechado (Odoo should_replenish).',
+        help_text='Dispara abastecimiento por lo desechado (Odoo '
+                  'should_replenish).',
     )
     scrap_reason_tags = fields.Many2many(
         'stock.StockScrapReasonTag', blank=True, related_name='scraps',
@@ -276,7 +320,9 @@ class StockScrap(MailThread, TimeStampedModel):
 
     @property
     def tracking(self):
-        """≙ ``tracking`` (``odoo19c: :29``) — ``related="product_id.tracking"``."""
+        """≙ ``tracking`` (``odoo19c: :29``) —
+        ``related="product_id.tracking"``.
+        """
         return self.product.tracking if self.product_id else None
 
     # --- los cuatro computados almacenados (D-1)
@@ -308,8 +354,12 @@ class StockScrap(MailThread, TimeStampedModel):
                    .filter(company_id=self.company_id)
                    .order_by('pk').first())
         if almacen is None:
-            aviso = StockWarehouse._warehouse_redirect_warning(company=self.company)
-            raise UserError(aviso.get('message') if isinstance(aviso, dict) else str(aviso))
+            aviso = StockWarehouse._warehouse_redirect_warning(
+                company=self.company
+            )
+            raise UserError(
+                aviso.get('message') if isinstance(aviso, dict) else str(aviso)
+            )
         self.location = almacen.lot_stock
 
     def _compute_scrap_location_id(self):
@@ -337,8 +387,8 @@ class StockScrap(MailThread, TimeStampedModel):
         del bucle — mismo efecto aquí sobre el registro.
         """
         self.scrap_qty = 1
-        primero = self.move_ids.order_by('pk').first() if self.pk else None
-        if primero is not None:
+        primero = self.move_ids.sorted('id')[:1] if self.pk else None
+        if primero:
             self.scrap_qty = primero.quantity
 
     def _onchange_serial_number(self):
@@ -363,28 +413,20 @@ class StockScrap(MailThread, TimeStampedModel):
     # --- guardas de ciclo de vida
     # ---------------------------------------------
 
+    @api.ondelete(at_uninstall=False)
     def _unlink_except_done(self):
         """≙ ``_unlink_except_done`` (``odoo19c: :120-123``).
 
         «You cannot delete a scrap which is done.» El desecho validado ya movió
         existencias reales: borrarlo dejaría el ``stock.move`` sin dueño.
+        ``BaseModel.unlink`` lo invoca sobre el recordset antes de borrar.
         """
-        if self.state == self.STATE_DONE:
+        if self.STATE_DONE in self.mapped('state'):
             raise UserError(_('You cannot delete a scrap which is done.'))
 
-    def delete(self, *args, **kwargs):
-        """Aplica ``_unlink_except_done`` antes de borrar.
-
-        La referencia lo declara con ``@api.ondelete(at_uninstall=False)``, que
-        su ORM invoca en el ``unlink``. Aquí el punto equivalente es el
-        ``delete()`` del modelo: ese decorador **no** es un gancho de
-        desinstalación que se pueda omitir, es la guarda del borrado.
-        """
-        self._unlink_except_done()
-        return super().delete(*args, **kwargs)
-
     def _check_company(self):
-        """Coherencia de empresa de las relaciones ``check_company=True`` — D-6.
+        """Coherencia de empresa de las relaciones ``check_company=True`` —
+        D-6.
 
         La referencia lo obtiene declarando ``check_company=True`` en siete
         campos y llamando a ``self._check_company()`` en ``do_scrap``
@@ -401,10 +443,13 @@ class StockScrap(MailThread, TimeStampedModel):
                 continue
             ajena = getattr(relacionado, 'company_id', None)
             if ajena and ajena != self.company_id:
-                raise UserError(_(
-                    'The company of %(field)s does not match the company of the scrap.',
-                    field=campo,
-                ))
+                raise UserError(
+                    _(
+                        'The company of %(field)s does not match the company '
+                        'of the scrap.',
+                        field=campo,
+                    )
+                )
 
     def save(self, *args, **kwargs):
         """Recalcula los cuatro campos almacenados antes de escribir — D-1."""
@@ -428,7 +473,9 @@ class StockScrap(MailThread, TimeStampedModel):
         (``:147``) se conserva comentado — la referencia lo dejó así.
         """
         return {
-            'origin': self.origin or (self.picking.name if self.picking_id else '') or self.name,
+            'origin': self.origin
+            or (self.picking.name if self.picking_id else '')
+            or self.name,
             'company_id': self.company_id,
             'product_id': self.product_id,
             'product_uom_id': self.product_uom_id,
@@ -437,16 +484,18 @@ class StockScrap(MailThread, TimeStampedModel):
             'location_id': self.location_id,
             'scrap_id': self.pk,
             'location_dest_id': self.scrap_location_id,
-            'move_line_ids': [{
-                'product_id': self.product_id,
-                'product_uom_id': self.product_uom_id,
-                'quantity': self.scrap_qty,
-                'location_id': self.location_id,
-                'location_dest_id': self.scrap_location_id,
-                'package_id': self.package_id,
-                'owner_id': self.owner_id,
-                'lot_id': self.lot_id,
-            }],
+            'move_line_ids': [
+                {
+                    'product_id': self.product_id,
+                    'product_uom_id': self.product_uom_id,
+                    'quantity': self.scrap_qty,
+                    'location_id': self.location_id,
+                    'location_dest_id': self.scrap_location_id,
+                    'package_id': self.package_id,
+                    'owner_id': self.owner_id,
+                    'lot_id': self.lot_id,
+                }
+            ],
             # 'restrict_partner_id': self.owner_id,
             'picked': True,
             'picking_id': self.picking_id,
@@ -473,7 +522,9 @@ class StockScrap(MailThread, TimeStampedModel):
         aquí se pasa como argumento a ``_action_done``.
         """
         self._check_company()
-        self.name = IrSequence.next_by_code(SCRAP_SEQUENCE_CODE, company=self.company) or _('New')
+        self.name = IrSequence.next_by_code(
+            SCRAP_SEQUENCE_CODE, company=self.company
+        ) or _('New')
         movimiento = self._create_scrap_move()
         movimiento._action_done()
         self.state = self.STATE_DONE
@@ -492,7 +543,9 @@ class StockScrap(MailThread, TimeStampedModel):
         """
         StockRule = self._meta.apps.get_model('stock', 'StockRule')
         valores = dict(values or {})
-        valores.setdefault('context', clean_context(valores.get('context') or {}))
+        valores.setdefault(
+            'context', clean_context(valores.get('context') or {})
+        )
         return StockRule.run([StockRule.Procurement(
             self.product,
             self.scrap_qty,
@@ -518,7 +571,7 @@ class StockScrap(MailThread, TimeStampedModel):
         """≙ ``action_get_stock_move_lines`` (``odoo19c: :188-191``) — D-4."""
         return {
             'xml_id': 'stock.stock_move_line_action',
-            'domain': [('move_id', 'in', list(self.move_ids.values_list('pk', flat=True)))],
+            'domain': [('move_id', 'in', self.move_ids.ids)],
         }
 
     # --- los dos gates del desecho

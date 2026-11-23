@@ -2434,7 +2434,7 @@ class StockMove(models.BaseModel, TimeStampedModel):
             # ``_update_candidate_moves_list`` mete el ``attname`` del albarán
             # (un entero), no el objeto: es lo que hace hashable al conjunto.
             return list(type(self).objects.filter(picking=group))
-        return list(group.move_ids.all())
+        return list(group.move_ids)
 
     def _apply_merge(self, values):
         """Escribe sobre el superviviente los valores que la fusión calculó.

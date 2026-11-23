@@ -60,9 +60,10 @@ def pickings_of_type(self, picking_type_code=None):
     ``self.pickings`` es el reverso de la FK que este mismo addon cuelga
     sobre ``stock.picking`` (``models/stock_picking.py``).
     """
-    pickings = self.pickings.all()
+    pickings = self.pickings
     if picking_type_code:
-        pickings = pickings.filter(picking_type__code=picking_type_code)
+        pickings = pickings.filtered(
+            lambda picking: picking.picking_type.code == picking_type_code)
     return pickings
 
 

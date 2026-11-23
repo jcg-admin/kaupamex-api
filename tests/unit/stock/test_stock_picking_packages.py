@@ -28,6 +28,8 @@ from decimal import Decimal
 
 import pytest
 
+from orm.commands import Command
+
 from addons.base.models import ResCompany
 from addons.product.models import ProductProduct, ProductTemplate
 from addons.uom.models.uom_uom import Uom
@@ -276,7 +278,7 @@ class TestActionAddEntirePacks:
         # odoo19c :1904-1917
         package, _quant = _package_with_quant(variant, source, qty='4')
         assert picking.action_add_entire_packs([package.pk]) is True
-        lines = list(picking.move_line_ids.all())
+        lines = list(picking.move_line_ids)
         assert len(lines) == 1
         assert lines[0].package_id == package.pk
         assert lines[0].result_package_id == package.pk
@@ -298,8 +300,8 @@ class TestActionAddEntirePacks:
             quantity=Decimal('1'),
         )
         picking.action_add_entire_packs([package.pk])
-        assert not picking.move_line_ids.filter(pk=partial.pk).exists()
-        assert picking.move_line_ids.count() == 1
+        assert partial.id not in picking.move_line_ids.ids
+        assert len(picking.move_line_ids) == 1
 
     def test_done_picking_returns_false(self, picking, variant, source):
         package, _quant = _package_with_quant(variant, source)
@@ -355,7 +357,7 @@ class TestPackagesCount:
         history = StockPackageHistory.objects.create(
             company=company, package=package, package_name=package.name
         )
-        picking.package_history_ids.add(history)
+        history.write({'picking_ids': [Command.link(picking.id)]})
         picking.state = StockPicking.STATE_DONE
         picking.save(update_fields=['state', 'write_date'])
         assert picking.packages_count == 1
@@ -369,8 +371,8 @@ class TestPackagesCount:
         history = StockPackageHistory.objects.create(
             company=company, package=package, package_name=package.name
         )
-        picking.package_history_ids.add(history)
-        assert list(picking.package_history_ids.all()) == [history]
+        history.write({'picking_ids': [Command.link(picking.id)]})
+        assert list(picking.package_history_ids) == [history]
 
 
 class TestShowCheckAvailability:
