@@ -190,7 +190,7 @@ class IrRule(TimeStampedModel):
         max_length=120,
         db_index=True,
         verbose_name='Modelo',
-        help_text="Odoo model_id. Label del modelo, p.ej. 'sale.SaleOrder'.",
+        help_text="Odoo model_id. Identidad del modelo, p.ej. 'sale.order'.",
     )
     #: ≙ ``model_id`` (``odoo19c: ir_rule.py:24``): ``Many2one('ir.model',
     #: index=True, required=True, ondelete='cascade')``, en forma C. Es como
@@ -303,8 +303,9 @@ class IrRule(TimeStampedModel):
             return
         try:
             domain = safe_eval(self.domain_force, self._eval_context())
-            app_label, model_name = self.model_name.split('.', 1)
-            model = apps.get_model(app_label, model_name)
+            model = registry.model_by_key(self.model_name)
+            if model is None:
+                raise LookupError(self.model_name)
             Domain(domain).validate(model)
             model.objects.none().filter(domains.to_q(domain, model))
         except Exception as exc:
@@ -418,7 +419,8 @@ class IrRule(TimeStampedModel):
         if is_su():
             return cls.objects.none()
         qs = cls.objects.filter(
-            model_name=model_name, active=True, **{f'perm_{mode}': True}
+            model_name=registry.identity_for_key(model_name), active=True,
+            **{f'perm_{mode}': True}
         )
         return (
             qs.filter(
@@ -500,9 +502,8 @@ class IrRule(TimeStampedModel):
         if group_domains:
             global_domains.append(Domain.OR(group_domains))
         result = Domain.AND(global_domains)
-        try:
-            model = apps.get_model(model_name)
-        except (LookupError, ValueError):
+        model = registry.model_by_key(model_name)
+        if model is None:
             return result
         return result.optimize(model)
 
@@ -516,9 +517,8 @@ class IrRule(TimeStampedModel):
         FK delegante, que el compilador traduce a la subconsulta del padre.
         Un padre sin reglas no aporta nada, como allá (``if domain := …``).
         """
-        try:
-            model = apps.get_model(model_name)
-        except (LookupError, ValueError):
+        model = registry.model_by_key(model_name)
+        if model is None:
             return
         for parent_name, fk_name in (getattr(model, '_inherits', None)
                                      or {}).items():
@@ -528,7 +528,7 @@ class IrRule(TimeStampedModel):
             if parent is None or fk is None:
                 continue
             domain = cls._compute_domain(
-                parent._meta.label, mode=mode, group_ids=group_ids,
+                registry.identity_of(parent), mode=mode, group_ids=group_ids,
                 user=user)
             if not domain.is_true():
                 yield Domain(fk.name, 'any', domain)
@@ -546,7 +546,7 @@ class IrRule(TimeStampedModel):
         :meth:`_failing_rules`, que es a quien :meth:`_make_access_error`
         pregunta.
         """
-        model_name = queryset.model._meta.label
+        model_name = registry.identity_of(queryset.model)
         domain = cls._compute_domain(
             model_name, mode=mode, group_ids=group_ids, user=user
         )
@@ -576,7 +576,8 @@ class IrRule(TimeStampedModel):
         pks = list(queryset.values_list('pk', flat=True))
         total = len(pks)
         rules = list(
-            cls._get_rules(model._meta.label, mode=mode, group_ids=group_ids)
+            cls._get_rules(registry.identity_of(model), mode=mode,
+                           group_ids=group_ids)
         )
         user_groups = set(group_ids)
 
@@ -634,7 +635,7 @@ class IrRule(TimeStampedModel):
         pueda ofrecer el cambio.
         """
         actor = get_current_user() if user is None else user
-        model = records.model._meta.label
+        model = registry.identity_of(records.model)
         _logger.info(
             'Acceso denegado por reglas de registro — operación: %s, ids: %r, '
             'usuario: %s, modelo: %s',
@@ -879,7 +880,7 @@ class RuleScopedManager(models.AccessManager):
         if is_su():
             return self.get_queryset()
         domain = IrRule._compute_domain(
-            self.model._meta.label,
+            registry.identity_of(self.model),
             mode=mode,
             group_ids=tuple(group_ids),
             user=user,

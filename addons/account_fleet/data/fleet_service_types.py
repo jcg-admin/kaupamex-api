@@ -23,6 +23,8 @@ la referencia (mismo criterio que ``account/data/account_tags.py`` para sus
 tres etiquetas maestras: son datos, no cadenas de interfaz de este puerto).
 """
 
+from orm import registry
+
 #: Nombre del identificador externo, sin el módulo — ≙ el ``id`` del
 #: ``<record>`` de la referencia.
 VENDOR_BILL_SERVICE_NAME = 'data_fleet_service_type_vendor_bill'
@@ -53,7 +55,7 @@ def seed_fleet_service_types(apps, alias):
     """
     FleetServiceType = apps.get_model('fleet', 'FleetServiceType')
     IrModelData = apps.get_model('base', 'IrModelData')
-    label = FleetServiceType._meta.label
+    label = registry.identity_for_key(FleetServiceType._meta.label)
 
     row = (
         IrModelData.objects.using(alias)

@@ -38,6 +38,7 @@ from django.db import DEFAULT_DB_ALIAS
 
 from addons.base.models.ir_model import IrModelData
 from addons.hr.models import HrDepartureReason
+from orm import registry
 
 #: ``(nombre del identificador externo, etiqueta, sequence)`` — el orden y los
 #: tres ``sequence`` son los del XML de la fuente.
@@ -60,7 +61,7 @@ def _seed(departure_reason_model, ir_model_data_model, using):
     la fuente marca su bloque de datos ``noupdate``, así que un cambio del
     usuario sobrevive a la recarga.
     """
-    label = departure_reason_model._meta.label
+    label = registry.identity_for_key(departure_reason_model._meta.label)
     seeded = []
 
     for name, label_text, sequence in DEFAULT_DEPARTURE_REASONS:

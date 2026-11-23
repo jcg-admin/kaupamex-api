@@ -59,7 +59,7 @@ def test_report_spec_accepts_every_declared_report_type(report_type):
     """
     spec = report_catalog.ReportSpec(
         report_name=f'base.test_report_{report_type}',
-        model='base.ResCompany',
+        model='res.company',
         name=f'Reporte de prueba ({report_type})',
         builder=_builder,
         report_type=report_type,

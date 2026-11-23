@@ -19,7 +19,7 @@ pytestmark = pytest.mark.django_db
 
 SPEC = {
     'name': 'Control inactivo',
-    'model_name': 'base.IrCron',
+    'model_name': 'ir.cron',
     'method_name': 'method_direct_trigger',
     'interval_number': 1,
     'interval_type': 'days',
@@ -51,4 +51,4 @@ def test_a_spec_without_the_keys_seeds_an_active_cron_without_id():
     cron, _created = sembrar_cron(apps, 'default', spec)
     assert cron.active is True
     assert not IrModelData.objects.filter(
-        model='base.IrCron', res_id=cron.pk).exists()
+        model='ir.cron', res_id=cron.pk).exists()

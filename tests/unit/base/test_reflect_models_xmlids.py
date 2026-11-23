@@ -36,9 +36,9 @@ def _xmlid_target(module, name):
 
 def test_the_module_models_get_their_xmlid():
     IrModel._reflect_models({'hr'}, module='hr')
-    row = IrModel.objects.get(model='hr.HrEmployee')
+    row = IrModel.objects.get(model='hr.employee')
     assert _xmlid_target('hr', 'model_hr_employee') == (
-        'base.IrModel', row.pk)
+        'ir.model', row.pk)
 
 
 def test_without_a_module_no_xmlid_is_written():

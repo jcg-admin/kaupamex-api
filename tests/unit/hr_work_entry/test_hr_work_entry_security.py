@@ -43,8 +43,8 @@ def test_every_work_entry_model_is_a_base_model(name):
 
 def test_the_acl_and_rules_carry_their_external_ids():
     data = IrModelData.objects.filter(module='hr_work_entry')
-    assert data.filter(model='base.IrModelAccess').count() == 5
-    assert set(data.filter(model='base.IrRule').values_list(
+    assert data.filter(model='ir.model.access').count() == 5
+    assert set(data.filter(model='ir.rule').values_list(
         'name', flat=True)) == {'hr_user_work_entry_employee',
                                 'ir_rule_hr_work_entry_multi_company'}
 

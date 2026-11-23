@@ -43,7 +43,7 @@ def test_res_city_is_a_base_model():
 
 def test_the_acl_is_the_reference_csv_with_its_external_ids():
     xmlids = IrModelData.objects.filter(module='base_address_extended',
-                                        model='base.IrModelAccess')
+                                        model='ir.model.access')
     assert sorted(xmlids.values_list('name', flat=True)) == [
         'access_res_city_group_all', 'access_res_city_group_user']
     row = IrModelAccess.objects.get(

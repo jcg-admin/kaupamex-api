@@ -8,6 +8,7 @@ test transaccional vacíe las tablas (H-API-22). Con una copia en cada sitio,
 una divergiría.
 """
 from django.db import connections
+from orm import registry
 
 XML_MODULE = 'analytic'
 XML_NAME = 'analytic_plan_projects'
@@ -52,5 +53,6 @@ def seed_project_plan(apps, alias):
         key='analytic.project_plan', value=str(plan.pk))
     IrModelData.objects.using(alias).update_or_create(
         module=XML_MODULE, name=XML_NAME,
-        defaults={'model': 'analytic.AccountAnalyticPlan',
-                  'res_id': plan.pk, 'noupdate': True})
+        defaults={
+            'model': registry.identity_for_key('analytic.AccountAnalyticPlan'),
+            'res_id': plan.pk, 'noupdate': True})

@@ -80,6 +80,7 @@ from addons.base.models.properties_base_definition import (
     PropertiesBaseDefinition,
 )
 from orm.domains import Domain
+from orm import registry
 from orm.utils import COLLECTION_TYPES
 from orm.models import FieldSqlMixin
 
@@ -126,10 +127,11 @@ class PropertiesBaseDefinitionMixin(FieldSqlMixin, models.Model):
         """
         El nombre técnico del modelo, tal como lo guarda ``ir.model.fields``.
 
-        La fuente usa ``self._name``; aquí el nombre del modelo en el catálogo
-        es la etiqueta de Django, que es la que ``ir.model.fields`` almacena.
+        La fuente usa ``self._name``; aquí la identidad contractual de
+        :func:`orm.registry.identity_of`, que es el ``_name`` cuando la clase
+        lo declara y la que ``ir.model.fields`` almacena.
         """
-        return f'{cls._meta.app_label}.{cls._meta.object_name}'
+        return registry.identity_of(cls)
 
     def _compute_properties_base_definition_id(self):
         """``_compute_properties_base_definition_id`` — derivado, no columna.

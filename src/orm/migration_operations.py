@@ -9,7 +9,9 @@ como operación de migración, para no abrir una segunda autoridad.
 from django.apps import apps as live_apps
 from django.db import connections, migrations
 from django.db.models import Model
+from psycopg import sql as pg_sql
 
+from orm import registry
 from orm.environments import Environment
 from orm.utils import SUPERUSER_ID, model_field_registry
 
@@ -86,6 +88,76 @@ class ComputeStoredFields(migrations.RunPython):
     def describe(self):
         return (f'Compute {", ".join(self.field_names)} on '
                 f'{self.app_label}.{self.model_name}')
+
+
+class RewriteModelIdentities(migrations.RunPython):
+    """Reescribe una columna que nombra modelos a su identidad contractual.
+
+    ≙ el valor que la fuente guarda en esas columnas: ``'model':
+    model._name`` (``odoo19c: odoo/addons/base/models/ir_model.py:428``).
+    Este árbol guardó la etiqueta de Django (``base.ResPartner``) hasta el
+    corte C3 de ``designs/model-identity-contract.md``; la operación lleva
+    cada valor a :func:`orm.registry.identity_for_key`, que resuelve contra
+    el registro vigente —el mismo criterio que :class:`ComputeStoredFields`:
+    la identidad la declara el código instalado, no el modelo histórico—.
+
+    Un valor que ya es identidad, o que no nombra ningún modelo vigente, se
+    queda como está. Si ``unique_with`` nombra las columnas de una restricción
+    única y la reescritura chocaría con una fila existente, la operación
+    rehúsa y lista los choques en vez de fundir filas que pueden tener
+    referencias propias. La reversa no deshace nada.
+    """
+
+    def __init__(self, table, column, unique_with=None):
+        self.table = table
+        self.column = column
+        self.unique_with = tuple(unique_with or ())
+        super().__init__(self._rewrite, migrations.RunPython.noop)
+
+    def _rewrite(self, apps, schema_editor):
+        table = pg_sql.Identifier(self.table)
+        column = pg_sql.Identifier(self.column)
+        with schema_editor.connection.cursor() as cr:
+            cr.execute(pg_sql.SQL(
+                'SELECT DISTINCT {col} FROM {tbl} WHERE {col} IS NOT NULL'
+            ).format(col=column, tbl=table))
+            mapping = {}
+            for (value,) in cr.fetchall():
+                identity = registry.identity_for_key(value)
+                if identity != value:
+                    mapping[value] = identity
+            if not mapping:
+                return
+            self._reject_collisions(cr, table, column, mapping)
+            for old, new in mapping.items():
+                cr.execute(pg_sql.SQL(
+                    'UPDATE {tbl} SET {col} = %s WHERE {col} = %s'
+                ).format(tbl=table, col=column), [new, old])
+
+    def _reject_collisions(self, cr, table, column, mapping):
+        """Rehúsa si la reescritura duplicaría una clave única."""
+        if self.column not in self.unique_with:
+            return
+        partners = [
+            pg_sql.Identifier(name) for name in self.unique_with
+            if name != self.column]
+        key = pg_sql.SQL(', ').join(
+            [pg_sql.SQL('a.{}').format(name) for name in partners]
+            or [pg_sql.SQL('1')])
+        on = pg_sql.SQL(' AND ').join(
+            [pg_sql.SQL('b.{0} = a.{0}').format(name) for name in partners]
+            or [pg_sql.SQL('TRUE')])
+        collisions = []
+        for old, new in mapping.items():
+            cr.execute(pg_sql.SQL(
+                'SELECT {key} FROM {tbl} a JOIN {tbl} b ON {on} '
+                'AND b.{col} = %s WHERE a.{col} = %s'
+            ).format(key=key, tbl=table, on=on, col=column), [new, old])
+            collisions.extend((old, new, row) for row in cr.fetchall())
+        if collisions:
+            raise ValueError(
+                f'{self.table}.{self.column}: la identidad contractual ya '
+                f'existe para {len(collisions)} filas: {collisions[:20]!r}')
 
 
 class ConvertColumnTranslatable(migrations.AlterField):

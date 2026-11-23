@@ -45,7 +45,7 @@ from orm.models import AccessQuerySet
 
 pytestmark = pytest.mark.integration
 
-MODEL_LABEL = 'base.ResCompany'
+MODEL_LABEL = 'res.company'
 CODES = ('acqs-alfa', 'acqs-beta', 'acqs-gama')
 
 

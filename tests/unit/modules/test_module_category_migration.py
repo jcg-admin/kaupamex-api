@@ -183,7 +183,7 @@ def test_category_migration_does_not_overwrite_another_models_identity():
         original = identity.objects.create(
             module='base',
             name='module_category_sales',
-            model='base.IrModule',
+            model='ir.module.module',
             res_id=123,
             noupdate=True,
         )
@@ -193,7 +193,7 @@ def test_category_migration_does_not_overwrite_another_models_identity():
                 _migration().apply(state.clone(), editor)
 
         original.refresh_from_db()
-        assert (original.model, original.res_id) == ('base.IrModule', 123)
+        assert (original.model, original.res_id) == ('ir.module.module', 123)
         assert (
             module.objects.get(name='contract_foreign_identity').category
             == 'Sales'

@@ -12,6 +12,8 @@ sobre los modelos históricos porque corre en una migración. Los nombres van
 verbatim en inglés: son datos de la referencia.
 """
 
+from orm import registry
+
 #: ``(nombre del identificador, nombre, código, tipo)``, en el orden del XML.
 MANUAL_PAYMENT_METHODS = (
     ('account_payment_method_manual_in', 'Manual Payment', 'manual',
@@ -25,7 +27,7 @@ def seed_manual_payment_methods(apps, alias):
     """Crea (o respeta) los dos métodos manuales y sus identificadores."""
     AccountPaymentMethod = apps.get_model('account', 'AccountPaymentMethod')
     IrModelData = apps.get_model('base', 'IrModelData')
-    label = AccountPaymentMethod._meta.label
+    label = registry.identity_for_key(AccountPaymentMethod._meta.label)
     methods = AccountPaymentMethod.objects.using(alias)
     seeded = []
     for xmlid, name, code, payment_type in MANUAL_PAYMENT_METHODS:

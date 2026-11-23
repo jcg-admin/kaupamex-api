@@ -58,7 +58,7 @@ def test_the_groups_load():
 def test_the_acl_rows_that_resolve_load():
     """Las 25 de la fuente menos las 11 de modelos sin puerto."""
     assert IrModelData.objects.filter(
-        module='mass_mailing', model='base.IrModelAccess').count() == 14
+        module='mass_mailing', model='ir.model.access').count() == 14
 
 
 def _subscriptions_by_list_age(older_first):

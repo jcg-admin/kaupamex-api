@@ -22,7 +22,7 @@ def _root_id():
 
 def _action():
     return IrActionsServer.objects.create(
-        name='probe', model_name='base.IrCron', method_name='_noop',
+        name='probe', model_name='ir.cron', method_name='_noop',
         state='code', code='')
 
 

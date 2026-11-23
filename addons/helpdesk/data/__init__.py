@@ -13,7 +13,7 @@ equivalente nativo.
 # decisión propia, tomada del comando que hospedaba la lógica.
 CRON_AUTO_CLOSE_TICKETS = {
     'name': 'Helpdesk: cerrar tickets sin actividad',
-    'model_name': 'helpdesk.SupportTicket',
+    'model_name': 'support.ticket',
     'method_name': 'auto_close_stale',
     'xml_id': 'helpdesk.ir_cron_auto_close_ticket',
     'interval_number': 1,

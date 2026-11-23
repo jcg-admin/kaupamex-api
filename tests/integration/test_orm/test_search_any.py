@@ -18,8 +18,8 @@ from orm.utils import SUPERUSER_ID
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 
-LABELS = ('test_orm.TestOrmRelated', 'test_orm.TestOrmRelatedFoo',
-          'test_orm.TestOrmRelatedBar')
+LABELS = ('test_orm.related', 'test_orm.related_foo',
+          'test_orm.related_bar')
 
 
 @pytest.fixture
@@ -46,7 +46,7 @@ def ruled_user(db):
         IrModelAccess.objects.create(
             name=f'any {label}', model_id=row, perm_read=True)
     IrRule.objects.create(
-        name='related_foo sin a', model_name='test_orm.TestOrmRelatedFoo',
+        name='related_foo sin a', model_name='test_orm.related_foo',
         domain_force="[('name', '!=', 'a')]")
     user = get_user_model().objects.create_user(
         login='search.any@kaupamex.mx', password='SearchAny123!')
@@ -89,10 +89,10 @@ def x2many_rules(db):
     """Reglas que ocultan el ``related`` llamado ``r2`` y el ``related_bar``
     llamado ``a``: son los comodelos de ``foo_ids`` y ``bar_ids``."""
     IrRule.objects.create(
-        name='related sin r2', model_name='test_orm.TestOrmRelated',
+        name='related sin r2', model_name='test_orm.related',
         domain_force="[('name', '!=', 'r2')]")
     IrRule.objects.create(
-        name='related_bar sin a', model_name='test_orm.TestOrmRelatedBar',
+        name='related_bar sin a', model_name='test_orm.related_bar',
         domain_force="[('name', '!=', 'a')]")
 
 
@@ -170,7 +170,7 @@ def test_related_inherited(env, records, ruled_user, fname, reaches_hidden):
     Inherits = env['test_orm.related_inherits']
     child = Inherits.create({'base_id': records['via_hidden'].id})
     row, _ = IrModel.objects.get_or_create(
-        model='test_orm.TestOrmRelatedInherits',
+        model='test_orm.related_inherits',
         defaults={'name': 'related_inherits'})
     IrModelAccess.objects.create(
         name='any related_inherits', model_id=row, perm_read=True)
@@ -226,7 +226,7 @@ def _rule(label, domain):
     ('foo_names_sudo', True),
 ])
 def test_related_through_one2many(records, ruled_user, fname, reaches_hidden):
-    _rule('test_orm.TestOrmRelated', "[('name', '!=', 'r2')]")
+    _rule('test_orm.related', "[('name', '!=', 'r2')]")
     shown = records['via_shown'].foo_id
     expected = {shown.id} if reaches_hidden else set()
     assert _foos_as(ruled_user, [(fname, '=', 'r2')]) == expected
@@ -238,7 +238,7 @@ def test_related_through_one2many(records, ruled_user, fname, reaches_hidden):
 ])
 def test_related_through_many2many(env, records, ruled_user, fname,
                                    reaches_hidden):
-    _rule('test_orm.TestOrmRelatedBar', "[('name', '!=', 'z')]")
+    _rule('test_orm.related_bar', "[('name', '!=', 'z')]")
     shown = records['via_shown'].foo_id
     bar = env['test_orm.related_bar'].create({'name': 'z'})
     shown.write({'bar_ids': [bar.id]})

@@ -84,7 +84,7 @@ class TestTheRecordRulesAreThere:
         'name,model_name',
         [
             ('Company Setting multi-company', 'base.CompanySetting'),
-            ('Sales Order multi-company', 'sale.SaleOrder'),
+            ('Sales Order multi-company', 'sale.order'),
             (
                 'Company Module Subscription multi-company',
                 'sale_subscription.CompanyModuleSubscription',
@@ -113,7 +113,7 @@ class TestTheRecordRulesAreThere:
         # que carga un manifiesto siguen su propio XML (``sales_team`` declara
         # ``company_ids + [False]``, también verbatim de su fuente)
         loaded = IrModelData.objects.filter(
-            model='base.IrRule').values_list('res_id', flat=True)
+            model='ir.rule').values_list('res_id', flat=True)
         rules = IrRule.objects.filter(
             name__endswith='multi-company').exclude(pk__in=list(loaded))
         assert rules.exists()

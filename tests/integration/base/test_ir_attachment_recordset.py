@@ -62,11 +62,11 @@ def test_only_the_internal_group_may_create_attachments():
     """≙ las dos filas del CSV: ``group_user`` con los cuatro permisos y la
     global en cero. Sin la primera, nadie fuera del superusuario adjunta."""
     data = IrModelData.objects.get(module='base', name='group_user',
-                                   model='base.ResGroups')
+                                   model='res.groups')
     internal = _user('adjunto.interno@kaupamex.mx')
     internal.group_ids.add(ResGroups.objects.get(pk=data.res_id))
     outsider = _user('adjunto.fuera@kaupamex.mx')
-    label = 'base.IrAttachment'
+    label = 'ir.attachment'
     assert label in IrModelAccess._get_allowed_models('create', user=internal)
     assert label not in IrModelAccess._get_allowed_models('create',
                                                           user=outsider)

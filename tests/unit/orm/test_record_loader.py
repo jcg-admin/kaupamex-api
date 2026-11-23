@@ -64,7 +64,7 @@ class TestLoadRecords:
         )
         assert records[0].name == 'Uno'
         row = IrModelData.objects.get(module='base', name='rl_one')
-        assert (row.model, row.res_id) == ('base.ResPartner', records[0].pk)
+        assert (row.model, row.res_id) == ('res.partner', records[0].pk)
 
     def test_a_second_load_updates_instead_of_duplicating(self):
         registry.clear_cache('default')
@@ -93,7 +93,7 @@ class TestLoadRecords:
         records = ResPartner._load_records([{'values': {'name': 'Anonimo'}}])
         assert records[0].pk is not None
         assert not IrModelData.objects.filter(
-            model='base.ResPartner', res_id=records[0].pk
+            model='res.partner', res_id=records[0].pk
         ).exists()
 
     def test_without_an_xmlid_but_with_an_id_it_updates(self):
@@ -116,7 +116,7 @@ class TestLoadRecords:
         # La guarda que impide que un xml_id reutilizado apunte a otra tabla.
         registry.clear_cache('default')
         IrModelData.objects.create(
-            module='base', name='rl_wrong', model='base.ResCompany', res_id=1
+            module='base', name='rl_wrong', model='res.company', res_id=1
         )
         with pytest.raises(ValidationError):
             ResPartner._load_records(

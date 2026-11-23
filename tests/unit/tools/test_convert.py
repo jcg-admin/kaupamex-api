@@ -187,7 +187,7 @@ class TestLoadFromXml:
             _xml(
                 '''
             <odoo>
-              <record id="cv_one" model="base.ResPartner">
+              <record id="cv_one" model="res.partner">
                 <field name="name">Cargado</field>
               </record>
             </odoo>
@@ -207,7 +207,7 @@ class TestLoadFromXml:
             _xml(
                 '''
             <kaupamex>
-              <record id="cv_product_root" model="base.ResPartner">
+              <record id="cv_product_root" model="res.partner">
                 <field name="name">Raiz propia</field>
               </record>
             </kaupamex>
@@ -221,7 +221,7 @@ class TestLoadFromXml:
         registry.clear_cache('default')
         source = '''
             <odoo>
-              <record id="cv_upd" model="base.ResPartner">
+              <record id="cv_upd" model="res.partner">
                 <field name="name">{}</field>
               </record>
             </odoo>
@@ -240,7 +240,7 @@ class TestLoadFromXml:
             _xml(
                 '''
             <odoo>
-              <record id="cv_eval" model="base.ResPartner">
+              <record id="cv_eval" model="res.partner">
                 <field name="name">Con eval</field>
                 <field name="is_company" eval="True"/>
               </record>
@@ -258,11 +258,11 @@ class TestLoadFromXml:
             _xml(
                 '''
             <odoo>
-              <record id="cv_parent" model="base.ResPartner">
+              <record id="cv_parent" model="res.partner">
                 <field name="name">Madre</field>
                 <field name="is_company" eval="True"/>
               </record>
-              <record id="cv_child" model="base.ResPartner">
+              <record id="cv_child" model="res.partner">
                 <field name="name">Hija</field>
                 <field name="parent" ref="cv_parent"/>
               </record>
@@ -283,7 +283,7 @@ class TestLoadFromXml:
             _xml(
                 '''
             <odoo noupdate="1">
-              <record id="cv_keep" model="base.ResPartner">
+              <record id="cv_keep" model="res.partner">
                 <field name="name">A mano</field>
               </record>
             </odoo>
@@ -297,7 +297,7 @@ class TestLoadFromXml:
             _xml(
                 '''
             <odoo noupdate="1">
-              <record id="cv_keep" model="base.ResPartner">
+              <record id="cv_keep" model="res.partner">
                 <field name="name">Del modulo</field>
               </record>
             </odoo>
@@ -314,7 +314,7 @@ class TestLoadFromXml:
             _xml(
                 '''
             <odoo>
-              <record id="cv_gone" model="base.ResPartner">
+              <record id="cv_gone" model="res.partner">
                 <field name="name">Efimero</field>
               </record>
             </odoo>
@@ -327,7 +327,7 @@ class TestLoadFromXml:
             _xml(
                 '''
             <odoo>
-              <delete id="cv_gone" model="base.ResPartner"/>
+              <delete id="cv_gone" model="res.partner"/>
             </odoo>
         '''
             ),
@@ -394,11 +394,11 @@ class TestLoadFromXml:
             _xml(
                 '''
             <odoo auto_sequence="1">
-              <record id="cv_s1" model="base.IrUiMenu">
+              <record id="cv_s1" model="ir.ui.menu">
                 <field name="name">Uno</field>
                 <field name="key">cv_seq_uno</field>
               </record>
-              <record id="cv_s2" model="base.IrUiMenu">
+              <record id="cv_s2" model="ir.ui.menu">
                 <field name="name">Dos</field>
                 <field name="key">cv_seq_dos</field>
               </record>

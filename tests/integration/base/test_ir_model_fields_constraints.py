@@ -46,7 +46,7 @@ from exceptions import UserError
 
 pytestmark = pytest.mark.integration
 
-MODEL_LABEL = 'base.IrModelData'
+MODEL_LABEL = 'ir.model.data'
 
 
 def _model_row(label=MODEL_LABEL):
@@ -240,7 +240,7 @@ class TestWriteGuard:
     def test_the_model_of_a_field_cannot_change(self, db):
         row = _field('x_mueve')
         other, _ = IrModel.objects.get_or_create(
-            model='base.IrModel', defaults={'name': 'Modelo'}
+            model='ir.model', defaults={'name': 'Modelo'}
         )
         row.model_id = other
         with pytest.raises(UserError, match='modelo'):

@@ -37,8 +37,8 @@ class TestTheWarningIsSilentWhenNothingIsWrong:
         assert _action().warning is False
 
     def test_a_child_with_the_same_model_does_not_warn(self):
-        parent = _action(model_name='base.ResPartner')
-        _action(model_name='base.ResPartner', parent=parent)
+        parent = _action(model_name='res.partner')
+        _action(model_name='res.partner', parent=parent)
 
         assert parent.warning is False
 
@@ -48,23 +48,23 @@ class TestTheModelBranch:
     """≙ *"Following child actions should have the same model"*."""
 
     def test_a_child_with_another_model_warns(self):
-        parent = _action(model_name='base.ResPartner')
-        _action(name='Hija', model_name='base.ResCountry', parent=parent)
+        parent = _action(model_name='res.partner')
+        _action(name='Hija', model_name='res.country', parent=parent)
 
         assert 'Hija' in parent.warning
 
     def test_the_message_names_the_model_of_the_parent(self):
-        parent = _action(model_name='base.ResPartner')
-        _action(name='Hija', model_name='base.ResCountry', parent=parent)
+        parent = _action(model_name='res.partner')
+        _action(name='Hija', model_name='res.country', parent=parent)
 
-        assert 'base.ResPartner' in parent.warning
+        assert 'res.partner' in parent.warning
 
     def test_a_parent_without_model_does_not_warn(self):
         """
         La guarda ``if self.model_id`` de la fuente: sin modelo no compara.
         """
         parent = _action()
-        _action(name='Hija', model_name='base.ResCountry', parent=parent)
+        _action(name='Hija', model_name='res.country', parent=parent)
 
         assert parent.warning is False
 
@@ -77,9 +77,9 @@ class TestTheRecursiveBranch:
         """El caso que exige la recursión: sin ella el abuelo no se entera."""
         grandparent = _action(name='Abuela')
         parent = _action(
-            name='Madre', model_name='base.ResPartner', parent=grandparent
+            name='Madre', model_name='res.partner', parent=grandparent
         )
-        _action(name='Nieta', model_name='base.ResCountry', parent=parent)
+        _action(name='Nieta', model_name='res.country', parent=parent)
 
         assert 'Madre' in grandparent.warning
 
@@ -97,11 +97,11 @@ class TestCheckChildrenRefusesTheSave:
     """La mitad que faltaba: guardar con una hija en aviso se rechaza."""
 
     def test_saving_with_a_warning_child_is_refused(self):
-        parent = _action(name='Madre', model_name='base.ResPartner')
-        _action(name='Hija', model_name='base.ResCountry', parent=parent)
+        parent = _action(name='Madre', model_name='res.partner')
+        _action(name='Hija', model_name='res.country', parent=parent)
         nieta_parent = IrActionsServer.objects.get(pk=parent.pk)
         _action(
-            name='Nieta', model_name='base.ResCountry', parent=nieta_parent
+            name='Nieta', model_name='res.country', parent=nieta_parent
         )
 
         grandparent = _action(name='Abuela')
@@ -112,8 +112,8 @@ class TestCheckChildrenRefusesTheSave:
             grandparent.save()
 
     def test_saving_without_warning_children_is_allowed(self):
-        parent = _action(name='Madre', model_name='base.ResPartner')
-        _action(name='Hija', model_name='base.ResPartner', parent=parent)
+        parent = _action(name='Madre', model_name='res.partner')
+        _action(name='Hija', model_name='res.partner', parent=parent)
 
         parent.name = 'Madre editada'
         parent.save()

@@ -53,7 +53,7 @@ def test_every_onboarding_model_is_a_base_model(name):
 
 def test_the_acl_is_the_reference_csv_with_its_external_ids():
     xmlids = IrModelData.objects.filter(module='onboarding',
-                                        model='base.IrModelAccess')
+                                        model='ir.model.access')
     assert xmlids.count() == 12
     row = IrModelAccess.objects.get(
         pk=xmlids.get(name='access_onboarding_step_manager').res_id)

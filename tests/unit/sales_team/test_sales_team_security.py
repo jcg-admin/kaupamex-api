@@ -52,8 +52,8 @@ def test_the_groups_imply_one_another_as_in_the_source():
 
 def test_the_acl_and_rules_carry_their_external_ids():
     data = IrModelData.objects.filter(module='sales_team')
-    assert data.filter(model='base.IrModelAccess').count() == 9
-    assert set(data.filter(model='base.IrRule').values_list(
+    assert data.filter(model='ir.model.access').count() == 9
+    assert set(data.filter(model='ir.rule').values_list(
         'name', flat=True)) == {'crm_rule_all_salesteam',
                                 'sale_team_comp_rule'}
 

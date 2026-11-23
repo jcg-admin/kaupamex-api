@@ -16,7 +16,7 @@ from orm.domains import Domain
 
 pytestmark = pytest.mark.django_db
 
-MODEL = 'base.ResCompany'
+MODEL = 'res.company'
 _CODES = ('alfa', 'beta', 'gama')
 
 

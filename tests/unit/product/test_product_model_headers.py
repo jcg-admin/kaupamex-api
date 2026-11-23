@@ -46,7 +46,7 @@ def test_the_named_field_keeps_the_source_name_and_column(model, name):
 
 def test_the_purchase_access_rows_load():
     names = set(IrModelData.objects.filter(
-        module='purchase', model='base.IrModelAccess',
+        module='purchase', model='ir.model.access',
     ).values_list('name', flat=True))
     assert {'access_product_supplierinfo_purchase_manager',
             'access_product_pricelist_item_purchase_manager'} <= names

@@ -408,7 +408,7 @@ class AccessQuerySet(QuerySet):
         deniega devolvería "nada prohibido" si se evaluara primero.
         """
         Access = apps.get_model('base', 'IrModelAccess')
-        label = self.model._meta.label
+        label = registry.identity_of(self.model)
         actor = _acting_user(user)
         if not Access.check(label, operation, raise_exception=False,
                             user=actor):
@@ -564,7 +564,7 @@ class AccessQuerySet(QuerySet):
         records = list(self)
         result = collections.defaultdict(list)
         rows = Data.objects.filter(
-            model=self.model._meta.label,
+            model=registry.identity_of(self.model),
             res_id__in=[record.pk for record in records],
         ).order_by('pk').values_list('module', 'name', 'res_id')
         for module, name, res_id in rows:
@@ -2625,7 +2625,7 @@ class FieldSqlMixin:
         necesariamente tiene sembrado.
         """
         IrModel = apps.get_model('base', 'IrModel')
-        return (IrModel.objects.filter(model=self._meta.label)
+        return (IrModel.objects.filter(model=registry.identity_of(type(self)))
                 .values_list('name', flat=True).first()
                 or self._meta.verbose_name or self._meta.label)
 
@@ -4142,7 +4142,7 @@ class RecordLoaderMixin(FieldSqlMixin):
                 to_create.append(data)
                 continue
             d_id, _d_module, _d_name, d_model, d_res_id, d_noupdate, r_id = row
-            if cls._meta.label != d_model:
+            if registry.identity_of(cls) != d_model:
                 raise ValidationError(
                     f'For external id {xml_id} '
                     f'when trying to create/update a record of model '
@@ -9081,7 +9081,8 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
             actor = self.env.user
             group_ids = tuple(actor._get_group_ids()) if actor else ()
             sec_domain = apps.get_model('base', 'IrRule')._compute_domain(
-                cls._meta.label, 'read', group_ids=group_ids, user=actor)
+                registry.identity_of(cls), 'read', group_ids=group_ids,
+                user=actor)
             sec_domain = sec_domain.optimize_full(self_sudo)
             if sec_domain.is_false():
                 return self.browse()._as_query()
@@ -9322,7 +9323,7 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
         Data = apps.get_model('base', 'IrModelData')
         result = collections.defaultdict(list)
         rows = Data.objects.filter(
-            model=self._meta.label, res_id__in=list(self.ids),
+            model=registry.identity_of(type(self)), res_id__in=list(self.ids),
         ).order_by('pk').values_list('module', 'name', 'res_id')
         for module, name, res_id in rows:
             result[res_id].append('%s.%s' % (module, name))
@@ -9360,7 +9361,7 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
 
         xml_data = collections.defaultdict(list)
         imds = Data.objects.filter(
-            model=self._meta.label, res_id__in=list(self.ids),
+            model=registry.identity_of(type(self)), res_id__in=list(self.ids),
         ).order_by('-pk').values('res_id', 'noupdate', 'module', 'name')
         for imd in imds:
             xml_data[imd['res_id']].append({
@@ -11026,7 +11027,8 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
         )
         IrModelData = apps.get_model('base', 'IrModelData')
         IrModelData.objects.using(self.env.db_alias).bulk_create([
-            IrModelData(module=modname, model=record._name,
+            IrModelData(module=modname,
+                        model=registry.identity_of(type(record)),
                         name=xids[record.id][1], res_id=record.id)
             for record in missing
         ])

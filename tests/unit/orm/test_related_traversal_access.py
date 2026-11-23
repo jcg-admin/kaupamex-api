@@ -23,6 +23,7 @@ from exceptions import AccessError
 from orm.environments import env as current_env
 from orm.environments import sudo, user_scope
 from orm.registry import MODELS_BY_NAME
+from orm import registry
 
 pytestmark = pytest.mark.django_db
 
@@ -51,7 +52,7 @@ def _seed():
         login='related-traversal', password=None, name='related-traversal')
     reader.group_ids.add(group)
     for name in MODELS:
-        label = MODELS_BY_NAME[name]._meta.label
+        label = registry.identity_of(MODELS_BY_NAME[name])
         model = (IrModel.objects.filter(model=label).first()
                  or IrModel.objects.create(model=label, name=name))
         Access.objects.create(name=name, model_id=model, group_id=group,
@@ -59,7 +60,8 @@ def _seed():
                               perm_create=True, perm_unlink=True)
     rule = Rule.objects.create(
         name='hide secret foo',
-        model_name=MODELS_BY_NAME['test_orm.related_foo']._meta.label,
+        model_name=registry.identity_of(
+            MODELS_BY_NAME['test_orm.related_foo']),
         domain_force="[('name', '!=', 'secret-foo')]")
     rule.groups.add(group)
     bar = MODELS_BY_NAME['test_orm.related_bar'].objects.create(name='bar')

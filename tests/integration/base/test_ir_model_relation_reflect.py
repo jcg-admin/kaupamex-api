@@ -42,6 +42,7 @@ from addons.base.models.ir_module import IrModule
 from addons.base.models.res_device import ResDeviceLog
 from exceptions import AccessError
 from orm.environments import sudo
+from orm import registry
 
 pytestmark = pytest.mark.integration
 
@@ -63,7 +64,7 @@ def _reflected_model():
     que usa ``test_ir_model_access_check.py``.
     """
     row, _ = IrModel.objects.get_or_create(
-        model=ResDeviceLog._meta.label,
+        model=registry.identity_of(ResDeviceLog),
         defaults={'name': 'Registro de dispositivo'},
     )
     return row
@@ -80,7 +81,7 @@ class TestReflectRelation:
         )
         assert row.name == TABLE
         assert row.module.name == 'prueba_rel_a'
-        assert row.model.model == ResDeviceLog._meta.label
+        assert row.model.model == registry.identity_of(ResDeviceLog)
 
     def test_reflecting_twice_leaves_one_row(self, db):
         _module('prueba_rel_b')
@@ -102,8 +103,9 @@ class TestReflectRelation:
 
     def test_an_unregistered_model_is_refused_by_name(self, db):
         _module('prueba_rel_c')
-        IrModel.objects.filter(model=ResDeviceLog._meta.label).delete()
-        with pytest.raises(ValueError, match=ResDeviceLog._meta.label):
+        identity = registry.identity_of(ResDeviceLog)
+        IrModel.objects.filter(model=identity).delete()
+        with pytest.raises(ValueError, match=identity):
             IrModelRelation._reflect_relation(
                 ResDeviceLog, TABLE, 'prueba_rel_c'
             )

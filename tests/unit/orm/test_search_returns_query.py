@@ -21,6 +21,7 @@ from orm.environments import Environment
 from orm.utils import SUPERUSER_ID
 from tests.factories.user_factory import UserFactory
 from tools.query import Query
+from orm import registry
 
 pytestmark = pytest.mark.django_db
 
@@ -33,7 +34,7 @@ def env(db, system_user):
 
 
 def _grant(env, model_name):
-    label = env[model_name]._meta.label
+    label = registry.identity_of(env[model_name])
     row, _ = IrModel.objects.get_or_create(
         model=label, defaults={'name': model_name})
     IrModelAccess.objects.create(name=f'read {model_name}', model_id=row,

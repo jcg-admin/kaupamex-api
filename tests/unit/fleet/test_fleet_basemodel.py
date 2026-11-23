@@ -69,7 +69,7 @@ def test_the_groups_and_rules_load():
 def test_the_acl_rows_that_resolve_load():
     """Las 24 de la fuente menos las tres de modelos sin puerto."""
     assert IrModelData.objects.filter(
-        module='fleet', model='base.IrModelAccess').count() == 21
+        module='fleet', model='ir.model.access').count() == 21
 
 
 def test_an_internal_user_without_fleet_rights_cannot_read():

@@ -25,6 +25,7 @@ from orm.utils import SUPERUSER_ID
 from orm.registry import MODELS_BY_NAME
 from tools.convert import convert_file
 from tests.factories.product_factory import make_product
+from orm import registry
 
 pytestmark = pytest.mark.django_db
 
@@ -52,7 +53,7 @@ def _installed(db):
     sin la retirada la prueba mediría la carga de entonces."""
     for model in (IrModelAccess, IrRule):
         rows = IrModelData.objects.filter(module='purchase',
-                                          model=model._meta.label)
+                                          model=registry.identity_of(model))
         model.objects.filter(
             pk__in=list(rows.values_list('res_id', flat=True))).delete()
         rows.delete()

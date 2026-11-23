@@ -18,6 +18,7 @@ from addons.base.models import IrModelData
 from addons.base.models.ir_model import IrModelAccess
 from addons.base.models.ir_rule import IrRule
 import modules.loading as loading
+from orm import registry
 
 pytestmark = pytest.mark.django_db
 
@@ -45,7 +46,7 @@ def _installed(db):
     ciclo. Sin la retirada la prueba mediría la carga de entonces: con el CSV
     fuera del manifest seguía en verde."""
     for model in (IrModelAccess, IrRule):
-        label = model._meta.label
+        label = registry.identity_of(model)
         rows = IrModelData.objects.filter(module='account', model=label)
         model.objects.filter(
             pk__in=list(rows.values_list('res_id', flat=True))).delete()

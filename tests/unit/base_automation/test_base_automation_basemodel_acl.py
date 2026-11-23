@@ -33,7 +33,7 @@ def test_the_automation_rule_is_a_base_model():
 
 def test_the_acl_is_the_reference_csv_with_its_external_id():
     xmlids = IrModelData.objects.filter(module='base_automation',
-                                        model='base.IrModelAccess')
+                                        model='ir.model.access')
     assert xmlids.count() == 1
     row = IrModelAccess.objects.get(
         pk=xmlids.get(name='access_base_automation_config').res_id)

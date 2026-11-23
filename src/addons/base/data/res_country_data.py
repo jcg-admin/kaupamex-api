@@ -341,7 +341,8 @@ def _seed(ResCountry, ResCountryGroup, ResCurrency, IrModelData, using):
         by_xmlid[row['xmlid']] = country
         IrModelData.objects.using(using).update_or_create(
             module='base', name=row['xmlid'],
-            defaults={'model': ResCountry._meta.label,
+            defaults={'model': getattr(ResCountry, '_name', None)
+                      or ResCountry._meta.label,
                       'res_id': country.pk, 'noupdate': True},
         )
 
@@ -350,7 +351,8 @@ def _seed(ResCountry, ResCountryGroup, ResCurrency, IrModelData, using):
             name=row['name'], defaults={'code': row['code']})
         IrModelData.objects.using(using).update_or_create(
             module='base', name=row['xmlid'],
-            defaults={'model': ResCountryGroup._meta.label,
+            defaults={'model': getattr(ResCountryGroup, '_name', None)
+                      or ResCountryGroup._meta.label,
                       'res_id': group.pk, 'noupdate': True},
         )
         members = [by_xmlid[m] for m in row['members'] if m in by_xmlid]

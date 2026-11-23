@@ -67,7 +67,7 @@ def action():
     return IrActionsServer.objects.create(
         name='Tarea con zona',
         state='code',
-        model_name='base.SystemParameter',
+        model_name='ir.config_parameter',
         method_name='noop_test',
     )
 

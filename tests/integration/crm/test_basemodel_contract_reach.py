@@ -19,10 +19,11 @@ from django.contrib.auth import get_user_model
 from exceptions import AccessError, UserError
 from orm.environments import Environment
 from orm.utils import SUPERUSER_ID
+from orm import registry
 
 pytestmark = pytest.mark.integration
 
-LABEL = CrmLead._meta.label
+LABEL = registry.identity_of(CrmLead)
 
 
 @pytest.fixture(autouse=True)

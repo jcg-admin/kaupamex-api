@@ -290,6 +290,7 @@ class PropertiesBaseDefinition(TimeStampedModel):
         El decorador nombra ``using`` además de los dos de la fuente — ver la
         divergencia de clave declarada en la cabecera del módulo.
         """
+        model_name = registry.identity_for_key(model_name)
         row = (
             cls.objects.using(using)
             .filter(

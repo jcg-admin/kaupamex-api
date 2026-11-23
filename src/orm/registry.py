@@ -534,9 +534,11 @@ def model_by_key(key):
 
     - ``'res.partner'`` — el ``_name`` de la referencia, que es la clave de
       :data:`MODELS_BY_NAME`;
-    - ``'base.ResPartner'`` — el *label* de Django, que es lo que guardan las
-      columnas de texto que apuntan a un modelo (``ir_model.model``,
-      ``ir_actions_server.model_name``, ``ir_rule.model_name``).
+    - ``'base.ResPartner'`` — el *label* de Django, que nombra la clase en
+      ``apps.get_model`` y que las columnas de texto que apuntan a un modelo
+      guardaban hasta el corte C3 (``designs/model-identity-contract.md``);
+      hoy guardan :func:`identity_of`, pero el código y los datos de terceros
+      pueden seguir nombrando la clase así.
 
     Devuelve ``None`` si ninguna de las dos resuelve, en vez de levantar: sus
     consumidores leen una **columna**, y una fila puede sobrevivir al modelo
@@ -2444,13 +2446,20 @@ class Registry(Mapping):
         ir_model._reflect_models(app_labels, module=context.get('module'),
                                  using=using)
 
+        # ``_reflect_fields`` es de ``ir.model.fields`` y ``_reflect_inherits``
+        # de ``ir.model.inherit``, como en la fuente (``:755`` y ``:758``):
+        # se piden al registro por su ``_name``, igual que ``ir.model``.
+        ir_fields = self.models.get('ir.model.fields')
+        ir_inherit = self.models.get('ir.model.inherit')
         wanted = {model._meta.label for model in model_classes}
         for row in ir_model.objects.using(using).filter(
-                model__in=[m._name for m in model_classes]):
+                model__in=[identity_of(m) for m in model_classes]):
             if (row.django_model is not None
                     and row.django_model._meta.label in wanted):
-                ir_model._reflect_fields(row)
-                ir_model._reflect_inherits(row)
+                if ir_fields is not None:
+                    ir_fields._reflect_fields(row)
+                if ir_inherit is not None:
+                    ir_inherit._reflect_inherits(row)
 
         selection = self.models.get('ir.model.fields.selection')
         if selection is not None:
@@ -3281,8 +3290,12 @@ def identity_of(model):
     su ``_name`` no se le fabrica uno aquí, y un modelo propio recibe su
     identidad pública en su propia unidad
     (``designs/model-identity-contract.md``).
+
+    Acepta la clase o un registro suyo, como ``record._name`` en la fuente:
+    :func:`name_of` lee el ``__dict__`` de la clase.
     """
-    return name_of(model) or model._meta.label
+    cls = model if isinstance(model, type) else type(model)
+    return name_of(cls) or cls._meta.label
 
 
 def identity_for_key(key):

@@ -16,6 +16,7 @@ import pytest
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.ir_module import IrModuleCategory
 from orm.utils import model_field_registry
+from orm import registry
 
 pytestmark = pytest.mark.integration
 
@@ -27,7 +28,7 @@ def category(db):
 
 def _external_id(record, module, name):
     return IrModelData.objects.create(
-        model=type(record)._meta.label,
+        model=registry.identity_of(type(record)),
         res_id=record.pk,
         module=module,
         name=name,
@@ -90,7 +91,7 @@ class TestTheExternalIdOfACategory:
         identificador del módulo 3.
         """
         IrModelData.objects.create(
-            model='base.IrModule',
+            model='ir.module.module',
             res_id=category.pk,
             module='base',
             name='module_sale',

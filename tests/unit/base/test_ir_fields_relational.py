@@ -101,7 +101,7 @@ class TestTheExternalIdSubfield:
         IrModelData.objects.create(
             module='base',
             name='country_zy',
-            model='base.ResCountry',
+            model='res.country',
             res_id=country.pk,
         )
         field = ResPartner._meta.get_field('country')
@@ -119,7 +119,7 @@ class TestTheExternalIdSubfield:
         IrModelData.objects.create(
             module='base',
             name='country_zy',
-            model='base.ResCountry',
+            model='res.country',
             res_id=country.pk,
         )
         field = ResPartner._meta.get_field('country')
@@ -138,7 +138,7 @@ class TestTheExternalIdSubfield:
         IrModelData.objects.create(
             module='base',
             name='impostor',
-            model='base.ResPartner',
+            model='res.partner',
             res_id=country.pk,
         )
         field = ResPartner._meta.get_field('country')

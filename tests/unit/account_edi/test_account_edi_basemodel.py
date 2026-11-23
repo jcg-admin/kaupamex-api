@@ -35,7 +35,7 @@ def test_each_model_is_a_base_model(name):
 
 def test_the_acl_is_the_reference_csv():
     xmlids = set(IrModelData.objects.filter(
-        module='account_edi', model='base.IrModelAccess',
+        module='account_edi', model='ir.model.access',
     ).values_list('name', flat=True))
     assert xmlids == {
         'access_account_edi_format_readonly',

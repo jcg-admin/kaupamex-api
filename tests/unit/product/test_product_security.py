@@ -17,7 +17,6 @@ adopción de ``BaseModel``
 (``basemodel-adoption-product-attribute-value-0397``).
 """
 import pytest
-from django.apps import apps
 from django.contrib.auth import get_user_model
 
 from addons.base.models import IrModelData, ResCompany
@@ -28,6 +27,7 @@ from addons.product.models import (
 )
 from exceptions import AccessError
 from orm.environments import company_scope, env, sudo
+from orm import registry
 
 
 pytestmark = pytest.mark.django_db
@@ -41,7 +41,7 @@ RULES = {
 
 def _record(module, name):
     data = IrModelData.objects.get(module=module, name=name)
-    return apps.get_model(data.model).objects.get(pk=data.res_id)
+    return registry.model_by_key(data.model).objects.get(pk=data.res_id)
 
 
 def _user(login, company, *groups):
@@ -113,10 +113,10 @@ def test_the_manager_group_follows_the_source():
 
 def test_the_acl_and_rules_carry_their_external_ids():
     data = IrModelData.objects.filter(module='product')
-    assert data.filter(model='base.IrModelAccess').count() == 35
-    assert set(data.filter(model='base.IrRule').values_list(
+    assert data.filter(model='ir.model.access').count() == 35
+    assert set(data.filter(model='ir.rule').values_list(
         'name', flat=True)) == RULES
-    assert data.filter(model='base.IrModel',
+    assert data.filter(model='ir.model',
                        name='model_product_document').exists()
 
 

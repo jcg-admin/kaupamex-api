@@ -281,11 +281,10 @@ class TestAclPermission:
     global, que ignore la de grupo, o que responda ``True`` sin usuario.
     """
 
-    #: El label de Django, que es lo que ``ir_model.model`` guarda en este
-    #: arbol. La primera version de estos casos usaba el nombre punteado de la
-    #: fuente (``ir.ui.view``) y por eso ninguna ACL declarada aqui coincidia
-    #: con la que la guarda consultaba — ver :ref:`h-api-839`.
-    VIEW_LABEL = 'base.IrUiView'
+    #: La identidad que ``ir_model.model`` guarda: el ``_name`` de la fuente
+    #: (``ir.ui.view``). Hasta el corte C3 este árbol guardaba la etiqueta de
+    #: Django, y por eso :ref:`h-api-839` la había fijado aquí.
+    VIEW_LABEL = 'ir.ui.view'
 
     def _acl(self, **extra):
         IrModel = apps.get_model('base', 'IrModel')

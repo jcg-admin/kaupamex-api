@@ -138,7 +138,7 @@ class TestTheDefaultsAreSeeded:
         IrModelData.objects.create(
             module='account',
             name=f'{company.pk}_receivable_test',
-            model='account.AccountAccount',
+            model='account.account',
             res_id=receivable.pk,
         )
         ChartTemplate.set_property_account_defaults(

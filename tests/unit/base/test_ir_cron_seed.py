@@ -45,6 +45,7 @@ from addons.base.models import IrCron
 from addons.helpdesk.data import CRON_AUTO_CLOSE_TICKETS
 from addons.loyalty.data import CRON_EXPIRE_VOUCHERS
 from addons.mail.data import CRON_EMAIL_QUEUE
+from orm import registry
 
 pytestmark = pytest.mark.django_db
 
@@ -83,7 +84,7 @@ def test_cada_job_resuelve_a_un_metodo_real(sembrados):
     """El runner hace getattr(apps.get_model(model_name), method_name)."""
     for cron in sembrados:
         accion = cron.ir_actions_server
-        modelo = apps.get_model(accion.model_name)
+        modelo = registry.model_by_key(accion.model_name)
         assert hasattr(modelo, accion.method_name), (
             f'{accion.model_name} no tiene {accion.method_name}() — la fila de'
             ' ir.cron apunta a un método inexistente'

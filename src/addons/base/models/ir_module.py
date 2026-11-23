@@ -90,14 +90,13 @@ class IrModuleCategory(TimeStampedModel):
           ``_process_end_unlink_record`` de la fuente— y el campo es ``Char``,
           asi que entrega uno.
 
-        DIVERGENCIA declarada, y es la que este arbol ya tenia tomada: la
-        fuente busca por ``('model', '=', self._name)`` —el nombre Odoo— y
-        aqui ``ir.model.data`` guarda el **label de Django**
-        (``ir_model.py:3423`` escribe ``model_cls._meta.label``). Se consulta
-        por el label para no crear una segunda convencion en la misma columna.
+        La fuente busca por ``('model', '=', self._name)``; aqui igual, con la
+        identidad contractual de :func:`orm.registry.identity_of` —el
+        ``_name`` cuando la clase lo declara—, que es la que escribe
+        ``IrModelData._update_xmlids``.
         """
         fila = (apps.get_model('base', 'IrModelData').objects
-                .filter(model=type(self)._meta.label, res_id=self.pk)
+                .filter(model=self._name, res_id=self.pk)
                 .values_list('module', 'name').first())
         self.xml_id = value = f'{fila[0]}.{fila[1]}' if fila else ''
         return value

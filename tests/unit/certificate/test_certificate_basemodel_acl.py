@@ -44,7 +44,7 @@ def test_the_key_declares_its_source_header():
 
 def test_the_acl_is_the_reference_csv_with_its_external_ids():
     loaded = IrModelData.objects.filter(module='certificate',
-                                        model='base.IrModelAccess')
+                                        model='ir.model.access')
     assert sorted(loaded.values_list('name', flat=True)) == [
         'access_certificate_admin', 'access_key_admin']
     for name in ('access_certificate_admin', 'access_key_admin'):

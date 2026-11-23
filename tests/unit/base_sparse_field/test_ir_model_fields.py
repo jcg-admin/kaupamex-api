@@ -226,17 +226,19 @@ def test_a_model_without_sparse_fields_is_skipped():
     """Sin descriptores no se toca la base — la pasada corre en cada modelo.
 
     La fila de ``ir_model`` puede existir ya: la siembra de ACL de ``base``
-    (migración 0096) refleja el modelo. Lo que la prueba mide es que la pasada
-    no escribe ninguna fila de campo.
+    (migración 0096) refleja el modelo, y el reflejo de ``init_models`` ya
+    escribió sus campos. Lo que la prueba mide es que la pasada no escribe
+    ninguna fila de campo: ni crea ni toca las que había.
     """
     modelo, _ = IrModel.objects.get_or_create(
-        model='base.IrModelFields',
+        model='ir.model.fields',
         defaults={'name': 'Campo', 'state': STATE_BASE},
     )
+    before = set(IrModelFields.objects.filter(
+        model='ir.model.fields').values_list('pk', 'write_date'))
     assert reflect_sparse_fields(IrModelFields, modelo) == (0, 0)
-    assert not IrModelFields.objects.filter(
-        model='base.IrModelFields'
-    ).exists()
+    assert set(IrModelFields.objects.filter(
+        model='ir.model.fields').values_list('pk', 'write_date')) == before
 
 
 @pytest.mark.django_db

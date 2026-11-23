@@ -17,6 +17,7 @@ from enum import IntEnum
 from django.apps import apps
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from orm import registry
 
 
 def _category_xml_id(segments):
@@ -91,7 +92,8 @@ def create_categories(cr, categories):
             if identity is not None:
                 category = category_rows.filter(pk=identity.res_id).first()
                 if (
-                    identity.model != category_model._meta.label
+                    identity.model != registry.identity_for_key(
+                        category_model._meta.label)
                     or category is None
                     or category.parent_id != parent_id
                 ):
@@ -110,7 +112,8 @@ def create_categories(cr, categories):
                     module='base',
                     name=xml_id,
                     res_id=category.pk,
-                    model=category_model._meta.label,
+                    model=registry.identity_for_key(
+                        category_model._meta.label),
                     noupdate=True,
                 )
             parent_id = category.pk

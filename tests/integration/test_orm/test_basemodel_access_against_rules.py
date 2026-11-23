@@ -20,12 +20,13 @@ from addons.base.models.ir_rule import IrRule
 from exceptions import AccessError
 from orm.environments import Environment
 from tests.factories.user_factory import UserFactory
+from orm import registry
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 
 
 def _grant(env, model_name, mode='read'):
-    label = env[model_name]._meta.label
+    label = registry.identity_of(env[model_name])
     row, _ = IrModel.objects.get_or_create(
         model=label, defaults={'name': model_name})
     IrModelAccess.objects.create(

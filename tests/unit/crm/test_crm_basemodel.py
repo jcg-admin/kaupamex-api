@@ -44,7 +44,7 @@ def test_the_groups_and_rules_load():
 def test_the_acl_rows_that_resolve_load():
     """Las 32 de la fuente menos las 14 de modelos sin puerto."""
     assert IrModelData.objects.filter(
-        module='crm', model='base.IrModelAccess').count() == 18
+        module='crm', model='ir.model.access').count() == 18
 
 
 def test_an_internal_user_without_sales_rights_cannot_read():

@@ -76,6 +76,8 @@ Condición de cierre: cuando exista una migración de siembra de países en
 migración de datos aparte — no es tarea de este archivo.
 """
 
+from orm import registry
+
 #: ``(xmlid sin módulo, nombre)`` — el orden es el del CSV de la referencia.
 MX_ACCOUNT_TAGS = (
     ('tag_debit_balance_account', 'Debit Balance Account'),
@@ -104,7 +106,7 @@ def seed_l10n_mx_account_tags(apps, alias):
     """
     AccountAccountTag = apps.get_model('account', 'AccountAccountTag')
     IrModelData = apps.get_model('base', 'IrModelData')
-    label = AccountAccountTag._meta.label
+    label = registry.identity_for_key(AccountAccountTag._meta.label)
 
     created = {}
     for name, tag_label in MX_ACCOUNT_TAGS:

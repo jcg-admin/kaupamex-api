@@ -63,7 +63,7 @@ from orm.models import AccessQuerySet
 
 pytestmark = pytest.mark.django_db
 
-MODEL = 'base.ResCompany'
+MODEL = 'res.company'
 
 
 @pytest.fixture

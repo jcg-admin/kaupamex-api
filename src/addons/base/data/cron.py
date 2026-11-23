@@ -24,6 +24,8 @@ se respeta, que es lo que ``noupdate`` garantiza en la referencia.
 
 from django.apps import apps as apps_vivos
 
+from orm import registry
+
 
 def cron_code(spec):
     """El ``code`` que ejecuta el cron de ``spec``: el que declare, o
@@ -130,7 +132,8 @@ def _register_xml_id(ir_model_data, alias, spec, cron):
                else ir_model_data.objects)
     if manager.filter(module=module, name=name).exists():
         return
-    manager.create(module=module, name=name, model='base.IrCron',
+    manager.create(module=module, name=name,
+                   model=registry.identity_for_key('base.IrCron'),
                    res_id=cron.pk, noupdate=True)
 
 
@@ -155,7 +158,7 @@ def _find_seeded_action(ir_model_data, ir_cron, ir_actions_server, alias,
             if cron is not None:
                 return cron.ir_actions_server
     accion, _ = using(ir_actions_server.objects).get_or_create(
-        model_name=spec['model_name'],
+        model_name=registry.identity_for_key(spec['model_name']),
         method_name=spec['method_name'],
         defaults={
             'name': spec['name'],

@@ -62,11 +62,17 @@ def _backfill_local_sales_team(apps, schema_editor):
         module='sales_team', name='salesteam_website_sales').first()
     if reference is None or not reference.res_id:
         return
-    if reference.model.casefold() != teams._meta.label.casefold():
-        raise ValueError('Sales-team XMLID points to a different historical model')
-    team = teams.objects.using(using).filter(pk=reference.res_id, active=True).first()
+    # La fila nombra el modelo por su etiqueta histórica o, desde el corte C3
+    # (designs/model-identity-contract.md), por su identidad ``crm.team``.
+    expected = {teams._meta.label.casefold(), 'crm.team'}
+    if reference.model.casefold() not in expected:
+        raise ValueError(
+            'Sales-team XMLID points to a different historical model')
+    team = teams.objects.using(using).filter(
+        pk=reference.res_id, active=True).first()
     if team is not None:
-        sites.objects.using(using).filter(salesteam__isnull=True).update(salesteam=team.pk)
+        sites.objects.using(using).filter(salesteam__isnull=True).update(
+            salesteam=team.pk)
 
 
 class Migration(migrations.Migration):

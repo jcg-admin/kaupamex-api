@@ -282,7 +282,7 @@ class TestTheWarningGuardOfRun:
         _action(
             name='Hija',
             state='multi',
-            model_name='base.ResCountry',
+            model_name='res.country',
             parent=parent,
         )
 

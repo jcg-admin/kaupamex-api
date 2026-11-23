@@ -78,7 +78,7 @@ pytestmark = pytest.mark.integration
 
 #: El mismo ancla que ``test_ir_model_access_check``: un modelo de ``base`` que
 #: el sembrador de ACL no cubre, para medir el mecanismo y no la semilla.
-MODEL_LABEL = 'base.ResDeviceLog'
+MODEL_LABEL = 'res.device.log'
 
 
 def _acl(mode='read', group=None, active=True, name='acl de prueba'):

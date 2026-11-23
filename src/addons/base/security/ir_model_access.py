@@ -73,6 +73,7 @@ from addons.base.models.ir_model import (
     IrModelData as _IrModelData,
 )
 from addons.base.models.res_groups import ResGroups as _ResGroups
+from orm.registry import identity_for_key
 
 #: ``(nombre, label del modelo, identificador del grupo o None, permisos)``.
 #: Los permisos son ``(read, write, create, unlink)``, copiados del CSV de la
@@ -519,7 +520,8 @@ def _group_by_xmlid(xmlid, using, IrModelData, ResGroups):
     """
     data = (
         IrModelData.objects.using(using)
-        .filter(module='base', name=xmlid, model='base.ResGroups')
+        .filter(module='base', name=xmlid,
+                model=identity_for_key('base.ResGroups'))
         .first()
     )
     if data is None:
@@ -548,7 +550,7 @@ def _seed(registry, IrModel, IrModelAccess, IrModelData, ResGroups, using):
             if group is None:
                 continue
         model_row, _ = IrModel.objects.using(using).get_or_create(
-            model=label,
+            model=identity_for_key(label),
             defaults={'name': model_class._meta.verbose_name or label},
         )
         read, write, create, unlink = perms

@@ -79,7 +79,7 @@ class TestCheckOrder:
     def test_an_order_that_is_not_a_clause_is_refused(self, db):
         row = IrModel(
             name='Prueba',
-            model='base.IrModel',
+            model='ir.model',
             state='base',
             order='drop table ir_model',
         )
@@ -89,7 +89,7 @@ class TestCheckOrder:
     def test_a_field_that_does_not_exist_is_refused(self, db):
         row = IrModel(
             name='Prueba',
-            model='base.IrModel',
+            model='ir.model',
             state='base',
             order='x_inexistente asc',
         )
@@ -99,7 +99,7 @@ class TestCheckOrder:
     def test_a_real_field_of_the_model_is_accepted(self, db):
         row = IrModel(
             name='Prueba',
-            model='base.IrModel',
+            model='ir.model',
             state='base',
             order='model asc, id desc',
         )
@@ -107,7 +107,7 @@ class TestCheckOrder:
 
     def test_the_magic_columns_are_always_accepted(self, db):
         row = IrModel(
-            name='Prueba', model='base.IrModel', state='base', order='id desc'
+            name='Prueba', model='ir.model', state='base', order='id desc'
         )
         row._check_order()
 
@@ -118,7 +118,7 @@ class TestCheckFoldName:
     def test_a_fold_field_that_is_not_a_field_is_refused(self, db):
         row = IrModel(
             name='Prueba',
-            model='base.IrModel',
+            model='ir.model',
             state='base',
             fold_name='x_no_existe',
         )
@@ -128,7 +128,7 @@ class TestCheckFoldName:
     def test_a_real_field_is_accepted_as_fold_field(self, db):
         row = IrModel(
             name='Prueba',
-            model='base.IrModel',
+            model='ir.model',
             state='base',
             fold_name='abstract',
         )

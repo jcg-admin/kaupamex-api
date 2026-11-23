@@ -23,11 +23,11 @@ def test_the_hook_exists_and_is_a_classmethod():
 def test_it_returns_the_columns_of_the_row():
     # La fila de ``ir.model`` de un modelo existe siempre en la fuente, y la
     # siembra de la ACL de ``base`` (``0096``) ya la crea: se toma, no se crea.
-    row, _ = IrModel.objects.get_or_create(model='base.IrModel',
+    row, _ = IrModel.objects.get_or_create(model='ir.model',
                                            defaults={'name': 'Modelo'})
     field = IrModel._meta.get_field('model')
     values = IrModelFields._reflect_field_params(field, row)
-    assert values['model'] == 'base.IrModel'
+    assert values['model'] == 'ir.model'
     assert values['model_id'] == row
     assert values['ttype'] == 'char'
     assert set(values) == {
@@ -52,7 +52,7 @@ def test_reflect_fields_consumes_the_hook():
     no que ``_reflect_fields`` pase por él, que es lo único que lo hace un
     punto de extensión.
     """
-    row, _ = IrModel.objects.get_or_create(model='base.IrModelInherit',
+    row, _ = IrModel.objects.get_or_create(model='ir.model.inherit',
                                            defaults={'name': 'Herencia'})
     original = IrModelFields._reflect_field_params.__func__
 
@@ -67,6 +67,6 @@ def test_reflect_fields_consumes_the_hook():
     finally:
         IrModelFields._reflect_field_params = classmethod(original)
 
-    written = IrModelFields.objects.filter(model='base.IrModelInherit')
+    written = IrModelFields.objects.filter(model='ir.model.inherit')
     assert written.exists()
     assert all(f.field_description == 'MARCA' for f in written)

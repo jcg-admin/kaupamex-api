@@ -88,7 +88,7 @@ def test_campos_faithful_presentes():
 def test_campos_delegados_leen_de_la_accion_servidor():
     accion = _accion(
         name='Enviar recordatorios',
-        model_name='sale.SaleOrder',
+        model_name='sale.order',
         method_name='send_reminders',
     )
     cron = IrCron.objects.create(
@@ -96,7 +96,7 @@ def test_campos_delegados_leen_de_la_accion_servidor():
         nextcall=datetime(2026, 1, 1, tzinfo=dt_timezone.utc),
     )
     assert cron.name == 'Enviar recordatorios'
-    assert cron.model_name == 'sale.SaleOrder'
+    assert cron.model_name == 'sale.order'
     assert cron.method_name == 'send_reminders'
 
 

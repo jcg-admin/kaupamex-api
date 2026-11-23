@@ -177,6 +177,7 @@ from lxml import etree
 
 import fields
 import models
+from orm import registry
 from django.apps import apps
 from django.core.exceptions import ValidationError
 from exceptions import MissingError
@@ -808,7 +809,8 @@ class IrUiView(models.DefaultGetMixin, TimeStampedModel):
             for xmlid in missing_xmlid_views:
                 module, _, name = xmlid.partition('.')
                 domain |= models.Q(module=module, name=name)
-            rows = data_model.objects.filter(domain, model=cls._meta.label)
+            rows = data_model.objects.filter(domain,
+                                             model=registry.identity_of(cls))
             for model_data in rows:
                 view = cls.objects.filter(pk=model_data.res_id).first()
                 if view is not None:

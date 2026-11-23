@@ -36,7 +36,8 @@ def _declare(model_name, module_name):
     Es el rodeo de la fuente: la pertenencia vive en ``ir.model.data``, no en
     un campo del propio ``ir.model``.
     """
-    modelo = IrModel.objects.create(name=model_name, model=model_name)
+    modelo, _ = IrModel.objects.get_or_create(
+        model=model_name, defaults={'name': model_name})
     IrModelData.objects.create(
         name=f'model_{model_name.replace(".", "_")}',
         model='ir.model',

@@ -68,7 +68,7 @@ def test_moving_an_xmlid_marks_its_database_registry(categories):
     _assign(first)
     base.cache_invalidated.clear()
     model, res_id = _assign(second)
-    assert (model, res_id) == ('base.IrModuleCategory', second)
+    assert (model, res_id) == ('ir.module.category', second)
     assert 'default' in base.cache_invalidated
 
 

@@ -33,6 +33,7 @@ from django.db import DEFAULT_DB_ALIAS
 
 from addons.base.models import IrModelData
 from addons.mail.models import MailTemplate
+from orm import registry
 
 #: ≙ ``id="mail_template_base_install_request"`` del ``<record>``, con su
 #: módulo. Es la clave con la que ``action_send_request`` la resuelve, igual
@@ -103,7 +104,8 @@ def seed(using=DEFAULT_DB_ALIAS):
         module=INSTALL_REQUEST_TEMPLATE_MODULE,
         name=INSTALL_REQUEST_TEMPLATE_XMLID,
         defaults={
-            'model': INSTALL_REQUEST_TEMPLATE_MODEL_LABEL,
+            'model': registry.identity_for_key(
+                INSTALL_REQUEST_TEMPLATE_MODEL_LABEL),
             'res_id': plantilla.pk,
             'noupdate': True,
         },

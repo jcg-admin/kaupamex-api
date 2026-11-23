@@ -92,6 +92,7 @@ sobre un ``Many2many`` con un enlace archivado.
 """
 
 import warnings
+from orm import registry
 
 PREFIX = 'grid-persisted-'
 DOMAIN = [('name', '=like', f'{PREFIX}%')]
@@ -545,7 +546,7 @@ def _external_ids(model, chain):
         # el puerto: un modelo de Django, y la columna ``model`` lleva la
         # etiqueta de Django, que es lo que escribe su único escritor
         Data.objects.bulk_create([
-            Data(module='grid', name=name, model=model._meta.label,
+            Data(module='grid', name=name, model=registry.identity_of(model),
                  res_id=res_id) for name, res_id in rows])
     names = {record.id: record.name for record in chain}
     return (sorted((names[key], value)

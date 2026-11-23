@@ -19,6 +19,7 @@ tiene que ser idempotente también sobre la secuencia nativa.
 """
 
 from django.db import connections
+from orm import registry
 
 #: ``(nombre del identificador, nombre, código, prefijo, relleno)``.
 PAYMENT_SEQUENCE = ('seq_account_payment', 'Payment', 'account.payment',
@@ -68,6 +69,7 @@ def seed_payment_sequence(apps, alias):
                                     sequence.number_next)
     IrModelData.objects.using(alias).update_or_create(
         module='account', name=xmlid,
-        defaults={'model': IrSequence._meta.label, 'res_id': sequence.pk,
-                  'noupdate': True})
+        defaults={
+            'model': registry.identity_for_key(IrSequence._meta.label),
+            'res_id': sequence.pk, 'noupdate': True})
     return sequence

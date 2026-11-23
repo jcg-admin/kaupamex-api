@@ -24,6 +24,7 @@ cero activadas la regla da ``IN []`` → cero filas (fail-closed como dato).
 from django.db import DEFAULT_DB_ALIAS
 
 from addons.base.models.ir_rule import IrRule as _IrRule
+from orm import registry
 
 #: El dominio multi-company de la fuente, verbatim.
 DOMAIN_MULTICOMPANY = "[('company_id', 'in', company_ids)]"
@@ -39,7 +40,7 @@ def _seed(IrRule, rules, using):
         IrRule.objects.using(using).get_or_create(
             name=name,
             defaults={
-                'model_name': model_name,
+                'model_name': registry.identity_for_key(model_name),
                 'domain_force': DOMAIN_MULTICOMPANY,
             },
         )

@@ -39,9 +39,9 @@ def test_the_hr_groups_hang_from_their_privilege():
 
 def test_the_access_rows_of_the_source_are_loaded():
     hr_rows = IrModelData.objects.filter(
-        module='hr', model='base.IrModelAccess')
+        module='hr', model='ir.model.access')
     skills_rows = IrModelData.objects.filter(
-        module='hr_skills', model='base.IrModelAccess')
+        module='hr_skills', model='ir.model.access')
     assert hr_rows.count() == 20
     assert skills_rows.count() == 14
     employee_user = _ref('hr.access_hr_employee_user')

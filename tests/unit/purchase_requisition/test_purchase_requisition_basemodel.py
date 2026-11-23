@@ -75,7 +75,7 @@ def test_the_agreement_is_a_mail_thread():
 def test_the_acl_is_the_reference_csv():
     """Sin las dos filas de los asistentes abstractos (manifiesto)."""
     xmlids = set(IrModelData.objects.filter(
-        module='purchase_requisition', model='base.IrModelAccess',
+        module='purchase_requisition', model='ir.model.access',
     ).values_list('name', flat=True))
     assert xmlids == {
         'access_purchase_requisition',

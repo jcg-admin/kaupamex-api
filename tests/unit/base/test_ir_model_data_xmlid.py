@@ -47,7 +47,7 @@ class TestIdaYVuelta:
         IrModelData.set_xmlid(company, 'l10n_mx.company_acme')
         assert IrModelData._xmlid_to_res_model_res_id(
             'l10n_mx.company_acme'
-        ) == ('base.ResCompany', company.pk)
+        ) == ('res.company', company.pk)
 
     def test_el_nombre_puede_llevar_puntos(self, company):
         """

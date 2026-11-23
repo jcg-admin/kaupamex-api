@@ -30,6 +30,8 @@ referencia (mismo criterio que ``account/data/account_tags.py``: son datos,
 no cadenas de interfaz de este puerto).
 """
 
+from orm import registry
+
 #: Nombre del identificador externo, sin el módulo — ≙ el ``id`` del
 #: ``<record>`` de la referencia.
 CHECK_PAYMENT_METHOD_XMLID_NAME = 'account_payment_method_check'
@@ -61,7 +63,7 @@ def seed_check_payment_method(apps, alias):
     """
     AccountPaymentMethod = apps.get_model('account', 'AccountPaymentMethod')
     IrModelData = apps.get_model('base', 'IrModelData')
-    label = AccountPaymentMethod._meta.label
+    label = registry.identity_for_key(AccountPaymentMethod._meta.label)
 
     row = (
         IrModelData.objects.using(alias)

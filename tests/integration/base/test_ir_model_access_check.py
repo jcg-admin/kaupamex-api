@@ -53,8 +53,8 @@ pytestmark = pytest.mark.integration
 #: midan la mecánica de ``check`` y no el contenido de la semilla. Si algún día
 #: entra en la ACL de ``base``, estos casos empiezan a medir dos cosas y hay
 #: que mover el ancla — que es justo lo que pasó con ``ir.ui.view.custom``.
-MODEL_LABEL = 'base.ResDeviceLog'
-MODEL_DOTTED = 'res.device.log'
+MODEL_LABEL = 'res.device.log'
+DJANGO_LABEL = 'base.ResDeviceLog'
 
 
 def _acl(mode='read', group=None, active=True, name='acl de prueba'):
@@ -202,19 +202,16 @@ class TestCheck:
         with sudo():
             assert IrModelAccess.check(MODEL_LABEL, 'unlink', user=who) is True
 
-    def test_the_dotted_reference_name_also_resolves(self, db):
-        """El llamador puede nombrar el modelo como lo nombra la fuente.
+    def test_the_django_label_also_resolves(self, db):
+        """El llamador puede nombrar el modelo por su etiqueta de Django.
 
-        Este árbol guarda el label de Django en ``ir_model.model`` (lo dice su
-        ``help_text`` y de ello depende ``IrModel.django_model``); la fuente
-        usa
-        el nombre punteado. ``check`` normaliza en la puerta con
-        ``orm.registry``, así que el llamador puede escribir cualquiera de los
-        dos y leer igual que su fuente.
+        ``ir_model.model`` guarda la identidad contractual, el ``_name`` de la
+        fuente (``res.device.log``). ``check`` normaliza en la puerta con
+        ``orm.registry``, así que la etiqueta de la clase lee la misma fila.
         """
         _acl('read', group=None)
         who = _user('acl.check.punteado@kaupamex.mx')
-        assert IrModelAccess.check(MODEL_DOTTED, 'read', user=who) is True
+        assert IrModelAccess.check(DJANGO_LABEL, 'read', user=who) is True
 
     def test_without_a_user_only_global_rows_apply(self, db):
         """Sin usuario en contexto no hay grupos: sólo la ACL global abre."""

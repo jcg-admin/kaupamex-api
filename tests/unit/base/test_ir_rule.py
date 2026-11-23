@@ -30,7 +30,7 @@ from tools.safe_eval import safe_eval
 
 pytestmark = pytest.mark.django_db
 
-MODEL = 'base.ResCompany'
+MODEL = 'res.company'
 
 
 def _rule(name, domain='', groups=()):

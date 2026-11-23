@@ -35,7 +35,7 @@ pytestmark = pytest.mark.django_db
 
 def _cron(nextcall_delta=timedelta(minutes=-5)):
     action = IrActionsServer.objects.create(
-        name='Guarda', model_name='base.SystemParameter',
+        name='Guarda', model_name='ir.config_parameter',
         method_name='noop_test', state='code', path=None)
     return IrCron.objects.create(
         ir_actions_server=action,

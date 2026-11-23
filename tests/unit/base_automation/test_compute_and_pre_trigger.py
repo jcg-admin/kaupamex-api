@@ -53,7 +53,7 @@ def _rule(model_label, **values):
 
 def test_the_precondition_sees_the_value_before_the_write(runs):
     partner = ResPartner.objects.create(name='Antes')
-    action = _rule('base.ResPartner',
+    action = _rule('res.partner',
                    filter_pre_domain="[('name', '=', 'Antes')]")
     partner.name = 'Después'
     partner.save()
@@ -62,7 +62,7 @@ def test_the_precondition_sees_the_value_before_the_write(runs):
 
 def test_a_record_that_only_matches_after_the_write_does_not_fire(runs):
     partner = ResPartner.objects.create(name='Otro')
-    _rule('base.ResPartner', filter_pre_domain="[('name', '=', 'Antes')]")
+    _rule('res.partner', filter_pre_domain="[('name', '=', 'Antes')]")
     partner.name = 'Antes'
     partner.save()
     assert runs == []
@@ -90,13 +90,13 @@ def test_each_stored_recompute_method_fires_the_write_rule(runs, calendar):
     ``__action_done`` de la fuente vive en el contexto de cada llamada
     (``base_automation.py:781-797``), así que allí la regla también corre
     una vez por método."""
-    action = _rule('resource.ResourceCalendar')
+    action = _rule('resource.calendar')
     _lengthen_one_attendance(calendar)
     assert runs == [action.pk, action.pk]
 
 
 def test_the_postcondition_filters_the_recomputed_value(runs, calendar):
-    _rule('resource.ResourceCalendar',
+    _rule('resource.calendar',
           filter_domain="[('hours_per_day', '>', 9)]")
     _lengthen_one_attendance(calendar)
     assert runs == []
@@ -105,7 +105,7 @@ def test_the_postcondition_filters_the_recomputed_value(runs, calendar):
 def test_the_postcondition_sees_the_recomputed_value(runs, calendar):
     """Sólo el valor nuevo (41 h) cumple el filtro; la base tenía 40. Sin
     volcar antes de la postcondición, la consulta leería 40 y no correría."""
-    action = _rule('resource.ResourceCalendar',
+    action = _rule('resource.calendar',
                    filter_domain="[('hours_per_week', '>', 40.5)]")
     _lengthen_one_attendance(calendar)
     assert action.pk in runs

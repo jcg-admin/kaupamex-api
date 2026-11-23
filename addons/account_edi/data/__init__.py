@@ -10,7 +10,7 @@
 # acción con ``run()`` (``designs/cron-runs-server-action.md``).
 CRON_EDI_NETWORK = {
     'name': 'EDI: Perform web services operations',
-    'model_name': 'account_edi.AccountEdiDocument',
+    'model_name': 'account.edi.document',
     'method_name': '_cron_process_documents_web_services',
     'interval_number': 1,
     'interval_type': 'days',

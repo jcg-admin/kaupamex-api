@@ -10,7 +10,7 @@
 # ``apps.get_model()``; mismo criterio que ``CRON_AUTOVACUUM`` en ``base``.
 CRON_BACKUP = {
     'name': 'Backup scheduler',
-    'model_name': 'auto_backup.DbBackup',
+    'model_name': 'db.backup',
     'method_name': 'schedule_backup',
     'xml_id': 'auto_backup.backup_scheduler',
     'interval_number': 12,

@@ -27,4 +27,4 @@ def test_the_extending_module_reflects_the_model_with_its_xml_id():
     load_modules(DEFAULT_DB_ALIAS)
     assert IrModelData.objects.filter(
         module='hr_recruitment', name='model_hr_job',
-        model='base.IrModel').exists()
+        model='ir.model').exists()

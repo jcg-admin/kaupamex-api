@@ -46,6 +46,7 @@ from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.res_partner import ResPartner
 from addons.base.models.res_users import ResUsers, _invalidate_group_ids
+from orm import registry
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -80,7 +81,8 @@ def _xmlid(group, name):
     IrModelData.objects.update_or_create(
         module='pruebas',
         name=name,
-        defaults={'model': type(group)._meta.label, 'res_id': group.pk},
+        defaults={'model': registry.identity_of(type(group)),
+                  'res_id': group.pk},
     )
     return f'pruebas.{name}'
 

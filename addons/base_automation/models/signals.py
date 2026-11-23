@@ -63,9 +63,9 @@ def _processing_set():
 
 
 def _model_name(sender):
-    """``app_label.ModelName`` — mismo formato que ``IrModel.model``
-    (ver ``django_model`` property, ``src/addons/base/models/ir_model.py``)."""
-    return f'{sender._meta.app_label}.{sender.__name__}'
+    """La identidad contractual del modelo — la misma que ``IrModel.model``
+    y ``base_automation.model_name`` guardan (:func:`registry.identity_of`)."""
+    return registry.identity_of(sender)
 
 
 def _skip(sender):

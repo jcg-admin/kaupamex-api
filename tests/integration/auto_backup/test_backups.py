@@ -166,7 +166,7 @@ class TestTriggerRunsTheCron:
     def test_trigger_without_a_seeded_cron_503(self, admin_client, config):
         """Sin el cron sembrado no hay nada que disparar, y se dice."""
         IrCron.objects.filter(
-            ir_actions_server__model_name='auto_backup.DbBackup',
+            ir_actions_server__model_name='db.backup',
             ir_actions_server__method_name='schedule_backup',
         ).delete()
         r = admin_client.post(TRIGGER_URL)

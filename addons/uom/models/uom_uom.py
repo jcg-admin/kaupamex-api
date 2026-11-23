@@ -58,6 +58,7 @@ from decimal import Decimal
 import api
 import fields
 import models
+from orm import registry
 from addons.base.models import DecimalPrecision, IrModelData, TimeStampedModel
 from django.utils import timezone
 from exceptions import UserError
@@ -317,7 +318,7 @@ class Uom(models.BaseModel, TimeStampedModel):
             return []
         protected_ids = set(
             IrModelData.objects.filter(
-                model=cls._meta.label,
+                model=registry.identity_of(cls),
                 res_id__in=ids,
                 module=UOM_MASTER_MODULE,
             )

@@ -100,7 +100,7 @@ class TestWhatEachLayerConsumes:
         #: ``get_or_create``: la reflexión de modelos ya siembra la fila y
         #: ``ir_model.model`` es único.
         model_row, _ = IrModel.objects.get_or_create(
-            model='base.ResPartner', defaults={'name': 'Contacto'}
+            model='res.partner', defaults={'name': 'Contacto'}
         )
         automation = BaseAutomation(model_id=model_row)
 
@@ -116,7 +116,7 @@ class TestWhatEachLayerConsumes:
         el NOMBRE del campo. La columna no aparece en ninguna capa de DRF.
         """
         model_row, _ = IrModel.objects.get_or_create(
-            model='base.ResCountry', defaults={'name': 'Pais'}
+            model='res.country', defaults={'name': 'Pais'}
         )
         automation = BaseAutomation(name='A', model_id=model_row)
 
@@ -209,7 +209,7 @@ class TestTheCostThatJustifiesTheSplit:
 
     def test_reading_the_symbol_costs_a_query(self, django_assert_num_queries):
         model_row, _ = IrModel.objects.get_or_create(
-            model='base.ResUsers', defaults={'name': 'Usuario'}
+            model='res.users', defaults={'name': 'Usuario'}
         )
         BaseAutomation.objects.create(name='A', model_id=model_row)
         fresh = BaseAutomation.objects.get(name='A')
@@ -220,7 +220,7 @@ class TestTheCostThatJustifiesTheSplit:
     def test_reading_the_attname_costs_none(self, django_assert_num_queries):
         """El acceso al pk que la referencia no necesita declarar aparte."""
         model_row, _ = IrModel.objects.get_or_create(
-            model='base.ResLang', defaults={'name': 'Idioma'}
+            model='res.lang', defaults={'name': 'Idioma'}
         )
         BaseAutomation.objects.create(name='B', model_id=model_row)
         fresh = BaseAutomation.objects.get(name='B')

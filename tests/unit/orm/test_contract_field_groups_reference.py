@@ -27,6 +27,7 @@ from orm.environments import env as current_env
 from orm.environments import sudo, user_scope
 from orm.registry import MODELS_BY_NAME
 from tests.fixtures import reference_process
+from orm import registry
 
 pytestmark = [pytest.mark.reference, pytest.mark.django_db]
 
@@ -45,7 +46,7 @@ def _seed():
     G, A, IM = (MODELS_BY_NAME[name] for name in (
         'res.groups', 'ir.model.access', 'ir.model'))
     group = G.objects.create(name='field-groups')
-    label = MODELS_BY_NAME[MODEL]._meta.label
+    label = registry.identity_of(MODELS_BY_NAME[MODEL])
     model = (IM.objects.filter(model=label).first()
              or IM.objects.create(model=label, name=MODEL))
     A.objects.create(name='some_access', model_id=model, group_id=group,

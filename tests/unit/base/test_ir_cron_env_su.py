@@ -27,7 +27,7 @@ def seen(monkeypatch):
 
 def _cron(user=None):
     action = IrActionsServer.objects.create(
-        name='su probe', model_name='base.SystemParameter',
+        name='su probe', model_name='ir.config_parameter',
         method_name='su_probe', state='code',
         code='model.su_probe()', path=None)
     values = {'ir_actions_server': action}

@@ -70,7 +70,7 @@ def cron():
     action = IrActionsServer.objects.create(
         name='Tarea de prueba',
         state='code',
-        model_name='base.SystemParameter',
+        model_name='ir.config_parameter',
         method_name='noop_test',
     )
     return IrCron.objects.create(

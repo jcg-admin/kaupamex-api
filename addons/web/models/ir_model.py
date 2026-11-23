@@ -84,6 +84,7 @@ sobre un registro concreto, igual que ``IrModel._reflect_models``, que ya es
 
 from addons.base.models.ir_model import IrModel, IrModelAccess
 from orm.method_chain import chain_method
+from orm import registry
 
 
 def _has_access(user, model_name, access_mode='read'):
@@ -118,7 +119,8 @@ def _is_valid_for_model_selector(cls, user, model_name):
     (``_has_access``, arriba).
     """
     try:
-        model_row = cls.objects.get(model=model_name)
+        model_row = cls.objects.get(
+            model=registry.identity_for_key(model_name))
     except cls.DoesNotExist:
         return False
     return (
@@ -137,7 +139,9 @@ def _display_name_for(cls, model_names):
     Una sola consulta para todos los modelos accesibles, igual que la
     referencia (``search_read`` con la lista completa).
     """
-    rows = cls.objects.filter(model__in=model_names).values('name', 'model')
+    rows = cls.objects.filter(
+        model__in=[registry.identity_for_key(name) for name in model_names]
+    ).values('name', 'model')
     return [
         {'display_name': row['name'], 'model': row['model']} for row in rows
     ]

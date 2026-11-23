@@ -69,7 +69,7 @@ class TestDrfSpeaksTheSymbol:
 
     def test_the_serialized_key_and_value_are_the_symbol_and_its_pk(self):
         model_row, _ = IrModel.objects.get_or_create(
-            model='base.ResCompany', defaults={'name': 'Empresa'}
+            model='res.company', defaults={'name': 'Empresa'}
         )
         automation = BaseAutomation.objects.create(
             name='A', model_id=model_row
@@ -96,7 +96,7 @@ class TestDrfSpeaksTheSymbol:
 
     def test_writing_binds_the_object_under_the_symbol(self):
         model_row, _ = IrModel.objects.get_or_create(
-            model='base.ResCurrency', defaults={'name': 'Moneda'}
+            model='res.currency', defaults={'name': 'Moneda'}
         )
 
         serializer = _AutomationSerializer(
@@ -115,7 +115,7 @@ class TestThePkOnlyOptimizationLivesOffTheSplit:
         self, django_assert_num_queries
     ):
         model_row, _ = IrModel.objects.get_or_create(
-            model='base.ResGroups', defaults={'name': 'Grupo'}
+            model='res.groups', defaults={'name': 'Grupo'}
         )
         BaseAutomation.objects.create(name='C', model_id=model_row)
         fresh = BaseAutomation.objects.get(name='C')

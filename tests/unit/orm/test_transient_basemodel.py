@@ -49,7 +49,7 @@ def test_a_transient_model_is_a_base_model():
 ])
 def test_the_wizard_acl_is_the_reference_csv(module, xmlids):
     loaded = IrModelData.objects.filter(module=module,
-                                        model='base.IrModelAccess')
+                                        model='ir.model.access')
     assert sorted(loaded.values_list('name', flat=True)) == xmlids
 
 

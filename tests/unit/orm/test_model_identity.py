@@ -44,3 +44,7 @@ def test_every_identity_is_unique_across_the_registry():
     identities = [registry.identity_of(model)
                   for model in apps.get_models(include_auto_created=True)]
     assert len(identities) == len(set(identities))
+
+
+def test_a_record_has_the_identity_of_its_class():
+    assert registry.identity_of(ResPartner()) == 'res.partner'

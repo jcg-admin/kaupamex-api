@@ -31,7 +31,7 @@ def test_each_model_is_a_base_model(name):
 
 def test_the_acl_rows_that_resolve_load():
     xmlids = set(IrModelData.objects.filter(
-        module='mail', model='base.IrModelAccess',
+        module='mail', model='ir.model.access',
     ).values_list('name', flat=True))
     assert {
         'access_mail_activity_user',

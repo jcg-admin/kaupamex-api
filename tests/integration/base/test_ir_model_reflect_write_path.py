@@ -51,6 +51,7 @@ from addons.base.models.ir_model import (
 )
 from addons.base.models.ir_module import IrModule
 from addons.base.models.res_device import ResDeviceLog
+from orm import registry
 
 pytestmark = pytest.mark.integration
 
@@ -83,7 +84,7 @@ def _module(name):
 
 def _anchor_model():
     row, _ = IrModel.objects.get_or_create(
-        model=ResDeviceLog._meta.label,
+        model=registry.identity_of(ResDeviceLog),
         defaults={'name': 'Registro de dispositivo'},
     )
     return row
@@ -223,7 +224,7 @@ class TestReflectInheritsWritesBelowTheOrm:
             if meta is None:
                 continue
             label = f'{meta.app_label}.{meta.object_name}'
-            if label == ResDeviceLog._meta.label:
+            if label == registry.identity_of(ResDeviceLog):
                 continue
             row, _ = IrModel.objects.get_or_create(
                 model=label, defaults={'name': meta.object_name}

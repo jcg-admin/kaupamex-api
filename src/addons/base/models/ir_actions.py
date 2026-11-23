@@ -180,7 +180,7 @@ from addons.base.models.ir_model import IrModelData
 from orm.environments import (context_scope, env, get_context,
                               get_current_user, sudo)
 from orm.models_transient import TransientModel
-from orm.registry import model_by_key
+from orm.registry import identity_for_key, identity_of, model_by_key
 from tools.misc import get_diff, get_lang, unquote
 from tools.float_utils import float_compare
 from tools.safe_eval import datetime as eval_datetime
@@ -2307,19 +2307,15 @@ class IrActionsServer(IrActionsBase):
         )
         if not name:
             return None
-        try:
-            return apps.get_model(name)
-        except (LookupError, ValueError):
-            return None
+        return model_by_key(name)
 
     def _active_record(self):
         """El registro sobre el que la acción corre — ``browse(active_id)``."""
         active_id = get_context().get('active_id')
         if not active_id or not self.model_name:
             return None
-        try:
-            model = apps.get_model(self.model_name)
-        except (LookupError, ValueError):
+        model = model_by_key(self.model_name)
+        if model is None:
             return None
         return model.objects.filter(pk=active_id).first()
 
@@ -2366,9 +2362,8 @@ class IrActionsServer(IrActionsBase):
         if not value or not self.model_name:
             return [], ''
         path = value.split('.')
-        try:
-            model = apps.get_model(self.model_name)
-        except (LookupError, ValueError):
+        model = model_by_key(self.model_name)
+        if model is None:
             return [], ''
         chain = []
         for name in path:
@@ -2396,7 +2391,7 @@ class IrActionsServer(IrActionsBase):
         if not chain:
             return None, None
         last = chain[-1]
-        label = last.model._meta.label
+        label = identity_of(last.model)
         model_row = IrModel.objects.filter(model=label).first()
         field_row = IrModelFields.objects.filter(
             model=label, name=last.name
@@ -2509,14 +2504,12 @@ class IrActionsServer(IrActionsBase):
         context = get_context()
         model = None
         if action.model_name:
-            try:
-                model = apps.get_model(action.model_name)
-            except (LookupError, ValueError):
-                model = None
+            model = model_by_key(action.model_name)
         record = records = None
         if (
             model is not None
-            and context.get('active_model') == action.model_name
+            and identity_for_key(context.get('active_model') or '')
+            == identity_for_key(action.model_name)
         ):
             if context.get('active_id'):
                 record = model.objects.filter(pk=context['active_id']).first()

@@ -165,7 +165,7 @@ def reporte_orden():
     return IrActionsReport.objects.create(
         name='Orden de venta',
         report_name='sale.report_saleorder',
-        model='sale.SaleOrder',
+        model='sale.order',
         report_type=REPORT_TYPE_PDF,
     )
 
@@ -188,7 +188,7 @@ class TestCatalogo:
 
     def test_helper_desconocido_se_rechaza_al_declarar(self):
         with pytest.raises(UnknownHelper):
-            ReportSpec(report_name='x.y', model='sale.SaleOrder', name='X',
+            ReportSpec(report_name='x.y', model='sale.order', name='X',
                        builder=lambda records, **ctx: {},
                        helper='pdf_inexistente')
 
@@ -304,7 +304,7 @@ class TestDespacho:
         assert (etiqueta_html, etiqueta_texto) == ('html', 'text')
         assert isinstance(html, bytes) and isinstance(texto, bytes)
         # Cada uno lleva la marca de su formato, y ninguna es la del otro.
-        assert b'data-oe-model="sale.SaleOrder"' in html
+        assert b'data-oe-model="sale.order"' in html
         assert b'<div' not in texto
         assert html != texto
 

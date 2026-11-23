@@ -20,7 +20,7 @@ retorno, no en un hallazgo de porte parcial de ``base_automation.py``.
 #: (ver BaseAutomation._update_cron).
 CRON_BASE_AUTOMATION_CHECK = {
     'name': 'Automation Rules: check and execute',
-    'model_name': 'base_automation.BaseAutomation',
+    'model_name': 'base.automation',
     'method_name': '_cron_process_time_based_actions',
     'xml_id': 'base_automation.ir_cron_data_base_automation_check',
     'active': False,

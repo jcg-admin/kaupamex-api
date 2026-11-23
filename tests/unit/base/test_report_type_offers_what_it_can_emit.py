@@ -178,10 +178,10 @@ class TestTheThreeFormatsProduceThreeDifferentDocuments:
         # El par ``data-oe-model``/``data-oe-id`` es lo que la fuente busca al
         # partir el documento por registro (``_prepare_html``, ``:383-463``).
         html = report_template.descriptor_to_html(
-            DESCRIPTOR, model='sale.SaleOrder'
+            DESCRIPTOR, model='sale.order'
         ).decode()
         text = report_template.descriptor_to_text(DESCRIPTOR).decode()
-        assert 'data-oe-model="sale.SaleOrder"' in html
+        assert 'data-oe-model="sale.order"' in html
         assert 'data-oe-id="7"' in html
         assert '<div' not in text
 

@@ -22,7 +22,7 @@ def parent_menu():
 
 @pytest.fixture
 def target_model():
-    return IrModel.objects.create(name='Contacto', model='res.partner')
+    return IrModel._get('res.partner')
 
 
 def test_the_window_action_lists_the_requested_model(

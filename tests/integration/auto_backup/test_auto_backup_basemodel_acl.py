@@ -58,7 +58,7 @@ def installed_data():
     retiran antes, para que sólo las cree el manifiesto.
     """
     loaded = IrModelData.objects.filter(module='auto_backup',
-                                        model='base.IrModelAccess')
+                                        model='ir.model.access')
     with sudo():
         IrModelAccess.objects.filter(
             pk__in=list(loaded.values_list('res_id', flat=True))).delete()
@@ -79,7 +79,7 @@ def test_the_system_group_implies_the_backup_manager(installed_data):
 
 def test_the_acl_is_the_reference_csv_with_its_external_ids(installed_data):
     loaded = IrModelData.objects.filter(module='auto_backup',
-                                        model='base.IrModelAccess')
+                                        model='ir.model.access')
     rows = {name: IrModelAccess.objects.get(pk=loaded.get(name=name).res_id)
             for name in loaded.values_list('name', flat=True)}
     assert {name: (row.perm_read, row.perm_write, row.perm_create,

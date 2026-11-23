@@ -14,7 +14,6 @@ regla, el público lee también lo no publicado.
 from pathlib import Path
 
 import pytest
-from django.apps import apps
 from django.contrib.auth import get_user_model
 
 from addons.base.models import IrModelData
@@ -22,6 +21,7 @@ from addons.product.models import ProductProduct, ProductTemplate
 from exceptions import AccessError
 from orm.environments import sudo
 from tools.convert import convert_xml_import
+from orm import registry
 
 pytestmark = pytest.mark.django_db
 
@@ -39,7 +39,7 @@ def superuser_env():
 
 def _record(module, name):
     data = IrModelData.objects.get(module=module, name=name)
-    return apps.get_model(data.model).objects.get(pk=data.res_id)
+    return registry.model_by_key(data.model).objects.get(pk=data.res_id)
 
 
 def _user(login, group):
@@ -52,9 +52,9 @@ def _user(login, group):
 
 def test_the_acl_rows_and_feature_groups_carry_their_external_ids():
     data = IrModelData.objects.filter(module='website_sale')
-    assert data.filter(model='base.IrModelAccess').count() == 35
+    assert data.filter(model='ir.model.access').count() == 35
     assert set(FEATURE_GROUPS) <= set(data.filter(
-        model='base.ResGroups').values_list('name', flat=True))
+        model='res.groups').values_list('name', flat=True))
 
 
 def test_installing_the_groups_file_links_internal_users_to_delivery_address():

@@ -187,7 +187,6 @@ from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from django.apps import apps
 from django.conf import settings
 from django.db import DEFAULT_DB_ALIAS, connection, transaction
 from django.db.migrations.executor import MigrationExecutor
@@ -200,6 +199,7 @@ from addons.base.models.ir_actions import IrActionsServer
 from addons.base.models.ir_config_parameter import SystemParameter
 from addons.base.models.ir_module import IrModule
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from orm import registry
 from exceptions import LockError, UserError
 from orm.environments import (SUPERUSER_ID, Environment, context_scope,
                               current_uid_or_superuser, get_context, sudo,
@@ -1502,7 +1502,8 @@ class IrCron(models.DefaultGetMixin, models.RecordLoaderMixin,
         """
         if SystemParameter.get_param('database.is_neutralized'):
             return True
-        activo = bool(apps.get_model(model).objects.filter(**domain).exists())
+        activo = bool(registry.model_by_key(model).objects
+                      .filter(**domain).exists())
         try:
             with transaction.atomic():
                 list(type(self).objects

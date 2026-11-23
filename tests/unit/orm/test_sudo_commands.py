@@ -23,6 +23,7 @@ from orm.environments import env as current_env
 from orm.environments import (Environment, _discard_connection_transaction,
                               get_transaction, sudo, user_scope)
 from orm.registry import MODELS_BY_NAME
+from orm import registry
 
 pytestmark = pytest.mark.django_db
 
@@ -45,7 +46,7 @@ def _request_env(uid):
 def _grant(group, name, perms):
     IrModel = MODELS_BY_NAME['ir.model']
     Access = MODELS_BY_NAME['ir.model.access']
-    label = MODELS_BY_NAME[name]._meta.label
+    label = registry.identity_of(MODELS_BY_NAME[name])
     model = (IrModel.objects.filter(model=label).first()
              or IrModel.objects.create(model=label, name=name))
     read, write, create, unlink = perms

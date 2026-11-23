@@ -41,7 +41,7 @@ def test_both_models_are_base_models(model):
 
 def test_the_acl_is_the_reference_csv_with_its_external_ids():
     loaded = IrModelData.objects.filter(module='html_editor',
-                                        model='base.IrModelAccess')
+                                        model='ir.model.access')
     names = sorted(loaded.values_list('name', flat=True))
     assert names == ['access_html_editor_converter_test',
                      'access_html_editor_converter_test_sub']

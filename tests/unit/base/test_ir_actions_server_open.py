@@ -40,7 +40,7 @@ def action():
     return IrActionsServer.objects.create(
         name='Accion de prueba',
         state='code',
-        model_name='base.SystemParameter',
+        model_name='ir.config_parameter',
         method_name='noop_test',
     )
 
@@ -65,7 +65,7 @@ def test_an_action_can_declare_its_parent(action):
     child = IrActionsServer.objects.create(
         name='Hija',
         state='code',
-        model_name='base.SystemParameter',
+        model_name='ir.config_parameter',
         method_name='noop_test',
         parent=action,
     )
@@ -85,7 +85,7 @@ def test_deleting_the_parent_takes_the_children(action):
     child = IrActionsServer.objects.create(
         name='Hija',
         state='code',
-        model_name='base.SystemParameter',
+        model_name='ir.config_parameter',
         method_name='noop_test',
         parent=action,
     )
@@ -102,7 +102,7 @@ def test_open_parent_points_at_the_parent(action):
     child = IrActionsServer.objects.create(
         name='Hija',
         state='code',
-        model_name='base.SystemParameter',
+        model_name='ir.config_parameter',
         method_name='noop_test',
         parent=action,
     )
@@ -120,7 +120,7 @@ def test_the_cron_delegates_to_its_action(cron, action):
     parent_action = IrActionsServer.objects.create(
         name='Padre',
         state='code',
-        model_name='base.SystemParameter',
+        model_name='ir.config_parameter',
         method_name='noop_test',
     )
     action.parent = parent_action

@@ -38,7 +38,7 @@ SEEDED_SPECS = (
 
 SPEC = {
     'name': 'Control de identidad',
-    'model_name': 'base.IrCron',
+    'model_name': 'ir.cron',
     'method_name': 'method_direct_trigger',
     'interval_number': 1,
     'interval_type': 'days',

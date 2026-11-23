@@ -57,8 +57,8 @@ def test_every_resource_model_is_a_base_model(name):
 
 def test_the_acl_and_rules_carry_their_external_ids():
     data = IrModelData.objects.filter(module='resource')
-    assert data.filter(model='base.IrModelAccess').count() == 8
-    assert data.filter(model='base.IrRule').count() == 5
+    assert data.filter(model='ir.model.access').count() == 8
+    assert data.filter(model='ir.rule').count() == 5
 
 
 def test_an_internal_user_reads_calendars_but_does_not_write_them():

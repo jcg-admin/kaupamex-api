@@ -49,7 +49,7 @@ def test_each_model_is_a_base_model_with_its_description(name):
 
 def test_the_acl_is_the_reference_csv():
     xmlids = set(IrModelData.objects.filter(
-        module='authz_totp', model='base.IrModelAccess',
+        module='authz_totp', model='ir.model.access',
     ).values_list('name', flat=True))
     assert xmlids == {
         'access_auth_totp_device_access_employee',
@@ -65,7 +65,7 @@ def test_the_acl_is_the_reference_csv():
 def test_the_device_rules_are_the_reference_xml():
     """Sin las dos del asistente, que no tiene modelo (manifiesto)."""
     names = set(IrModelData.objects.filter(
-        module='authz_totp', model='base.IrRule',
+        module='authz_totp', model='ir.rule',
     ).values_list('name', flat=True))
     assert names == {'api_key_public', 'api_key_user', 'api_key_admin'}
     rule = IrRule.objects.get(pk=IrModelData.objects.get(

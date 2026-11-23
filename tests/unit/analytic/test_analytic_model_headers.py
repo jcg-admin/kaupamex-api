@@ -43,13 +43,13 @@ def test_the_line_has_its_log_access_column(name):
 def test_account_receives_the_model_xmlid():
     assert IrModelData.objects.filter(
         module='account', name='model_account_analytic_line',
-        model='base.IrModel').exists()
+        model='ir.model').exists()
 
 
 def test_the_purchase_access_row_loads():
     assert IrModelData.objects.filter(
         module='purchase', name='access_account_analytic_line',
-        model='base.IrModelAccess').exists()
+        model='ir.model.access').exists()
 
 
 def test_account_is_recorded_as_extending_the_line():

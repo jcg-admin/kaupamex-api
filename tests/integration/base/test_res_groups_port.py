@@ -370,9 +370,9 @@ class TestInheritedViewGroups:
         view_model = apps.get_model('base', 'IrUiView')
         group = ResGroups.objects.create(name='De la vista 204')
         base_view = view_model.objects.create(
-            name='base 204', model='base.ResPartner', arch_db='<form/>')
+            name='base 204', model='res.partner', arch_db='<form/>')
         extension = view_model.objects.create(
-            name='ext 204', model='base.ResPartner', arch_db='<form/>',
+            name='ext 204', model='res.partner', arch_db='<form/>',
             inherit_id=base_view, mode='extension')
         extension.groups.add(group)
         with pytest.raises(ValidationError):
@@ -382,6 +382,6 @@ class TestInheritedViewGroups:
         view_model = apps.get_model('base', 'IrUiView')
         group = ResGroups.objects.create(name='De la vista primaria 204')
         primary = view_model.objects.create(
-            name='primaria 204', model='base.ResPartner', arch_db='<form/>')
+            name='primaria 204', model='res.partner', arch_db='<form/>')
         primary.groups.add(group)
         group._check_inherited_view_groups()

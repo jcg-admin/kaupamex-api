@@ -116,7 +116,7 @@ class TestUpdateXmlids:
             ]
         )
         row = IrModelData.objects.get(module='base', name='imd_probe_one')
-        assert (row.model, row.res_id) == ('base.ResCompany', company.pk)
+        assert (row.model, row.res_id) == ('res.company', company.pk)
 
     def test_it_fills_the_audit_columns(self):
         registry.clear_cache('default')
@@ -204,7 +204,7 @@ class TestUpdateXmlids:
             cr.execute("DELETE FROM ir_model_data "
                        "WHERE module = 'base' AND name = 'imd_probe_seed'")
         assert IrModelData._xmlid_lookup('base.imd_probe_seed') == (
-            'base.ResCompany',
+            'res.company',
             company.pk,
         )
 
@@ -296,7 +296,7 @@ class TestResolverAndToggle:
         company = ResCompany.objects.create(code='imd-chk', name='Chk')
         IrModelData.set_xmlid(company, 'base.imd_chk')
         assert IrModelData.check_object_reference('base', 'imd_chk') == (
-            'base.ResCompany',
+            'res.company',
             company.pk,
         )
 
@@ -305,7 +305,7 @@ class TestResolverAndToggle:
         company = ResCompany.objects.create(code='imd-tog', name='Tog')
         IrModelData.set_xmlid(company, 'base.imd_tog')
         with sudo():
-            IrModelData.toggle_noupdate('base.ResCompany', company.pk)
+            IrModelData.toggle_noupdate('res.company', company.pk)
         assert (
             IrModelData.objects.get(module='base', name='imd_tog').noupdate
             is True
@@ -316,7 +316,7 @@ class TestResolverAndToggle:
         company = ResCompany.objects.create(code='imd-tog2', name='Tog2')
         IrModelData.set_xmlid(company, 'base.imd_tog2', noupdate=True)
         with sudo():
-            IrModelData.toggle_noupdate('base.ResCompany', company.pk)
+            IrModelData.toggle_noupdate('res.company', company.pk)
         assert (
             IrModelData.objects.get(module='base', name='imd_tog2').noupdate
             is False
@@ -330,10 +330,10 @@ class TestResolverAndToggle:
         IrModelData.set_xmlid(company, 'base.imd_two_a')
         IrModelData.set_xmlid(company, 'sale.imd_two_b')
         with sudo():
-            IrModelData.toggle_noupdate('base.ResCompany', company.pk)
+            IrModelData.toggle_noupdate('res.company', company.pk)
         assert list(
             IrModelData.objects.filter(
-                model='base.ResCompany',
+                model='res.company',
                 res_id=company.pk,
             )
             .order_by('name')
@@ -344,7 +344,7 @@ class TestResolverAndToggle:
         company = ResCompany.objects.create(code='imd-none', name='None')
         with sudo():
             assert (
-                IrModelData.toggle_noupdate('base.ResCompany', company.pk)
+                IrModelData.toggle_noupdate('res.company', company.pk)
                 is None
             )
 
@@ -357,7 +357,7 @@ class TestResolverAndToggle:
         company = ResCompany.objects.create(code='imd-deny', name='Deny')
         IrModelData.set_xmlid(company, 'base.imd_deny')
         with pytest.raises(AccessError):
-            IrModelData.toggle_noupdate('base.ResCompany', company.pk)
+            IrModelData.toggle_noupdate('res.company', company.pk)
         assert (
             IrModelData.objects.get(module='base', name='imd_deny').noupdate
             is False
@@ -379,7 +379,7 @@ class TestResolverAndToggle:
 
     def test_copy_data_gives_the_copy_a_distinct_name(self):
         row = IrModelData(
-            module='base', name='imd_orig', model='base.ResCompany', res_id=1
+            module='base', name='imd_orig', model='res.company', res_id=1
         )
         assert IrModelData.copy_data(row)['name'].startswith('imd_orig_')
         assert IrModelData.copy_data(row)['name'] != 'imd_orig'
@@ -394,19 +394,19 @@ class TestResolverAndToggle:
         """La fuente asigna ``display_name``; no basta con devolverlo."""
         company = ResCompany.objects.create(name='IMD target')
         row = IrModelData(
-            module='base', name='imd_t', model='base.ResCompany',
+            module='base', name='imd_t', model='res.company',
             res_id=company.pk,
         )
         row._compute_display_name()
         assert row.display_name == str(company)
 
     def test_display_name_attribute_falls_back_without_res_id(self):
-        row = IrModelData(module='base', name='imd_z', model='base.ResCompany')
+        row = IrModelData(module='base', name='imd_z', model='res.company')
         row._compute_display_name()
         assert row.display_name == 'base.imd_z'
 
     def test_reference_is_the_model_id_pair(self):
         row = IrModelData(
-            module='base', name='imd_y', model='base.ResCompany', res_id=7
+            module='base', name='imd_y', model='res.company', res_id=7
         )
-        assert row._compute_reference() == 'base.ResCompany,7'
+        assert row._compute_reference() == 'res.company,7'

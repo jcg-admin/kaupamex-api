@@ -37,6 +37,7 @@ from orm.environments import env as current_env
 from orm.environments import get_current_user, sudo, user_scope
 from orm.registry import MODELS_BY_NAME
 from tests.fixtures import reference_process
+from orm import registry
 
 ROOT = pathlib.Path(__file__).resolve().parents[3]
 #: Observación de referencia con su procedencia, en el Workbench de la
@@ -74,7 +75,7 @@ def _seed():
         login='access-reader', password=None, name='access-reader')
     reader.group_ids.add(group)
     for name in MODELS:
-        label = MODELS_BY_NAME[name]._meta.label
+        label = registry.identity_of(MODELS_BY_NAME[name])
         model = (IM.objects.filter(model=label).first()
                  or IM.objects.create(model=label, name=name))
         A.objects.create(name=name, model_id=model, group_id=group,
@@ -84,7 +85,8 @@ def _seed():
                          ('res.partner',
                           "[('name', '!=', 'secret-partner')]")):
         rule = R.objects.create(
-            name=f'hide {name}', model_name=MODELS_BY_NAME[name]._meta.label,
+            name=f'hide {name}',
+            model_name=registry.identity_of(MODELS_BY_NAME[name]),
             domain_force=domain)
         rule.groups.add(group)
     writing = G.objects.create(name='access-on-write')
@@ -92,7 +94,7 @@ def _seed():
         login='access-writer', password=None, name='access-writer')
     writer.group_ids.add(writing)
     for name in ('test_orm.related', 'test_orm.related_inherits'):
-        label = MODELS_BY_NAME[name]._meta.label
+        label = registry.identity_of(MODELS_BY_NAME[name])
         A.objects.create(
             name=f'{name} writer', model_id=IM.objects.get(model=label),
             group_id=writing, perm_read=True,

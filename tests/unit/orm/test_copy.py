@@ -258,7 +258,7 @@ class TestOverridesReachSuper:
         entry = IrModelData.objects.create(
             module='base',
             name='control_de_copia',
-            model='base.ResPartner',
+            model='res.partner',
             res_id=1,
         )
         assert entry.copy_data()['name'].startswith('control_de_copia_')
@@ -274,12 +274,12 @@ class TestOverridesReachSuper:
         entry = IrModelData.objects.create(
             module='base',
             name='control_de_campos',
-            model='base.ResPartner',
+            model='res.partner',
             res_id=7,
             noupdate=True,
         )
         values = entry.copy_data()
         assert values['module'] == 'base'
-        assert values['model'] == 'base.ResPartner'
+        assert values['model'] == 'res.partner'
         assert values['res_id'] == 7
         assert values['noupdate'] is True

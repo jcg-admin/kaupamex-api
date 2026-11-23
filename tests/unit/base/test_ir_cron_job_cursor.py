@@ -31,7 +31,7 @@ def _only_our_crons(db):
 
 def _cron(user, method_name):
     action = IrActionsServer.objects.create(
-        name=method_name, model_name='base.SystemParameter',
+        name=method_name, model_name='ir.config_parameter',
         method_name=method_name, state='code',
         code=f'model.{method_name}()', path=None)
     return IrCron.objects.create(

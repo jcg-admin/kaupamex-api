@@ -28,9 +28,9 @@ pytestmark = pytest.mark.django_db
 def partner_model():
     """Un ``ir.model`` reflejado sobre el que colgar la regla."""
     return IrModel.objects.filter(
-        model='base.ResPartner'
+        model='res.partner'
     ).first() or IrModel.objects.create(
-        model='base.ResPartner', name='Contacto'
+        model='res.partner', name='Contacto'
     )
 
 
@@ -213,9 +213,9 @@ class TestGetWarningMessages:
 
     def test_a_mismatched_model_warns(self, rule, partner_model):
         otro = IrModel.objects.filter(
-            model='base.ResUsers'
+            model='res.users'
         ).first() or IrModel.objects.create(
-            model='base.ResUsers', name='Usuario'
+            model='res.users', name='Usuario'
         )
         action = IrActionsServer.objects.create(
             name='Acción dispar', state='object_create', model_name=otro.model
@@ -238,7 +238,7 @@ class TestGetWarningMessages:
 
     def test_an_action_without_a_rule_does_not_warn(self, partner_model):
         action = IrActionsServer.objects.create(
-            name='Suelta', state='object_create', model_name='base.ResUsers'
+            name='Suelta', state='object_create', model_name='res.users'
         )
         assert not any(
             'Suelta' in aviso for aviso in action._get_warning_messages()

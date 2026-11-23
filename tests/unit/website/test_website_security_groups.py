@@ -92,7 +92,7 @@ def test_public_implies_the_controller_expose_group(installed_data):
 
 def test_the_acl_rows_of_the_ported_models_are_loaded():
     names = set(IrModelData.objects.filter(
-        module='website', model='base.IrModelAccess').values_list(
+        module='website', model='ir.model.access').values_list(
             'name', flat=True))
     assert names == PORTED_ROWS | OWN_ROWS
     designer = IrModelAccess.objects.get(pk=IrModelData.objects.get(

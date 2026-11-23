@@ -94,7 +94,6 @@ import contextvars
 from datetime import timedelta
 from uuid import uuid4
 
-from django.apps import apps as django_apps
 from django.db import connection
 from django.utils import timezone
 
@@ -107,6 +106,7 @@ from addons.mail.models import MailActivityMixin, MailThread
 from addons.resource.models.resource_calendar import ResourceCalendar
 from exceptions import UserError, ValidationError
 from orm import domains
+from orm import registry
 from orm.environments import env, get_current_uid, get_current_user, sudo
 from orm.registry import Registry, origin_alias
 from tools import safe_eval as safe_eval_tools
@@ -1172,8 +1172,7 @@ class BaseAutomation(models.BaseModel, MailThread, MailActivityMixin,
 
     def _get_eval_context(self, payload=None):
         """≙ ``_get_eval_context``."""
-        model = django_apps.get_model(
-            self.model_name) if self.model_name else None
+        model = registry.model_by_key(self.model_name)
         # Los módulos van envueltos (``tools.safe_eval``), como en la fuente:
         # ``safe_eval`` rehúsa un módulo crudo en el contexto.
         context = {
@@ -1291,8 +1290,7 @@ class BaseAutomation(models.BaseModel, MailThread, MailActivityMixin,
         if self.log_webhook_calls:
             self._log_webhook(msg % (self.pk, payload))
 
-        model_cls = django_apps.get_model(
-            self.model_name) if self.model_name else None
+        model_cls = registry.model_by_key(self.model_name)
         record_pk = None
         if self.record_getter and model_cls is not None:
             try:
@@ -1354,7 +1352,8 @@ class BaseAutomation(models.BaseModel, MailThread, MailActivityMixin,
         """≙ ``_get_actions`` de la referencia. Invocado por
         ``models/signals.py`` — el reemplazo del dispatch por parcheo."""
         return cls.objects.filter(
-            active=True, model_name=model_name, trigger__in=triggers)
+            active=True, model_name=registry.identity_for_key(model_name),
+            trigger__in=triggers)
 
     def _update_cron(self):
         """≙ ``_update_cron``."""
@@ -1474,7 +1473,7 @@ class BaseAutomation(models.BaseModel, MailThread, MailActivityMixin,
         La referencia lo declara ``@api.model`` (instancia-o-clase
         indistinto en Odoo); aquí ``@classmethod`` es el equivalente para
         ``getattr(ModelClass, method_name)()`` — ``IrCron._callback``
-        resuelve la clase con ``apps.get_model(model_name)``, no una
+        resuelve la clase con ``registry.model_by_key(model_name)``, no una
         instancia.
         """
         automations = cls.objects.filter(
@@ -1486,7 +1485,9 @@ class BaseAutomation(models.BaseModel, MailThread, MailActivityMixin,
         for automation in automations:
             if not automation.model_name:
                 continue
-            model_cls = django_apps.get_model(automation.model_name)
+            model_cls = registry.model_by_key(automation.model_name)
+            if model_cls is None:
+                continue
             _logger.info(
                 "Starting time-based automation rule `%s`.",
                 automation.name,

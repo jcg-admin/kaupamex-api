@@ -39,7 +39,7 @@ def test_every_utm_model_is_a_base_model(name):
 
 def test_the_acl_is_the_reference_csv_with_its_external_ids():
     xmlids = IrModelData.objects.filter(module='utm',
-                                        model='base.IrModelAccess')
+                                        model='ir.model.access')
     assert xmlids.count() == 10
     row = IrModelAccess.objects.get(
         pk=xmlids.get(name='access_utm_stage_user').res_id)

@@ -21,6 +21,8 @@ sí se traduce son los nombres que el código construye con ``_()``, p. ej. las
 seis cuentas de utilidad de ``get_accounts_data_values``.
 """
 
+from orm import registry
+
 #: ``(xmlid sin módulo, nombre, aplicabilidad)`` — el orden es el del XML.
 MASTER_ACCOUNT_TAGS = (
     ('account_tag_operating', 'Operating Activities', 'accounts'),
@@ -52,7 +54,7 @@ def seed_account_tags(apps, alias):
     """
     AccountAccountTag = apps.get_model('account', 'AccountAccountTag')
     IrModelData = apps.get_model('base', 'IrModelData')
-    label = AccountAccountTag._meta.label
+    label = registry.identity_for_key(AccountAccountTag._meta.label)
 
     created = {}
     for name, tag_label, applicability in MASTER_ACCOUNT_TAGS:

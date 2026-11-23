@@ -199,16 +199,16 @@ def test_extend_model_cuelga_campo_metodo_y_propiedad_en_destino_vivo():
     modelo = apps.get_model('base', 'IrModel')
     extend_model(
         'base', 'IrModel',
-        campos={'campo_de_prueba': fields.Char(
+        campos={'probe_field': fields.Char(
             max_length=8, blank=True, default='')},
-        metodos={'metodo_de_prueba': lambda self: 'del-extensor'},
-        propiedades={'propiedad_de_prueba': lambda self: f'probe:{self.model}'},
+        metodos={'probe_method': lambda self: 'del-extensor'},
+        propiedades={'probe_property': lambda self: f'probe:{self.model}'},
     )
 
-    instancia = modelo(model='base.IrModel')
-    assert any(f.name == 'campo_de_prueba' for f in modelo._meta.get_fields())
-    assert instancia.metodo_de_prueba() == 'del-extensor'
-    assert instancia.propiedad_de_prueba == 'probe:base.IrModel'
+    instancia = modelo(model='ir.model')
+    assert any(f.name == 'probe_field' for f in modelo._meta.get_fields())
+    assert instancia.probe_method() == 'del-extensor'
+    assert instancia.probe_property == 'probe:ir.model'
 
 
 def test_extend_model_es_idempotente():
@@ -220,9 +220,9 @@ def test_extend_model_es_idempotente():
     modelo = apps.get_model('base', 'IrModel')
     campo = lambda: fields.Char(max_length=8, blank=True, default='')  # noqa: E731
 
-    extend_model('base', 'IrModel', campos={'campo_idempotente': campo()})
+    extend_model('base', 'IrModel', campos={'idempotent_field': campo()})
     antes = len(modelo._meta.get_fields())
-    extend_model('base', 'IrModel', campos={'campo_idempotente': campo()})
+    extend_model('base', 'IrModel', campos={'idempotent_field': campo()})
 
     assert len(modelo._meta.get_fields()) == antes
 

@@ -478,7 +478,7 @@ class PartnerMerge:
             """,
                 src_record_ids=src_ids,
                 dest_record_id=str(dst_record.pk),
-                model_name=registry.name_of(type(dst_record)),
+                model_name=registry.identity_of(type(dst_record)),
             )
         )
 

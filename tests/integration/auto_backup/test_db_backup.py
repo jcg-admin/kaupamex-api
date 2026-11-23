@@ -111,7 +111,7 @@ class TestSeededCron:
 
     def test_the_action_points_to_the_class_method(self, db):
         cron = self._cron()
-        assert cron.ir_actions_server.model_name == 'auto_backup.DbBackup'
+        assert cron.ir_actions_server.model_name == 'db.backup'
         assert cron.ir_actions_server.method_name == 'schedule_backup'
         # El método al que apunta tiene que existir y ser invocable.
         assert callable(getattr(DbBackup, 'schedule_backup'))

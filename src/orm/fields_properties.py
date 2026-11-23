@@ -41,7 +41,6 @@ import operator as operator_module
 import uuid
 from collections import abc, defaultdict
 
-from django.apps import apps
 from django.db import DEFAULT_DB_ALIAS, models
 
 from exceptions import UserError
@@ -83,13 +82,7 @@ def _model_of(model_name):
     """
     if not model_name:
         return None
-    model = registry.model_by_name(model_name)
-    if model is not None:
-        return model
-    try:
-        return apps.get_model(model_name)
-    except (LookupError, ValueError):
-        return None
+    return registry.model_by_key(model_name)
 
 
 __all__ = [

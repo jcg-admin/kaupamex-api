@@ -51,7 +51,7 @@ def test_a_child_action_travels_with_the_copy(db):
 def test_the_access_rows_of_a_group_travel_with_the_copy(db):
     group = ResGroups.objects.create(name='Grupo 1161')
     model, _ = IrModel.objects.get_or_create(
-        model='base.ResDeviceLog',
+        model='res.device.log',
         defaults={'name': 'Registro de dispositivo'})
     IrModelAccess.objects.create(
         name='acl 1161', model_id=model, group_id=group, perm_read=True)

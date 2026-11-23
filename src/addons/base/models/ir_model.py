@@ -263,6 +263,7 @@ DJANGO_TYPE_TO_TTYPE = _ORM_TYPE_MAP
 #: uno por uno que existan y estén almacenados.
 RE_ORDER_FIELDS = re.compile(r'"?(\w+)"?\s*(?:asc|desc)?', flags=re.I)
 
+
 def _model_class(model_label):
     """≙ ``self.env[model]`` — la clase de ese nombre, o ``None``.
 
@@ -280,13 +281,7 @@ def _model_class(model_label):
     ``ir.model.data`` y ``ir.model``—; colgarlo de una obligaría a las otras
     tres a nombrarla para llegar a él.
     """
-    model_cls = registry.MODELS_BY_NAME.get(model_label)
-    if model_cls is not None:
-        return model_cls
-    try:
-        return apps.get_model(model_label)
-    except (LookupError, ValueError):
-        return None
+    return registry.model_by_key(model_label)
 
 
 STATE_MANUAL = 'manual'
@@ -415,14 +410,7 @@ class IrModel(models.OriginMixin, TimeStampedModel):
         permite que ``count`` y ``inherited_model_ids`` sigan siendo
         consultables sobre un registro obsoleto.
         """
-        try:
-            app_label, model_name = self.model.split('.', 1)
-        except ValueError:
-            return None
-        try:
-            return apps.get_model(app_label, model_name)
-        except LookupError:
-            return None
+        return registry.model_by_key(self.model)
 
     @property
     def count(self):
@@ -451,7 +439,7 @@ class IrModel(models.OriginMixin, TimeStampedModel):
         if model is None:
             return type(self).objects.none()
         parent_labels = [
-            f'{base._meta.app_label}.{base._meta.object_name}'
+            registry.identity_of(base)
             for base in model.__mro__[1:]
             if isinstance(base, type)
             and issubclass(base, models.Model)
@@ -745,7 +733,9 @@ class IrModel(models.OriginMixin, TimeStampedModel):
         El caché es ``stable`` porque el registro de modelos sólo cambia al
         instalar o desinstalar un módulo, no en el curso de una petición.
         """
-        return cls.objects.filter(model=name).values_list('pk', flat=True).first()
+        return cls.objects.filter(
+            model=registry.identity_for_key(name)).values_list(
+                'pk', flat=True).first()
 
     @classmethod
     def _reflect_model_params(cls, model):
@@ -831,7 +821,7 @@ class IrModel(models.OriginMixin, TimeStampedModel):
         for model in apps.get_models(include_auto_created=True):
             if app_labels and model._meta.app_label not in app_labels:
                 continue
-            label = f'{model._meta.app_label}.{model._meta.object_name}'
+            label = registry.identity_of(model)
             expected[label] = cls._reflect_model_params(model)
             classes[label] = model
         if not expected:
@@ -1122,7 +1112,8 @@ class IrModelFields(models.OriginMixin, TimeStampedModel):
     @property
     def modules(self):
         """``_in_modules`` — la app que declara el campo."""
-        return self.model.split('.', 1)[0] if '.' in self.model else ''
+        model = registry.model_by_key(self.model)
+        return model._meta.app_label if model is not None else ''
 
     # -- restricciones -------------------------------------------------------
     #
@@ -1324,8 +1315,8 @@ class IrModelFields(models.OriginMixin, TimeStampedModel):
         :meth:`save`/:meth:`delete`, por la misma razón que la ACL vacía la
         suya: una fila nueva no se resolvería por nombre hasta reiniciar.
         """
-        return dict(cls.objects.filter(model=model_name)
-                    .values_list('name', 'id'))
+        rows = cls.objects.filter(model=registry.identity_for_key(model_name))
+        return dict(rows.values_list('name', 'id'))
 
     @classmethod
     def _get_fields_cached(cls, model_name):
@@ -1336,7 +1327,8 @@ class IrModelFields(models.OriginMixin, TimeStampedModel):
         no consulten una vez por campo. Aquí devuelve el diccionario
         ``{nombre: fila}``, que es lo que esos tres consumen.
         """
-        return {row.name: row for row in cls.objects.filter(model=model_name)}
+        return {row.name: row for row in cls.objects.filter(
+            model=registry.identity_for_key(model_name))}
 
     @classmethod
     def get_field_string(cls, model_name):
@@ -1697,7 +1689,7 @@ class IrModelFields(models.OriginMixin, TimeStampedModel):
             'store': bool(getattr(field, 'concrete', True)),
             'state': STATE_BASE,
             'relation': (
-                f'{remote._meta.app_label}.{remote._meta.object_name}'
+                registry.identity_of(remote)
                 if remote is not None else ''
             ),
             'size': getattr(field, 'max_length', None),
@@ -1829,7 +1821,7 @@ class IrModelInherit(models.RecordLoaderMixin, models.Model):
             meta = getattr(base, '_meta', None)
             if meta is None or base is models.Model:
                 continue
-            label = f'{meta.app_label}.{meta.object_name}'
+            label = registry.identity_of(base)
             parent = IrModel.objects.using(alias).filter(model=label).first()
             if parent is None or parent.pk in known:
                 continue
@@ -2010,7 +2002,8 @@ class IrModelFieldsSelection(models.OriginMixin, TimeStampedModel):
                     if not isinstance(value, str) or not isinstance(label, str):
                         offenders.add(
                             '%s.%s' % (model_cls._meta.label, field.name))
-                pending.append((model_cls._meta.label, field.name, choices))
+                pending.append((registry.identity_of(model_cls), field.name,
+                                choices))
         if offenders:
             raise ValidationError(
                 'Los campos %s tienen un valor o etiqueta que no es texto en '
@@ -2336,7 +2329,7 @@ class IrModelConstraint(models.CopyMixin, TimeStampedModel):
             raise ValueError(
                 'No se puede registrar la restricción %s: el módulo %s no '
                 'está en ir_module_module' % (conname, module))
-        label = model_cls._meta.label
+        label = registry.identity_of(model_cls)
         model_row = IrModel.objects.using(using).filter(model=label).first()
         if model_row is None:
             raise ValueError(
@@ -2534,7 +2527,7 @@ class IrModelRelation(TimeStampedModel):
             raise ValueError(
                 'No se puede registrar la relación %s: el módulo %s no está '
                 'en ir_module_module' % (table, module))
-        label = model_cls._meta.label
+        label = registry.identity_of(model_cls)
         model_row = IrModel.objects.using(using).filter(model=label).first()
         if model_row is None:
             raise ValueError(
@@ -2672,25 +2665,19 @@ class IrModelAccess(TimeStampedModel):
     def _model_label(cls, model):
         """Normaliza el nombre del modelo a la clave que guarda ``ir_model``.
 
-        Este árbol guarda el **label de Django** en ``ir_model.model`` — lo
-        declara su ``help_text`` y de ello depende ``IrModel.django_model``,
-        que hace ``model.split('.', 1)`` y llama a ``apps.get_model``. La
-        fuente guarda el nombre punteado del modelo (``ir.ui.view``).
-
-        Divergencia de forma, no de mecanismo: se normaliza **en la puerta**
-        con ``orm.registry``, así que un llamador puede nombrar el modelo como
-        lo nombra su fuente —``check('ir.ui.view', 'write')``— y leer igual que
-        ella, sin que la tabla cambie de clave.
+        ``ir_model.model`` guarda la identidad contractual
+        (:func:`orm.registry.identity_of`): el nombre punteado
+        (``ir.ui.view``) cuando la clase declara ``_name``, como la fuente.
+        Se normaliza **en la puerta** porque un llamador puede nombrar el
+        modelo por su etiqueta de Django —``check('base.IrUiView', 'write')``—
+        y debe leer la misma fila.
 
         Un nombre que el registro no conozca se devuelve tal cual: puede ser un
         label válido de un modelo que aún no declara ``_name``, y denegar por
         no resolverlo sería confundir *«no está permitido»* con *«no sé quién
         es»*.
         """
-        model_class = registry.model_by_name(model)
-        if model_class is not None:
-            return model_class._meta.label
-        return model
+        return registry.identity_for_key(model)
 
     @classmethod
     def _get_allowed_models(cls, access_mode='read', user=None):
@@ -2802,7 +2789,8 @@ class IrModelAccess(TimeStampedModel):
         _logger.info(
             'Acceso denegado por la ACL — operación: %s, modelo: %s',
             access_mode, model)
-        described = IrModel.objects.filter(model=model).values_list(
+        described = IrModel.objects.filter(
+            model=registry.identity_for_key(model)).values_list(
             'name', flat=True).first() or model
         operation_error = ACCESS_ERROR_HEADER[access_mode] % {
             'document_kind': described,
@@ -3061,13 +3049,12 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
     # el mecanismo que la referencia reparte entre ``ir.model.data`` (la
     # búsqueda) y ``env.ref`` (el atajo que devuelve el registro).
     #
-    # **Qué va en ``model``.** La referencia guarda su nombre punteado
-    # (``account.tax``); nuestros modelos no tienen ``_name``, así que la clave
-    # equivalente es la etiqueta de Django (``account.AccountTax``,
-    # ``Model._meta.label``). No es una elección nueva: el único lector previo
-    # de esta tabla ya consultaba así (``uom_uom.py:209``,
-    # ``model=cls._meta.label``), y ``apps.get_model`` acepta exactamente ese
-    # formato — de modo que la ida y la vuelta usan la misma llave.
+    # **Qué va en ``model``.** El nombre punteado (``account.tax``), como en
+    # la referencia: la identidad contractual de
+    # :func:`orm.registry.identity_of`, que es el ``_name`` cuando la clase lo
+    # declara y la etiqueta de Django (``Model._meta.label``) sólo para las
+    # que todavía no. La vuelta la resuelve ``registry.model_by_key``, que
+    # acepta las dos formas (``designs/model-identity-contract.md``, corte C3).
 
     @classmethod
     @ormcache('xmlid', cache='default')
@@ -3148,8 +3135,9 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
             xmlid, raise_if_not_found=raise_if_not_found, using=using)
         if not model_label or not res_id:
             return None
-        record = (apps.get_model(model_label).objects.using(using)
-                  .filter(pk=res_id).first())
+        model_cls = registry.model_by_key(model_label)
+        record = (model_cls.objects.using(using).filter(pk=res_id).first()
+                  if model_cls is not None else None)
         if record is None and raise_if_not_found:
             raise ValueError(
                 'El identificador externo %s apunta a un registro que ya no '
@@ -3317,7 +3305,8 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
         for data in data_list:
             prefix, _, suffix = data['xml_id'].partition('.')
             record = data['record']
-            rows.add((prefix, suffix, type(record)._meta.label, record.pk,
+            rows.add((prefix, suffix, registry.identity_of(type(record)),
+                      record.pk,
                       bool(data.get('noupdate'))))
 
         for sub_rows in split_every(_IN_MAX, rows, piece_maker=list):
@@ -3434,7 +3423,8 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
         if target is not None:
             models.AccessQuerySet(model=target, using=using).filter(
                 pk=res_id).check_access('write')
-        for xid in cls.objects.using(using).filter(model=model, res_id=res_id):
+        for xid in cls.objects.using(using).filter(
+                model=registry.identity_for_key(model), res_id=res_id):
             xid.noupdate = not xid.noupdate
             xid.save(using=using)
 
@@ -3550,7 +3540,7 @@ class IrModelData(models.CopyMixin, TimeStampedModel):
             # *"do not delete records that have other external ids (and thus do
             # not belong to the modules being installed)"*
             foreign = set(cls.objects.using(using).filter(
-                model=model_cls._meta.label, res_id__in=ids,
+                model=registry.identity_of(model_cls), res_id__in=ids,
             ).exclude(pk__in=own_data_ids).values_list('res_id', flat=True))
             ids = [i for i in ids if i not in foreign]
             if not ids:

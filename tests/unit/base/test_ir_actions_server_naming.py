@@ -318,7 +318,7 @@ class TestTheOnchangeSetters:
     def test_a_link_field_of_another_model_is_dropped(self):
         model_row = _partner_model()
         other, _c = IrModel.objects.get_or_create(
-            model='base.ResCountry', defaults={'name': 'Pais'}
+            model='res.country', defaults={'name': 'Pais'}
         )
         link = _field(model_row, 'ajeno', 'many2one')
         action = _action(

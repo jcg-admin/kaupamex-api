@@ -18,7 +18,7 @@ from orm.utils import model_field_registry
 
 pytestmark = pytest.mark.django_db
 
-LABEL = 'base.ResPartnerBank'
+LABEL = 'res.partner.bank'
 
 
 @pytest.fixture(autouse=True)

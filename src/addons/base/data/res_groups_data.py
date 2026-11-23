@@ -77,6 +77,7 @@ from addons.base.models.res_groups import ResGroups as _ResGroups
 from addons.base.models.res_groups_privilege import (
     ResGroupsPrivilege as _ResGroupsPrivilege,
 )
+from orm import registry
 
 #: ``(nombre sin módulo, nombre visible, secuencia)`` — la única categoría que
 #: ``base_groups.xml`` crea, y de la que cuelgan los dos privilegios.
@@ -173,7 +174,7 @@ def _xmlid_row(IrModelData, alias, name, record):
         module='base',
         name=name,
         defaults={
-            'model': type(record)._meta.label,
+            'model': registry.identity_for_key(type(record)._meta.label),
             'res_id': record.pk,
             'noupdate': True,
         },

@@ -12,7 +12,7 @@ from addons.base.data.cron import sembrar_cron
 # cuando ``IrLogging._purge_expired`` gana el decorador.
 CRON_AUTOVACUUM = {
     'name': 'Base: Auto-vacuum internal data',
-    'model_name': 'base.IrAutovacuum',
+    'model_name': 'ir.autovacuum',
     'method_name': '_run_vacuum_cleaner',
     'xml_id': 'base.autovacuum_job',
     'interval_number': 1,

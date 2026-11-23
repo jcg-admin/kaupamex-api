@@ -82,9 +82,14 @@ def migration(number):
     return result
 
 
-@pytest.mark.parametrize('team_state', [None, True, False, 'missing', 'wrong_model'])
+@pytest.mark.parametrize(
+    'team_state', [None, True, False, 'missing', 'wrong_model', 'identity'])
 @pytest.mark.django_db(transaction=True)
-def test_historical_migration_preserves_local_default_without_live_models(team_state):
+def test_historical_migration_preserves_local_default_without_live_models(
+        team_state):
+    # El ``model`` de la fila ``xml_id`` por caso: la etiqueta histórica, otro
+    # modelo, o la identidad que el sembrador escribe desde el corte C3.
+    team_models = {'wrong_model': 'res.partner', 'identity': 'crm.team'}
     with historical_schema() as (database, state), company_scope(77421):
         metadata = state.apps.get_model('base', 'IrModelData')
         teams = state.apps.get_model('sales_team', 'CrmTeam')
@@ -92,40 +97,48 @@ def test_historical_migration_preserves_local_default_without_live_models(team_s
         legacy.objects.using(ALIAS).create(name='Existing site')
         expected = None
         if team_state is not None:
-            team = teams.objects.using(ALIAS).create(active=team_state is True)
+            active = team_state in (True, 'identity')
+            team = teams.objects.using(ALIAS).create(active=active)
             metadata.objects.using(ALIAS).create(
                 module='sales_team', name='salesteam_website_sales',
-                model='base.ResPartner' if team_state == 'wrong_model' else 'sales_team.CrmTeam',
+                model=team_models.get(team_state, 'sales_team.CrmTeam'),
                 res_id=999999 if team_state == 'missing' else team.pk)
-            expected = team.pk if team_state is True else None
+            expected = team.pk if active else None
         third, fourth = migration(3), migration(4)
         with mock.patch.object(IrModelData, 'ref', side_effect=AssertionError(
-                'Historical DDL must not query runtime XMLID models')) as live_lookup, \
-                CaptureQueriesContext(connections['default']) as central_queries:
+                'Historical DDL must not query runtime XMLID models')
+        ) as live_lookup, CaptureQueriesContext(
+                connections['default']) as central_queries:
             if team_state == 'wrong_model':
-                with pytest.raises(ValueError, match='different historical model'):
+                with pytest.raises(ValueError,
+                                   match='different historical model'):
                     with database.schema_editor() as editor:
                         third.apply(state.clone(), editor)
-                assert legacy.objects.using(ALIAS).get().name == 'Existing site'
+                name = legacy.objects.using(ALIAS).get().name
+                assert name == 'Existing site'
                 live_lookup.assert_not_called()
                 assert not central_queries.captured_queries
                 return
             with database.schema_editor() as editor:
                 after_third = third.apply(state.clone(), editor)
-            current = after_third.apps.get_model('website_sale', 'WebsiteSaleSettings')
+            current = after_third.apps.get_model(
+                'website_sale', 'WebsiteSaleSettings')
             field = current._meta.get_field('salesteam')
             assert field.default is _default_salesteam_id and field.null
             assert current.objects.using(ALIAS).get().salesteam_id == expected
             with database.schema_editor() as editor:
                 after_fourth = fourth.apply(after_third.clone(), editor)
-            current = after_fourth.apps.get_model('website_sale', 'WebsiteSaleSettings')
+            current = after_fourth.apps.get_model(
+                'website_sale', 'WebsiteSaleSettings')
             field = current._meta.get_field('salesteam_id')
             assert field.default is _default_salesteam_id and field.null
-            assert getattr(current.objects.using(ALIAS).get(), field.attname) == expected
+            row = current.objects.using(ALIAS).get()
+            assert getattr(row, field.attname) == expected
             with database.cursor() as cursor:
-                cursor.execute('SELECT pg_get_expr(indpred, indrelid) FROM pg_index '
-                               'JOIN pg_class ON pg_class.oid=indexrelid WHERE relname=%s',
-                               ['contract_salesteam_nn'])
+                cursor.execute(
+                    'SELECT pg_get_expr(indpred, indrelid) FROM pg_index '
+                    'JOIN pg_class ON pg_class.oid=indexrelid '
+                    'WHERE relname=%s', ['contract_salesteam_nn'])
                 assert 'IS NOT NULL' in cursor.fetchone()[0]
             with database.schema_editor() as editor:
                 fourth.unapply(after_third.clone(), editor)
@@ -136,7 +149,8 @@ def test_historical_migration_preserves_local_default_without_live_models(team_s
             assert not central_queries.captured_queries
 
 
-@pytest.mark.parametrize('company,expected', [(None, 'default'), (77421, ALIAS)])
+@pytest.mark.parametrize('company,expected',
+                         [(None, 'default'), (77421, ALIAS)])
 def test_runtime_default_uses_existing_router_binding(company, expected):
     extra = {ALIAS: deepcopy(settings.DATABASES['default'])} if company is not None else {}
     with mock.patch.dict(settings.DATABASES, extra), \

@@ -42,7 +42,7 @@ def test_the_edi_proxy_user_is_a_base_model():
 
 def test_the_acl_is_the_reference_csv_with_its_external_ids():
     loaded = IrModelData.objects.filter(module='account_edi_proxy_client',
-                                        model='base.IrModelAccess')
+                                        model='ir.model.access')
     rows = {name: IrModelAccess.objects.get(pk=loaded.get(name=name).res_id)
             for name in loaded.values_list('name', flat=True)}
     perms = {name: (row.perm_read, row.perm_write, row.perm_create,

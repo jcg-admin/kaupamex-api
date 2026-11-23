@@ -55,8 +55,8 @@ def test_the_acl_and_rules_carry_their_external_ids():
     data = IrModelData.objects.filter(module='hr_recruitment')
     # 19 filas en el CSV: 18 propias y ``hr.access_hr_job_user``, que
     # sobrescribe la fila homónima de ``hr``
-    assert data.filter(model='base.IrModelAccess').count() == 18
-    assert set(data.filter(model='base.IrRule').values_list(
+    assert data.filter(model='ir.model.access').count() == 18
+    assert set(data.filter(model='ir.rule').values_list(
         'name', flat=True)) == {'hr_applicant_comp_rule',
                                 'hr_applicant_interviewer_rule',
                                 'hr_applicant_user_rule',

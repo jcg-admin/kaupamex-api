@@ -13,6 +13,7 @@ from addons.base.models.ir_rule import IrRule
 from orm.environments import Environment
 from orm.utils import SUPERUSER_ID
 from tests.factories.user_factory import UserFactory
+from orm import registry
 
 pytestmark = pytest.mark.django_db
 
@@ -86,7 +87,7 @@ def test_an_empty_domain_with_groupby_gives_nothing(env):
 
 def test_a_rule_hides_the_groups_of_forbidden_rows(env, data):
     first, _second, messages = data
-    label = env['test_orm.message']._meta.label
+    label = registry.identity_of(env['test_orm.message'])
     row, _ = IrModel.objects.get_or_create(
         model=label, defaults={'name': 'test_orm.message'})
     IrModelAccess.objects.create(name='read message', model_id=row,

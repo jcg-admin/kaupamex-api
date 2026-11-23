@@ -17,7 +17,7 @@ def _create(segments):
         return module_db.create_categories(cursor, segments)
 
 
-def _identity(name, record_id, model='base.IrModuleCategory'):
+def _identity(name, record_id, model='ir.module.category'):
     return IrModelData.objects.create(
         module='base',
         name=name,
@@ -52,7 +52,7 @@ def test_nested_path_creates_each_level_and_its_external_identity():
     ]:
         identity = IrModelData.objects.get(module='base', name=name)
         assert (identity.model, identity.res_id, identity.noupdate) == (
-            'base.IrModuleCategory',
+            'ir.module.category',
             record.pk,
             True,
         )
@@ -112,14 +112,14 @@ def test_caller_rollback_preserves_ownership_of_the_transaction():
 
 def test_wrong_model_identity_is_not_overwritten_and_new_parents_roll_back():
     identity = _identity(
-        'module_category_contracttree_child', 123, 'base.IrModule'
+        'module_category_contracttree_child', 123, 'ir.module.module'
     )
 
     with pytest.raises(ValidationError):
         _create([ROOT, 'Child'])
 
     identity.refresh_from_db()
-    assert (identity.model, identity.res_id) == ('base.IrModule', 123)
+    assert (identity.model, identity.res_id) == ('ir.module.module', 123)
     assert not IrModuleCategory.objects.filter(name=ROOT).exists()
 
 
