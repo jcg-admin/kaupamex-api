@@ -267,7 +267,7 @@ def _related_pks(registro, nombre):
     return tuple(gestor.values_list('pk', flat=True))
 
 
-class StockWarehouseOrderpoint(TimeStampedModel):
+class StockWarehouseOrderpoint(models.BaseModel, TimeStampedModel):
     """``stock.warehouse.orderpoint`` — «Defines Minimum stock rules»."""
 
     # Atributos de clase de modelo — los cuatro de ORM que la referencia
@@ -1720,7 +1720,7 @@ class StockWarehouseOrderpoint(TimeStampedModel):
             # La fuente registra una actividad de aviso sobre la plantilla del
             # producto por cada regla que falló, sin duplicar el mismo mensaje.
             for orderpoint, mensaje in exceptions:
-                if orderpoint is None or orderpoint.product is None:
+                if orderpoint is None or not orderpoint.product:
                     continue
                 plantilla = orderpoint.product.product_tmpl_id
                 programar = getattr(plantilla, 'activity_schedule', None)

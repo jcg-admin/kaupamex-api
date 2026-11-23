@@ -366,7 +366,7 @@ def _compute_buy_to_resupply(self):
     ¿Este almacén se reabastece comprando? Sí cuando está entre los almacenes
     de la ruta de su regla de compra.
     """
-    if self.buy_pull is None or self.buy_pull.route is None:
+    if not self.buy_pull or self.buy_pull.route is None:
         return False
     return self.buy_pull.route.warehouse_ids.filter(pk=self.pk).exists()
 
@@ -378,7 +378,7 @@ def _inverse_buy_to_resupply(self, value):
     regla del almacén todavía no existe, la fuente busca cualquier regla de
     compra de ese almacén para llegar a su ruta; se conserva.
     """
-    buy_route = self.buy_pull.route if self.buy_pull is not None else None
+    buy_route = self.buy_pull.route if self.buy_pull else None
     if buy_route is None:
         rule_rec = _buy_rules().filter(warehouse=self).first()
         buy_route = rule_rec.route if rule_rec is not None else None
@@ -460,7 +460,11 @@ def _get_all_routes(self):
     Suma la ruta de la regla de compra a las que el ``super()`` ya devolvía —
     sólo si el almacén se reabastece comprando y la regla existe.
     """
-    if not self.buy_to_resupply or self.buy_pull is None or not self.buy_pull.route_id:
+    if (
+        not self.buy_to_resupply
+        or not self.buy_pull
+        or not self.buy_pull.route_id
+    ):
         return None
     route_model = apps.get_model('stock', 'StockRoute')
     return route_model.objects.filter(pk=self.buy_pull.route_id)
@@ -496,23 +500,22 @@ def _get_routes_values(self):
     return self._get_receive_routes_values('buy_to_resupply')
 
 
-def _update_name_and_code(cls, warehouses, new_name=False, new_code=False):
+def _update_name_and_code(self, new_name=False, new_code=False):
     """≙ ``_update_name_and_code`` (``odoo19c: :116-122``).
 
     Al renombrar el almacén, la regla de compra lleva su nombre dentro: hay que
     reescribirlo. La fuente reemplaza **la primera** ocurrencia; se conserva.
 
-    Es ``@classmethod`` aquí porque el método previo lo es
-    (``addons/stock/models/stock_warehouse.py:1552``) y ``chain_method``
-    preserva el descriptor: si se instalara como método de instancia, la
-    llamada ``cls._update_name_and_code(...)`` reventaría en ejecución
-    (``H-API-738``).
+    Es método de recordset, como el previo
+    (``addons/stock/models/stock_warehouse.py``) desde que ``stock.warehouse``
+    es ``BaseModel``; ``chain_method`` preserva el descriptor, así que los dos
+    eslabones tienen que ser de la misma clase (``H-API-738``).
     """
     if not new_name:
         return None
-    for warehouse in warehouses:
+    for warehouse in self:
         rule_rec = warehouse.buy_pull
-        if rule_rec is not None and rule_rec.name:
+        if rule_rec and rule_rec.name:
             rule_rec.name = rule_rec.name.replace(warehouse.name, new_name, 1)
             rule_rec.save(update_fields=['name', 'write_date'])
     return None
@@ -545,7 +548,7 @@ def _inverse_supplier_id(self):
     Elegir proveedor sin haber elegido ruta fija la ruta de compra: la fuente
     toma la primera regla con acción «comprar» y usa su ruta.
     """
-    if self.route is None and self.supplier is not None:
+    if self.route is None and self.supplier:
         rule_rec = _buy_rules().first()
         if rule_rec is not None:
             self.route = rule_rec.route
@@ -827,8 +830,7 @@ def _install_warehouse(model):
     chain_method(model, '_get_routes_values', _get_routes_values,
                  combine=_merge_vals)
     # ``@classmethod`` porque el previo lo es — ver el docstring del método.
-    chain_method(model, '_update_name_and_code',
-                 classmethod(_update_name_and_code))
+    chain_method(model, '_update_name_and_code', _update_name_and_code)
 
 
 def _install_orderpoint(model):

@@ -268,6 +268,7 @@ from django.db.models import Q
 from addons.base.models import TimeStampedModel
 from exceptions import UserError, ValidationError
 from osv import expression
+from orm.utils import browse
 from tools.translate import _
 
 #: ≙ ``ROUTE_NAMES`` (``odoo19c: :13-20``) — el nombre legible de cada modo de
@@ -285,7 +286,9 @@ ROUTE_NAMES = {
 #: methods generating values for routes». La referencia lo declara en el cuerpo
 #: de la clase; aquí se declara a nivel de módulo **y** se cuelga de la clase
 #: con su nombre, para que ambas formas de citarlo resuelvan.
-Routing = namedtuple('Routing', ['from_loc', 'dest_loc', 'picking_type', 'action'])
+Routing = namedtuple(
+    'Routing', ['from_loc', 'dest_loc', 'picking_type', 'action']
+)
 
 #: Los ocho tipos de operación que un almacén genera, en el orden en que la
 #: referencia los numera con ``max_sequence + N`` (``:1005-1078``).
@@ -295,7 +298,7 @@ PICKING_TYPE_FIELDS = (
 )
 
 
-class StockWarehouse(TimeStampedModel):
+class StockWarehouse(models.BaseModel, TimeStampedModel):
     """``stock.warehouse`` — el sitio físico y la topología que genera."""
 
     # Atributos de clase de modelo — los cuatro de ORM que la referencia
@@ -309,13 +312,14 @@ class StockWarehouse(TimeStampedModel):
     #: para que ``self.Routing(...)`` resuelva como en la fuente.
     Routing = Routing
 
-    name                 = fields.Char(
+    name = fields.Char(
         max_length=255,
         help_text='Nombre del almacén (Odoo name; su default es el nombre de '
-                  'la empresa — ver _default_name).',
+        'la empresa — ver _default_name).',
     )
-    active               = fields.Boolean(
-        default=True, help_text='Almacén activo (Odoo active).',
+    active = fields.Boolean(
+        default=True,
+        help_text='Almacén activo (Odoo active).',
     )
     company = fields.Many2one(
         'base.ResCompany', null=False, on_delete=models.PROTECT,
@@ -323,133 +327,204 @@ class StockWarehouse(TimeStampedModel):
         help_text='Empresa (Odoo company_id, readonly+required: se toma de '
                   'las preferencias del usuario y no se cambia después).',
     )
-    partner              = fields.Many2one(
-        'base.ResPartner', on_delete=models.SET_NULL, null=True, blank=True,
+    partner = fields.Many2one(
+        'base.ResPartner',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='warehouses',
         help_text='Dirección del almacén (Odoo partner_id).',
     )
-    view_location        = fields.Many2one(
-        'stock.StockLocation', null=False, on_delete=models.PROTECT, db_index=True,
+    view_location = fields.Many2one(
+        'stock.StockLocation',
+        null=False,
+        on_delete=models.PROTECT,
+        db_index=True,
         related_name='warehouses_as_view',
         help_text='Ubicación raíz de tipo vista que cuelga de este almacén '
-                  '(Odoo view_location_id).',
+        '(Odoo view_location_id).',
     )
-    lot_stock            = fields.Many2one(
-        'stock.StockLocation', null=False, on_delete=models.PROTECT,
+    lot_stock = fields.Many2one(
+        'stock.StockLocation',
+        null=False,
+        on_delete=models.PROTECT,
         related_name='warehouses_as_stock',
         help_text='La estantería: ubicación interna donde vive la existencia '
-                  '(Odoo lot_stock_id).',
+        '(Odoo lot_stock_id).',
     )
-    code                 = fields.Char(
+    code = fields.Char(
         max_length=5,
-        help_text='Nombre corto que identifica el almacén; prefija los códigos '
-                  'de barras y las secuencias (Odoo code, size=5).',
+        help_text='Nombre corto que identifica el almacén; prefija los '
+                  'códigos '
+        'de barras y las secuencias (Odoo code, size=5).',
     )
     # ``route_ids`` NO se declara aquí — ver "Divergencia D-3" en el docstring.
     # ``StockRoute.warehouse_ids`` ya declara este M2M sobre la misma tabla
     # ``stock_route_warehouse`` con ``related_name='route_ids'``, así que el
     # atributo existe con el nombre de la referencia y es un manager normal.
-    reception_steps      = fields.Selection(
+    reception_steps = fields.Selection(
         choices=[
             ('one_step', 'Receive and Store (1 step)'),
             ('two_steps', 'Receive then Store (2 steps)'),
             ('three_steps', 'Receive, Quality Control, then Store (3 steps)'),
         ],
-        max_length=16, default='one_step',
+        max_length=16,
+        default='one_step',
         help_text='Ruta de entrada por defecto (Odoo reception_steps).',
     )
-    delivery_steps       = fields.Selection(
+    delivery_steps = fields.Selection(
         choices=[
             ('ship_only', 'Deliver (1 step)'),
             ('pick_ship', 'Pick then Deliver (2 steps)'),
             ('pick_pack_ship', 'Pick, Pack, then Deliver (3 steps)'),
         ],
-        max_length=16, default='ship_only',
+        max_length=16,
+        default='ship_only',
         help_text='Ruta de salida por defecto (Odoo delivery_steps).',
     )
-    wh_input_stock_loc   = fields.Many2one(
-        'stock.StockLocation', on_delete=models.SET_NULL, null=True, blank=True,
+    wh_input_stock_loc = fields.Many2one(
+        'stock.StockLocation',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='warehouses_as_input',
         help_text='Ubicación de entrada (Odoo wh_input_stock_loc_id); activa '
-                  'sólo si reception_steps != one_step.',
+        'sólo si reception_steps != one_step.',
     )
-    wh_qc_stock_loc      = fields.Many2one(
-        'stock.StockLocation', on_delete=models.SET_NULL, null=True, blank=True,
+    wh_qc_stock_loc = fields.Many2one(
+        'stock.StockLocation',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='warehouses_as_qc',
         help_text='Ubicación de control de calidad (Odoo wh_qc_stock_loc_id); '
-                  'activa sólo con reception_steps == three_steps.',
+        'activa sólo con reception_steps == three_steps.',
     )
-    wh_output_stock_loc  = fields.Many2one(
-        'stock.StockLocation', on_delete=models.SET_NULL, null=True, blank=True,
+    wh_output_stock_loc = fields.Many2one(
+        'stock.StockLocation',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='warehouses_as_output',
         help_text='Ubicación de salida (Odoo wh_output_stock_loc_id); activa '
-                  'sólo si delivery_steps != ship_only.',
+        'sólo si delivery_steps != ship_only.',
     )
-    wh_pack_stock_loc    = fields.Many2one(
-        'stock.StockLocation', on_delete=models.SET_NULL, null=True, blank=True,
+    wh_pack_stock_loc = fields.Many2one(
+        'stock.StockLocation',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='warehouses_as_pack',
-        help_text='Zona de empaque (Odoo wh_pack_stock_loc_id); activa sólo con '
-                  'delivery_steps == pick_pack_ship.',
+        help_text='Zona de empaque (Odoo wh_pack_stock_loc_id); activa sólo '
+                  'con '
+        'delivery_steps == pick_pack_ship.',
     )
-    mto_pull             = fields.Many2one(
-        'stock.StockRule', on_delete=models.SET_NULL, null=True, blank=True,
+    mto_pull = fields.Many2one(
+        'stock.StockRule',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name='warehouses_as_mto',
-        help_text='Regla MTO del almacén dentro de la ruta global «Replenish on '
-                  'Order» (Odoo mto_pull_id).',
+        help_text='Regla MTO del almacén dentro de la ruta global «Replenish '
+                  'on '
+        'Order» (Odoo mto_pull_id).',
     )
-    pick_type            = fields.Many2one(
-        'stock.StockPickingType', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='warehouses_as_pick', help_text='Odoo pick_type_id.',
+    pick_type = fields.Many2one(
+        'stock.StockPickingType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='warehouses_as_pick',
+        help_text='Odoo pick_type_id.',
     )
-    pack_type            = fields.Many2one(
-        'stock.StockPickingType', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='warehouses_as_pack_type', help_text='Odoo pack_type_id.',
+    pack_type = fields.Many2one(
+        'stock.StockPickingType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='warehouses_as_pack_type',
+        help_text='Odoo pack_type_id.',
     )
-    out_type             = fields.Many2one(
-        'stock.StockPickingType', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='warehouses_as_out', help_text='Odoo out_type_id.',
+    out_type = fields.Many2one(
+        'stock.StockPickingType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='warehouses_as_out',
+        help_text='Odoo out_type_id.',
     )
-    in_type              = fields.Many2one(
-        'stock.StockPickingType', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='warehouses_as_in', help_text='Odoo in_type_id.',
+    in_type = fields.Many2one(
+        'stock.StockPickingType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='warehouses_as_in',
+        help_text='Odoo in_type_id.',
     )
-    int_type             = fields.Many2one(
-        'stock.StockPickingType', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='warehouses_as_int', help_text='Odoo int_type_id.',
+    int_type = fields.Many2one(
+        'stock.StockPickingType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='warehouses_as_int',
+        help_text='Odoo int_type_id.',
     )
-    qc_type              = fields.Many2one(
-        'stock.StockPickingType', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='warehouses_as_qc_type', help_text='Odoo qc_type_id.',
+    qc_type = fields.Many2one(
+        'stock.StockPickingType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='warehouses_as_qc_type',
+        help_text='Odoo qc_type_id.',
     )
-    store_type           = fields.Many2one(
-        'stock.StockPickingType', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='warehouses_as_store', help_text='Odoo store_type_id.',
+    store_type = fields.Many2one(
+        'stock.StockPickingType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='warehouses_as_store',
+        help_text='Odoo store_type_id.',
     )
-    xdock_type           = fields.Many2one(
-        'stock.StockPickingType', on_delete=models.SET_NULL, null=True, blank=True,
-        related_name='warehouses_as_xdock', help_text='Odoo xdock_type_id.',
+    xdock_type = fields.Many2one(
+        'stock.StockPickingType',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='warehouses_as_xdock',
+        help_text='Odoo xdock_type_id.',
     )
-    reception_route      = fields.Many2one(
-        'stock.StockRoute', on_delete=models.RESTRICT, null=True, blank=True,
+    reception_route = fields.Many2one(
+        'stock.StockRoute',
+        on_delete=models.RESTRICT,
+        null=True,
+        blank=True,
         related_name='warehouses_as_reception',
         help_text='Ruta de recepción generada por reception_steps '
-                  '(Odoo reception_route_id).',
+        '(Odoo reception_route_id).',
     )
-    delivery_route       = fields.Many2one(
-        'stock.StockRoute', on_delete=models.RESTRICT, null=True, blank=True,
+    delivery_route = fields.Many2one(
+        'stock.StockRoute',
+        on_delete=models.RESTRICT,
+        null=True,
+        blank=True,
         related_name='warehouses_as_delivery',
         help_text='Ruta de entrega generada por delivery_steps '
-                  '(Odoo delivery_route_id).',
+        '(Odoo delivery_route_id).',
     )
-    resupply_wh_ids      = fields.Many2many(
-        'self', through='stock.StockWarehouseResupply', symmetrical=False,
+    resupply_wh_ids = fields.Many2many(
+        'self',
+        through='stock.StockWarehouseResupply',
+        symmetrical=False,
         through_fields=('supplied_wh', 'supplier_wh'),
-        related_name='+', blank=True,
-        help_text='Almacenes desde los que éste se reabastece; marcar uno crea '
-                  'su ruta inter-almacén (Odoo resupply_wh_ids).',
+        related_name='+',
+        blank=True,
+        help_text='Almacenes desde los que éste se reabastece; marcar uno '
+                  'crea '
+        'su ruta inter-almacén (Odoo resupply_wh_ids).',
     )
-    sequence             = fields.Integer(
-        default=10, help_text='Orden de despliegue del almacén (Odoo sequence).',
+    sequence = fields.Integer(
+        default=10,
+        help_text='Orden de despliegue del almacén (Odoo sequence).',
     )
 
     class Meta:
@@ -492,7 +567,11 @@ class StockWarehouse(TimeStampedModel):
         if company is None:
             return ''
         cuenta = cls.objects.filter(company=company).count()
-        return f'{company.name} - warehouse # {cuenta + 1}' if cuenta else company.name
+        return (
+            f'{company.name} - warehouse # {cuenta + 1}'
+            if cuenta
+            else company.name
+        )
 
     def _onchange_company_id(self):
         """≙ ``_onchange_company_id`` (``odoo19c: :101-113``).
@@ -520,7 +599,9 @@ class StockWarehouse(TimeStampedModel):
         Divergencia D-2: se devuelve el descriptor en vez de lanzar el
         ``RedirectWarning`` del cliente Odoo.
         """
-        if user is not None and not cls._user_has_group(user, 'stock.group_stock_manager'):
+        if user is not None and not cls._user_has_group(
+            user, 'stock.group_stock_manager'
+        ):
             raise UserError(_('Please contact your administrator to configure '
                               'your warehouse.'))
         return {
@@ -570,7 +651,9 @@ class StockWarehouse(TimeStampedModel):
             loc_vals = {'name': vals.get('code'), 'usage': 'view'}
             if vals.get('company_id'):
                 loc_vals['company_id'] = vals['company_id']
-            vals['view_location_id'] = location_model.objects.create(**loc_vals).pk
+            vals['view_location_id'] = location_model.objects.create(
+                **loc_vals
+            ).pk
 
             for campo, valores in cls._get_locations_values(vals).items():
                 valores['location_id'] = vals['view_location_id']
@@ -581,14 +664,16 @@ class StockWarehouse(TimeStampedModel):
         warehouses = [cls.objects.create(**vals) for vals in vals_list]
 
         for warehouse, vals in zip(warehouses, vals_list):
-            cls.write([warehouse],
-                      warehouse._create_or_update_sequences_and_picking_types())
-            cls.write([warehouse], warehouse._create_or_update_route())
+            warehouse.write(
+                warehouse._create_or_update_sequences_and_picking_types())
+            warehouse.write(warehouse._create_or_update_route())
             warehouse._create_or_update_global_routes_rules()
-            warehouse.create_resupply_routes(list(warehouse.resupply_wh_ids.all()))
+            warehouse.create_resupply_routes(list(warehouse.resupply_wh_ids))
 
             if vals.get('partner_id'):
-                cls._update_partner_data(vals['partner_id'], vals.get('company_id'))
+                cls._update_partner_data(
+                    vals['partner_id'], vals.get('company_id')
+                )
 
             # El almacén no existía cuando se crearon sus ubicaciones — pero
             # `cls.objects.create(**vals)` (línea de arriba) ya disparó
@@ -596,7 +681,7 @@ class StockWarehouse(TimeStampedModel):
             # `view_location` (ver `save()`/D-4). No hace falta repetirlo aquí.
 
         cls._check_multiwarehouse_group()
-        return warehouses
+        return browse(cls, [warehouse.pk for warehouse in warehouses])
 
     def save(self, *args, **kwargs):
         """Dispara el recálculo de ``StockLocation.warehouse`` en el subárbol.
@@ -662,8 +747,7 @@ class StockWarehouse(TimeStampedModel):
         vals.update(default)
         return vals
 
-    @classmethod
-    def write(cls, warehouses, vals):
+    def write(self, vals):
         """≙ ``write`` (``odoo19c: :185-303``).
 
         El método más largo del archivo, y su trabajo es **propagar**: cambiar
@@ -681,43 +765,49 @@ class StockWarehouse(TimeStampedModel):
         6. archivar un almacén con operaciones en curso está prohibido, y el
            mensaje nombra cuáles.
         """
-        warehouses = list(warehouses)
-        if not warehouses:
-            return warehouses
+        if not self:
+            return True
         route_model = apps.get_model('stock', 'StockRoute')
 
         if 'company_id' in vals:
-            for warehouse in warehouses:
+            for warehouse in self:
                 if warehouse.company_id != vals['company_id']:
-                    raise UserError(_(
-                        "Changing the company of this record is forbidden at this "
-                        "point, you should rather archive it and create a new one."))
+                    raise UserError(
+                        _(
+                            "Changing the company of this record is forbidden "
+                            "at this "
+                            "point, you should rather archive it and create a "
+                            "new one."
+                        )
+                    )
 
-        cls._create_missing_locations(warehouses, vals)
+        self._create_missing_locations(vals)
         if vals.get('reception_steps'):
-            cls._update_location_reception(warehouses, vals['reception_steps'])
+            self._update_location_reception(vals['reception_steps'])
         if vals.get('delivery_steps'):
-            cls._update_location_delivery(warehouses, vals['delivery_steps'])
+            self._update_location_delivery(vals['delivery_steps'])
         if vals.get('reception_steps') or vals.get('delivery_steps'):
-            cls._update_reception_delivery_resupply(
-                warehouses, vals.get('reception_steps'), vals.get('delivery_steps'))
+            self._update_reception_delivery_resupply(
+                vals.get('reception_steps'), vals.get('delivery_steps'))
 
         resupply_previos = {}
         if vals.get('resupply_wh_ids') and not vals.get('resupply_route_ids'):
             resupply_previos = {
-                w.pk: set(w.resupply_wh_ids.values_list('pk', flat=True))
-                for w in warehouses
+                w.pk: set(w.resupply_wh_ids.ids)
+                for w in self
             }
 
         if vals.get('partner_id'):
-            for warehouse in warehouses:
-                cls._update_partner_data(
-                    vals['partner_id'], vals.get('company_id') or warehouse.company_id)
+            for warehouse in self:
+                self._update_partner_data(
+                    vals['partner_id'],
+                    vals.get('company_id') or warehouse.company_id,
+                )
 
         if vals.get('code') or vals.get('name'):
-            cls._update_name_and_code(warehouses, vals.get('name'), vals.get('code'))
+            self._update_name_and_code(vals.get('name'), vals.get('code'))
 
-        for warehouse in warehouses:
+        for warehouse in self:
             for clave, valor in vals.items():
                 atributo = clave.removesuffix('_id')
                 if hasattr(warehouse, atributo) and atributo != clave:
@@ -726,18 +816,20 @@ class StockWarehouse(TimeStampedModel):
                     setattr(warehouse, clave, valor)
             warehouse.save()
 
-        for warehouse in warehouses:
+        for warehouse in self:
             depends = [d
                        for valor in warehouse._get_routes_values().values()
                        for d in valor.get('depends', [])]
             if 'code' in vals or any(d in vals for d in depends):
-                tipos = warehouse._create_or_update_sequences_and_picking_types()
+                tipos = (
+                    warehouse._create_or_update_sequences_and_picking_types()
+                )
                 if tipos:
-                    cls.write([warehouse], tipos)
+                    warehouse.write(tipos)
             if any(d in vals for d in depends):
                 rutas = warehouse._create_or_update_route()
                 if rutas:
-                    cls.write([warehouse], rutas)
+                    warehouse.write(rutas)
 
             globales = warehouse._get_global_route_rules_values()
             depends_globales = [d
@@ -751,30 +843,38 @@ class StockWarehouse(TimeStampedModel):
                 warehouse._apply_active_to_topology(vals['active'])
 
         if resupply_previos:
-            for warehouse in warehouses:
-                nuevos = set(warehouse.resupply_wh_ids.values_list('pk', flat=True))
+            for warehouse in self:
+                nuevos = set(warehouse.resupply_wh_ids.ids)
                 previos = resupply_previos[warehouse.pk]
                 a_agregar, a_quitar = nuevos - previos, previos - nuevos
                 if a_agregar:
                     existentes = route_model.objects.filter(
-                        supplied_wh=warehouse, supplier_wh__in=a_agregar, active=False)
-                    ya = set(existentes.values_list('supplier_wh_id', flat=True))
+                        supplied_wh=warehouse,
+                        supplier_wh__in=a_agregar,
+                        active=False,
+                    )
+                    ya = set(
+                        existentes.values_list('supplier_wh_id', flat=True)
+                    )
                     existentes.update(active=True)
                     faltan = a_agregar - ya
                     if faltan:
                         warehouse.create_resupply_routes(
-                            list(cls.objects.filter(pk__in=faltan)))
+                            list(type(self).objects.filter(pk__in=faltan)))
                 if a_quitar:
                     route_model.objects.filter(
-                        supplied_wh=warehouse, supplier_wh__in=a_quitar, active=True
+                        supplied_wh=warehouse,
+                        supplier_wh__in=a_quitar,
+                        active=True,
                     ).update(active=False)
 
         if 'active' in vals:
-            cls._check_multiwarehouse_group()
-        return warehouses
+            self._check_multiwarehouse_group()
+        return True
 
     def _apply_active_to_topology(self, activo):
-        """Propaga ``active`` a la topología generada (≙ el bloque ``:273-303``).
+        """Propaga ``active`` a la topología generada (≙ el bloque
+        ``:273-303``).
 
         No es un símbolo de la referencia: es el cuerpo del ``if 'active' in
         vals`` de ``write``, extraído porque ese método ya es el más largo del
@@ -799,18 +899,29 @@ class StockWarehouse(TimeStampedModel):
         tipos.update(active=activo)
 
         ubicaciones = location_model.objects.filter(
-            location__in=location_model.objects.filter(pk=self.view_location_id))
+            location__in=location_model.objects.filter(
+                pk=self.view_location_id
+            )
+        )
         ajenos = picking_type_model.objects.filter(
             default_location_src__in=ubicaciones,
             default_location_dest__in=ubicaciones,
         ).exclude(pk__in=tipos.values_list('pk', flat=True))
         if ajenos.exists():
-            raise UserError(_(
-                '%(operations)s have default source or destination locations '
-                'within warehouse %(warehouse)s, therefore you cannot archive it.',
-                operations=[str(t) for t in ajenos], warehouse=self.name))
+            raise UserError(
+                _(
+                    '%(operations)s have default source or destination '
+                    'locations '
+                    'within warehouse %(warehouse)s, therefore you cannot '
+                    'archive it.',
+                    operations=[str(t) for t in ajenos],
+                    warehouse=self.name,
+                )
+            )
 
-        location_model.objects.filter(pk=self.view_location_id).update(active=activo)
+        location_model.objects.filter(pk=self.view_location_id).update(
+            active=activo
+        )
         rule_model.objects.filter(warehouse=self).update(active=activo)
         # Sólo las rutas que aplican **sólo** a este almacén.
         for ruta in self.route_ids.all():
@@ -818,11 +929,10 @@ class StockWarehouse(TimeStampedModel):
                 ruta.active = activo
                 ruta.save()
 
-    @classmethod
-    def unlink(cls, warehouses):
+    def unlink(self):
         """≙ ``unlink`` (``odoo19c: :305-308``)."""
-        res = cls.objects.filter(pk__in=[w.pk for w in warehouses]).delete()
-        cls._check_multiwarehouse_group()
+        res = super().unlink()
+        self._check_multiwarehouse_group()
         return res
 
     @classmethod
@@ -866,15 +976,19 @@ class StockWarehouse(TimeStampedModel):
         if empresa is None:
             return
         transito = empresa.internal_transit_location
-        partner_model.objects.filter(pk=getattr(partner_id, 'pk', partner_id)).update(
-            property_stock_customer=transito, property_stock_supplier=transito)
+        partner_model.objects.filter(
+            pk=getattr(partner_id, 'pk', partner_id)
+        ).update(
+            property_stock_customer=transito, property_stock_supplier=transito
+        )
 
     # ------------------------------------------------------------------ #
     # Generación de tipos de operación y secuencias (≙ :339-388)           #
     # ------------------------------------------------------------------ #
 
     def _create_or_update_sequences_and_picking_types(self):
-        """≙ ``_create_or_update_sequences_and_picking_types`` (``odoo19c: :339-388``).
+        """≙ ``_create_or_update_sequences_and_picking_types`` (``odoo19c:
+        :339-388``).
 
         Crea o actualiza los ocho tipos de operación del almacén. El que ya
         existe se actualiza con ``_get_picking_type_update_values``; el que no,
@@ -895,9 +1009,13 @@ class StockWarehouse(TimeStampedModel):
         color = libres[0] if libres else 0
 
         sequence_data = self._get_sequence_values()
-        max_sequence = (picking_type_model.objects.exclude(sequence=None)
-                        .order_by('-sequence').values_list('sequence', flat=True)
-                        .first() or 0)
+        max_sequence = (
+            picking_type_model.objects.exclude(sequence=None)
+            .order_by('-sequence')
+            .values_list('sequence', flat=True)
+            .first()
+            or 0
+        )
 
         actualizar = self._get_picking_type_update_values()
         crear, _max = self._get_picking_type_create_values(max_sequence)
@@ -912,7 +1030,9 @@ class StockWarehouse(TimeStampedModel):
                 continue
             valores = dict(valores, **crear[campo])
             secuencia = sequence_model.objects.create(**sequence_data[campo])
-            valores.update(warehouse=self, color=color, sequence_id=secuencia.pk)
+            valores.update(
+                warehouse=self, color=color, sequence_id=secuencia.pk
+            )
             resultado[campo] = picking_type_model.objects.create(**valores).pk
 
         if 'out_type' in resultado:
@@ -953,8 +1073,10 @@ class StockWarehouse(TimeStampedModel):
                                      raise_if_not_found=False):
         """≙ ``_find_or_create_global_route`` (``odoo19c: :406-425``).
 
-        Busca la ruta por su XML ID; si no existe o pertenece a otra empresa, la
-        busca por nombre; y si tampoco, la **copia** de la plantilla del XML ID.
+        Busca la ruta por su XML ID; si no existe o pertenece a otra empresa,
+        la
+        busca por nombre; y si tampoco, la **copia** de la plantilla del XML
+        ID.
         Divergencia D-1: el ``env.ref`` es ``IrModelData.ref``.
         """
         route_model = apps.get_model('stock', 'StockRoute')
@@ -963,7 +1085,9 @@ class StockWarehouse(TimeStampedModel):
         ruta = ruta_plantilla
         empresa = self.company
 
-        if ruta is None or (ruta.company_id and ruta.company_id != self.company_id):
+        if ruta is None or (
+            ruta.company_id and ruta.company_id != self.company_id
+        ):
             ruta = route_model.objects.filter(
                 expression.AND([
                     Q(name__contains=route_name),
@@ -972,7 +1096,9 @@ class StockWarehouse(TimeStampedModel):
 
         if ruta is None:
             if raise_if_not_found:
-                raise UserError(_("Can't find any generic route %s.", route_name))
+                raise UserError(
+                    _("Can't find any generic route %s.", route_name)
+                )
             if ruta_plantilla is not None and create:
                 ruta = route_model.objects.create(
                     name=route_name, company=empresa)
@@ -995,7 +1121,8 @@ class StockWarehouse(TimeStampedModel):
     def _generate_global_route_rules_values(self):
         """≙ ``_generate_global_route_rules_values`` (``odoo19c: :444-470``).
 
-        Genera la regla MTO. El comentario de la referencia explica por qué toma
+        Genera la regla MTO. El comentario de la referencia explica por qué
+        toma
         la regla cuyo origen es ``lot_stock_id`` y no la primera de la lista:
         *"routing are order from stock to cust; if the routing order is modify,
         the mto rule will be wrong"*.
@@ -1012,12 +1139,19 @@ class StockWarehouse(TimeStampedModel):
                     'action': 'pull',
                     'auto': 'manual',
                     'propagate_carrier': True,
-                    'route_id': getattr(self._find_or_create_global_route(
-                        'stock.route_warehouse0_mto',
-                        _('Replenish on Order (MTO)')), 'pk', None),
+                    'route_id': getattr(
+                        self._find_or_create_global_route(
+                            'stock.route_warehouse0_mto',
+                            _('Replenish on Order (MTO)'),
+                        ),
+                        'pk',
+                        None,
+                    ),
                 },
                 'update_values': {
-                    'name': self._format_rulename(regla.from_loc, regla.dest_loc, 'MTO'),
+                    'name': self._format_rulename(
+                        regla.from_loc, regla.dest_loc, 'MTO'
+                    ),
                     'location_dest_id': getattr(regla.dest_loc, 'pk', None),
                     'location_src_id': getattr(regla.from_loc, 'pk', None),
                     'picking_type_id': getattr(regla.picking_type, 'pk', None),
@@ -1044,7 +1178,9 @@ class StockWarehouse(TimeStampedModel):
         for campo, datos in self._get_routes_values().items():
             ruta = getattr(self, campo, None)
             if ruta is not None:
-                for clave, valor in datos.get('route_update_values', {}).items():
+                for clave, valor in datos.get(
+                    'route_update_values', {}
+                ).items():
                     setattr(ruta, clave, valor)
                 ruta.save()
                 ruta.rule_ids.update(active=False)
@@ -1060,8 +1196,11 @@ class StockWarehouse(TimeStampedModel):
             self._find_existing_rule_or_create(
                 self._get_rule_values(reglas, values=valores))
 
-            if (datos['route_create_values'].get('warehouse_selectable')
-                    or datos.get('route_update_values', {}).get('warehouse_selectable')):
+            if datos['route_create_values'].get(
+                'warehouse_selectable'
+            ) or datos.get('route_update_values', {}).get(
+                'warehouse_selectable'
+            ):
                 rutas.append(ruta)
         return {'route_ids': [r.pk for r in rutas]}
 
@@ -1078,7 +1217,9 @@ class StockWarehouse(TimeStampedModel):
                 'routing_key': self.reception_steps,
                 'depends': ['reception_steps'],
                 'route_update_values': {
-                    'name': self._format_routename(route_type=self.reception_steps),
+                    'name': self._format_routename(
+                        route_type=self.reception_steps
+                    ),
                     'active': self.active,
                 },
                 'route_create_values': {
@@ -1094,7 +1235,9 @@ class StockWarehouse(TimeStampedModel):
                 'routing_key': self.delivery_steps,
                 'depends': ['delivery_steps'],
                 'route_update_values': {
-                    'name': self._format_routename(route_type=self.delivery_steps),
+                    'name': self._format_routename(
+                        route_type=self.delivery_steps
+                    ),
                     'active': self.active,
                 },
                 'route_create_values': {
@@ -1121,7 +1264,9 @@ class StockWarehouse(TimeStampedModel):
                 'routing_key': self.reception_steps,
                 'depends': ['reception_steps', installed_depends],
                 'route_update_values': {
-                    'name': self._format_routename(route_type=self.reception_steps),
+                    'name': self._format_routename(
+                        route_type=self.reception_steps
+                    ),
                     'active': self.active,
                 },
                 'route_create_values': {
@@ -1172,7 +1317,8 @@ class StockWarehouse(TimeStampedModel):
 
         Las cinco sub-ubicaciones con su ``active`` derivado de los dos ejes:
         la entrada sólo existe si la recepción no es de un paso, la de calidad
-        sólo con tres pasos, la salida sólo si la entrega no es directa, y la de
+        sólo con tres pasos, la salida sólo si la entrega no es directa, y la
+        de
         empaque sólo con tres pasos de entrega.
         """
         reception_steps = vals.get('reception_steps', 'one_step')
@@ -1181,28 +1327,34 @@ class StockWarehouse(TimeStampedModel):
         company_id = vals.get('company_id')
         return {
             'lot_stock_id': {
-                'name': _('Stock'), 'active': True, 'usage': 'internal',
+                'name': _('Stock'),
+                'active': True,
+                'usage': 'internal',
                 'replenish_location': True,
                 'barcode': cls._valid_barcode(codigo + 'STOCK', company_id),
             },
             'wh_input_stock_loc_id': {
-                'name': _('Input'), 'active': reception_steps != 'one_step',
+                'name': _('Input'),
+                'active': reception_steps != 'one_step',
                 'usage': 'internal',
                 'barcode': cls._valid_barcode(codigo + 'INPUT', company_id),
             },
             'wh_qc_stock_loc_id': {
                 'name': _('Quality Control'),
-                'active': reception_steps == 'three_steps', 'usage': 'internal',
+                'active': reception_steps == 'three_steps',
+                'usage': 'internal',
                 'barcode': cls._valid_barcode(codigo + 'QUALITY', company_id),
             },
             'wh_output_stock_loc_id': {
-                'name': _('Output'), 'active': delivery_steps != 'ship_only',
+                'name': _('Output'),
+                'active': delivery_steps != 'ship_only',
                 'usage': 'internal',
                 'barcode': cls._valid_barcode(codigo + 'OUTPUT', company_id),
             },
             'wh_pack_stock_loc_id': {
                 'name': _('Packing Zone'),
-                'active': delivery_steps == 'pick_pack_ship', 'usage': 'internal',
+                'active': delivery_steps == 'pick_pack_ship',
+                'usage': 'internal',
                 'barcode': cls._valid_barcode(codigo + 'PACKING', company_id),
             },
         }
@@ -1220,8 +1372,7 @@ class StockWarehouse(TimeStampedModel):
             barcode=barcode, company_id=company_id).exists()
         return not tomado and barcode
 
-    @classmethod
-    def _create_missing_locations(cls, warehouses, vals):
+    def _create_missing_locations(self, vals):
         """≙ ``_create_missing_locations`` (``odoo19c: :689-705``).
 
         Repone la ubicación que el usuario borró o que un módulo instalado
@@ -1229,20 +1380,24 @@ class StockWarehouse(TimeStampedModel):
         fallaría a mitad y dejaría el almacén a medias.
         """
         location_model = apps.get_model('stock', 'StockLocation')
-        for warehouse in warehouses:
+        for warehouse in self:
             company_id = vals.get('company_id', warehouse.company_id)
-            sub = cls._get_locations_values(
+            sub = self._get_locations_values(
                 dict(vals, company_id=company_id), warehouse.code)
             faltantes = {}
             for campo, valores in sub.items():
-                if getattr(warehouse, campo.removesuffix('_id'), None) is None \
-                        and campo not in vals:
+                if (
+                    getattr(warehouse, campo.removesuffix('_id'), None) is None
+                    and campo not in vals
+                ):
                     valores['location_id'] = vals.get(
                         'view_location_id', warehouse.view_location_id)
                     valores['company_id'] = company_id
-                    faltantes[campo] = location_model.objects.create(**valores).pk
+                    faltantes[campo] = location_model.objects.create(
+                        **valores
+                    ).pk
             if faltantes:
-                cls.write([warehouse], faltantes)
+                warehouse.write(faltantes)
 
     def create_resupply_routes(self, supplier_warehouses):
         """≙ ``create_resupply_routes`` (``odoo19c: :707-738``).
@@ -1272,8 +1427,12 @@ class StockWarehouse(TimeStampedModel):
                       else supplier_wh.wh_output_stock_loc)
 
             if supplier_wh.delivery_steps == 'ship_only':
-                ruteo = [Routing(salida, transito, supplier_wh.out_type, 'pull')]
-                mto = supplier_wh._get_global_route_rules_values().get('mto_pull')
+                ruteo = [
+                    Routing(salida, transito, supplier_wh.out_type, 'pull')
+                ]
+                mto = supplier_wh._get_global_route_rules_values().get(
+                    'mto_pull'
+                )
                 vals = supplier_wh._get_rule_values(
                     ruteo, mto['create_values'], name_suffix='MTO')
                 rule_model.objects.create(**vals[0])
@@ -1283,7 +1442,11 @@ class StockWarehouse(TimeStampedModel):
 
             reglas = supplier_wh._get_supply_pull_rules_values(
                 [Routing(salida, transito, supplier_wh.out_type, 'pull')],
-                values={'route_id': inter_wh.pk, 'location_dest_from_rule': True})
+                values={
+                    'route_id': inter_wh.pk,
+                    'location_dest_from_rule': True,
+                },
+            )
             if supplier_wh.delivery_steps != 'ship_only':
                 reglas += supplier_wh._get_supply_pull_rules_values(
                     [Routing(supplier_wh.lot_stock, salida,
@@ -1307,8 +1470,16 @@ class StockWarehouse(TimeStampedModel):
         todos los tipos de operación de golpe.
         """
         return (
-            self.lot_stock if reception_steps == 'one_step' else self.wh_input_stock_loc,
-            self.lot_stock if delivery_steps == 'ship_only' else self.wh_output_stock_loc,
+            (
+                self.lot_stock
+                if reception_steps == 'one_step'
+                else self.wh_input_stock_loc
+            ),
+            (
+                self.lot_stock
+                if delivery_steps == 'ship_only'
+                else self.wh_output_stock_loc
+            ),
         )
 
     def _get_transit_locations(self):
@@ -1327,7 +1498,8 @@ class StockWarehouse(TimeStampedModel):
     def _get_partner_locations(cls):
         """≙ ``_get_partner_locations`` (``odoo19c: :749-761``).
 
-        Las ubicaciones virtuales de cliente y proveedor. Se buscan por XML ID y,
+        Las ubicaciones virtuales de cliente y proveedor. Se buscan por XML ID
+        y,
         si no están sembradas, **por su ``usage``** — el mismo fallback que la
         referencia escribe a mano (divergencia D-1). Si no hay ninguna de las
         dos, revienta: sin ellas no hay ruta que generar.
@@ -1354,7 +1526,8 @@ class StockWarehouse(TimeStampedModel):
         """≙ ``get_rules_dict`` (``odoo19c: :766-791``).
 
         **El corazón del archivo.** Para cada uno de los seis modos declara la
-        cadena de saltos: origen, destino, tipo de operación y si la regla es de
+        cadena de saltos: origen, destino, tipo de operación y si la regla es
+        de
         arrastre (``pull``) o de empuje (``push``).
 
         La distinción no es decorativa. El primer salto de una recepción es
@@ -1364,23 +1537,48 @@ class StockWarehouse(TimeStampedModel):
         cliente, proveedor = self._get_partner_locations()
         return {
             w.pk: {
-                'one_step': [Routing(proveedor, w.lot_stock, w.in_type, 'pull')],
+                'one_step': [
+                    Routing(proveedor, w.lot_stock, w.in_type, 'pull')
+                ],
                 'two_steps': [
                     Routing(proveedor, w.lot_stock, w.in_type, 'pull'),
-                    Routing(w.wh_input_stock_loc, w.lot_stock, w.store_type, 'push')],
+                    Routing(
+                        w.wh_input_stock_loc, w.lot_stock, w.store_type, 'push'
+                    ),
+                ],
                 'three_steps': [
                     Routing(proveedor, w.lot_stock, w.in_type, 'pull'),
-                    Routing(w.wh_input_stock_loc, w.wh_qc_stock_loc, w.qc_type, 'push'),
-                    Routing(w.wh_qc_stock_loc, w.lot_stock, w.store_type, 'push')],
-                'ship_only': [Routing(w.lot_stock, cliente, w.out_type, 'pull')],
+                    Routing(
+                        w.wh_input_stock_loc,
+                        w.wh_qc_stock_loc,
+                        w.qc_type,
+                        'push',
+                    ),
+                    Routing(
+                        w.wh_qc_stock_loc, w.lot_stock, w.store_type, 'push'
+                    ),
+                ],
+                'ship_only': [
+                    Routing(w.lot_stock, cliente, w.out_type, 'pull')
+                ],
                 'pick_ship': [
                     Routing(w.lot_stock, cliente, w.pick_type, 'pull'),
-                    Routing(w.wh_output_stock_loc, cliente, w.out_type, 'push')],
+                    Routing(
+                        w.wh_output_stock_loc, cliente, w.out_type, 'push'
+                    ),
+                ],
                 'pick_pack_ship': [
                     Routing(w.lot_stock, cliente, w.pick_type, 'pull'),
-                    Routing(w.wh_pack_stock_loc, w.wh_output_stock_loc,
-                            w.pack_type, 'push'),
-                    Routing(w.wh_output_stock_loc, cliente, w.out_type, 'push')],
+                    Routing(
+                        w.wh_pack_stock_loc,
+                        w.wh_output_stock_loc,
+                        w.pack_type,
+                        'push',
+                    ),
+                    Routing(
+                        w.wh_output_stock_loc, cliente, w.out_type, 'push'
+                    ),
+                ],
                 'company_id': w.company_id,
             }
             for w in [self]
@@ -1408,11 +1606,15 @@ class StockWarehouse(TimeStampedModel):
     def _get_inter_warehouse_route_values(self, supplier_warehouse):
         """≙ ``_get_inter_warehouse_route_values`` (``odoo19c: :808-817``).
 
-        La empresa de la ruta es la **intersección** de las dos: si los almacenes
+        La empresa de la ruta es la **intersección** de las dos: si los
+        almacenes
         son de empresas distintas, la ruta queda global.
         """
-        misma = (self.company if self.company_id == supplier_warehouse.company_id
-                 else None)
+        misma = (
+            self.company
+            if self.company_id == supplier_warehouse.company_id
+            else None
+        )
         return {
             'name': _('%(warehouse)s: Supply Product from %(supplier)s',
                       warehouse=self.name, supplier=supplier_warehouse.name),
@@ -1431,7 +1633,8 @@ class StockWarehouse(TimeStampedModel):
     def _get_rule_values(self, route_values, values=None, name_suffix=''):
         """≙ ``_get_rule_values`` (``odoo19c: :822-856``).
 
-        Convierte la cadena de ``Routing`` en valores de regla. Dos detalles que
+        Convierte la cadena de ``Routing`` en valores de regla. Dos detalles
+        que
         la referencia comenta y conviene no perder:
 
         - **sólo la primera regla es ``make_to_stock``**; las siguientes son
@@ -1444,14 +1647,17 @@ class StockWarehouse(TimeStampedModel):
         rules_list = []
         for routing in route_values:
             vals = {
-                'name': self._format_rulename(routing.from_loc, routing.dest_loc,
-                                              name_suffix),
+                'name': self._format_rulename(
+                    routing.from_loc, routing.dest_loc, name_suffix
+                ),
                 'location_src_id': getattr(routing.from_loc, 'pk', None),
                 'location_dest_id': getattr(routing.dest_loc, 'pk', None),
                 'action': routing.action,
                 'auto': 'manual',
                 'picking_type_id': getattr(routing.picking_type, 'pk', None),
-                'procure_method': 'make_to_stock' if primera else 'make_to_order',
+                'procure_method': (
+                    'make_to_stock' if primera else 'make_to_order'
+                ),
                 'warehouse_id': self.pk,
                 'company_id': self.company_id,
             }
@@ -1478,14 +1684,14 @@ class StockWarehouse(TimeStampedModel):
                 else 'make_to_stock')
         return rules_list
 
-    @classmethod
-    def _update_reception_delivery_resupply(cls, warehouses, reception_new, delivery_new):
+    def _update_reception_delivery_resupply(self, reception_new, delivery_new):
         """≙ ``_update_reception_delivery_resupply`` (``odoo19c: :867-873``).
 
-        Sólo actúa cuando la entrega **cruza** el umbral de ``ship_only``: es el
+        Sólo actúa cuando la entrega **cruza** el umbral de ``ship_only``: es
+        el
         único cambio que altera por dónde salen las rutas de reabastecimiento.
         """
-        for warehouse in warehouses:
+        for warehouse in self:
             _entrada, salida = warehouse._get_input_output_locations(
                 reception_new, delivery_new)
             if (delivery_new and warehouse.delivery_steps != delivery_new
@@ -1503,18 +1709,23 @@ class StockWarehouse(TimeStampedModel):
         - **hacia un solo paso**: se archiva la regla extra que abastecía la
           salida desde la estantería y se crean las reglas MTO que la
           sustituyen;
-        - **hacia varios pasos**: se reactivan (o crean) esas reglas extra, y se
+        - **hacia varios pasos**: se reactivan (o crean) esas reglas extra, y
+        se
           **archivan las MTO** que quedarían compitiendo con ellas.
         """
         rule_model = apps.get_model('stock', 'StockRule')
         route_model = apps.get_model('stock', 'StockRoute')
         rutas = route_model.objects.filter(supplier_wh=self)
         reglas = rule_model.objects.filter(
-            route__in=rutas, location_dest__usage='transit').exclude(action='push')
+            route__in=rutas, location_dest__usage='transit'
+        ).exclude(action='push')
         destinos = [r.location_dest for r in reglas]
         reglas.update(
             location_src=new_location,
-            procure_method='make_to_order' if change_to_multiple else 'make_to_stock')
+            procure_method=(
+                'make_to_order' if change_to_multiple else 'make_to_stock'
+            ),
+        )
 
         if not change_to_multiple:
             rule_model.objects.filter(
@@ -1538,74 +1749,97 @@ class StockWarehouse(TimeStampedModel):
 
         for ruta in rutas.exclude(pk__in=encontradas):
             for vals in self._get_supply_pull_rules_values(
-                    [Routing(self.lot_stock, new_location, self.pick_type, 'pull')],
-                    values={'route_id': ruta.pk}):
+                [
+                    Routing(
+                        self.lot_stock, new_location, self.pick_type, 'pull'
+                    )
+                ],
+                values={'route_id': ruta.pk},
+            ):
                 rule_model.objects.create(**vals)
 
         mto_route = self._find_or_create_global_route(
-            'stock.route_warehouse0_mto', _('Replenish on Order (MTO)'), create=False)
+            'stock.route_warehouse0_mto',
+            _('Replenish on Order (MTO)'),
+            create=False,
+        )
         rule_model.objects.filter(
             route=mto_route, location_dest__usage='transit',
             location_src_id=self.lot_stock_id,
         ).exclude(action='push').update(active=False)
 
-    @classmethod
-    def _update_name_and_code(cls, warehouses, new_name=False, new_code=False):
+    def _update_name_and_code(self, new_name=False, new_code=False):
         """≙ ``_update_name_and_code`` (``odoo19c: :923-947``).
 
         Renombrar el almacén reescribe el nombre de sus rutas, sus reglas y sus
         ocho secuencias. La referencia lo hace por **reemplazo del prefijo**
         (``replace(old, new, 1)``) y su propio comentario duda de ello —*"not
-        better to re-generate the route naming?"*—; se conserva tal cual, porque
+        better to re-generate the route naming?"*—; se conserva tal cual,
+        porque
         regenerar perdería los sufijos que otros addons hayan añadido.
         """
         location_model = apps.get_model('stock', 'StockLocation')
-        for warehouse in warehouses:
+        for warehouse in self:
             if new_code:
                 location_model.objects.filter(
                     pk__in=location_model.objects.filter(
-                        pk=warehouse.lot_stock_id).values_list('location_id', flat=True)
+                        pk=warehouse.lot_stock_id
+                    ).values_list('location_id', flat=True)
                 ).update(name=new_code)
             if new_name:
                 for ruta in warehouse.route_ids.all():
                     ruta.name = ruta.name.replace(warehouse.name, new_name, 1)
                     ruta.save()
                     for regla in ruta.rule_ids.all():
-                        regla.name = regla.name.replace(warehouse.name, new_name, 1)
+                        regla.name = regla.name.replace(
+                            warehouse.name, new_name, 1
+                        )
                         regla.save()
-                if warehouse.mto_pull is not None:
+                if warehouse.mto_pull:
                     warehouse.mto_pull.name = warehouse.mto_pull.name.replace(
                         warehouse.name, new_name, 1)
                     warehouse.mto_pull.save()
 
-            datos = warehouse._get_sequence_values(name=new_name, code=new_code)
+            datos = warehouse._get_sequence_values(
+                name=new_name, code=new_code
+            )
             for campo in PICKING_TYPE_FIELDS:
                 tipo = getattr(warehouse, campo, None)
                 if tipo is None or tipo.sequence_id is None:
                     continue
                 sequence_model = apps.get_model('base', 'IrSequence')
-                sequence_model.objects.filter(pk=tipo.sequence_id).update(**datos[campo])
+                sequence_model.objects.filter(pk=tipo.sequence_id).update(
+                    **datos[campo]
+                )
 
-    @classmethod
-    def _update_location_reception(cls, warehouses, new_reception_step):
+    def _update_location_reception(self, new_reception_step):
         """≙ ``_update_location_reception`` (``odoo19c: :949-951``)."""
         location_model = apps.get_model('stock', 'StockLocation')
         location_model.objects.filter(
-            pk__in=[w.wh_qc_stock_loc_id for w in warehouses if w.wh_qc_stock_loc_id]
+            pk__in=[w.wh_qc_stock_loc_id for w in self if w.wh_qc_stock_loc_id]
         ).update(active=new_reception_step == 'three_steps')
         location_model.objects.filter(
-            pk__in=[w.wh_input_stock_loc_id for w in warehouses if w.wh_input_stock_loc_id]
+            pk__in=[
+                w.wh_input_stock_loc_id
+                for w in self
+                if w.wh_input_stock_loc_id
+            ]
         ).update(active=new_reception_step != 'one_step')
 
-    @classmethod
-    def _update_location_delivery(cls, warehouses, new_delivery_step):
+    def _update_location_delivery(self, new_delivery_step):
         """≙ ``_update_location_delivery`` (``odoo19c: :953-955``)."""
         location_model = apps.get_model('stock', 'StockLocation')
         location_model.objects.filter(
-            pk__in=[w.wh_pack_stock_loc_id for w in warehouses if w.wh_pack_stock_loc_id]
+            pk__in=[
+                w.wh_pack_stock_loc_id for w in self if w.wh_pack_stock_loc_id
+            ]
         ).update(active=new_delivery_step == 'pick_pack_ship')
         location_model.objects.filter(
-            pk__in=[w.wh_output_stock_loc_id for w in warehouses if w.wh_output_stock_loc_id]
+            pk__in=[
+                w.wh_output_stock_loc_id
+                for w in self
+                if w.wh_output_stock_loc_id
+            ]
         ).update(active=new_delivery_step != 'ship_only')
 
     # ------------------------------------------------------------------ #
@@ -1634,17 +1868,21 @@ class StockWarehouse(TimeStampedModel):
             'pick_type': {
                 'active': self.delivery_steps != 'ship_only' and self.active,
                 'default_location_dest_id': (
-                    getattr(salida, 'pk', None) if self.delivery_steps == 'pick_ship'
-                    else self.wh_pack_stock_loc_id),
+                    getattr(salida, 'pk', None)
+                    if self.delivery_steps == 'pick_ship'
+                    else self.wh_pack_stock_loc_id
+                ),
                 'barcode': codigo + 'PICK',
             },
             'pack_type': {
-                'active': self.delivery_steps == 'pick_pack_ship' and self.active,
+                'active': self.delivery_steps == 'pick_pack_ship'
+                and self.active,
                 'default_location_dest_id': getattr(salida, 'pk', None),
                 'barcode': codigo + 'PACK',
             },
             'qc_type': {
-                'active': self.reception_steps == 'three_steps' and self.active,
+                'active': self.reception_steps == 'three_steps'
+                and self.active,
                 'barcode': codigo + 'QC',
             },
             'store_type': {
@@ -1652,13 +1890,17 @@ class StockWarehouse(TimeStampedModel):
                 'default_location_src_id': (
                     getattr(entrada, 'pk', None)
                     if self.reception_steps == 'two_steps'
-                    else self.wh_qc_stock_loc_id),
+                    else self.wh_qc_stock_loc_id
+                ),
                 'barcode': codigo + 'STOR',
             },
             'int_type': {'barcode': codigo + 'INT'},
             'xdock_type': {
-                'active': (self.reception_steps != 'one_step'
-                           and self.delivery_steps != 'ship_only' and self.active),
+                'active': (
+                    self.reception_steps != 'one_step'
+                    and self.delivery_steps != 'ship_only'
+                    and self.active
+                ),
                 'barcode': codigo + 'XD',
             },
         }
@@ -1668,7 +1910,8 @@ class StockWarehouse(TimeStampedModel):
 
         Los ocho tipos se crean **todos a la vez**, con el almacén, y luego se
         activan o archivan según los ejes. Su orden en el tablero lo fija el
-        ``max_sequence + N`` de la referencia: recepción 1, calidad 2, almacenaje
+        ``max_sequence + N`` de la referencia: recepción 1, calidad 2,
+        almacenaje
         3, internas 4, pick 5, pack 6, entrega 7, cross-dock 8.
 
         Devuelve la tupla ``(valores, siguiente max_sequence)`` que la fuente
@@ -1679,61 +1922,86 @@ class StockWarehouse(TimeStampedModel):
         empresa = self.company_id
         return {
             'in_type': {
-                'name': _('Receipts'), 'code': 'incoming',
-                'use_existing_lots': False, 'sequence': max_sequence + 1,
-                'sequence_code': 'IN', 'company_id': empresa,
+                'name': _('Receipts'),
+                'code': 'incoming',
+                'use_existing_lots': False,
+                'sequence': max_sequence + 1,
+                'sequence_code': 'IN',
+                'company_id': empresa,
             },
             'out_type': {
-                'name': _('Delivery Orders'), 'code': 'outgoing',
-                'use_create_lots': False, 'sequence': max_sequence + 7,
-                'sequence_code': 'OUT', 'print_label': True, 'company_id': empresa,
+                'name': _('Delivery Orders'),
+                'code': 'outgoing',
+                'use_create_lots': False,
+                'sequence': max_sequence + 7,
+                'sequence_code': 'OUT',
+                'print_label': True,
+                'company_id': empresa,
             },
             'pack_type': {
-                'name': _('Pack'), 'code': 'internal',
-                'use_create_lots': False, 'use_existing_lots': True,
+                'name': _('Pack'),
+                'code': 'internal',
+                'use_create_lots': False,
+                'use_existing_lots': True,
                 'default_location_src_id': self.wh_pack_stock_loc_id,
                 'default_location_dest_id': getattr(salida, 'pk', None),
-                'sequence': max_sequence + 6, 'sequence_code': 'PACK',
+                'sequence': max_sequence + 6,
+                'sequence_code': 'PACK',
                 'company_id': empresa,
             },
             'pick_type': {
-                'name': _('Pick'), 'code': 'internal',
-                'use_create_lots': False, 'use_existing_lots': True,
+                'name': _('Pick'),
+                'code': 'internal',
+                'use_create_lots': False,
+                'use_existing_lots': True,
                 'default_location_src_id': self.lot_stock_id,
-                'sequence': max_sequence + 5, 'sequence_code': 'PICK',
+                'sequence': max_sequence + 5,
+                'sequence_code': 'PICK',
                 'company_id': empresa,
             },
             'qc_type': {
-                'name': _('Quality Control'), 'code': 'internal',
-                'use_create_lots': False, 'use_existing_lots': True,
+                'name': _('Quality Control'),
+                'code': 'internal',
+                'use_create_lots': False,
+                'use_existing_lots': True,
                 'default_location_src_id': self.wh_input_stock_loc_id,
                 'default_location_dest_id': self.wh_qc_stock_loc_id,
-                'sequence': max_sequence + 2, 'sequence_code': 'QC',
+                'sequence': max_sequence + 2,
+                'sequence_code': 'QC',
                 'company_id': empresa,
             },
             'store_type': {
-                'name': _('Storage'), 'code': 'internal',
-                'use_create_lots': False, 'use_existing_lots': True,
+                'name': _('Storage'),
+                'code': 'internal',
+                'use_create_lots': False,
+                'use_existing_lots': True,
                 'default_location_dest_id': self.lot_stock_id,
-                'sequence': max_sequence + 3, 'sequence_code': 'STOR',
+                'sequence': max_sequence + 3,
+                'sequence_code': 'STOR',
                 'company_id': empresa,
             },
             'int_type': {
-                'name': _('Internal Transfers'), 'code': 'internal',
-                'use_create_lots': False, 'use_existing_lots': True,
+                'name': _('Internal Transfers'),
+                'code': 'internal',
+                'use_create_lots': False,
+                'use_existing_lots': True,
                 'default_location_src_id': self.lot_stock_id,
                 'default_location_dest_id': self.lot_stock_id,
                 'active': 'stock.group_stock_multi_locations'
-                          in self._implied_groups_of_base_user(),
-                'sequence': max_sequence + 4, 'sequence_code': 'INT',
+                in self._implied_groups_of_base_user(),
+                'sequence': max_sequence + 4,
+                'sequence_code': 'INT',
                 'company_id': empresa,
             },
             'xdock_type': {
-                'name': _('Cross Dock'), 'code': 'internal',
-                'use_create_lots': False, 'use_existing_lots': True,
+                'name': _('Cross Dock'),
+                'code': 'internal',
+                'use_create_lots': False,
+                'use_existing_lots': True,
                 'default_location_src_id': self.wh_input_stock_loc_id,
                 'default_location_dest_id': self.wh_output_stock_loc_id,
-                'sequence': max_sequence + 8, 'sequence_code': 'XD',
+                'sequence': max_sequence + 8,
+                'sequence_code': 'XD',
                 'company_id': empresa,
             },
         }, max_sequence + 9
@@ -1750,17 +2018,24 @@ class StockWarehouse(TimeStampedModel):
         codigo = code or self.code
         empresa = self.company_id
         etiquetas = {
-            'in_type': ('in', 'IN'), 'out_type': ('out', 'OUT'),
-            'pack_type': ('packing', 'PACK'), 'pick_type': ('picking', 'PICK'),
-            'qc_type': ('quality control', 'QC'), 'store_type': ('storage', 'STOR'),
-            'int_type': ('internal', 'INT'), 'xdock_type': ('cross dock', 'XD'),
+            'in_type': ('in', 'IN'),
+            'out_type': ('out', 'OUT'),
+            'pack_type': ('packing', 'PACK'),
+            'pick_type': ('picking', 'PICK'),
+            'qc_type': ('quality control', 'QC'),
+            'store_type': ('storage', 'STOR'),
+            'int_type': ('internal', 'INT'),
+            'xdock_type': ('cross dock', 'XD'),
         }
         valores = {}
         for campo, (sufijo, por_defecto) in etiquetas.items():
             tipo = getattr(self, campo, None)
             valores[campo] = {
                 'name': _('%(name)s Sequence ' + sufijo, name=nombre),
-                'prefix': f'{codigo}/{getattr(tipo, "sequence_code", None) or por_defecto}/',
+                'prefix': (
+                    f'{codigo}/'
+                    f'{getattr(tipo, "sequence_code", None) or por_defecto}/'
+                ),
                 'padding': 5,
                 'company_id': empresa,
             }
@@ -1789,14 +2064,16 @@ class StockWarehouse(TimeStampedModel):
         """
         route_model = apps.get_model('stock', 'StockRoute')
         ids = set(self.route_ids.values_list('pk', flat=True))
-        if self.mto_pull is not None and self.mto_pull.route_id:
+        if self.mto_pull and self.mto_pull.route_id:
             ids.add(self.mto_pull.route_id)
         ids.update(route_model.objects.filter(supplied_wh=self)
                    .values_list('pk', flat=True))
         return route_model.objects.filter(pk__in=ids)
 
     def action_view_all_routes(self):
-        """≙ ``action_view_all_routes`` (``odoo19c: :1148-1159``). Divergencia D-2."""
+        """≙ ``action_view_all_routes`` (``odoo19c: :1148-1159``). Divergencia
+        D-2.
+        """
         rutas = self._get_all_routes()
         return {
             'name': _("Warehouse's Routes"),
@@ -1861,7 +2138,8 @@ class StockWarehouse(TimeStampedModel):
         """¿El usuario pertenece al grupo del XML ID? — ≙ ``user.has_group``.
 
         **No es un símbolo de la referencia**: allá ``has_group`` vive en
-        ``res.users``. Aquí se resuelve por ``IrModelData`` hasta que ese método
+        ``res.users``. Aquí se resuelve por ``IrModelData`` hasta que ese
+        método
         exista en el puerto de ``res.users``.
         """
         data_model = apps.get_model('base', 'IrModelData')

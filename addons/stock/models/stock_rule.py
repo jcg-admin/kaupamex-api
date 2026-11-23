@@ -411,7 +411,7 @@ def _orderpoint_model():
     return apps.get_model('stock', 'StockWarehouseOrderpoint')
 
 
-class StockRule(TimeStampedModel):
+class StockRule(models.BaseModel, TimeStampedModel):
     """
     ``stock.rule`` — «A rule describe what a procurement should do; produce,
     buy, move, ...»
@@ -995,7 +995,7 @@ class StockRule(TimeStampedModel):
                 company_id = warehouse.company_id
             elif (
                 self.picking_type_id
-                and self.picking_type.warehouse is not None
+                and self.picking_type.warehouse
             ):
                 company_id = self.picking_type.warehouse.company_id
 

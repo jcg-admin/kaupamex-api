@@ -221,8 +221,10 @@ XMLID_LOCATION_SUPPLIERS = 'stock.stock_location_suppliers'
 XMLID_LOCATION_CUSTOMERS = 'stock.stock_location_customers'
 
 
-class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
-    """``stock.picking.type`` — la plantilla que gobierna una clase de albarán."""
+class StockPickingType(models.BaseModel, TimeStampedModel):
+    """``stock.picking.type`` — la plantilla que gobierna una clase de
+    albarán.
+    """
 
     # Atributos de clase de modelo — los cinco que la referencia declara
     # (``odoo19c: addons/stock/models/stock_picking.py:21-25``), verbatim.
@@ -232,98 +234,125 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
     _rec_names_search = ['name', 'warehouse_id.name']
     _check_company_auto = True
 
-    name                     = fields.Char(
-        'Operation Type', max_length=100, required=True, translate=True,
+    name = fields.Char(
+        'Operation Type',
+        max_length=100,
+        required=True,
+        translate=True,
         help='Nombre del tipo de operación (Odoo name).',
     )
-    color                    = fields.Integer(
-        default=0, help_text='Color del kanban (Odoo color).',
+    color = fields.Integer(
+        default=0,
+        help_text='Color del kanban (Odoo color).',
     )
-    sequence                 = fields.Integer(
+    sequence = fields.Integer(
         default=0,
         help_text='Orden en la vista «Todas las operaciones» (Odoo sequence).',
     )
     # D-1: se conserva el sufijo ``_id`` porque ``sequence`` ya es el Integer.
-    sequence_id              = fields.Many2one(
-        'base.IrSequence', null=True, blank=True, on_delete=models.SET_NULL,
+    sequence_id = fields.Many2one(
+        'base.IrSequence',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
         related_name='picking_types',
         help_text='Secuencia de referencia (Odoo sequence_id).',
         db_column='sequence_id',
     )
-    sequence_code            = fields.Char(
-        'Sequence Prefix', max_length=32, required=True,
+    sequence_code = fields.Char(
+        'Sequence Prefix',
+        max_length=32,
+        required=True,
         help='Prefijo de la secuencia (Odoo sequence_code).',
     )
-    default_location_src     = fields.Many2one(
-        'stock.StockLocation', null=True, blank=True, on_delete=models.PROTECT,
+    default_location_src = fields.Many2one(
+        'stock.StockLocation',
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
         related_name='picking_types_src',
         help_text='Ubicación de origen por defecto '
-                  '(Odoo default_location_src_id, almacenado).',
+        '(Odoo default_location_src_id, almacenado).',
     )
-    default_location_dest    = fields.Many2one(
-        'stock.StockLocation', null=True, blank=True, on_delete=models.PROTECT,
+    default_location_dest = fields.Many2one(
+        'stock.StockLocation',
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
         related_name='picking_types_dest',
         help_text='Ubicación de destino por defecto '
-                  '(Odoo default_location_dest_id, almacenado).',
+        '(Odoo default_location_dest_id, almacenado).',
     )
-    code                     = fields.Selection(
-        max_length=16, choices=CODE_CHOICES, default=CODE_INCOMING,
+    code = fields.Selection(
+        max_length=16,
+        choices=CODE_CHOICES,
+        default=CODE_INCOMING,
         help_text='Tipo de operación (Odoo code, requerido).',
     )
-    return_picking_type      = fields.Many2one(
-        'self', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='returned_by', db_index=True,
+    return_picking_type = fields.Many2one(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='returned_by',
+        db_index=True,
         help_text='Tipo de operación para devoluciones '
-                  '(Odoo return_picking_type_id).',
+        '(Odoo return_picking_type_id).',
     )
-    show_entire_packs        = fields.Boolean(
+    show_entire_packs = fields.Boolean(
         default=False,
         help_text='Mostrar paquetes completos en vez de su contenido '
-                  '(Odoo show_entire_packs).',
+        '(Odoo show_entire_packs).',
     )
-    set_package_type         = fields.Boolean(
+    set_package_type = fields.Boolean(
         default=False,
         help_text='Permite elegir el tipo de paquete al empaquetar '
-                  '(Odoo set_package_type).',
+        '(Odoo set_package_type).',
     )
-    warehouse                = fields.Many2one(
-        'stock.StockWarehouse', null=True, blank=True, on_delete=models.CASCADE,
+    warehouse = fields.Many2one(
+        'stock.StockWarehouse',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
         related_name='picking_type_ids',
         help_text='Almacén dueño del tipo (Odoo warehouse_id, almacenado).',
     )
-    active                   = fields.Boolean(
+    active = fields.Boolean(
         default=True,
         help_text='Al desmarcarlo se archiva sin borrar (Odoo active).',
     )
-    use_create_lots          = fields.Boolean(
+    use_create_lots = fields.Boolean(
         default=True,
         help_text='Permite crear lotes/series nuevos '
-                  '(Odoo use_create_lots, almacenado).',
+        '(Odoo use_create_lots, almacenado).',
     )
-    use_existing_lots        = fields.Boolean(
+    use_existing_lots = fields.Boolean(
         default=True,
         help_text='Permite elegir lotes/series existentes '
-                  '(Odoo use_existing_lots, almacenado).',
+        '(Odoo use_existing_lots, almacenado).',
     )
-    print_label              = fields.Boolean(
+    print_label = fields.Boolean(
         default=False,
         help_text='Genera etiqueta de envío al validar '
-                  '(Odoo print_label, almacenado).',
+        '(Odoo print_label, almacenado).',
     )
     # La referencia marca este campo para retirarlo («TODO: delete this field»,
     # ``odoo19c: :64``); se porta igual para no divergir antes que ella.
-    show_operations          = fields.Boolean(
+    show_operations = fields.Boolean(
         default=False,
         help_text='Muestra las operaciones detalladas (Odoo show_operations).',
     )
-    reservation_method       = fields.Selection(
-        max_length=16, choices=RESERVATION_METHOD_CHOICES, default='at_confirm',
-        help_text='Cuándo se reservan los productos (Odoo reservation_method).',
+    reservation_method = fields.Selection(
+        max_length=16,
+        choices=RESERVATION_METHOD_CHOICES,
+        default='at_confirm',
+        help_text='Cuándo se reservan los productos (Odoo '
+                  'reservation_method).',
     )
-    reservation_days_before  = fields.Integer(
+    reservation_days_before = fields.Integer(
         default=0,
         help_text='Días máximos antes de la fecha prevista para reservar '
-                  '(Odoo reservation_days_before).',
+        '(Odoo reservation_days_before).',
     )
     reservation_days_before_priority = fields.Integer(
         default=0,
@@ -340,27 +369,32 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
         help_text='Imprime el albarán de entrega al validar '
                   '(Odoo auto_print_delivery_slip).',
     )
-    auto_print_return_slip   = fields.Boolean(
+    auto_print_return_slip = fields.Boolean(
         default=False,
         help_text='Imprime el comprobante de devolución al validar '
-                  '(Odoo auto_print_return_slip).',
+        '(Odoo auto_print_return_slip).',
     )
     auto_print_product_labels = fields.Boolean(
         default=False,
         help_text='Imprime las etiquetas de producto al validar '
                   '(Odoo auto_print_product_labels).',
     )
-    product_label_format     = fields.Selection(
-        max_length=16, choices=PRODUCT_LABEL_FORMAT_CHOICES, default='2x7xprice',
-        help_text='Formato de etiqueta de producto (Odoo product_label_format).',
+    product_label_format = fields.Selection(
+        max_length=16,
+        choices=PRODUCT_LABEL_FORMAT_CHOICES,
+        default='2x7xprice',
+        help_text='Formato de etiqueta de producto (Odoo '
+                  'product_label_format).',
     )
-    auto_print_lot_labels    = fields.Boolean(
+    auto_print_lot_labels = fields.Boolean(
         default=False,
         help_text='Imprime las etiquetas de lote/serie al validar '
-                  '(Odoo auto_print_lot_labels).',
+        '(Odoo auto_print_lot_labels).',
     )
-    lot_label_format         = fields.Selection(
-        max_length=16, choices=LOT_LABEL_FORMAT_CHOICES, default='4x12_lots',
+    lot_label_format = fields.Selection(
+        max_length=16,
+        choices=LOT_LABEL_FORMAT_CHOICES,
+        default='4x12_lots',
         help_text='Formato de etiqueta de lote/serie (Odoo lot_label_format).',
     )
     auto_print_reception_report = fields.Boolean(
@@ -373,23 +407,27 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
         help_text='Imprime las etiquetas del informe de recepción al validar '
                   '(Odoo auto_print_reception_report_labels).',
     )
-    auto_print_packages      = fields.Boolean(
+    auto_print_packages = fields.Boolean(
         default=False,
         help_text='Imprime los paquetes y su contenido al validar '
-                  '(Odoo auto_print_packages).',
+        '(Odoo auto_print_packages).',
     )
     auto_print_package_label = fields.Boolean(
         default=False,
         help_text='Imprime la etiqueta del paquete al empaquetar '
                   '(Odoo auto_print_package_label).',
     )
-    package_label_to_print   = fields.Selection(
-        max_length=8, choices=PACKAGE_LABEL_CHOICES, default='pdf',
+    package_label_to_print = fields.Selection(
+        max_length=8,
+        choices=PACKAGE_LABEL_CHOICES,
+        default='pdf',
         help_text='Formato de la etiqueta de paquete '
-                  '(Odoo package_label_to_print).',
+        '(Odoo package_label_to_print).',
     )
-    barcode                  = fields.Char(
-        max_length=64, blank=True, default='',
+    barcode = fields.Char(
+        max_length=64,
+        blank=True,
+        default='',
         help_text='Código de barras del tipo (Odoo barcode).',
     )
     company = fields.Many2one(
@@ -397,24 +435,30 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
         related_name='picking_types', db_index=True,
         help_text='Empresa dueña del tipo (Odoo company_id, requerido).',
     )
-    create_backorder         = fields.Selection(
-        max_length=8, choices=CREATE_BACKORDER_CHOICES, default='ask',
+    create_backorder = fields.Selection(
+        max_length=8,
+        choices=CREATE_BACKORDER_CHOICES,
+        default='ask',
         help_text='Qué hacer con lo que queda al validar '
-                  '(Odoo create_backorder).',
+        '(Odoo create_backorder).',
     )
     picking_properties_definition = fields.PropertiesDefinition(
         'Picking Properties', default=dict, blank=True,
         help_text='Definición de propiedades de la transferencia '
                   '(Odoo picking_properties_definition).',
     )
-    favorite_user_ids        = fields.Many2many(
-        ResUsers, through='PickingTypeFavoriteUserRel',
-        related_name='favorite_picking_types', blank=True,
+    favorite_user_ids = fields.Many2many(
+        ResUsers,
+        through='PickingTypeFavoriteUserRel',
+        related_name='favorite_picking_types',
+        blank=True,
         help_text='Usuarios que marcaron el tipo como favorito '
-                  '(Odoo favorite_user_ids).',
+        '(Odoo favorite_user_ids).',
     )
-    move_type                = fields.Selection(
-        max_length=8, choices=MOVE_TYPE_CHOICES, default='direct',
+    move_type = fields.Selection(
+        max_length=8,
+        choices=MOVE_TYPE_CHOICES,
+        default='direct',
         help_text='Política de envío: parcial o todo junto (Odoo move_type).',
     )
 
@@ -431,7 +475,7 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
 
         Con almacén, el nombre visible es ``<almacén>: <tipo>``.
         """
-        if self.warehouse is not None:
+        if self.warehouse:
             return f'{self.warehouse.name}: {self.name}'
         return self.name
 
@@ -448,9 +492,11 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
         de la referencia.
 
         La referencia recibe ``vals_list`` y devuelve el recordset; desde
-        :ref:`h-api-1108` la firma es la misma aquí — ``@api.model_create_multi``
+        :ref:`h-api-1108` la firma es la misma aquí —
+        ``@api.model_create_multi``
         convierte un dict suelto en ``[vals]`` — y ``super().create`` es
-        ``DefaultGetMixin.create`` (``orm/models.py``), el porte por contenido de
+        ``DefaultGetMixin.create`` (``orm/models.py``), el porte por contenido
+        de
         ``BaseModel.create``.
         """
         ir_sequence = apps.get_model('base', 'IrSequence')
@@ -459,15 +505,19 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
                 warehouse = vals.get('warehouse')
                 if warehouse is not None:
                     vals['sequence_id'] = ir_sequence.objects.create(
-                        name=_('Secuencia %(code)s de %(warehouse)s') % {
-                            'code': vals['sequence_code'], 'warehouse': warehouse.name},
+                        name=_('Secuencia %(code)s de %(warehouse)s')
+                        % {
+                            'code': vals['sequence_code'],
+                            'warehouse': warehouse.name,
+                        },
                         prefix=f"{warehouse.code}/{vals['sequence_code']}/",
                         padding=5,
                         company=warehouse.company,
                     )
                 else:
                     vals['sequence_id'] = ir_sequence.objects.create(
-                        name=_('Secuencia %(code)s') % {'code': vals['sequence_code']},
+                        name=_('Secuencia %(code)s')
+                        % {'code': vals['sequence_code']},
                         prefix=vals['sequence_code'],
                         padding=5,
                         company=vals.get('company'),
@@ -490,7 +540,9 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
         if 'sequence_code' not in default and 'sequence_id' not in default:
             vals['sequence_code'] = _('%s (copia)') % self.sequence_code
         else:
-            vals['sequence_code'] = default.get('sequence_code', self.sequence_code)
+            vals['sequence_code'] = default.get(
+                'sequence_code', self.sequence_code
+            )
         return vals
 
     def write(self, vals):
@@ -511,9 +563,13 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
                 'punto; archívelo y cree uno nuevo.'))
 
         if 'sequence_code' in vals and self.sequence_id is not None:
-            if self.warehouse is not None:
-                self.sequence_id.name = _('Secuencia %(code)s de %(warehouse)s') % {
-                    'code': vals['sequence_code'], 'warehouse': self.warehouse.name}
+            if self.warehouse:
+                self.sequence_id.name = _(
+                    'Secuencia %(code)s de %(warehouse)s'
+                ) % {
+                    'code': vals['sequence_code'],
+                    'warehouse': self.warehouse.name,
+                }
                 self.sequence_id.prefix = (
                     f"{self.warehouse.code}/{vals['sequence_code']}/")
                 self.sequence_id.company = self.warehouse.company
@@ -534,13 +590,19 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
                     )
                     comunes = (vals.get('reservation_days_before')
                                or self.reservation_days_before)
-                    prioritarios = (vals.get('reservation_days_before_priority')
-                                    or self.reservation_days_before_priority)
+                    prioritarios = (
+                        vals.get('reservation_days_before_priority')
+                        or self.reservation_days_before_priority
+                    )
                     for move in abiertos:
-                        dias = prioritarios if move.priority == '1' else comunes
+                        dias = (
+                            prioritarios if move.priority == '1' else comunes
+                        )
                         if move.date is not None:
                             move.reservation_date = (
-                                move.date.date() - datetime.timedelta(days=dias))
+                                move.date.date()
+                                - datetime.timedelta(days=dias)
+                            )
                             move.save(update_fields=['reservation_date'])
             elif self.reservation_method == 'by_date':
                 stock_move.objects.filter(
@@ -572,7 +634,9 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
         return self.favorite_user_ids.exists()
 
     def is_favorite_of(self, user):
-        """El predicado per-usuario que la referencia obtiene de ``env.user``."""
+        """El predicado per-usuario que la referencia obtiene de
+        ``env.user``.
+        """
         return self.favorite_user_ids.filter(pk=user.pk).exists()
 
     def set_is_favorite(self, user, valor=None):
@@ -623,14 +687,17 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
         return {
             'count_picking_draft': base.filter(state='draft').count(),
             'count_picking_waiting': base.filter(
-                state__in=('confirmed', 'waiting')).count(),
+                state__in=('confirmed', 'waiting')
+            ).count(),
             'count_picking_ready': base.filter(state='assigned').count(),
             'count_picking': base.filter(state__in=abiertos).count(),
-            'count_picking_late': base.filter(state__in=abiertos).filter(
-                Q(scheduled_date__lt=hoy) | Q(has_deadline_issue=True)).count(),
+            'count_picking_late': base.filter(state__in=abiertos)
+            .filter(Q(scheduled_date__lt=hoy) | Q(has_deadline_issue=True))
+            .count(),
             'count_picking_backorders': base.filter(
                 backorder__isnull=False,
-                state__in=('confirmed', 'assigned', 'waiting')).count(),
+                state__in=('confirmed', 'assigned', 'waiting'),
+            ).count(),
         }
 
     @property
@@ -665,7 +732,9 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
 
     @property
     def count_move_ready(self):
-        """≙ ``count_move_ready`` / ``_compute_move_count`` (``:128``, ``:272-279``)."""
+        """≙ ``count_move_ready`` / ``_compute_move_count`` (``:128``,
+        ``:272-279``).
+        """
         stock_move = apps.get_model('stock', 'StockMove')
         return stock_move.objects.filter(
             picking_type=self, state='assigned').count()
@@ -708,7 +777,7 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
         Con almacén ya puesto no se toca; si no, se toma el primero de la
         empresa.
         """
-        if self.warehouse is not None or self.company is None:
+        if self.warehouse or self.company is None:
             return self.warehouse
         stock_warehouse = apps.get_model('stock', 'StockWarehouse')
         self.warehouse = stock_warehouse.objects.filter(
@@ -721,14 +790,14 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
         En una recepción el origen es la ubicación virtual de proveedores; en
         cualquier otro caso, el almacén de existencias.
         """
-        if self.warehouse is None:
+        if not self.warehouse:
             self._warehouse_redirect_warning()
         if self.code == CODE_INCOMING:
             self.default_location_src = self._location_by_xmlid(
                 XMLID_LOCATION_SUPPLIERS)
         else:
             self.default_location_src = (
-                self.warehouse.lot_stock if self.warehouse is not None else None)
+                self.warehouse.lot_stock if self.warehouse else None)
         return self.default_location_src
 
     def compute_default_location_dest(self):
@@ -737,14 +806,14 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
         En una entrega el destino es la ubicación virtual de clientes; en
         cualquier otro caso, el almacén de existencias.
         """
-        if self.warehouse is None:
+        if not self.warehouse:
             self._warehouse_redirect_warning()
         if self.code == CODE_OUTGOING:
             self.default_location_dest = self._location_by_xmlid(
                 XMLID_LOCATION_CUSTOMERS)
         else:
             self.default_location_dest = (
-                self.warehouse.lot_stock if self.warehouse is not None else None)
+                self.warehouse.lot_stock if self.warehouse else None)
         return self.default_location_dest
 
     @staticmethod
@@ -761,7 +830,8 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
 
     @staticmethod
     def _warehouse_redirect_warning():
-        """≙ ``stock.warehouse._warehouse_redirect_warning`` (``:318``, ``:329``).
+        """≙ ``stock.warehouse._warehouse_redirect_warning`` (``:318``,
+        ``:329``).
 
         La referencia lanza el aviso que redirige a crear un almacén. Aquí se
         mantiene el punto de extensión con el mismo nombre; el redirect a la
@@ -770,7 +840,9 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
         return None
 
     def save(self, *args, **kwargs):
-        """Dispara los computes almacenados, que allá corren por ``@api.depends``."""
+        """Dispara los computes almacenados, que allá corren por
+        ``@api.depends``.
+        """
         self._compute_use_create_lots()
         self._compute_use_existing_lots()
         self._compute_print_label()
@@ -787,9 +859,15 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
         """≙ ``_onchange_picking_code`` (``odoo19c: :346-353``)."""
         if self.code == CODE_INTERNAL and not user.has_group(
                 'stock.group_stock_multi_locations'):
-            return {'warning': {'message': _(
-                'Necesita activar las ubicaciones de almacenamiento para poder '
-                'usar tipos de operación internos.')}}
+            return {
+                'warning': {
+                    'message': _(
+                        'Necesita activar las ubicaciones de almacenamiento '
+                        'para poder '
+                        'usar tipos de operación internos.'
+                    )
+                }
+            }
         return None
 
     def check_sequence_code_warning(self):
@@ -818,7 +896,9 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
 
     @classmethod
     def action_redirect_to_barcode_installation(cls):
-        """≙ ``action_redirect_to_barcode_installation`` (``odoo19c: :408-412``)."""
+        """≙ ``action_redirect_to_barcode_installation`` (``odoo19c:
+        :408-412``).
+        """
         accion = cls._action_by_xmlid('base.open_module_tree')
         if accion is not None:
             contexto = dict(accion.get('context') or {})
@@ -828,7 +908,9 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
 
     @staticmethod
     def _action_by_xmlid(xmlid):
-        """Lee el descriptor de una acción de ventana por identificador externo."""
+        """Lee el descriptor de una acción de ventana por identificador
+        externo.
+        """
         ir_model_data = apps.get_model('base', 'IrModelData')
         modulo, _sep, nombre = xmlid.partition('.')
         registro = ir_model_data.objects.filter(
@@ -888,7 +970,9 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
         return self._get_action('stock.action_picking_tree_ready')
 
     def get_action_picking_type_moves_analysis(self):
-        """≙ ``get_action_picking_type_moves_analysis`` (``odoo19c: :455-460``)."""
+        """≙ ``get_action_picking_type_moves_analysis`` (``odoo19c:
+        :455-460``).
+        """
         accion = self._action_by_xmlid('stock.stock_move_action')
         if accion is None:
             return None
@@ -897,7 +981,9 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
         return accion
 
     def get_stock_picking_action_picking_type(self):
-        """≙ ``get_stock_picking_action_picking_type`` (``odoo19c: :462-470``)."""
+        """≙ ``get_stock_picking_action_picking_type`` (``odoo19c:
+        :462-470``).
+        """
         por_codigo = {
             CODE_INCOMING: 'stock.action_picking_tree_incoming',
             CODE_OUTGOING: 'stock.action_picking_tree_outgoing',
@@ -907,7 +993,9 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
             self.code, 'stock.stock_picking_action_picking_type'))
 
     def get_action_picking_type_ready_moves(self):
-        """≙ ``get_action_picking_type_ready_moves`` (``odoo19c: :472-473``)."""
+        """≙ ``get_action_picking_type_ready_moves`` (``odoo19c:
+        :472-473``).
+        """
         return self._get_action('stock.action_get_picking_type_ready_moves')
 
     # -- el gráfico del tablero --
@@ -948,16 +1036,24 @@ class StockPickingType(models.DefaultGetMixin, TimeStampedModel):
         salida = {}
         for picking_type_id, resumen in summaries.items():
             vacio = all(resumen[k] == 0 for k in categorias)
-            salida[picking_type_id] = [{
-                'key': _('Datos de muestra') if vacio
-                       else resumen['data_series_name'],
-                'picking_type_id': None if vacio else picking_type_id,
-                'values': [
-                    dict(v, value=resumen[k],
-                         type='sample' if vacio else v['type'])
-                    for k, v in categorias.items()
-                ],
-            }]
+            salida[picking_type_id] = [
+                {
+                    'key': (
+                        _('Datos de muestra')
+                        if vacio
+                        else resumen['data_series_name']
+                    ),
+                    'picking_type_id': None if vacio else picking_type_id,
+                    'values': [
+                        dict(
+                            v,
+                            value=resumen[k],
+                            type='sample' if vacio else v['type'],
+                        )
+                        for k, v in categorias.items()
+                    ],
+                }
+            ]
         return salida
 
     @property
@@ -1705,7 +1801,7 @@ class StockPicking(MailThread, MailActivityMixin, models.DefaultGetMixin,
     @property
     def warehouse_address(self):
         """≙ ``warehouse_address_id`` (``odoo19c: :624``, ``related`` de dos saltos)."""
-        if self.picking_type is None or self.picking_type.warehouse is None:
+        if self.picking_type is None or not self.picking_type.warehouse:
             return None
         return self.picking_type.warehouse.partner
 
