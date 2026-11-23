@@ -245,3 +245,4 @@ f2-c6095235	full-batch	c6095235	-	0	14733	0	0	8	-	14733 passed, 0 failed	verde	m
 f2-f8acdb5e	full-batch	f8acdb5e	-	0	14736	0	0	8	-	14736 passed, 0 failed	verde	maxfail=1; excluye test_multidb_isolation (ci-multidb aparte)	f2-f8acdb5e.log:c4e2a4cd20bd63630db32e177de6e79b015a7de59facd355e169d36a0ca5fc87
 f2-f9c1457e	full-batch	f9c1457e	-	0	14737	0	0	8	-	14737 passed, 0 failed	verde	maxfail=1; excluye test_multidb_isolation (ci-multidb aparte)	f2-f9c1457e.log:8419726cba3643a196b02f6cd361e3c365d159251f6a436320063c58fc3b7d12
 f2-07a2e2ca	full-batch	07a2e2ca	-	0	14739	0	0	8	-	14739 passed, 0 failed	verde	maxfail=1; excluye test_multidb_isolation (ci-multidb aparte)	f2-07a2e2ca.log:f973b3c69a40e00080938478101c9e84224b01111e3a4144172d397b17ca0af5
+f2-fd01cde8	full-batch	fd01cde8	-	0	14740	0	0	8	-	14740 passed, 0 failed	verde	maxfail=1; excluye test_multidb_isolation (ci-multidb aparte)	f2-u3.log:9841e91855f0c42902903bc8a952cb9c286f8c9ce150347ae51cb39cd4568a26

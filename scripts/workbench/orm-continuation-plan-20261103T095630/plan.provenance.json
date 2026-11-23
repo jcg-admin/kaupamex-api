@@ -1771,6 +1771,13 @@
         "stock-basemodel-u2-0397"
       ],
       "writtenAt": "2026-11-23T15:50:31Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "stock-basemodel-u3-0397"
+      ],
+      "writtenAt": "2026-11-23T17:05:29Z"
     }
   ]
 }
