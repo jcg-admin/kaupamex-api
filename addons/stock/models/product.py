@@ -249,9 +249,9 @@ def parent_route_ids(self):
     StockRoute = apps.get_model('stock', 'StockRoute')
     inherited, current = set(), self.parent_id
     while current:
-        inherited.update(current.route_ids.values_list('pk', flat=True))
+        inherited.update(current.route_ids.ids)
         current = current.parent_id
-    own = set(self.route_ids.values_list('pk', flat=True))
+    own = set(self.route_ids.ids)
     return StockRoute.objects.filter(pk__in=inherited - own)
 
 
@@ -262,7 +262,7 @@ def total_route_ids(self):
     la categoría, propio y heredado.
     """
     StockRoute = apps.get_model('stock', 'StockRoute')
-    ids = set(self.route_ids.values_list('pk', flat=True))
+    ids = set(self.route_ids.ids)
     ids |= set(self.parent_route_ids.values_list('pk', flat=True))
     return StockRoute.objects.filter(pk__in=ids)
 
@@ -320,7 +320,7 @@ def uom_route_ids(self):
     StockRoute = apps.get_model('stock', 'StockRoute')
     if self.package_type_id is None:
         return StockRoute.objects.none()
-    return self.package_type.route_ids.all()
+    return self.package_type.route_ids
 
 
 def check_factor_not_in_use(self):
@@ -957,7 +957,7 @@ def filter_has_routes(cls, products):
     """
     salida = []
     for product in products:
-        if product.route_ids.exists():
+        if product.route_ids:
             salida.append(product)
             continue
         categoria = getattr(product, 'categ_id', None)
@@ -1175,7 +1175,7 @@ def get_total_routes(self):
     (las de su plantilla, por delegación) más las que hereda de su categoría.
     """
     StockRoute = apps.get_model('stock', 'StockRoute')
-    ids = set(self.route_ids.values_list('pk', flat=True))
+    ids = set(self.route_ids.ids)
     category = self.categ_id
     if category:
         ids |= set(category.total_route_ids.values_list('pk', flat=True))

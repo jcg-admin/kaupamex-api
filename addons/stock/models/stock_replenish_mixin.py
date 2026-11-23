@@ -192,7 +192,7 @@ class StockReplenishMixin:
             product = getattr(self, 'product', None)
             wh_route_ids = [
                 route.pk
-                for route in warehouse.route_ids.all()
+                for route in warehouse.route_ids
                 if route._is_valid_resupply_route_for_product(product)
             ]
             if wh_route_ids:

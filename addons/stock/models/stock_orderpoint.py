@@ -264,6 +264,10 @@ def _related_pks(registro, nombre):
     gestor = getattr(registro, nombre, None) if registro is not None else None
     if gestor is None:
         return ()
+    # Entre dos ``BaseModel`` el Many2many ya es el recordset de la fuente.
+    ids = getattr(gestor, 'ids', None)
+    if ids is not None:
+        return tuple(ids)
     return tuple(gestor.values_list('pk', flat=True))
 
 
@@ -518,7 +522,7 @@ class StockWarehouseOrderpoint(models.BaseModel, TimeStampedModel):
         return product_model._get_rules_from_location(
             self.product,
             self.location,
-            route_ids=[self.route] if self.route is not None else (),
+            route_ids=[self.route] if self.route else (),
         )
 
     def _lead_days_values(self):
@@ -598,7 +602,7 @@ class StockWarehouseOrderpoint(models.BaseModel, TimeStampedModel):
     def route_id_placeholder(self):
         """≙ ``_compute_route_id_placeholder`` (``odoo19c: :233-237``)."""
         ruta = self._get_default_route()
-        return str(ruta) if ruta is not None else ''
+        return str(ruta) if ruta else ''
 
     @property
     def effective_route(self):
@@ -608,7 +612,7 @@ class StockWarehouseOrderpoint(models.BaseModel, TimeStampedModel):
         replenishment.»
         """
         return (
-            self.route if self.route is not None else self._get_default_route()
+            self.route if self.route else self._get_default_route()
         )
 
     @classmethod
@@ -1168,7 +1172,7 @@ class StockWarehouseOrderpoint(models.BaseModel, TimeStampedModel):
             self.product,
             self.location,
             {
-                'route_ids': [self.route] if self.route is not None else (),
+                'route_ids': [self.route] if self.route else (),
                 'warehouse_id': self.warehouse,
             },
         )
@@ -1197,7 +1201,7 @@ class StockWarehouseOrderpoint(models.BaseModel, TimeStampedModel):
             route__active=True,
         ).select_related('route')
         for regla in candidatas:
-            if regla.route is not None and regla.route.pk in propias:
+            if regla.route and regla.route.pk in propias:
                 return regla.route
         return None
 
@@ -1625,10 +1629,10 @@ class StockWarehouseOrderpoint(models.BaseModel, TimeStampedModel):
             self.product,
             fecha_limite,
             self.location,
-            route_ids=[self.route] if self.route is not None else (),
+            route_ids=[self.route] if self.route else (),
         )
         return {
-            'route_ids': [self.route] if self.route is not None else [],
+            'route_ids': [self.route] if self.route else [],
             'date_planned': fechas['date_planned'],
             'date_order': fechas['date_order'],
             'date_deadline': date or False,

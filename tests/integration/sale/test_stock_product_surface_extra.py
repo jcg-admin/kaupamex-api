@@ -15,6 +15,8 @@ from datetime import timedelta
 from decimal import Decimal
 
 import pytest
+
+from orm.commands import Command
 from django.utils import timezone
 
 from addons.base.models import ResCompany
@@ -231,7 +233,7 @@ def test_filter_has_routes_sees_the_inherited_route(db):
     """
     category = ProductCategory.objects.create(name='With route')
     route = StockRoute.objects.create(name='Heredable')
-    route.categ_ids.add(category)
+    route.write({'categ_ids': [Command.link(category.id)]})
     inherited = make_product(name='By category', categ=category)
     without = make_product(name='Bare')
 

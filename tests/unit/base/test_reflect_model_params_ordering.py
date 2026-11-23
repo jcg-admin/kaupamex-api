@@ -15,10 +15,11 @@ from django.db.models.expressions import OrderBy
 from addons.base.models.ir_model import IrModel
 
 
-# Un modelo de Django sin ``_order``; ``product.removal``, el sujeto anterior,
-# es ``BaseModel`` desde la unidad U1 de ``stock`` y ya lleva el ``_order``
-# por defecto de la fuente.
-SUBJECT = ('stock', 'StockRoute')
+# Un modelo de Django sin ``_order``: ``ReturnItem``, hijo de
+# ``return.request`` y propio del L0, no tiene ``_name`` ni contraparte en la
+# fuente. Los sujetos anteriores, ``product.removal`` y ``stock.route``,
+# declaran el ``_order`` de la fuente desde las unidades U1 y U6a de ``stock``.
+SUBJECT = ('stock', 'ReturnItem')
 
 
 def test_an_expression_ordering_is_reflected_as_text(monkeypatch):

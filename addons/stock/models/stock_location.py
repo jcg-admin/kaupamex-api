@@ -3,7 +3,8 @@
 Adaptación de Odoo ``stock/models/stock_location.py`` (``odoo-tools@622ddc2a``,
 ``odoo19c:``, LGPL-3) — atribución y aviso de licencia preservados (DEC-KX-03).
 
-Qué es: la **ubicación** es el nodo del árbol físico del almacén —zona, pasillo,
+Qué es: la **ubicación** es el nodo del árbol físico del almacén —zona,
+pasillo,
 estante— y también el contraparte virtual de un proveedor, un cliente o una
 pérdida de inventario. Todo movimiento sale de una y entra en otra. La **ruta**
 es el camino declarado que sigue un producto entre ubicaciones; agrupa reglas
@@ -20,9 +21,11 @@ con 14 campos y 8 métodos.
 ``StockLocation``
 -------------------
 
-===============================================  ======================================
+=============================================== 
+======================================
 Símbolo de la referencia (línea)                 Aquí
-===============================================  ======================================
+=============================================== 
+======================================
 ``default_get`` (22-27)                          ``default_get`` (classmethod)
 ``name`` (29)                                    ``name``
 ``complete_name`` (30)                           ``complete_name`` (almacenado)
@@ -30,7 +33,8 @@ Símbolo de la referencia (línea)                 Aquí
 ``usage`` (32-46)                                ``usage``
 ``location_id`` (47-49)                          ``location``
 ``child_ids`` (50)                               reverso ``child_ids``
-``child_internal_location_ids`` (51-57)          property ``child_internal_location_ids``
+``child_internal_location_ids`` (51-57)          property
+``child_internal_location_ids``
 ``parent_path`` (58)                             ``parent_path``
 ``company_id`` (59-62)                           ``company``
 ``replenish_location`` (63-64)                   ``replenish_location``
@@ -40,12 +44,15 @@ Símbolo de la referencia (línea)                 Aquí
 ``quant_ids`` (79)                               reverso ``quant_ids``
 ``cyclic_inventory_frequency`` (80)              ``cyclic_inventory_frequency``
 ``last_inventory_date`` (81)                     ``last_inventory_date``
-``next_inventory_date`` (82)                     ``next_inventory_date`` (almacenado)
+``next_inventory_date`` (82)                     ``next_inventory_date``
+(almacenado)
 ``warehouse_view_ids`` (83)                      reverso ``warehouse_view_ids``
 ``warehouse_id`` (84)                            ``warehouse`` (almacenado)
 ``storage_category_id`` (85)                     ``storage_category``
-``outgoing_move_line_ids`` (86)                  reverso ``outgoing_move_line_ids``
-``incoming_move_line_ids`` (87)                  reverso ``incoming_move_line_ids``
+``outgoing_move_line_ids`` (86)                  reverso
+``outgoing_move_line_ids``
+``incoming_move_line_ids`` (87)                  reverso
+``incoming_move_line_ids``
 ``net_weight`` (88)                              property ``net_weight``
 ``forecast_weight`` (89)                         property ``forecast_weight``
 ``is_empty`` (90)                                property ``is_empty``
@@ -53,17 +60,20 @@ Símbolo de la referencia (línea)                 Aquí
 ``_inventory_freq_nonneg`` (96-99)               ``CheckConstraint`` homónimo
 ``_parent_path_id_idx`` (100)                    ``Index`` homónimo
 ``_compute_display_name`` (102-112)              ``__str__``
-``_compute_weight`` (114-122)                    ``get_weight`` + las 2 properties
+``_compute_weight`` (114-122)                    ``get_weight`` + las 2
+properties
 ``_compute_complete_name`` (124-130)             ``compute_complete_name``
 ``_compute_is_empty`` (132-139)                  property ``is_empty``
-``_compute_next_inventory_date`` (141-158)       ``compute_next_inventory_date``
+``_compute_next_inventory_date`` (141-158)      
+``compute_next_inventory_date``
 ``_compute_warehouse_id`` (160-172)              ``compute_warehouse``
 ``_compute_child_internal_location_ids`` (174-178) property homónima
 ``_compute_replenish_location`` (180-183)        ``compute_replenish_location``
 ``_check_replenish_location`` (185-192)          ``check_replenish_location``
 ``_check_scrap_location`` (194-198)              ``check_scrap_location``
 ``_unlink_except_master_data`` (200-204)         ``check_can_delete``
-``_search_is_empty`` (206-217)                   ``search_is_empty`` (classmethod)
+``_search_is_empty`` (206-217)                   ``search_is_empty``
+(classmethod)
 ``write`` (219-267)                              ``write``
 ``unlink`` (269-270)                             ``unlink``
 ``name_create`` (272-284)                        ``name_create`` (classmethod)
@@ -77,14 +87,17 @@ Símbolo de la referencia (línea)                 Aquí
 ``_child_of`` (463-465)                          ``child_of``
 ``_is_outgoing`` (467-472)                       ``is_outgoing``
 ``_get_weight`` (474-513)                        ``get_weight`` (classmethod)
-===============================================  ======================================
+=============================================== 
+======================================
 
 ``StockRoute``
 ----------------
 
-===============================================  ======================================
+=============================================== 
+======================================
 Símbolo de la referencia (línea)                 Aquí
-===============================================  ======================================
+=============================================== 
+======================================
 ``name`` (521)                                   ``name``
 ``active`` (522)                                 ``active``
 ``sequence`` (523)                               ``sequence``
@@ -98,16 +111,21 @@ Símbolo de la referencia (línea)                 Aquí
 ``company_id`` (531-534)                         ``company``
 ``product_ids`` (535-537)                        ``product_ids`` (M2M)
 ``categ_ids`` (538)                              ``categ_ids`` (M2M)
-``warehouse_domain_ids`` (539)                   property ``warehouse_domain_ids``
+``warehouse_domain_ids`` (539)                   property
+``warehouse_domain_ids``
 ``warehouse_ids`` (540-542)                      ``warehouse_ids`` (M2M)
 ``copy_data`` (544-550)                          ``copy_data``
-``_compute_warehouses`` (552-556)                property ``warehouse_domain_ids``
-``_onchange_company`` (558-561)                  ``apply_company_filter``
-``_onchange_warehouse_selectable`` (563-566)     ``apply_warehouse_selectable``
+``_compute_warehouses`` (552-556)                property
+``warehouse_domain_ids``
+``_onchange_company`` (562-565)                  ``_onchange_company``
+``_onchange_warehouse_selectable`` (567-570)    
+``_onchange_warehouse_selectable``
 ``write`` (568-575)                              ``write``
-``_check_company_consistency`` (577-590)         ``check_company_consistency``
-``_is_valid_resupply_route_for_product`` (592-593) ``_is_valid_resupply_route_for_product``
-===============================================  ======================================
+``_check_company_consistency`` (579-591)         ``_check_company_consistency``
+``_is_valid_resupply_route_for_product`` (592-593)
+``_is_valid_resupply_route_for_product``
+=============================================== 
+======================================
 
 Divergencias declaradas
 =========================
@@ -144,6 +162,7 @@ Divergencias declaradas
    de vuelta en ``compute_warehouse()`` de este archivo, sin duplicar la
    regla de «ancestro más profundo».
 """
+
 import calendar
 import datetime
 from collections import defaultdict
@@ -991,47 +1010,61 @@ class StockLocation(models.DefaultGetMixin, TimeStampedModel):
         }
 
 
-class StockRoute(TimeStampedModel):
+class StockRoute(models.BaseModel, TimeStampedModel):
     """``stock.route`` — el camino declarado que sigue un producto."""
 
-    name                      = fields.Char(
+    _name = 'stock.route'
+    _description = "Inventory Routes"
+    _order = 'sequence'
+    _check_company_auto = True
+
+    name = fields.Char(
         max_length=120,
         help_text='Nombre de la ruta (Odoo name, requerido, traducible).',
     )
-    active                    = fields.Boolean(
+    active = fields.Boolean(
         default=True,
-        help_text='Al desmarcarlo se oculta la ruta sin borrarla (Odoo active).',
+        help_text='Al desmarcarlo se oculta la ruta sin borrarla (Odoo '
+                  'active).',
     )
-    sequence                  = fields.Integer(
-        default=0, help_text='Orden de evaluación (Odoo sequence).',
+    sequence = fields.Integer(
+        default=0,
+        help_text='Orden de evaluación (Odoo sequence).',
     )
-    product_selectable        = fields.Boolean(
+    product_selectable = fields.Boolean(
         default=True,
         help_text='Seleccionable en la pestaña Inventario del producto '
-                  '(Odoo product_selectable).',
+        '(Odoo product_selectable).',
     )
-    product_categ_selectable  = fields.Boolean(
+    product_categ_selectable = fields.Boolean(
         default=False,
         help_text='Seleccionable en la categoría de producto '
-                  '(Odoo product_categ_selectable).',
+        '(Odoo product_categ_selectable).',
     )
-    warehouse_selectable      = fields.Boolean(
+    warehouse_selectable = fields.Boolean(
         default=False,
         help_text='Seleccionable en el almacén; al elegirlo, es la ruta por '
-                  'defecto de lo que pase por él (Odoo warehouse_selectable).',
+        'defecto de lo que pase por él (Odoo warehouse_selectable).',
     )
-    package_type_selectable   = fields.Boolean(
+    package_type_selectable = fields.Boolean(
         default=False,
         help_text='Seleccionable en el tipo de paquete '
-                  '(Odoo package_type_selectable).',
+        '(Odoo package_type_selectable).',
     )
-    supplied_wh               = fields.Many2one(
-        'stock.StockWarehouse', null=True, blank=True, on_delete=models.SET_NULL,
-        related_name='supplied_route_ids', db_index=True,
+    supplied_wh = fields.Many2one(
+        'stock.StockWarehouse',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='supplied_route_ids',
+        db_index=True,
         help_text='Almacén abastecido (Odoo supplied_wh_id).',
     )
-    supplier_wh               = fields.Many2one(
-        'stock.StockWarehouse', null=True, blank=True, on_delete=models.SET_NULL,
+    supplier_wh = fields.Many2one(
+        'stock.StockWarehouse',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
         related_name='supplier_route_ids',
         help_text='Almacén que abastece (Odoo supplier_wh_id).',
     )
@@ -1040,18 +1073,24 @@ class StockRoute(TimeStampedModel):
         related_name='stock_routes', db_index=True,
         help_text='Empresa; vacío si la ruta es compartida (Odoo company_id).',
     )
-    product_ids               = fields.Many2many(
-        'product.ProductTemplate', blank=True, related_name='route_ids',
+    product_ids = fields.Many2many(
+        'product.ProductTemplate',
+        blank=True,
+        related_name='route_ids',
         db_table='stock_route_product',
         help_text='Productos que declaran esta ruta (Odoo product_ids).',
     )
-    categ_ids                 = fields.Many2many(
-        'product.ProductCategory', blank=True, related_name='route_ids',
+    categ_ids = fields.Many2many(
+        'product.ProductCategory',
+        blank=True,
+        related_name='route_ids',
         db_table='stock_route_categ',
         help_text='Categorías que declaran esta ruta (Odoo categ_ids).',
     )
-    warehouse_ids             = fields.Many2many(
-        'stock.StockWarehouse', blank=True, related_name='route_ids',
+    warehouse_ids = fields.Many2many(
+        'stock.StockWarehouse',
+        blank=True,
+        related_name='route_ids',
         db_table='stock_route_warehouse',
         help_text='Almacenes que declaran esta ruta (Odoo warehouse_ids).',
     )
@@ -1077,67 +1116,73 @@ class StockRoute(TimeStampedModel):
             return StockWarehouse.objects.filter(company=self.company)
         return StockWarehouse.objects.all()
 
-    def apply_company_filter(self):
-        """≙ ``_onchange_company`` (``odoo19c: :558-561``).
+    @api.onchange('company_id')
+    def _onchange_company(self):
+        """≙ ``_onchange_company`` (``odoo19c: :562-565``).
 
         Al fijar empresa, los almacenes de otra empresa dejan de aplicar.
         """
-        if self.company is None:
-            return
-        self.warehouse_ids.set(self.warehouse_ids.filter(company=self.company))
+        if self.company:
+            self.warehouse_ids = self.warehouse_ids.filtered(
+                lambda warehouse: warehouse.company == self.company)
 
-    def apply_warehouse_selectable(self):
-        """≙ ``_onchange_warehouse_selectable`` (``odoo19c: :563-566``).
+    @api.onchange('warehouse_selectable')
+    def _onchange_warehouse_selectable(self):
+        """≙ ``_onchange_warehouse_selectable`` (``odoo19c: :567-570``).
 
-        Si la ruta deja de ser seleccionable por almacén, se vacía la lista —
-        ``[(5, 0, 0)]`` en el idioma de comandos de la referencia.
+        Si la ruta deja de ser seleccionable por almacén, se vacía la lista
+        con ``[(5, 0, 0)]``, como la referencia.
         """
         if not self.warehouse_selectable:
-            self.warehouse_ids.clear()
+            self.warehouse_ids = [fields.Command.clear()]
 
-    def write(self, **vals):
-        """≙ ``write`` (``odoo19c: :568-575``).
+    def write(self, vals):
+        """≙ ``write`` (``odoo19c: :570-577``).
 
         Archivar la ruta archiva sus reglas, y desarchivarla las devuelve —
         pero sólo las que apuntan a una ubicación destino viva, que es la
         condición que la referencia filtra antes de propagar.
         """
         if 'active' in vals:
-            reglas = self.rule_ids.filter(location_dest__active=True)
-            reglas.update(active=bool(vals['active']))
-        for clave, valor in vals.items():
-            setattr(self, clave, valor)
-        self.save()
-        return self
+            StockRule = apps.get_model('stock', 'StockRule')
+            rules = StockRule.objects.filter(
+                route__in=self.ids, location_dest__active=True)
+            rules = self.env['stock.rule'].browse(
+                list(rules.values_list('pk', flat=True)))
+            if vals['active']:
+                rules.action_unarchive()
+            else:
+                rules.action_archive()
+        return super().write(vals)
 
-    def check_company_consistency(self):
-        """≙ ``_check_company_consistency`` (``odoo19c: :577-590``).
+    @api.constrains('company_id')
+    def _check_company_consistency(self):
+        """≙ ``_check_company_consistency`` (``odoo19c: :579-591``).
 
         Una regla de otra empresa dentro de la ruta rompe el aislamiento.
         """
-        if self.company is None:
-            return
-        for regla in self.rule_ids.all():
-            if regla.company_id != self.company_id:
-                raise ValidationError(_(
-                    'La regla %(rule)s pertenece a %(rule_company)s mientras '
-                    'que la ruta pertenece a %(route_company)s.') % {
-                        'rule': regla, 'rule_company': regla.company,
-                        'route_company': self.company})
-
-    def clean(self):
-        """Corre el ``@api.constrains`` de la referencia en el gancho de Django."""
-        super().clean()
-        self.check_company_consistency()
+        for route in self:
+            if not route.company:
+                continue
+            for rule in route.rule_ids:
+                if route.company_id != rule.company_id:
+                    raise ValidationError(_(
+                        'La regla %(rule)s pertenece a %(rule_company)s '
+                        'mientras que la ruta pertenece a '
+                        '%(route_company)s.') % {
+                            'rule': rule, 'rule_company': rule.company,
+                            'route_company': route.company})
 
     def copy_data(self, default=None):
-        """≙ ``copy_data`` (``odoo19c: :544-550``) — el duplicado lleva «(copia)»."""
-        valores = dict(default or {})
-        valores.setdefault('name', f'{self.name} (copia)')
-        for campo in ('sequence', 'product_selectable', 'product_categ_selectable',
-                      'warehouse_selectable', 'package_type_selectable', 'company'):
-            valores.setdefault(campo, getattr(self, campo))
-        return valores
+        """≙ ``copy_data`` (``odoo19c: :546-552``) — el duplicado lleva
+        «(copy)».
+        """
+        default = dict(default or {})
+        vals_list = super().copy_data(default=default)
+        if 'name' not in default:
+            for route, vals in zip(self, vals_list):
+                vals['name'] = _('%s (copy)', route.name)
+        return vals_list
 
     def _is_valid_resupply_route_for_product(self, product) -> bool:
         """≙ ``_is_valid_resupply_route_for_product`` (``odoo19c: :592-593``).

@@ -312,7 +312,7 @@ def run(cls, procurements, raise_user_error=True):
         if not any(
             rule_rec.action == ACTION_BUY
             for route in routes
-            for rule_rec in route.rule_ids.all()
+            for rule_rec in route.rule_ids
         ):
             continue
         company = procurement.company_id
@@ -341,7 +341,7 @@ def _filter_warehouse_routes(cls, product, warehouses, route):
     ``@classmethod`` porque el previo lo es
     (``addons/stock/models/stock_rule.py:1175``).
     """
-    if any(rule_rec.action == ACTION_BUY for rule_rec in route.rule_ids.all()):
+    if any(rule_rec.action == ACTION_BUY for rule_rec in route.rule_ids):
         if not _sellers_of(product):
             return False
     return None
@@ -627,7 +627,7 @@ def _is_valid_resupply_route_for_product(self, product):
     Una ruta de compra sólo reabastece a un producto que tenga proveedores. Si
     la ruta no compra, se cede al método previo devolviendo ``None``.
     """
-    if any(rule_rec.action == ACTION_BUY for rule_rec in self.rule_ids.all()):
+    if any(rule_rec.action == ACTION_BUY for rule_rec in self.rule_ids):
         return bool(_sellers_of(product))
     return None
 

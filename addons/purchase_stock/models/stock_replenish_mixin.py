@@ -95,7 +95,7 @@ def _compute_show_vendor(self):
     haya declarado — sin ruta no hay proveedor que mostrar.
     """
     route = getattr(self, 'route', None)
-    if route is None:
+    if not route:
         return False
     return self._get_show_vendor(route)
 
@@ -109,7 +109,7 @@ def _get_show_vendor(self, route):
     literal para no crear una dependencia de import circular entre dos módulos
     del mismo addon.
     """
-    return any(rule.action == 'buy' for rule in route.rule_ids.all())
+    return any(rule.action == 'buy' for rule in route.rule_ids)
 
 
 def apply_purchase_stock_stock_replenish_mixin_extensions():

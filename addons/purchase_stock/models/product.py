@@ -195,7 +195,7 @@ def _onchange_buy_route(self):
     )
     if not buy_route_ids:
         return None
-    own_route_ids = set(self.route_ids.values_list('pk', flat=True))
+    own_route_ids = set(self.route_ids.ids)
     if buy_route_ids & own_route_ids:
         return {
             'warning': {

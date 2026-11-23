@@ -14,6 +14,8 @@ from datetime import timedelta
 from decimal import Decimal
 
 import pytest
+
+from orm.commands import Command
 from django.utils import timezone
 
 from addons.base.models import ResCompany
@@ -452,9 +454,11 @@ def test_get_total_routes_unions_product_and_category_routes(db):
     from_grandparent = StockRoute.objects.create(name='From the grandparent')
     from_own_categ = StockRoute.objects.create(name='From the category')
     from_template = StockRoute.objects.create(name='From the template')
-    from_grandparent.categ_ids.add(parent_categ)
-    from_own_categ.categ_ids.add(child_categ)
-    from_template.product_ids.add(product.product_tmpl_id)
+    from_grandparent.write({'categ_ids': [Command.link(parent_categ.id)]})
+    from_own_categ.write({'categ_ids': [Command.link(child_categ.id)]})
+    from_template.write(
+        {'product_ids': [Command.link(product.product_tmpl_id.id)]}
+    )
 
     assert set(product.get_total_routes().values_list('pk', flat=True)) == {
         from_grandparent.pk,

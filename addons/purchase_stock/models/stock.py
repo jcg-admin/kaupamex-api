@@ -366,9 +366,9 @@ def _compute_buy_to_resupply(self):
     ¿Este almacén se reabastece comprando? Sí cuando está entre los almacenes
     de la ruta de su regla de compra.
     """
-    if not self.buy_pull or self.buy_pull.route is None:
+    if not self.buy_pull or not self.buy_pull.route:
         return False
-    return self.buy_pull.route.warehouse_ids.filter(pk=self.pk).exists()
+    return self.pk in self.buy_pull.route.warehouse_ids.ids
 
 
 def _inverse_buy_to_resupply(self, value):
@@ -379,15 +379,17 @@ def _inverse_buy_to_resupply(self, value):
     compra de ese almacén para llegar a su ruta; se conserva.
     """
     buy_route = self.buy_pull.route if self.buy_pull else None
-    if buy_route is None:
+    if not buy_route:
         rule_rec = _buy_rules().filter(warehouse=self).first()
         buy_route = rule_rec.route if rule_rec is not None else None
-    if buy_route is None:
+    if not buy_route:
         return
     if value:
-        buy_route.warehouse_ids.add(self)
+        buy_route.write(
+            {'warehouse_ids': [fields.Command.link(self.pk)]})
     else:
-        buy_route.warehouse_ids.remove(self)
+        buy_route.write(
+            {'warehouse_ids': [fields.Command.unlink(self.pk)]})
 
 
 def buy_to_resupply(self):
@@ -416,8 +418,9 @@ def _create_or_update_route(self):
     valor real.
     """
     purchase_route = self._find_buy_route()
-    if purchase_route is not None and self.buy_to_resupply:
-        purchase_route.warehouse_ids.add(self)
+    if purchase_route and self.buy_to_resupply:
+        purchase_route.write(
+            {'warehouse_ids': [fields.Command.link(self.pk)]})
     return None
 
 
@@ -548,7 +551,7 @@ def _inverse_supplier_id(self):
     Elegir proveedor sin haber elegido ruta fija la ruta de compra: la fuente
     toma la primera regla con acción «comprar» y usa su ruta.
     """
-    if self.route is None and self.supplier:
+    if not self.route and self.supplier:
         rule_rec = _buy_rules().first()
         if rule_rec is not None:
             self.route = rule_rec.route
@@ -624,7 +627,7 @@ def _inverse_route_id(self):
     comprar. Devuelve ``None`` para que la cadena siga al método previo, que es
     el ``super()`` de la fuente.
     """
-    if self.route is None:
+    if not self.route:
         self.supplier = None
     return None
 
@@ -725,7 +728,7 @@ def _get_replenishment_multiple_alternative(self, qty_to_order):
     if routes is not None:
         route_pks = {routes.pk}
     elif self.product_id is not None:
-        route_pks = set(self.product.route_ids.values_list('pk', flat=True))
+        route_pks = set(self.product.route_ids.ids)
     else:
         route_pks = set()
 
@@ -742,7 +745,7 @@ def _get_replenishment_multiple_alternative(self, qty_to_order):
     ProductProduct = apps.get_model('product', 'ProductProduct')
     dates_info = ProductProduct._get_dates_info(
         self.product, date_deadline, self.location,
-        route_ids=[self.route] if self.route is not None else ())
+        route_ids=[self.route] if self.route else ())
 
     if self.supplier_id:
         chosen = self.supplier

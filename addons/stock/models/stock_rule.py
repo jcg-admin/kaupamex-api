@@ -725,7 +725,7 @@ class StockRule(models.BaseModel, TimeStampedModel):
         """
         for rule in rules:
             route = rule.route if rule.route_id else None
-            if route is None or not route.company_id:
+            if not route or not route.company_id:
                 continue
             if rule.company_id != route.company_id:
                 raise ValidationError(
@@ -1428,9 +1428,9 @@ class StockRule(models.BaseModel, TimeStampedModel):
         if route_ids:
             valid_route_ids |= {r.pk for r in route_ids}
         if packaging_uom_id is not None and packaging_uom_id:
-            packaging_routes = packaging_uom_id.package_type.route_ids.all()
+            packaging_routes = packaging_uom_id.package_type.route_ids
             valid_route_ids |= {r.pk for r in packaging_routes}
-        valid_route_ids |= {r.pk for r in product_id.route_ids.all()}
+        valid_route_ids |= {r.pk for r in product_id.route_ids}
         if product_id.categ_id:
             valid_route_ids |= {
                 r.pk for r in product_id.categ_id.total_route_ids}
@@ -1441,7 +1441,7 @@ class StockRule(models.BaseModel, TimeStampedModel):
             for warehouse in warehouse_ids:
                 valid_route_ids |= {
                     r.pk
-                    for r in warehouse.route_ids.all()
+                    for r in warehouse.route_ids
                     if filter_function(r)
                 }
         if valid_route_ids:
@@ -1508,14 +1508,14 @@ class StockRule(models.BaseModel, TimeStampedModel):
         if route_ids:
             res = first_by_route(route_ids)
         if not res and packaging_uom_id is not None and packaging_uom_id:
-            res = first_by_route(packaging_uom_id.package_type.route_ids.all())
+            res = first_by_route(packaging_uom_id.package_type.route_ids)
         if not res:
-            product_routes = list(product_id.route_ids.all())
+            product_routes = list(product_id.route_ids)
             if product_id.categ_id:
                 product_routes += list(product_id.categ_id.total_route_ids)
             res = first_by_route(product_routes)
         if not res and warehouse_id is not None and warehouse_id:
-            res = first_by_route(warehouse_id.route_ids.all())
+            res = first_by_route(warehouse_id.route_ids)
         return res
 
     @classmethod
@@ -1557,7 +1557,7 @@ class StockRule(models.BaseModel, TimeStampedModel):
         def extract_rule(rule_dict, route_ids, warehouse_id, location_dest_id):
             """≙ la función local ``extract_rule`` (``:585-598``)."""
             rule = None
-            product_route_pks = {r.pk for r in product_id.route_ids.all()}
+            product_route_pks = {r.pk for r in product_id.route_ids}
             for route in sorted(
                 route_ids,
                 key=lambda r: (r.pk not in product_route_pks, r.sequence),
@@ -1591,12 +1591,12 @@ class StockRule(models.BaseModel, TimeStampedModel):
             if not res and packaging_uom_id:
                 res = extract_rule(
                     rule_dict,
-                    packaging_uom_id.package_type.route_ids.all(),
+                    packaging_uom_id.package_type.route_ids,
                     warehouse_id,
                     location_dest_id,
                 )
             if not res:
-                routes = list(product_id.route_ids.all())
+                routes = list(product_id.route_ids)
                 if product_id.categ_id:
                     routes += list(product_id.categ_id.total_route_ids)
                 res = extract_rule(
@@ -1605,7 +1605,7 @@ class StockRule(models.BaseModel, TimeStampedModel):
             if not res and warehouse_id:
                 res = extract_rule(
                     rule_dict,
-                    warehouse_id.route_ids.all(),
+                    warehouse_id.route_ids,
                     warehouse_id,
                     location_dest_id,
                 )

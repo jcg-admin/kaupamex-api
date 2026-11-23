@@ -925,8 +925,8 @@ class StockWarehouse(models.BaseModel, TimeStampedModel):
         )
         rule_model.objects.filter(warehouse=self).update(active=activo)
         # Sólo las rutas que aplican **sólo** a este almacén.
-        for ruta in self.route_ids.all():
-            if ruta.warehouse_ids.count() == 1:
+        for ruta in self.route_ids:
+            if len(ruta.warehouse_ids) == 1:
                 ruta.active = activo
                 ruta.save()
 
@@ -1086,7 +1086,7 @@ class StockWarehouse(models.BaseModel, TimeStampedModel):
         ruta = ruta_plantilla
         empresa = self.company
 
-        if ruta is None or (
+        if not ruta or (
             ruta.company_id and ruta.company_id != self.company_id
         ):
             ruta = route_model.objects.filter(
@@ -1095,7 +1095,7 @@ class StockWarehouse(models.BaseModel, TimeStampedModel):
                     Q(company__isnull=True) | Q(company=empresa),
                 ])).order_by('company').first()
 
-        if ruta is None:
+        if not ruta:
             if raise_if_not_found:
                 raise UserError(
                     _("Can't find any generic route %s.", route_name)
@@ -1178,13 +1178,13 @@ class StockWarehouse(models.BaseModel, TimeStampedModel):
 
         for campo, datos in self._get_routes_values().items():
             ruta = getattr(self, campo, None)
-            if ruta is not None:
+            if ruta:
                 for clave, valor in datos.get(
                     'route_update_values', {}
                 ).items():
                     setattr(ruta, clave, valor)
                 ruta.save()
-                ruta.rule_ids.update(active=False)
+                ruta.rule_ids.write({'active': False})
             else:
                 crear = dict(datos['route_create_values'])
                 crear.update(datos.get('route_update_values', {}))
@@ -1788,10 +1788,10 @@ class StockWarehouse(models.BaseModel, TimeStampedModel):
                     ).values_list('location_id', flat=True)
                 ).update(name=new_code)
             if new_name:
-                for ruta in warehouse.route_ids.all():
+                for ruta in warehouse.route_ids:
                     ruta.name = ruta.name.replace(warehouse.name, new_name, 1)
                     ruta.save()
-                    for regla in ruta.rule_ids.all():
+                    for regla in ruta.rule_ids:
                         regla.name = regla.name.replace(
                             warehouse.name, new_name, 1
                         )
@@ -2064,7 +2064,7 @@ class StockWarehouse(models.BaseModel, TimeStampedModel):
         las archivadas, porque la vista de rutas las muestra.
         """
         route_model = apps.get_model('stock', 'StockRoute')
-        ids = set(self.route_ids.values_list('pk', flat=True))
+        ids = set(self.route_ids.ids)
         if self.mto_pull and self.mto_pull.route_id:
             ids.add(self.mto_pull.route_id)
         ids.update(route_model.objects.filter(supplied_wh=self)

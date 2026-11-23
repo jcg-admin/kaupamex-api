@@ -14,6 +14,8 @@ from decimal import Decimal
 
 import pytest
 
+from orm.commands import Command
+
 from addons.base.models import SystemParameter
 from addons.product.models import ProductCategory, ProductTemplate
 from addons.stock.models import (
@@ -50,8 +52,8 @@ def test_parent_route_ids_walks_up_the_parent_chain(db):
 
     grandparent_route = _route('Ruta abuela')
     parent_route = _route('Ruta madre')
-    grandparent_route.categ_ids.add(grandparent)
-    parent_route.categ_ids.add(parent_categ)
+    grandparent_route.write({'categ_ids': [Command.link(grandparent.id)]})
+    parent_route.write({'categ_ids': [Command.link(parent_categ.id)]})
 
     inherited = set(child_categ.parent_route_ids.values_list('pk', flat=True))
     assert inherited == {grandparent_route.pk, parent_route.pk}
@@ -64,7 +66,8 @@ def test_parent_route_ids_excludes_the_own_ones(db):
         name='Hija', parent_id=parent_categ
     )
     shared = _route('Compartida')
-    shared.categ_ids.add(parent_categ, child_categ)
+    shared.write({'categ_ids': [
+        Command.link(parent_categ.id), Command.link(child_categ.id)]})
 
     assert list(child_categ.parent_route_ids) == []
     assert set(child_categ.total_route_ids.values_list('pk', flat=True)) == {
@@ -80,8 +83,8 @@ def test_total_route_ids_unions_own_and_inherited(db):
     )
     from_parent = _route('De la madre')
     from_child = _route('De la hija')
-    from_parent.categ_ids.add(parent_categ)
-    from_child.categ_ids.add(child_categ)
+    from_parent.write({'categ_ids': [Command.link(parent_categ.id)]})
+    from_child.write({'categ_ids': [Command.link(child_categ.id)]})
 
     assert set(child_categ.total_route_ids.values_list('pk', flat=True)) == {
         from_parent.pk,
@@ -102,7 +105,7 @@ def test_search_total_route_ids_finds_the_inherited_one(db):
     )
     unrelated = ProductCategory.objects.create(name='Ajena')
     route = _route('Heredable')
-    route.categ_ids.add(parent_categ)
+    route.write({'categ_ids': [Command.link(parent_categ.id)]})
 
     found = set(
         ProductCategory._search_total_route_ids([route]).values_list(
@@ -166,12 +169,12 @@ def test_route_ids_propagates_from_the_package_type(db):
     """≙ ``route_ids`` ``related='package_type_id.route_ids'`` (``:1345``)."""
     package_type = StockPackageType.objects.create(name='Pallet')
     route = _route('Ruta de pallet')
-    route.package_type_ids.add(package_type)
+    route.write({'package_type_ids': [Command.link(package_type.id)]})
     unit = Uom.objects.create(name='Pallet', relative_factor=1.0)
     unit.package_type = package_type
     unit.save()
 
-    assert list(unit.route_ids.values_list('pk', flat=True)) == [route.pk]
+    assert unit.route_ids.ids == [route.pk]
 
 
 def test_route_ids_without_a_package_type_is_empty(db):
