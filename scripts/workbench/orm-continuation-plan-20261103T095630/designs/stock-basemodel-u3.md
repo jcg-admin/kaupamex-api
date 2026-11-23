@@ -13,7 +13,7 @@ Referencia:
 - `purchase_stock` extiende `_update_name_and_code` sobre el mismo recordset
   (`odoo19c: addons/purchase_stock/models/stock.py:116-122`).
 
-Prueba del corte: `tests/unit/stock`, `tests/integration/stock` y el subconjunto
+Prueba del corte: `tests/unit/purchase_stock/test_warehouse_rename_buy_rule.py`, `tests/unit/stock`, `tests/integration/stock` y el subconjunto
 derivado de los cuatro modelos (`tests/integration/sale/test_stock*.py`,
 `tests/unit/purchase_stock/test_replenishment_multiple_alternative.py`, …).
 
@@ -35,6 +35,27 @@ porque forman un ciclo de claves (`warehouse` ↔ `picking_type` ↔ `rule`).
    comprobación de verdad, en las cuatro clases y en sus llamadores
    (`purchase_stock`, `stock_picking`, `stock_rule`, `stock_orderpoint`).
    `resupply_wh_ids`, M2M del almacén consigo mismo, se lee con `ids`.
+
+## Lo que destapó el subconjunto
+
+La primera ejecución dio un fallo: el barrido mecánico también había
+convertido `self.warehouse_id is None` en `not self.warehouse`. Sobre un
+registro sin guardar, leer un Many2one no nulo lanza
+`RelatedObjectDoesNotExist`; el `attname` (`warehouse_id`) es seguro y vale
+`None` o un entero. Las conversiones que partían de `_id` se revirtieron (13
+líneas). Ejecución final: 1125 passed, 4 xfailed sobre `tests/unit/stock`,
+`tests/integration/stock`, los directorios de `purchase` y el subconjunto
+derivado.
+
+Prueba nueva: renombrar el almacén reescribe su regla de compra. Con el
+eslabón de `purchase_stock` anulado (retorno anticipado) cae exactamente
+esa prueba.
+
+Cambios sólo de forma: cambiar las bases hace del corte la deuda de estilo
+de `StockWarehouse` y `StockPickingType` (E501/E221/E131), resuelta con
+`black` sobre las líneas señaladas y con literales partidos por
+concatenación adyacente; los f-strings de los cinco archivos son iguales por
+AST antes y después.
 
 ## Símbolos
 
