@@ -2582,9 +2582,9 @@ class StockPicking(models.BaseModel, MailThread, MailActivityMixin,
             allowed_states.append('assigned')
         warehouse = picking_type.warehouse
         view_location = (
-            warehouse.view_location if warehouse is not None else None
+            warehouse.view_location if warehouse else None
         )
-        if view_location is None:
+        if not view_location:
             # ≙ un ``child_of`` sobre un id falsy en la fuente: conjunto vacío.
             return False
         StockMove = apps.get_model('stock', 'StockMove')

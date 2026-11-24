@@ -2141,7 +2141,7 @@ class StockMove(models.BaseModel, TimeStampedModel):
         """
         regla = None
         ubicacion = self.location
-        while ubicacion is not None:
+        while ubicacion:
             criterio = (Q(location_src=ubicacion)
                         & Q(location_dest=self.location_dest)
                         & ~Q(action='push'))

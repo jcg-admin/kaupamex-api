@@ -1357,7 +1357,7 @@ class StockQuant(models.BaseModel, TimeStampedModel):
         if estrategia:
             return estrategia.method
         actual = location
-        while actual is not None:
+        while actual:
             propia = getattr(actual, 'removal_strategy', None)
             if propia:
                 return propia.method

@@ -938,7 +938,7 @@ class StockRule(models.BaseModel, TimeStampedModel):
             # Evita el bucle si la regla push está mal configurada; si el
             # destino cambió, se vuelve a aplicar por si hay otro salto.
             if (
-                old_dest_location is None
+                not old_dest_location
                 or old_dest_location.pk != self.location_dest_id
             ):
                 pushed = move._push_apply()
@@ -982,7 +982,7 @@ class StockRule(models.BaseModel, TimeStampedModel):
         location_dest_id = self.location_dest_id
 
         final_location = getattr(move_to_copy, 'location_final', None)
-        if final_location is not None:
+        if final_location:
             if not move_to_copy.location_dest.child_of(final_location):
                 final_location_id = final_location.pk
             if final_location.child_of(self.location_dest):
@@ -1615,7 +1615,7 @@ class StockRule(models.BaseModel, TimeStampedModel):
         result = None
         location = location_id
         inter_comp_location_checked = False
-        while (not result) and location is not None:
+        while (not result) and location:
             candidate_locations = [location]
             if (
                 not inter_comp_location_checked
@@ -1713,7 +1713,7 @@ class StockRule(models.BaseModel, TimeStampedModel):
         """
         found_rule = None
         location = location_dest_id
-        while (not found_rule) and location is not None:
+        while (not found_rule) and location:
             domain = expression.AND(
                 [
                     Q(location_src=location),
