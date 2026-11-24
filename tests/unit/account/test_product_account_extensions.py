@@ -161,18 +161,21 @@ class TestResolutionOfAccount:
         """El tercer escalón de la referencia NO está portado.
 
         Allá caería en ``company.income_account_id``; aquí ``ResCompany`` no
-        declara ese campo (Bloque 1, tarea #137), así que devuelve ``None``.
-        Se fija aquí para que el hueco sea visible, no para celebrarlo.
+        declara ese campo (Bloque 1, tarea #137), así que el resultado es el
+        recordset vacío de cuentas con que termina ``_get_category_account``
+        en la fuente (``odoo19c: addons/account/models/product.py:92``). Se
+        fija aquí para que el hueco sea visible, no para celebrarlo.
         """
         categoria = ProductCategory.objects.create(name='Collares')
         producto = ProductTemplate.objects.create(
             name='Eleke', categ_id=categoria
         )
 
-        assert producto._get_product_accounts() == {
-            'income': None,
-            'expense': None,
-        }
+        accounts = producto._get_product_accounts()
+        assert set(accounts) == {'income', 'expense'}
+        for account in accounts.values():
+            assert isinstance(account, AccountAccount)
+            assert not account
 
     def test_la_variante_delega_en_su_plantilla(self, cuentas):
         ingreso, _ = cuentas

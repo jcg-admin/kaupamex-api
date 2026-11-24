@@ -145,11 +145,11 @@ def _get_category_account(self, field_name):
     """
     categ = self.categ_id
     while categ:
-        cuenta = getattr(categ, field_name, None)
-        if cuenta is not None:
-            return cuenta
+        account = getattr(categ, field_name, None)
+        if account:
+            return account
         categ = categ.parent_id
-    return None
+    return self.env['account.account']
 
 
 def _get_product_accounts(self):
