@@ -33,6 +33,8 @@ from addons.analytic.models import (
 )
 from addons.base.models import ResCompany
 from addons.product.models import ProductProduct, ProductTemplate
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -65,9 +67,12 @@ def move(company, journal):
 
 @pytest.fixture
 def expense_account(company):
-    return AccountAccount.objects.create(
-        code='60100', name='Compras', account_type='expense', company=company
-    )
+    return current_env()['account.account'].sudo().create({
+        'code': '60100',
+        'name': 'Compras',
+        'account_type': 'expense',
+        'company_ids': [Command.set([company.pk])],
+    })
 
 
 @pytest.fixture
@@ -129,12 +134,12 @@ class TestGeneralAccountDerivedFromMoveLine:
     def test_an_explicit_general_account_wins_over_the_derived_one(
         self, company, move_line, expense_account
     ):
-        other_account = AccountAccount.objects.create(
-            code='60200',
-            name='Otros gastos',
-            account_type='expense',
-            company=company,
-        )
+        other_account = current_env()['account.account'].sudo().create({
+            'code': '60200',
+            'name': 'Otros gastos',
+            'account_type': 'expense',
+            'company_ids': [Command.set([company.pk])],
+        })
         line = AccountAnalyticLine(
             name='linea explicita',
             company=company,
@@ -164,12 +169,12 @@ class TestCheckGeneralAccountConstraint:
         move_line,
         expense_account,
     ):
-        other_account = AccountAccount.objects.create(
-            code='60300',
-            name='Distinta',
-            account_type='expense',
-            company=company,
-        )
+        other_account = current_env()['account.account'].sudo().create({
+            'code': '60300',
+            'name': 'Distinta',
+            'account_type': 'expense',
+            'company_ids': [Command.set([company.pk])],
+        })
         line = AccountAnalyticLine(
             name='mal',
             company=company,
@@ -224,9 +229,12 @@ class TestAnalyticProfitability:
         assert line.analytic_profitability == 'loss'
 
     def test_an_income_account_yields_revenue(self, company, journal):
-        income_account = AccountAccount.objects.create(
-            code='70100', name='Ventas', account_type='income', company=company
-        )
+        income_account = current_env()['account.account'].sudo().create({
+            'code': '70100',
+            'name': 'Ventas',
+            'account_type': 'income',
+            'company_ids': [Command.set([company.pk])],
+        })
         move = AccountMove.objects.create(
             company=company, date=datetime.date.today(), journal=journal
         )
@@ -257,12 +265,12 @@ class TestAnalyticProfitability:
             name='recalculo', company=company, move_line=move_line
         )
         assert line.analytic_profitability == 'loss'
-        income_account = AccountAccount.objects.create(
-            code='70200',
-            name='Ventas 2',
-            account_type='income',
-            company=company,
-        )
+        income_account = current_env()['account.account'].sudo().create({
+            'code': '70200',
+            'name': 'Ventas 2',
+            'account_type': 'income',
+            'company_ids': [Command.set([company.pk])],
+        })
         line.general_account = income_account
         assert line.analytic_profitability == 'revenue'
 

@@ -15,6 +15,8 @@ from addons.account.models.account_analytic_plan import apply_account_extensions
 from addons.analytic.models import AccountAnalyticApplicability
 from addons.base.models import ResCompany
 from addons.product.models import ProductCategory, ProductProduct, ProductTemplate
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -30,7 +32,9 @@ def company():
 
 
 class TestBusinessDomainExtended:
-    """≙ ``selection_add=[('invoice', ...), ('bill', ...)]`` (odoo19c: :12-18)."""
+    """≙ ``selection_add=[('invoice', ...), ('bill', ...)]`` (odoo19c:
+    :12-18).
+    """
 
     def test_invoice_and_bill_are_in_the_choices(self):
         field = AccountAnalyticApplicability._meta.get_field('business_domain')
@@ -38,7 +42,9 @@ class TestBusinessDomainExtended:
         assert {'invoice', 'bill'} <= values
 
     def test_general_from_the_base_is_still_present(self):
-        """Ampliar no reemplaza — el valor de la base convive con los nuevos."""
+        """Ampliar no reemplaza — el valor de la base convive con los
+        nuevos.
+        """
         field = AccountAnalyticApplicability._meta.get_field('business_domain')
         values = {value for value, _ in field.choices}
         assert 'general' in values
@@ -92,17 +98,24 @@ class TestAccountPrefixPlaceholder:
     model.py`` (la referencia tampoco lo filtra aquí)."""
 
     def test_bill_uses_the_expense_account_and_prefix_60(self, company):
-        AccountAccount.objects.create(
-            code='601', name='Compras', account_type='expense',
-            company=company)
+        current_env()['account.account'].sudo().create({
+            'code': '601',
+            'name': 'Compras',
+            'account_type': 'expense',
+            'company_ids': [Command.set([company.pk])],
+        })
         applicability = AccountAnalyticApplicability.objects.create(
             business_domain='bill', applicability='optional',
             company_id=company)
         assert applicability.account_prefix_placeholder == 'e.g. 60, 61, 62'
 
     def test_invoice_uses_the_income_account_and_prefix_40(self, company):
-        AccountAccount.objects.create(
-            code='401', name='Ventas', account_type='income', company=company)
+        current_env()['account.account'].sudo().create({
+            'code': '401',
+            'name': 'Ventas',
+            'account_type': 'income',
+            'company_ids': [Command.set([company.pk])],
+        })
         applicability = AccountAnalyticApplicability.objects.create(
             business_domain='invoice', applicability='optional',
             company_id=company)
@@ -113,8 +126,12 @@ class TestAccountPrefixPlaceholder:
         """``if business_domain == 'bill': ... else: ...`` — cualquier otro
         valor (incluido ``general``) toma la rama de ingreso, tal cual la
         referencia lo escribe."""
-        AccountAccount.objects.create(
-            code='401', name='Ventas', account_type='income', company=company)
+        current_env()['account.account'].sudo().create({
+            'code': '401',
+            'name': 'Ventas',
+            'account_type': 'income',
+            'company_ids': [Command.set([company.pk])],
+        })
         applicability = AccountAnalyticApplicability.objects.create(
             business_domain='general', applicability='optional',
             company_id=company)
@@ -130,9 +147,12 @@ class TestAccountPrefixPlaceholder:
         """A diferencia de ``account_analytic_distribution_model.py``, aquí
         la referencia NO filtra por compañía — se porta tal cual."""
         other_company = ResCompany.objects.create(code='otra', name='Otra SA')
-        AccountAccount.objects.create(
-            code='601', name='Compras', account_type='expense',
-            company=other_company)
+        current_env()['account.account'].sudo().create({
+            'code': '601',
+            'name': 'Compras',
+            'account_type': 'expense',
+            'company_ids': [Command.set([other_company.pk])],
+        })
         applicability = AccountAnalyticApplicability.objects.create(
             business_domain='bill', applicability='optional',
             company_id=company)
@@ -171,9 +191,12 @@ class TestGetScoreWrappedWithAccountPrefixAndProductCateg:
         assert applicability._get_score(company_id=company.pk) == 0.5
 
     def test_account_prefix_matching_adds_one_point(self, company):
-        AccountAccount.objects.create(
-            code='601100', name='Compras', account_type='expense',
-            company=company)
+        current_env()['account.account'].sudo().create({
+            'code': '601100',
+            'name': 'Compras',
+            'account_type': 'expense',
+            'company_ids': [Command.set([company.pk])],
+        })
         account = AccountAccount.objects.get(code='601100')
         applicability = AccountAnalyticApplicability.objects.create(
             business_domain='general', applicability='optional',
@@ -185,9 +208,12 @@ class TestGetScoreWrappedWithAccountPrefixAndProductCateg:
     def test_account_prefix_not_matching_vetoes_to_minus_one(self, company):
         """El veto descarta INCLUSO el puntaje base ya ganado — mismo
         criterio de corto-circuito que la referencia (odoo19c: :69-72)."""
-        AccountAccount.objects.create(
-            code='701100', name='Ventas', account_type='income',
-            company=company)
+        current_env()['account.account'].sudo().create({
+            'code': '701100',
+            'name': 'Ventas',
+            'account_type': 'income',
+            'company_ids': [Command.set([company.pk])],
+        })
         account = AccountAccount.objects.get(code='701100')
         applicability = AccountAnalyticApplicability.objects.create(
             business_domain='general', applicability='optional',
@@ -223,9 +249,12 @@ class TestGetScoreWrappedWithAccountPrefixAndProductCateg:
         sin reaplicar, no doble bonus."""
         apply_account_extensions()
         apply_account_extensions()
-        AccountAccount.objects.create(
-            code='601200', name='Compras', account_type='expense',
-            company=company)
+        current_env()['account.account'].sudo().create({
+            'code': '601200',
+            'name': 'Compras',
+            'account_type': 'expense',
+            'company_ids': [Command.set([company.pk])],
+        })
         account = AccountAccount.objects.get(code='601200')
         applicability = AccountAnalyticApplicability.objects.create(
             business_domain='general', applicability='optional',

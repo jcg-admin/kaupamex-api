@@ -20,6 +20,8 @@ from django.apps import apps
 from orm import registry
 from orm.environments import env, transaction_scope
 from orm.utils import model_field_registry
+from orm.commands import Command
+from orm.environments import env as current_env
 
 AccountAccount = apps.get_model('account', 'AccountAccount')
 AccountJournal = apps.get_model('account', 'AccountJournal')
@@ -67,12 +69,12 @@ def move(db):
 
 @pytest.fixture
 def account(move):
-    return AccountAccount.objects.create(
-        code='105',
-        name='Clientes',
-        account_type='asset_receivable',
-        company=move.company,
-    )
+    return current_env()['account.account'].sudo().create({
+        'code': '105',
+        'name': 'Clientes',
+        'account_type': 'asset_receivable',
+        'company_ids': [Command.set([move.company.pk])],
+    })
 
 
 def field_of(model, name):

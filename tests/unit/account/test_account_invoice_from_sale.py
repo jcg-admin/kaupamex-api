@@ -28,6 +28,8 @@ from addons.account.services import create_invoice_from_sale_order
 from tests.factories.product_factory import make_category, make_product
 from addons.base.models import ResCompany
 from addons.sale.models import SaleOrder, SaleOrderLine
+from orm.commands import Command
+from orm.environments import env as current_env
 
 
 @pytest.fixture
@@ -42,21 +44,24 @@ def chart(db, company):
         'journal': AccountJournal.objects.create(
             name='Ventas', code='VEN', type='sale', company=company
         ),
-        'receivable': AccountAccount.objects.create(
-            code='105',
-            name='Clientes',
-            account_type='asset_receivable',
-            company=company,
-        ),
-        'income': AccountAccount.objects.create(
-            code='401', name='Ventas', account_type='income', company=company
-        ),
-        'tax': AccountAccount.objects.create(
-            code='208',
-            name='IVA trasladado',
-            account_type='liability_current',
-            company=company,
-        ),
+        'receivable': current_env()['account.account'].sudo().create({
+            'code': '105',
+            'name': 'Clientes',
+            'account_type': 'asset_receivable',
+            'company_ids': [Command.set([company.pk])],
+        }),
+        'income': current_env()['account.account'].sudo().create({
+            'code': '401',
+            'name': 'Ventas',
+            'account_type': 'income',
+            'company_ids': [Command.set([company.pk])],
+        }),
+        'tax': current_env()['account.account'].sudo().create({
+            'code': '208',
+            'name': 'IVA trasladado',
+            'account_type': 'liability_current',
+            'company_ids': [Command.set([company.pk])],
+        }),
     }
 
 

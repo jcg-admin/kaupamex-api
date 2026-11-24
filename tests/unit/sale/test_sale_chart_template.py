@@ -28,6 +28,8 @@ from addons.base.models.ir_default import IrDefault
 from addons.base.models.ir_model import IrModelData
 from addons.base.models import ResCompany
 from addons.sale.models.chart_template import add_downpayment_account
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -39,12 +41,12 @@ def company():
 
 @pytest.fixture
 def receivable(company):
-    return AccountAccount.objects.create(
-        code='11100',
-        name='Clientes',
-        account_type='asset_receivable',
-        company=company,
-    )
+    return current_env()['account.account'].sudo().create({
+        'code': '11100',
+        'name': 'Clientes',
+        'account_type': 'asset_receivable',
+        'company_ids': [Command.set([company.pk])],
+    })
 
 
 class TestTheOverrideIsRegistered:

@@ -22,6 +22,8 @@ from addons.account.models import (
 )
 from addons.base.models import ResCompany, ResCurrency
 from exceptions import UserError
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -47,12 +49,12 @@ def _apunte_en(divisa, company):
     journal = AccountJournal.objects.create(
         name='Ventas', code='VEN', type='sale', company=company
     )
-    cuenta = AccountAccount.objects.create(
-        code='105',
-        name='Clientes',
-        account_type='asset_receivable',
-        company=company,
-    )
+    cuenta = current_env()['account.account'].sudo().create({
+        'code': '105',
+        'name': 'Clientes',
+        'account_type': 'asset_receivable',
+        'company_ids': [Command.set([company.pk])],
+    })
     move = AccountMove.objects.create(
         move_type='out_invoice',
         date=timezone.now().date(),

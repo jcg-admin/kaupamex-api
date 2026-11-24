@@ -18,6 +18,8 @@ from addons.account.models import (
 from addons.account_debit_note.models.account_move import AccountMoveDebitNote
 from addons.authz_reauth.models import ReauthSession
 from addons.base.models import ResCompany
+from orm.commands import Command
+from orm.environments import env as current_env
 
 CREATE_DEBIT_NOTE_URL = '/api/v2/admin/finance/debit-notes/'
 
@@ -51,15 +53,18 @@ def journal(company):
 
 @pytest.fixture
 def accounts(company):
-    receivable = AccountAccount.objects.create(
-        code='105',
-        name='Clientes',
-        account_type='asset_receivable',
-        company=company,
-    )
-    income = AccountAccount.objects.create(
-        code='401', name='Ventas', account_type='income', company=company
-    )
+    receivable = current_env()['account.account'].sudo().create({
+        'code': '105',
+        'name': 'Clientes',
+        'account_type': 'asset_receivable',
+        'company_ids': [Command.set([company.pk])],
+    })
+    income = current_env()['account.account'].sudo().create({
+        'code': '401',
+        'name': 'Ventas',
+        'account_type': 'income',
+        'company_ids': [Command.set([company.pk])],
+    })
     return receivable, income
 
 

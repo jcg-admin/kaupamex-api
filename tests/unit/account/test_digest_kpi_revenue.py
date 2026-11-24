@@ -30,6 +30,8 @@ from addons.digest.models import DigestDigest
 from exceptions import AccessError
 from orm.environments import user_scope
 from tests.factories.user_factory import UserFactory
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = pytest.mark.django_db
 
@@ -73,12 +75,18 @@ def _post_income(company, amount, on=None, post=True, account_type='income'):
     journal = AccountJournal.objects.create(
         name='Varios', code='MISC', type='general', company=company
     )
-    cash = AccountAccount.objects.create(
-        code='101', name='Caja', account_type='asset_cash', company=company
-    )
-    income = AccountAccount.objects.create(
-        code='401', name='Ventas', account_type=account_type, company=company
-    )
+    cash = current_env()['account.account'].sudo().create({
+        'code': '101',
+        'name': 'Caja',
+        'account_type': 'asset_cash',
+        'company_ids': [Command.set([company.pk])],
+    })
+    income = current_env()['account.account'].sudo().create({
+        'code': '401',
+        'name': 'Ventas',
+        'account_type': account_type,
+        'company_ids': [Command.set([company.pk])],
+    })
     move = AccountMove.objects.create(
         date=on or TODAY, journal=journal, company=company
     )

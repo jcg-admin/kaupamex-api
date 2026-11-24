@@ -24,6 +24,8 @@ from addons.account.models import (
 )
 from addons.authz_reauth.models import ReauthSession
 from addons.base.models import ResCompany
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = pytest.mark.integration
 
@@ -59,24 +61,30 @@ def sale_journal(company):
 
 @pytest.fixture
 def accounts(company):
-    receivable = AccountAccount.objects.create(
-        code='105',
-        name='Clientes',
-        account_type='asset_receivable',
-        company=company,
-    )
-    income = AccountAccount.objects.create(
-        code='401', name='Ventas', account_type='income', company=company
-    )
-    bank = AccountAccount.objects.create(
-        code='102', name='Bancos', account_type='asset_cash', company=company
-    )
-    writeoff = AccountAccount.objects.create(
-        code='701',
-        name='Diferencias de pago',
-        account_type='expense_other',
-        company=company,
-    )
+    receivable = current_env()['account.account'].sudo().create({
+        'code': '105',
+        'name': 'Clientes',
+        'account_type': 'asset_receivable',
+        'company_ids': [Command.set([company.pk])],
+    })
+    income = current_env()['account.account'].sudo().create({
+        'code': '401',
+        'name': 'Ventas',
+        'account_type': 'income',
+        'company_ids': [Command.set([company.pk])],
+    })
+    bank = current_env()['account.account'].sudo().create({
+        'code': '102',
+        'name': 'Bancos',
+        'account_type': 'asset_cash',
+        'company_ids': [Command.set([company.pk])],
+    })
+    writeoff = current_env()['account.account'].sudo().create({
+        'code': '701',
+        'name': 'Diferencias de pago',
+        'account_type': 'expense_other',
+        'company_ids': [Command.set([company.pk])],
+    })
     return receivable, income, bank, writeoff
 
 

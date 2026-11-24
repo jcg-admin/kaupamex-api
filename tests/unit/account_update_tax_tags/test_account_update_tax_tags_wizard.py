@@ -55,6 +55,8 @@ from addons.account_update_tax_tags.wizard.account_update_tax_tags_wizard import
     AccountUpdateTaxTagsWizard, )
 from addons.base.models import ResCompany
 from exceptions import UserError
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = pytest.mark.django_db
 
@@ -76,21 +78,24 @@ def journal(company):
 
 @pytest.fixture
 def accounts(company):
-    receivable = AccountAccount.objects.create(
-        code='105',
-        name='Clientes',
-        account_type='asset_receivable',
-        company=company,
-    )
-    income = AccountAccount.objects.create(
-        code='401', name='Ventas', account_type='income', company=company
-    )
-    tax_account = AccountAccount.objects.create(
-        code='210',
-        name='IVA por pagar',
-        account_type='liability_current',
-        company=company,
-    )
+    receivable = current_env()['account.account'].sudo().create({
+        'code': '105',
+        'name': 'Clientes',
+        'account_type': 'asset_receivable',
+        'company_ids': [Command.set([company.pk])],
+    })
+    income = current_env()['account.account'].sudo().create({
+        'code': '401',
+        'name': 'Ventas',
+        'account_type': 'income',
+        'company_ids': [Command.set([company.pk])],
+    })
+    tax_account = current_env()['account.account'].sudo().create({
+        'code': '210',
+        'name': 'IVA por pagar',
+        'account_type': 'liability_current',
+        'company_ids': [Command.set([company.pk])],
+    })
     return receivable, income, tax_account
 
 
@@ -376,24 +381,24 @@ class TestUpdateAmlsTaxTags:
         other_journal = AccountJournal.objects.create(
             name='Ventas 2', code='VEN2', type='sale', company=other_company
         )
-        other_receivable = AccountAccount.objects.create(
-            code='105',
-            name='Clientes',
-            account_type='asset_receivable',
-            company=other_company,
-        )
-        other_income = AccountAccount.objects.create(
-            code='401',
-            name='Ventas',
-            account_type='income',
-            company=other_company,
-        )
-        other_tax_account = AccountAccount.objects.create(
-            code='210',
-            name='IVA',
-            account_type='liability_current',
-            company=other_company,
-        )
+        other_receivable = current_env()['account.account'].sudo().create({
+            'code': '105',
+            'name': 'Clientes',
+            'account_type': 'asset_receivable',
+            'company_ids': [Command.set([other_company.pk])],
+        })
+        other_income = current_env()['account.account'].sudo().create({
+            'code': '401',
+            'name': 'Ventas',
+            'account_type': 'income',
+            'company_ids': [Command.set([other_company.pk])],
+        })
+        other_tax_account = current_env()['account.account'].sudo().create({
+            'code': '210',
+            'name': 'IVA',
+            'account_type': 'liability_current',
+            'company_ids': [Command.set([other_company.pk])],
+        })
 
         tax_1 = _create_tax(
             company, 'iva_16', tag_names={'invoice_base': 'tag_co1'}

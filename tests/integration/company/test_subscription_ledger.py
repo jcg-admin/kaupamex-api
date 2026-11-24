@@ -23,6 +23,8 @@ from addons.sale_subscription.models import (
     SubscriptionInvoice,
 )
 from addons.base.models import ResCompany
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = pytest.mark.django_db
 
@@ -39,18 +41,18 @@ def l0_chart():
     AccountJournal.objects.create(
         name='Ventas plataforma', code='VEN', type='sale', company=system
     )
-    AccountAccount.objects.create(
-        code='105',
-        name='Clientes L0',
-        account_type='asset_receivable',
-        company=system,
-    )
-    AccountAccount.objects.create(
-        code='401',
-        name='Ingreso plataforma',
-        account_type='income',
-        company=system,
-    )
+    current_env()['account.account'].sudo().create({
+        'code': '105',
+        'name': 'Clientes L0',
+        'account_type': 'asset_receivable',
+        'company_ids': [Command.set([system.pk])],
+    })
+    current_env()['account.account'].sudo().create({
+        'code': '401',
+        'name': 'Ingreso plataforma',
+        'account_type': 'income',
+        'company_ids': [Command.set([system.pk])],
+    })
     return system
 
 

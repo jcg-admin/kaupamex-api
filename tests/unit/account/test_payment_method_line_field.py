@@ -24,6 +24,8 @@ from addons.account.models import (
 from addons.base.models import ResCompany, ResPartner
 from exceptions import ValidationError
 from orm.environments import env, sudo
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = pytest.mark.django_db
 
@@ -151,9 +153,12 @@ def test_a_line_without_journal_is_accepted(manual, company):
 def test_the_outstanding_account_follows_the_line(manual, company):
     journal = _journal(company, 'PM7')
     [line] = journal.inbound_payment_method_line_ids
-    account = AccountAccount.objects.create(
-        code='PMLF-OUT', name='Pagos pendientes',
-        account_type='asset_current', company=company)
+    account = current_env()['account.account'].sudo().create({
+        'code': 'PMLF-OUT',
+        'name': 'Pagos pendientes',
+        'account_type': 'asset_current',
+        'company_ids': [Command.set([company.pk])],
+    })
     line.write({'payment_account': account.pk})
     payment = _payment(journal)
     assert _stored(payment, 'outstanding_account_id') == (account.pk,)

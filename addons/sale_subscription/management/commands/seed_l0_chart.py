@@ -6,9 +6,9 @@ ventas + una cuenta por-cobrar + una cuenta de ingreso. Sin él,
 ``SubscriptionInvoice.post_to_ledger()`` falla-fuerte (``UserError``: falta el
 diario / las cuentas).
 
-**Idempotente** — usa ``get_or_create`` sobre la clave única ``(company,
-code)``,
-así que correrlo N veces deja el mismo estado. Sin línea de IVA: el tratamiento
+**Idempotente** — el diario se busca por ``(company, code)`` y cada cuenta
+por su código entre las cuentas de la empresa (``company_ids``), así que
+correrlo N veces deja el mismo estado. Sin línea de IVA: el tratamiento
 fiscal del cobro L0 es una decisión aparte (ver
 :ref:`diseno-motor-facturacion-recurrente-l0`), y el asiento de suscripción es
 por-cobrar (débito) contra ingreso (crédito), sin impuesto.
@@ -18,9 +18,12 @@ Vive en ``company`` (dueño del concepto L0/system) y **lee** los modelos de
 ``account`` nunca importa ``company`` (DEC-FW-01).
 """
 
+import fields
+
 from addons.base.management.unit_of_work import UnitOfWorkCommand
 from addons.account.models import AccountAccount, AccountJournal
 from addons.base.models import ResCompany
+from orm.environments import env
 
 # Carta contable L0 mínima (códigos alineados con el fixture ``l0_chart``).
 _JOURNAL = {'code': 'VEN', 'name': 'Ventas plataforma', 'type': 'sale'}
@@ -56,12 +59,16 @@ class Command(UnitOfWorkCommand):
         self._report('Diario', journal.code, journal_created)
 
         for spec in _ACCOUNTS:
-            defaults = {k: v for k, v in spec.items() if k != 'code'}
-            account, created = AccountAccount.objects.get_or_create(
-                company=system,
-                code=spec['code'],
-                defaults=defaults,
-            )
+            # La cuenta pertenece a sus empresas por ``company_ids``, como en
+            # la fuente (``designs/account-account-mc2b.md``).
+            account = AccountAccount.objects.filter(
+                company_ids=system, code=spec['code']).first()
+            created = account is None
+            if created:
+                account = env()['account.account'].sudo().create({
+                    **spec,
+                    'company_ids': [fields.Command.set([system.pk])],
+                })
             self._report('Cuenta', account.code, created)
 
     def _report(self, kind, code, created):

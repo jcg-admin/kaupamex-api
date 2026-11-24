@@ -29,6 +29,8 @@ from addons.account_debit_note.wizard.account_debit_note import (
 )
 from addons.base.models import ResCompany
 from exceptions import UserError
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = pytest.mark.django_db
 
@@ -47,15 +49,18 @@ def journal(company):
 
 @pytest.fixture
 def accounts(company):
-    receivable = AccountAccount.objects.create(
-        code='105',
-        name='Clientes',
-        account_type='asset_receivable',
-        company=company,
-    )
-    income = AccountAccount.objects.create(
-        code='401', name='Ventas', account_type='income', company=company
-    )
+    receivable = current_env()['account.account'].sudo().create({
+        'code': '105',
+        'name': 'Clientes',
+        'account_type': 'asset_receivable',
+        'company_ids': [Command.set([company.pk])],
+    })
+    income = current_env()['account.account'].sudo().create({
+        'code': '401',
+        'name': 'Ventas',
+        'account_type': 'income',
+        'company_ids': [Command.set([company.pk])],
+    })
     return receivable, income
 
 

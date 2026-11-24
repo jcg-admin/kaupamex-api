@@ -31,6 +31,8 @@ from addons.account.models.account_move import AccountMove
 from addons.account.models.account_move_line import AccountMoveLine
 from addons.analytic.models import AccountAnalyticAccount, AccountAnalyticPlan
 from addons.base.models import ResCompany
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -53,8 +55,12 @@ def journal(company):
 
 @pytest.fixture
 def expense_account(company):
-    return AccountAccount.objects.create(
-        code='60100', name='Compras', account_type='expense', company=company)
+    return current_env()['account.account'].sudo().create({
+        'code': '60100',
+        'name': 'Compras',
+        'account_type': 'expense',
+        'company_ids': [Command.set([company.pk])],
+    })
 
 
 @pytest.fixture
@@ -93,12 +99,18 @@ class TestTheColumnLanded:
         assert 'AnalyticMixin' in [c.__name__ for c in AccountMoveLine.__mro__]
 
     def test_the_six_class_attributes_the_source_declares(self):
-        """La cabecera entera, no dos de seis (``atributos-de-clase-de-modelo``)."""
+        """La cabecera entera, no dos de seis
+        (``atributos-de-clase-de-modelo``).
+        """
         assert AccountMoveLine._name == 'account.move.line'
         assert AccountMoveLine._description == 'Journal Item'
         assert AccountMoveLine._order == 'date desc, move_name desc, id'
         assert AccountMoveLine._check_company_auto is True
-        assert AccountMoveLine._rec_names_search == ['name', 'move_id', 'product_id']
+        assert AccountMoveLine._rec_names_search == [
+            'name',
+            'move_id',
+            'product_id',
+        ]
 
 
 class TestTheIndexExists:
@@ -126,19 +138,26 @@ class TestTheSearchOverTheJson:
         line = make_line(company, journal, expense_account, 'out_invoice',
                          'posted', {str(cost_center.pk): 100.0})
         found = AccountMoveLine.objects.filter(
-            AccountMoveLine._search_analytic_distribution('in', [cost_center.pk]))
+            AccountMoveLine._search_analytic_distribution(
+                'in', [cost_center.pk]
+            )
+        )
         assert list(found) == [line]
 
     def test_it_finds_the_line_whose_key_is_composite(
         self, company, journal, expense_account, cost_center, other_center,
     ):
-        """La clave compuesta ``"3,7"`` -- por eso la fuente parte por ``\\D+``."""
+        """La clave compuesta ``"3,7"`` -- por eso la fuente parte por
+        ``\\D+``."""
         key = f'{cost_center.pk},{other_center.pk}'
         line = make_line(company, journal, expense_account, 'out_invoice',
                          'posted', {key: 100.0})
         for account in (cost_center, other_center):
             found = AccountMoveLine.objects.filter(
-                AccountMoveLine._search_analytic_distribution('in', [account.pk]))
+                AccountMoveLine._search_analytic_distribution(
+                    'in', [account.pk]
+                )
+            )
             assert list(found) == [line], f'no encontro por {account.name}'
 
     def test_it_does_not_find_a_line_of_another_account(
@@ -147,7 +166,10 @@ class TestTheSearchOverTheJson:
         make_line(company, journal, expense_account, 'out_invoice', 'posted',
                   {str(other_center.pk): 100.0})
         found = AccountMoveLine.objects.filter(
-            AccountMoveLine._search_analytic_distribution('in', [cost_center.pk]))
+            AccountMoveLine._search_analytic_distribution(
+                'in', [cost_center.pk]
+            )
+        )
         assert list(found) == []
 
     def test_a_prefix_of_an_id_is_not_a_match(
@@ -182,12 +204,22 @@ class TestTheSearchOverTheJson:
         Un apunte sin distribucion NO solapa, pero ``NULL && ...`` es nulo, no
         falso: sin la rama del ``IS NULL`` desapareceria del resultado.
         """
-        without_distribution = make_line(company, journal, expense_account,
-                                     'out_invoice', 'posted', None)
-        make_line(company, journal, expense_account, 'out_invoice', 'posted',
-                  {str(cost_center.pk): 100.0})
+        without_distribution = make_line(
+            company, journal, expense_account, 'out_invoice', 'posted', None
+        )
+        make_line(
+            company,
+            journal,
+            expense_account,
+            'out_invoice',
+            'posted',
+            {str(cost_center.pk): 100.0},
+        )
         found = AccountMoveLine.objects.filter(
-            AccountMoveLine._search_analytic_distribution('not in', [cost_center.pk]))
+            AccountMoveLine._search_analytic_distribution(
+                'not in', [cost_center.pk]
+            )
+        )
         assert list(found) == [without_distribution]
 
     def test_it_resolves_an_account_given_by_name(

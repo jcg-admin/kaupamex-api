@@ -20,6 +20,8 @@ from addons.account.models import (
     AccountMoveLine,
 )
 from addons.base.models import ResCompany
+from orm.commands import Command
+from orm.environments import env as current_env
 
 
 @pytest.fixture
@@ -32,15 +34,18 @@ def setup(db, company):
     journal = AccountJournal.objects.create(
         name='Ventas', code='VEN', type='sale', company=company
     )
-    receivable = AccountAccount.objects.create(
-        code='105',
-        name='Clientes',
-        account_type='asset_receivable',
-        company=company,
-    )
-    income = AccountAccount.objects.create(
-        code='401', name='Ventas', account_type='income', company=company
-    )
+    receivable = current_env()['account.account'].sudo().create({
+        'code': '105',
+        'name': 'Clientes',
+        'account_type': 'asset_receivable',
+        'company_ids': [Command.set([company.pk])],
+    })
+    income = current_env()['account.account'].sudo().create({
+        'code': '401',
+        'name': 'Ventas',
+        'account_type': 'income',
+        'company_ids': [Command.set([company.pk])],
+    })
     return company, journal, receivable, income
 
 

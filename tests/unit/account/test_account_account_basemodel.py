@@ -12,6 +12,8 @@ from addons.account.models import AccountAccount
 from addons.base.models import ResCompany
 from orm.environments import Environment, company_scope, sudo, user_scope
 from orm.models import BaseModel
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = pytest.mark.django_db
 
@@ -40,8 +42,12 @@ def accountant(parent_company, other_company):
 
 
 def _account(company, code='101000'):
-    return AccountAccount.objects.create(
-        code=code, name='Caja', account_type='asset_cash', company=company)
+    return current_env()['account.account'].sudo().create({
+        'code': code,
+        'name': 'Caja',
+        'account_type': 'asset_cash',
+        'company_ids': [Command.set([company.pk])],
+    })
 
 
 def test_the_account_is_a_basemodel():

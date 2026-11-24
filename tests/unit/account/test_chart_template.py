@@ -32,6 +32,7 @@ from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_company import ResCompany
 from exceptions import UserError
 from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = [pytest.mark.unit]
 
@@ -716,22 +717,22 @@ class TestAccountTags:
         ``4421`` no declara etiqueta, así que toma la de ``4420``. La búsqueda
         es por código ordenado y ``bisect_left``, igual que la referencia.
         """
-        parent = AccountAccount.objects.create(
-            company=company,
-            code='4420',
-            name='Cash Difference Gain',
-            account_type='income_other',
-        )
+        parent = current_env()['account.account'].sudo().create({
+            'company_ids': [Command.set([company.pk])],
+            'code': '4420',
+            'name': 'Cash Difference Gain',
+            'account_type': 'income_other',
+        })
         parent.write(
             {'tags': [Command.set([master_tags['account_tag_investing'].pk])]}
         )
 
-        child = AccountAccount.objects.create(
-            company=company,
-            code='4421',
-            name='Otra',
-            account_type='income_other',
-        )
+        child = current_env()['account.account'].sudo().create({
+            'company_ids': [Command.set([company.pk])],
+            'code': '4421',
+            'name': 'Otra',
+            'account_type': 'income_other',
+        })
 
         assert list(child.tags) == [master_tags['account_tag_investing']]
 
@@ -739,22 +740,22 @@ class TestAccountTags:
         self, company, master_tags
     ):
         """La guarda ``not account.tag_ids`` de la referencia, verbatim."""
-        parent = AccountAccount.objects.create(
-            company=company,
-            code='4420',
-            name='Cash Difference Gain',
-            account_type='income_other',
-        )
+        parent = current_env()['account.account'].sudo().create({
+            'company_ids': [Command.set([company.pk])],
+            'code': '4420',
+            'name': 'Cash Difference Gain',
+            'account_type': 'income_other',
+        })
         parent.write(
             {'tags': [Command.set([master_tags['account_tag_investing'].pk])]}
         )
 
-        child = AccountAccount.objects.create(
-            company=company,
-            code='4421',
-            name='Otra',
-            account_type='income_other',
-        )
+        child = current_env()['account.account'].sudo().create({
+            'company_ids': [Command.set([company.pk])],
+            'code': '4421',
+            'name': 'Otra',
+            'account_type': 'income_other',
+        })
         child.write(
             {'tags': [Command.set([master_tags['account_tag_operating'].pk])]}
         )
@@ -772,16 +773,18 @@ class TestAccountTags:
         del insert, para la clave que ``vals`` no trae (``fname not in vals``,
         ``:4842``): por eso la cuenta se crea sin ``account_type``.
         """
-        AccountAccount.objects.create(
-            company=company,
-            code='4420',
-            name='Cash Difference Gain',
-            account_type='income_other',
-        )
+        current_env()['account.account'].sudo().create({
+            'company_ids': [Command.set([company.pk])],
+            'code': '4420',
+            'name': 'Cash Difference Gain',
+            'account_type': 'income_other',
+        })
 
-        child = AccountAccount.objects.create(
-            company=company, code='4421', name='Otra'
-        )
+        child = current_env()['account.account'].sudo().create({
+            'company_ids': [Command.set([company.pk])],
+            'code': '4421',
+            'name': 'Otra',
+        })
 
         assert child.account_type == 'income_other'
         assert child.internal_group == 'income'
@@ -792,11 +795,11 @@ class TestAccountTags:
         """
         Sin cuenta anterior, ``asset_current`` — el default de la referencia.
         """
-        first = AccountAccount.objects.create(
-            company=company,
-            code='1010',
-            name='Current Assets',
-        )
+        first = current_env()['account.account'].sudo().create({
+            'company_ids': [Command.set([company.pk])],
+            'code': '1010',
+            'name': 'Current Assets',
+        })
 
         assert first.account_type == 'asset_current'
 

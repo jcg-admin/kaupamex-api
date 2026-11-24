@@ -24,6 +24,8 @@ from addons.product.models import (
     ProductProduct,
     ProductTemplate,
 )
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = [pytest.mark.unit]
 
@@ -102,12 +104,12 @@ class TestPrefixPlaceholder:
     def test_derives_from_the_real_code_not_the_default(self, company):
         """El prefijo sale de la cuenta encontrada, no de la constante —
         si el código empezara en 55 debe verse 55/56/57, no 60/61/62."""
-        AccountAccount.objects.create(
-            code='550100',
-            name='Servicios',
-            account_type='expense',
-            company=company,
-        )
+        current_env()['account.account'].sudo().create({
+            'code': '550100',
+            'name': 'Servicios',
+            'account_type': 'expense',
+            'company_ids': [Command.set([company.pk])],
+        })
         record = AccountAnalyticDistributionModel.objects.create(
             company=company
         )
@@ -117,9 +119,12 @@ class TestPrefixPlaceholder:
         """``self.env.company`` (compañía activa) no existe aquí — se
         sustituye por ``self.company``; sin ella, la búsqueda queda sin
         filtrar (ver docstring del módulo)."""
-        AccountAccount.objects.create(
-            code='601', name='Compras', account_type='expense', company=company
-        )
+        current_env()['account.account'].sudo().create({
+            'code': '601',
+            'name': 'Compras',
+            'account_type': 'expense',
+            'company_ids': [Command.set([company.pk])],
+        })
         record = AccountAnalyticDistributionModel.objects.create(company=None)
         assert record.prefix_placeholder == 'e.g. 60, 61, 62'
 

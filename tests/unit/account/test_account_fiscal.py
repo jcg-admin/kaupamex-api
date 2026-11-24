@@ -34,6 +34,8 @@ from addons.account.models import (
     account_root_parent,
 )
 from addons.base.models import ResCompany, ResCountry
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = pytest.mark.django_db
 
@@ -53,12 +55,12 @@ class TestAccountTaxGroup:
         assert group.country_id == mx.pk
 
     def test_payable_receivable_accounts(self, company):
-        payable = AccountAccount.objects.create(
-            code='210',
-            name='IVA por pagar',
-            account_type='liability_current',
-            company=company,
-        )
+        payable = current_env()['account.account'].sudo().create({
+            'code': '210',
+            'name': 'IVA por pagar',
+            'account_type': 'liability_current',
+            'company_ids': [Command.set([company.pk])],
+        })
         group = AccountTaxGroup.objects.create(
             name='IVA', company=company, tax_payable_account=payable
         )
@@ -82,15 +84,18 @@ class TestAccountTaxRepartitionLine:
 
     def test_use_in_tax_closing_excludes_income_expense(self, company):
         tax = AccountTax.objects.create(name='IVA 16', company=company)
-        income = AccountAccount.objects.create(
-            code='401', name='Ventas', account_type='income', company=company
-        )
-        payable = AccountAccount.objects.create(
-            code='210',
-            name='IVA por pagar',
-            account_type='liability_current',
-            company=company,
-        )
+        income = current_env()['account.account'].sudo().create({
+            'code': '401',
+            'name': 'Ventas',
+            'account_type': 'income',
+            'company_ids': [Command.set([company.pk])],
+        })
+        payable = current_env()['account.account'].sudo().create({
+            'code': '210',
+            'name': 'IVA por pagar',
+            'account_type': 'liability_current',
+            'company_ids': [Command.set([company.pk])],
+        })
         line_income = AccountTaxRepartitionLine.objects.create(
             tax=tax,
             document_type='invoice',
@@ -136,18 +141,18 @@ class TestAccountAccountTag:
 
 class TestAccountFiscalPosition:
     def test_map_account(self, company):
-        src = AccountAccount.objects.create(
-            code='401',
-            name='Ventas nacional',
-            account_type='income',
-            company=company,
-        )
-        dest = AccountAccount.objects.create(
-            code='402',
-            name='Ventas exportación',
-            account_type='income',
-            company=company,
-        )
+        src = current_env()['account.account'].sudo().create({
+            'code': '401',
+            'name': 'Ventas nacional',
+            'account_type': 'income',
+            'company_ids': [Command.set([company.pk])],
+        })
+        dest = current_env()['account.account'].sudo().create({
+            'code': '402',
+            'name': 'Ventas exportación',
+            'account_type': 'income',
+            'company_ids': [Command.set([company.pk])],
+        })
         position = AccountFiscalPosition.objects.create(
             name='Extranjero', company=company
         )
@@ -155,18 +160,27 @@ class TestAccountFiscalPosition:
             position=position, account_src=src, account_dest=dest
         )
         assert position.map_account(src) == dest
-        other = AccountAccount.objects.create(
-            code='403', name='Otra', account_type='income', company=company
-        )
+        other = current_env()['account.account'].sudo().create({
+            'code': '403',
+            'name': 'Otra',
+            'account_type': 'income',
+            'company_ids': [Command.set([company.pk])],
+        })
         assert position.map_account(other) == other
 
     def test_fiscal_position_account_company_derived(self, company):
-        src = AccountAccount.objects.create(
-            code='401', name='A', account_type='income', company=company
-        )
-        dest = AccountAccount.objects.create(
-            code='402', name='B', account_type='income', company=company
-        )
+        src = current_env()['account.account'].sudo().create({
+            'code': '401',
+            'name': 'A',
+            'account_type': 'income',
+            'company_ids': [Command.set([company.pk])],
+        })
+        dest = current_env()['account.account'].sudo().create({
+            'code': '402',
+            'name': 'B',
+            'account_type': 'income',
+            'company_ids': [Command.set([company.pk])],
+        })
         position = AccountFiscalPosition.objects.create(
             name='Extranjero', company=company
         )
@@ -371,7 +385,8 @@ class TestAccountGroup:
             code_prefix_end='19',
             company=company,
         )
-        child.clean()  # no debe lanzar: '1' (longitud 1) no es par de '10' (longitud 2)
+        # no debe lanzar: '1' (longitud 1) no es par de '10' (longitud 2)
+        child.clean()
 
     def test_prefix_overlap_ignores_other_company(self, company):
         other_company = ResCompany.objects.create(code='other', name='Other')

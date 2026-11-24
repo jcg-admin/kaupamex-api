@@ -39,6 +39,8 @@ from addons.account.models import (
 from addons.base.models import ResCompany
 from addons.mail.models import MailMessage
 from exceptions import UserError, ValidationError
+from orm.commands import Command
+from orm.environments import env as current_env
 
 
 @pytest.fixture
@@ -51,9 +53,12 @@ def setup(db, company):
     journal = AccountJournal.objects.create(
         name='Ventas', code='AUD', type='sale', company=company
     )
-    income = AccountAccount.objects.create(
-        code='401', name='Ventas', account_type='income', company=company
-    )
+    income = current_env()['account.account'].sudo().create({
+        'code': '401',
+        'name': 'Ventas',
+        'account_type': 'income',
+        'company_ids': [Command.set([company.pk])],
+    })
     return company, journal, income
 
 

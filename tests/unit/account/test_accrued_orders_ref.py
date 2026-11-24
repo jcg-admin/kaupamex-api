@@ -26,6 +26,8 @@ from addons.sale.models import SaleOrder, SaleOrderLine
 from orm.environments import Environment, user_scope
 from orm.utils import SUPERUSER_ID
 from tests.factories.product_factory import make_product
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -40,8 +42,12 @@ def environment(db):
 
 def test_the_ref_formats_the_date_for_the_language(environment):
     company = ResCompany.objects.create(code='devengo', name='Devengo')
-    income = AccountAccount.objects.create(
-        code='401', name='Ventas', account_type='income', company=company)
+    income = current_env()['account.account'].sudo().create({
+        'code': '401',
+        'name': 'Ventas',
+        'account_type': 'income',
+        'company_ids': [Command.set([company.pk])],
+    })
     product = make_product(name='Eleke devengo')
     product.product_tmpl_id.property_account_income = income
     product.product_tmpl_id.save()

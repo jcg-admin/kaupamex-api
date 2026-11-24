@@ -24,6 +24,7 @@ from orm.environments import env as current_env
 from orm.environments import transaction_scope
 from tests.factories.order_factory import make_order
 from tests.factories.product_factory import make_product
+from orm.commands import Command
 
 pytestmark = pytest.mark.django_db
 
@@ -118,9 +119,12 @@ def test_an_account_computes_its_group_once_and_keeps_a_given_type(
     el marcado de creación."""
     spy(AccountAccount, '_compute_account_type')
     counts = spy(AccountAccount, '_compute_internal_group')
-    account = AccountAccount.objects.create(
-        code='105', name='Clientes', account_type='asset_receivable',
-        company=company)
+    account = current_env()['account.account'].sudo().create({
+        'code': '105',
+        'name': 'Clientes',
+        'account_type': 'asset_receivable',
+        'company_ids': [Command.set([company.pk])],
+    })
     _flush()
     assert counts == {'_compute_account_type': 0,
                       '_compute_internal_group': 1}
@@ -147,9 +151,12 @@ def journal(company):
 
 def test_a_move_line_computes_its_balance_once(company, journal, spy):
     counts = spy(AccountMoveLine, '_compute_balance')
-    account = AccountAccount.objects.create(
-        code='105', name='Clientes', account_type='asset_receivable',
-        company=company)
+    account = current_env()['account.account'].sudo().create({
+        'code': '105',
+        'name': 'Clientes',
+        'account_type': 'asset_receivable',
+        'company_ids': [Command.set([company.pk])],
+    })
     move = AccountMove.objects.create(move_type='entry',
                                       date=timezone.now().date(),
                                       journal=journal, company=company)

@@ -101,6 +101,8 @@ from orm import registry
 from orm.environments import env, transaction_scope
 from orm.utils import model_field_registry
 from orm.commands import related_manager
+from orm.commands import Command
+from orm.environments import env as current_env
 
 AccountAccount = apps.get_model('account', 'AccountAccount')
 AccountAccountTag = apps.get_model('account', 'AccountAccountTag')
@@ -139,9 +141,14 @@ def tagged(company):
     **por codigo**, y una cuenta sin etiqueta hereda las de la anterior.
     """
     tag = AccountAccountTag.objects.create(name='Ingresos gravados')
-    first = AccountAccount.objects.create(
-        code='4000', name='Ventas', account_type='income', company=company
-    )
+    first = current_env()['account.account'].sudo().create({
+        'code': '4000',
+        'name': 'Ventas',
+        'account_type': 'income',
+        'company_ids': [Command.set([company.pk])],
+    }).id
+    # El gestor de Django pide la fila leída de la base, no la del alta.
+    first = AccountAccount.objects.get(pk=first)
     related_manager(first, 'tags').set([tag])
     return tag, first
 
@@ -252,12 +259,12 @@ class TestTheCycleReachesTheJoinTable:
 
     def test_touching_the_code_writes_the_relation(self, tagged, company):
         tag, first = tagged
-        second = AccountAccount.objects.create(
-            code='4010',
-            name='Ventas nacionales',
-            account_type='income',
-            company=company,
-        )
+        second = current_env()['account.account'].sudo().create({
+            'code': '4010',
+            'name': 'Ventas nacionales',
+            'account_type': 'income',
+            'company_ids': [Command.set([company.pk])],
+        })
         related_manager(second, 'tags').clear()
         assert list(related_manager(second, 'tags').all()) == []
 
@@ -276,12 +283,12 @@ class TestTheCycleReachesTheJoinTable:
         """El control que discrimina: sin ``modified``, el mismo volcado no
         escribe. Lo que mueve la relacion es la marca, no el ``flush``."""
         _tag, _first = tagged
-        second = AccountAccount.objects.create(
-            code='4010',
-            name='Ventas nacionales',
-            account_type='income',
-            company=company,
-        )
+        second = current_env()['account.account'].sudo().create({
+            'code': '4010',
+            'name': 'Ventas nacionales',
+            'account_type': 'income',
+            'company_ids': [Command.set([company.pk])],
+        })
         _settle_creation()
         related_manager(second, 'tags').clear()
 
@@ -305,9 +312,12 @@ class TestTheCycleReachesTheJoinTable:
         """
 
         tag, _first = tagged
-        alone = AccountAccount.objects.create(
-            code='7000', name='Orden', account_type='expense', company=company
-        )
+        alone = current_env()['account.account'].sudo().create({
+            'code': '7000',
+            'name': 'Orden',
+            'account_type': 'expense',
+            'company_ids': [Command.set([company.pk])],
+        })
         related_manager(alone, 'tags').clear()
 
         field = model_field_registry(AccountAccount)['tags']
@@ -338,9 +348,12 @@ class TestTheCycleReachesTheJoinTable:
                 pk=account.pk).values_list(
                 'internal_group', flat=True)[0]
 
-        account = AccountAccount.objects.create(
-            code='5000', name='Gastos', account_type='expense', company=company
-        )
+        account = current_env()['account.account'].sudo().create({
+            'code': '5000',
+            'name': 'Gastos',
+            'account_type': 'expense',
+            'company_ids': [Command.set([company.pk])],
+        })
         AccountAccount.objects.filter(pk=account.pk).update(internal_group='')
         assert columna() == ''
 

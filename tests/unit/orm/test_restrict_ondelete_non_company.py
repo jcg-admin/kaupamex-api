@@ -18,6 +18,8 @@ from django.db import models
 from addons.base.models import ResCompany
 from exceptions import UserError
 from orm.environments import sudo
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = pytest.mark.django_db
 
@@ -91,9 +93,12 @@ def company():
 
 
 def _account(company, code):
-    return AccountAccount.objects.create(code=code, name=f'Cuenta {code}',
-                                         account_type='income',
-                                         company=company)
+    return current_env()['account.account'].sudo().create({
+        'code': code,
+        'name': f'Cuenta {code}',
+        'account_type': 'income',
+        'company_ids': [Command.set([company.pk])],
+    })
 
 
 @pytest.mark.parametrize('side', ['account_src', 'account_dest'])

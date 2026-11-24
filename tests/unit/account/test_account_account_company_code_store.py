@@ -10,6 +10,8 @@ import pytest
 
 from addons.account.models import AccountAccount
 from addons.base.models import ResCompany
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = pytest.mark.django_db
 
@@ -27,8 +29,12 @@ def branch(root):
 
 
 def _account(company, code='101000'):
-    return AccountAccount.objects.create(
-        code=code, name='Caja', account_type='asset_cash', company=company)
+    return current_env()['account.account'].sudo().create({
+        'code': code,
+        'name': 'Caja',
+        'account_type': 'asset_cash',
+        'company_ids': [Command.set([company.pk])],
+    })
 
 
 def _code_store(account):

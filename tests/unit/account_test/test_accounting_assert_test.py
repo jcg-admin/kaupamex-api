@@ -39,6 +39,8 @@ from addons.account_test.models.accounting_assert_test import (
 )
 from addons.account_test.tools.safe_eval_exec import safe_eval
 from addons.base.models import IrModelData, ResCompany
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = pytest.mark.django_db
 
@@ -74,10 +76,10 @@ def _account(company, **kwargs):
         'code': '1105',
         'name': 'Clientes',
         'account_type': 'asset_receivable',
-        'company': company,
+        'company_ids': [Command.set([company.pk])],
     }
     defaults.update(kwargs)
-    return AccountAccount.objects.create(**defaults)
+    return current_env()['account.account'].sudo().create(defaults)
 
 
 # ─── tools/safe_eval_exec.py — el motor de ejecución (sin DB) ─────────────

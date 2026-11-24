@@ -36,6 +36,7 @@ from addons.product.models import (
     ProductTemplate,
 )
 from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -47,12 +48,18 @@ def company():
 
 @pytest.fixture
 def cuentas(company):
-    ingreso = AccountAccount.objects.create(
-        code='401', name='Ventas', account_type='income', company=company
-    )
-    gasto = AccountAccount.objects.create(
-        code='601', name='Compras', account_type='expense', company=company
-    )
+    ingreso = current_env()['account.account'].sudo().create({
+        'code': '401',
+        'name': 'Ventas',
+        'account_type': 'income',
+        'company_ids': [Command.set([company.pk])],
+    })
+    gasto = current_env()['account.account'].sudo().create({
+        'code': '601',
+        'name': 'Compras',
+        'account_type': 'expense',
+        'company_ids': [Command.set([company.pk])],
+    })
     return ingreso, gasto
 
 
@@ -110,12 +117,12 @@ class TestResolutionOfAccount:
 
     def test_la_cuenta_del_producto_gana(self, cuentas):
         ingreso, gasto = cuentas
-        otra = AccountAccount.objects.create(
-            code='402',
-            name='Otros ingresos',
-            account_type='income',
-            company=ingreso.company,
-        )
+        otra = current_env()['account.account'].sudo().create({
+            'code': '402',
+            'name': 'Otros ingresos',
+            'account_type': 'income',
+            'company_ids': [Command.set([ingreso.company.pk])],
+        })
         categoria = ProductCategory.objects.create(
             name='Collares', property_account_income_categ=otra
         )
@@ -196,12 +203,12 @@ class TestPositionFiscal:
         ``_get_product_accounts``.
         """
         ingreso, _ = cuentas
-        destino = AccountAccount.objects.create(
-            code='403',
-            name='Ventas exentas',
-            account_type='income',
-            company=company,
-        )
+        destino = current_env()['account.account'].sudo().create({
+            'code': '403',
+            'name': 'Ventas exentas',
+            'account_type': 'income',
+            'company_ids': [Command.set([company.pk])],
+        })
         posicion = AccountFiscalPosition.objects.create(
             name='Exento', company=company
         )

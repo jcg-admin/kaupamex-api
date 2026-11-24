@@ -36,6 +36,8 @@ from addons.account.models import (
 )
 from addons.base.models import ResCompany
 from orm.environments import sudo
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = pytest.mark.django_db
 
@@ -247,12 +249,12 @@ class TestAccountReconcileModelLine:
         model = self._model(company)
         model.match_label = 'contains'
         model.save(update_fields=['match_label'])
-        account = AccountAccount.objects.create(
-            code='999-R',
-            name='Cuenta',
-            account_type='asset_cash',
-            company=company,
-        )
+        account = current_env()['account.account'].sudo().create({
+            'code': '999-R',
+            'name': 'Cuenta',
+            'account_type': 'asset_cash',
+            'company_ids': [Command.set([company.pk])],
+        })
         AccountReconcileModelLine.objects.create(
             model=model,
             amount_type='percentage',

@@ -33,6 +33,8 @@ from addons.account.models import (
     AccountTax,
 )
 from addons.base.models import ResCompany
+from orm.commands import Command
+from orm.environments import env as current_env
 
 pytestmark = pytest.mark.django_db
 
@@ -55,32 +57,38 @@ class TestAccountAccount:
         ],
     )
     def test_internal_group_derived_from_type(self, company, atype, group):
-        acc = AccountAccount.objects.create(
-            code='100', name='X', account_type=atype, company=company
-        )
+        acc = current_env()['account.account'].sudo().create({
+            'code': '100',
+            'name': 'X',
+            'account_type': atype,
+            'company_ids': [Command.set([company.pk])],
+        })
         assert acc.internal_group == group
 
     def test_expense_other_is_valid_type_19_drift(self, company):
         # H-ACC-01: 19 añade expense_other; se adopta el superset.
-        acc = AccountAccount.objects.create(
-            code='600',
-            name='Otros gastos',
-            account_type='expense_other',
-            company=company,
-        )
+        acc = current_env()['account.account'].sudo().create({
+            'code': '600',
+            'name': 'Otros gastos',
+            'account_type': 'expense_other',
+            'company_ids': [Command.set([company.pk])],
+        })
         assert acc.internal_group == 'expense'
 
     def test_unique_code_per_company(self, company):
-        AccountAccount.objects.create(
-            code='100', name='A', account_type='asset_cash', company=company
-        )
+        current_env()['account.account'].sudo().create({
+            'code': '100',
+            'name': 'A',
+            'account_type': 'asset_cash',
+            'company_ids': [Command.set([company.pk])],
+        })
         with transaction.atomic(), pytest.raises(IntegrityError):
-            AccountAccount.objects.create(
-                code='100',
-                name='B',
-                account_type='asset_cash',
-                company=company,
-            )
+            current_env()['account.account'].sudo().create({
+                'code': '100',
+                'name': 'B',
+                'account_type': 'asset_cash',
+                'company_ids': [Command.set([company.pk])],
+            })
 
 
 class TestAccountJournal:
@@ -202,12 +210,18 @@ class TestAccountMovePost:
         j = AccountJournal.objects.create(
             name='Varios', code='MISC', type='general', company=company
         )
-        cash = AccountAccount.objects.create(
-            code='101', name='Caja', account_type='asset_cash', company=company
-        )
-        income = AccountAccount.objects.create(
-            code='401', name='Ventas', account_type='income', company=company
-        )
+        cash = current_env()['account.account'].sudo().create({
+            'code': '101',
+            'name': 'Caja',
+            'account_type': 'asset_cash',
+            'company_ids': [Command.set([company.pk])],
+        })
+        income = current_env()['account.account'].sudo().create({
+            'code': '401',
+            'name': 'Ventas',
+            'account_type': 'income',
+            'company_ids': [Command.set([company.pk])],
+        })
         move = AccountMove.objects.create(
             date=timezone.now().date(), journal=j, company=company
         )
