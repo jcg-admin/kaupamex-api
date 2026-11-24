@@ -33,7 +33,10 @@ añadieron las unidades U1–U5 de `account`; sus pruebas creaban por
    `AccountFinancialYearOp`. Las clases sobre `models.Model` que lo nombran
    (`ResPartnerBank`, `ResCurrency`, `ResCurrencyRate`, `IrCron`) no
    cambian.
-3. El estado de migraciones no cambia (`makemigrations --check`: sin
+3. `wire_bank_fees_account` escribe las líneas de las dos reglas con
+   `sudo()`, como la fuente (odoo19c: addons/account/models/chart_template.py:788, 792);
+   U5 lo había omitido.
+4. El estado de migraciones no cambia (`makemigrations --check`: sin
    cambios).
 
 ## Pruebas
@@ -54,6 +57,7 @@ con el `AttributeError` del episodio).
 ## Citas de la fuente por archivo
 
 - `src/orm/models.py`: odoo19c: odoo/orm/models.py:4009-4012.
+- `addons/account/models/chart_template.py`: odoo19c: addons/account/models/chart_template.py:785-792.
 
 ## Símbolos tocados por archivo
 
@@ -62,6 +66,7 @@ con el `AttributeError` del episodio).
 - `addons/analytic/models/analytic_line.py`: `AccountAnalyticLine`.
 - `addons/analytic/models/analytic_account.py`: `AccountAnalyticAccount`.
 - `addons/account/wizard/setup_wizards.py`: `AccountFinancialYearOp`.
+- `addons/account/models/chart_template.py`: `wire_bank_fees_account`.
 
 ## Lo que este corte no cierra
 
