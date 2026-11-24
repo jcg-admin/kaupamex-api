@@ -93,13 +93,57 @@ Medido el alcance, MC2c se parte para que cada mitad tenga un gate propio.
    - las pruebas que filtran por `code=` (5) o leen `code` sin empresa: la
      declaran con `company_scope`.
 
+#### MC2c-1 — lo que destapó la implementación
+
+- `_get_closest_parent_account` ordenaba por la columna `code`: se porta
+  entero en MC2c-1, como la fuente (`:613-633`), con
+  `_check_company_domain(env.company)` y `search(order='code')`. Era de
+  MC2c-2; pasa aquí porque sin columna no hay otro orden.
+- `ir.default._evaluate_condition_with_fallback` resolvía el modelo con
+  `apps.get_model(model_name)`, que lee `account.account` como app
+  `account`, modelo `account`. El ORM le pasa `model._name`; la búsqueda por
+  `code_store` es el primer camino que lo ejerce. Se resuelve con
+  `registry.model_by_key`, que admite las dos formas.
+- `code` depende de la empresa: su valor en caché va por empresa. El
+  inverso lee `code` antes de activar la raíz y la búsqueda resuelve sus ids
+  dentro del alcance, porque su SQL lee `code_store` en la empresa activa.
+- Las pruebas de MC2c-1 corren sobre `orm_x2hokp_mc2c`, clonada de
+  `orm_x2hokp_qa`: la migración retira la columna, y la base del gate no
+  puede verla hasta que la unidad llegue a la rama.
+
+#### MC2c-1 — símbolos tocados por archivo
+
+- `addons/account/models/account_account.py`: `AccountAccount`,
+  `_get_closest_parent_account`, `_compute_code`, `_search_code`,
+  `_inverse_code`, `_field_to_sql`, `save`, `create`,
+  `search_new_account_code`; se retira `_sync_code_store`.
+- `addons/account/migrations/0056_account_code_over_code_store.py`.
+- `addons/account/models/chart_template.py`: `load`, `_load_for_company`,
+  `load_model_data`.
+- `addons/account/services.py`: `_require_account`.
+- `addons/account/models/account_analytic_plan.py`:
+  `_default_account_prefix_placeholder`.
+- `addons/account/models/account_analytic_distribution_model.py`:
+  `_compute_prefix_placeholder`.
+- `addons/sale_subscription/management/commands/seed_l0_chart.py`:
+  `Command.handle`.
+- `src/orm/environments.py`: `company_scope`.
+- `src/addons/base/models/ir_default.py`:
+  `_evaluate_condition_with_fallback`.
+
+#### MC2c-1 — pruebas
+
+`tests/unit/account/test_account_account_code_compute.py` (siete),
+`tests/unit/orm/test_environments_channels.py::…list_with_the_first_as_company`
+y `tests/unit/base/test_ir_default.py::…named_by_its_reference_name`.
+
 ### MC2c-2 — retirada de `company` (`account-account-mc2c2-0397`)
 
 1. `_ensure_code_is_unique` al final de `create` y en `write`.
 2. `_check_company_domain` en plural.
-3. Las dos lecturas de `account.company` (`_get_closest_parent_account`,
-   `account_merge_wizard`) pasan a la empresa activa; `create` deja de
-   escribir el puente; la migración retira la columna `company`.
+3. La lectura de `account.company` en `account_merge_wizard` pasa a la
+   empresa activa; `create` deja de escribir el puente; la migración
+   retira la columna `company`.
 
 ## Lo que este diseño no cierra
 
