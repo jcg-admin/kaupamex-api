@@ -639,7 +639,8 @@
   "stock-basemodel-u4b-0397",
   "stock-basemodel-u4c-0397",
   "stock-basemodel-u5-0397",
-  "stock-basemodel-u6a-0397"
+  "stock-basemodel-u6a-0397",
+  "stock-basemodel-u6b-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
