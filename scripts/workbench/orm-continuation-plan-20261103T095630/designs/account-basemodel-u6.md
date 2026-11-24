@@ -59,11 +59,24 @@ sitio usa la API del gestor sobre los 7 reversos. Rompen:
 `test_the_placeholder_names_another_company`,
 `test_the_order_uses_the_placeholder`.
 
+## Lo que destapó la adopción (2026-11-24)
+
+Sobre `BaseModel` el ORM invoca los cómputos sobre el lote entero. Los tres
+cómputos del modelo estaban escritos para un registro y reventaban con
+`Expected singleton`. Pasan a la forma de la fuente, que filtra el lote y
+asigna por registro (odoo19c: addons/account/models/account_account.py:603-611).
+`_get_closest_parent_account` lee el Many2many de la cuenta padre de la
+tabla y no del descriptor, porque leerlo lo recomputaría sobre el lote que
+se está calculando. El cargador del plan escribía los Many2many con
+`getattr(record, name).set(...)`, que en un `BaseModel` es un recordset;
+pasa a `related_manager`, que sirve para los dos casos.
+
 ## Símbolos tocados por archivo
 
-- `addons/account/models/account_account.py`: `AccountAccount`, `save`, `_compute_account_tags`, `_compute_placeholder_code`, `_search_placeholder_code`, `_field_to_sql`.
-- `addons/l10n_mx/models/account_account.py`: la función del gancho que etiqueta las cuentas.
-- `addons/account/wizard/account_merge_wizard.py`: el método que borra las cuentas fusionadas.
+- `addons/account/models/account_account.py`: `AccountAccount`, `save`, `_compute_internal_group`, `_compute_account_type`, `_compute_account_tags`, `_get_closest_parent_account`, `_compute_placeholder_code`, `_search_placeholder_code`, `_field_to_sql`.
+- `addons/account/models/chart_template.py`: `load_model_data`, `load_child_lines`.
+- `addons/l10n_mx/models/account_account.py`: `_apply_l10n_mx_balance_tag`.
+- `addons/account/wizard/account_merge_wizard.py`: `_action_merge`.
 
 ## Lo que este diseño no cierra
 
