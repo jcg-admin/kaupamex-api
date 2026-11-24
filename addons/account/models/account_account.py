@@ -337,7 +337,8 @@ class AccountAccount(models.RecordLoaderMixin, models.Model):
             if update_fields is not None:
                 kwargs['update_fields'] = {*update_fields, 'code_store'}
         result = super().save(*args, **kwargs)
-        if self.company_id and self.company_id not in self.company_ids.ids:
+        if self.company_id and not self.company_ids.filter(
+                pk=self.company_id).exists():
             self.company_ids.add(self.company_id)
         self._compute_account_tags()
         return result
