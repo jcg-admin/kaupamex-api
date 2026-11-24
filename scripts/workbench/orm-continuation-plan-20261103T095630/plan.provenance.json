@@ -1842,6 +1842,13 @@
         "account-basemodel-u4-0397"
       ],
       "writtenAt": "2026-11-24T08:21:28Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "account-basemodel-u5-0397"
+      ],
+      "writtenAt": "2026-11-24T10:41:13Z"
     }
   ]
 }
