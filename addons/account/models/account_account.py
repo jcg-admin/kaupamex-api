@@ -22,7 +22,6 @@ import api
 import fields
 import models
 from exceptions import UserError
-from orm.commands import related_manager
 from tools.query import Query
 from tools.sql import SQL
 from tools.translate import _
@@ -285,7 +284,7 @@ class AccountAccount(models.BaseModel):
             if cls._meta.get_field(field_name).many_to_many:
                 # La tabla, no el descriptor: leer el campo calculado lo
                 # recomputaría sobre el recordset que se está calculando.
-                value = list(related_manager(parent, field_name).all())
+                value = list(models.related_manager(parent, field_name).all())
             else:
                 value = getattr(parent, field_name)
             out.append(value)
@@ -337,13 +336,14 @@ class AccountAccount(models.BaseModel):
         """
         accounts_to_process = [
             account for account in self
-            if account.code and not related_manager(account, 'tags').exists()
+            if account.code
+            and not models.related_manager(account, 'tags').exists()
         ]
         values = self._get_closest_parent_account(
             accounts_to_process, 'tags', [])
         for account, tags in zip(accounts_to_process, values):
             if tags:
-                related_manager(account, 'tags').set(tags)
+                models.related_manager(account, 'tags').set(tags)
 
     @staticmethod
     def _root_company_id(company):
@@ -385,7 +385,7 @@ class AccountAccount(models.BaseModel):
                 continue
             companies = sorted(
                 (company for company
-                 in related_manager(account, 'company_ids').all()
+                 in models.related_manager(account, 'company_ids').all()
                  if authorized is None or company.pk in authorized),
                 key=lambda company: company.pk,
             )
@@ -486,7 +486,7 @@ class AccountAccount(models.BaseModel):
             if update_fields is not None:
                 kwargs['update_fields'] = {*update_fields, 'code_store'}
         result = super().save(*args, **kwargs)
-        companies = related_manager(self, 'company_ids')
+        companies = models.related_manager(self, 'company_ids')
         if self.company_id and not companies.filter(
                 pk=self.company_id).exists():
             companies.add(self.company_id)

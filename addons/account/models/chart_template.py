@@ -91,8 +91,8 @@ from django.db import transaction
 
 from addons.base.models.ir_default import IrDefault
 from addons.base.models.ir_model import IrModelData
+import models
 from exceptions import UserError
-from orm.commands import related_manager
 from orm.registry import model_by_name
 from tools.translate import _
 
@@ -738,7 +738,7 @@ class ChartTemplate:
             else:
                 record_data = model_class.objects.create(**flat_values)
             for name, records in many_to_many.items():
-                related_manager(record_data, name).set(records)
+                models.related_manager(record_data, name).set(records)
             IrModelData.set_xmlid(
                 record_data, cls.company_xmlid(xmlid, company)
             )
@@ -784,7 +784,7 @@ class ChartTemplate:
                     values.setdefault('sequence', order)
                 child = child_class.objects.create(**values)
                 for m2m_name, records in many_to_many.items():
-                    related_manager(child, m2m_name).set(records)
+                    models.related_manager(child, m2m_name).set(records)
 
     @classmethod
     def split_prepared_many_to_many(cls, model_class, row):

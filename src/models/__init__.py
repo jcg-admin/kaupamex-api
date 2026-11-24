@@ -119,6 +119,9 @@ from orm.models import (
     to_record_ids,
     regex_order,
 )
+# El gestor de Django de un x2many para el código de addon que escribe la
+# relación (``set``/``add``/``clear``) cuando leer el campo da un recordset.
+from orm.commands import related_manager
 from orm.model_classes import is_model_class, is_model_definition
 from orm.models_transient import TransientModel
 from orm.fields_textual import TranslatedValue
