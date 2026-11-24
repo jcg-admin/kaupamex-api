@@ -30,7 +30,18 @@ odoo19c: addons/account/models/account_report.py:947-951 —
    consumidor con API de gestor es `resolver_opcion`, que tomaba el primer
    informe principal con `.first()`: pasa a `[:1]` y a verdad.
 
-Prueba: `tests/unit/account/test_account_report_basemodel.py`.
+4. `code` de la línea pasa a `null=True` sin `default=''`: la fuente
+   guarda NULL cuando falta (odoo19c: addons/account/models/account_report.py:386)
+   y `_code_uniq` (`unique (report_id, code)`,
+   odoo19c: addons/account/models/account_report.py:398-401) no compara dos
+   NULL. Con `''` un informe admitía una sola línea sin código; lo destapó la
+   prueba de esta unidad al crear dos. La migración
+   `account/0053_report_line_code_null` permite el NULL y pasa a NULL las
+   filas que guardaban `''`.
+
+Prueba: `tests/unit/account/test_account_report_basemodel.py`. Anulación,
+restaurada con `cmp`: volver a `default=''` tumba sólo
+`test_the_lines_of_a_report_are_a_recordset`.
 
 ## Citas de la fuente por archivo
 
@@ -38,7 +49,9 @@ Prueba: `tests/unit/account/test_account_report_basemodel.py`.
   odoo19c: addons/account/models/account_report.py:349-352,
   odoo19c: addons/account/models/account_report.py:579-582,
   odoo19c: addons/account/models/account_report.py:932-935
-  y odoo19c: addons/account/models/account_report.py:947-951.
+  odoo19c: addons/account/models/account_report.py:947-951
+  y odoo19c: addons/account/models/account_report.py:386-401.
+- `addons/account/migrations/0053_report_line_code_null.py`: odoo19c: addons/account/models/account_report.py:386-401.
 
 Pruebas: `tests/unit/account/test_account_report_basemodel.py`.
 
