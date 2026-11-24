@@ -60,7 +60,12 @@ Anulación, restaurada con `cmp`: retirar la propagación del archivado en
 
 - `addons/stock/models/stock_location.py`: odoo19c: addons/stock/models/stock_location.py:13-300.
 - `addons/stock/models/product_strategy.py`: odoo19c: addons/stock/models/product_strategy.py:133-170.
+- `addons/stock/models/stock_move.py`: odoo19c: addons/stock/models/stock_move.py:2564-2590.
+- `addons/stock/models/stock_rule.py`: odoo19c: addons/stock/models/stock_rule.py:222-280,
+  odoo19c: addons/stock/models/stock_rule.py:565-630
+  y odoo19c: addons/stock/models/stock_rule.py:666-690.
 - `addons/stock/models/stock_quant.py`: odoo19c: addons/stock/models/stock_quant.py:56-59,
+  odoo19c: addons/stock/models/stock_quant.py:618-630,
   odoo19c: addons/stock/models/stock_quant.py:125-140,
   odoo19c: addons/stock/models/stock_quant.py:606-620,
   odoo19c: addons/stock/models/stock_quant.py:935-950
@@ -69,7 +74,8 @@ Anulación, restaurada con `cmp`: retirar la propagación del archivado en
 - `addons/stock/models/stock_move_line.py`: odoo19c: addons/stock/models/stock_move_line.py:73-75.
 - `addons/stock/models/stock_orderpoint.py`: odoo19c: addons/stock/models/stock_orderpoint.py:258-262
   y odoo19c: addons/stock/models/stock_orderpoint.py:643-660.
-- `addons/stock/models/stock_picking.py`: odoo19c: addons/stock/models/stock_picking.py:816-850
+- `addons/stock/models/stock_picking.py`: odoo19c: addons/stock/models/stock_picking.py:816-850,
+  odoo19c: addons/stock/models/stock_picking.py:1056-1070
   y odoo19c: addons/stock/models/stock_picking.py:1102-1110.
 - `addons/purchase_stock/models/purchase_order.py`: odoo19c: addons/purchase_stock/models/purchase_order.py:55-62.
 - `addons/purchase_stock/models/stock.py`: odoo19c: addons/purchase_stock/models/stock.py:339-345.
@@ -89,8 +95,16 @@ Pruebas: `tests/unit/stock/test_stock_location_recordset.py`,
 - `addons/stock/models/stock_lot.py`: `_compute_single_location`, `_set_single_location`.
 - `addons/stock/models/stock_move_line.py`: `location_dest_usage`, `location_usage`.
 - `addons/stock/models/stock_orderpoint.py`: `_compute_warehouse_id`, `_get_replenishment_order_notification`.
-- `addons/stock/models/stock_picking.py`: `_compute_state`, `_onchange_location_id`, `save`.
-- `addons/stock/models/stock_quant.py`: `_apply_inventory`, `_compute_inventory_date`, `_onchange_inventory_quantity`, `_onchange_location_or_product_id`, `_onchange_product_id`, `check_location_id`, `check_quantity`, `compute_company`, `cyclic_inventory_frequency`, `storage_category`, `warehouse`, `write`.
+- `addons/stock/models/stock_move.py`: `_adjust_procure_method`.
+- `addons/stock/models/stock_rule.py`: `_get_push_rule`, `_get_rule`, `_push_prepare_move_copy_values`, `_run_push`.
+- `addons/stock/models/stock_picking.py`: `_compute_state`, `_get_show_allocation`, `_onchange_location_id`, `save`.
+- `addons/stock/models/stock_quant.py`: `_apply_inventory`, `_compute_inventory_date`, `_get_removal_strategy`, `_onchange_inventory_quantity`, `_onchange_location_or_product_id`, `_onchange_product_id`, `check_location_id`, `check_quantity`, `compute_company`, `cyclic_inventory_frequency`, `storage_category`, `warehouse`, `write`.
+
+Los recorridos hacia el padre (`_get_rule`, `_get_push_rule`,
+`_adjust_procure_method`, `_get_removal_strategy`) terminaban en
+`location is not None`; con el padre vacío como recordset no terminaban
+nunca y la primera ejecución del subconjunto se colgó. Prueban verdad, como
+la fuente (`while (not result) and location`).
 
 La mayoría de los símbolos de `stock_location.py` sólo cambian de forma:
 `black` sobre el cuerpo de la clase, que el ciclo de estilo mide entero
