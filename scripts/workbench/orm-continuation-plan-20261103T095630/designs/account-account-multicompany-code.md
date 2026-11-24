@@ -81,6 +81,21 @@ nominal. Con MC3, U6 queda desbloqueada.
   odoo19c: addons/account/models/account_account.py:335-377 y
   odoo19c: addons/account/models/account_account.py:1079-1130.
 
+## MC1 — símbolos tocados por archivo
+
+- `addons/account/models/account_account.py`: `AccountAccount`, `save`, `_sync_code_store`.
+- `addons/account/migrations/0055_account_company_ids_code_store.py`: `0055_account_company_ids_code_store`.
+
+## MC1 — pruebas
+
+`tests/unit/account/test_account_account_company_code_store.py`:
+`test_the_account_belongs_to_its_company`,
+`test_the_code_is_stored_under_the_root_company` y
+`test_changing_the_code_rewrites_the_root_value`.
+
+Anulación: sin `_sync_code_store` en `save` caen las dos últimas; la
+primera depende sólo del alta en `company_ids`.
+
 ## Lo que este diseño no cierra
 
 Cada unidad registra su fila en el plan al abrirse (`account-account-mc1-0397`,
