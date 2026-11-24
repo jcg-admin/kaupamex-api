@@ -23,6 +23,8 @@ import fields
 import models
 from exceptions import UserError
 from orm.commands import related_manager
+from tools.query import Query
+from tools.sql import SQL
 from tools.translate import _
 
 
@@ -172,6 +174,17 @@ class AccountAccount(models.BaseModel):
     code_store = fields.Char(
         company_dependent=True,
         help_text='Código por empresa raíz (Odoo code_store).',
+    )
+    #: ≙ ``placeholder_code``
+    #: (``odoo19c: addons/account/models/account_account.py:41``): el
+    #: código en la empresa activa, o el de la primera empresa autorizada con
+    #: su nombre. Sin columna; ordena por la expresión de ``_field_to_sql``,
+    #: que es lo que hace válido ``_order``.
+    placeholder_code = fields.Char(
+        compute='_compute_placeholder_code',
+        search='_search_placeholder_code',
+        store=False,
+        help_text='Código para mostrar (Odoo placeholder_code).',
     )
     note = fields.Text(
         blank=True,
@@ -331,6 +344,130 @@ class AccountAccount(models.BaseModel):
         for account, tags in zip(accounts_to_process, values):
             if tags:
                 related_manager(account, 'tags').set(tags)
+
+    @staticmethod
+    def _root_company_id(company):
+        """La raíz de ``company``, la clave de ``code_store``."""
+        return company.root_id.pk if company is not None else None
+
+    def _authorized_company_ids(self):
+        """Las empresas del usuario — ``self.env.user._get_company_ids()``.
+
+        Sin usuario (procesos internos, pruebas) no hay a quién acotar, y
+        devuelve ``None``: se consideran todas las empresas de la cuenta.
+        """
+        user = self.env.user
+        if user is None or getattr(user, 'pk', None) is None:
+            return None
+        return tuple(user._get_company_ids())
+
+    @api.depends('code', 'code_store')
+    def _compute_placeholder_code(self):
+        """≙ ``_compute_placeholder_code``
+        (``odoo19c: addons/account/models/account_account.py:355-365``).
+
+        El código leído en la raíz de la empresa activa; si la cuenta no la
+        tiene, el de su primera empresa autorizada seguido de su nombre.
+        """
+        active_root = self._root_company_id(self.env.company)
+        authorized = self._authorized_company_ids()
+        # El mapa de la tabla, de una vez: una instancia del lote puede no
+        # traer ``code_store`` cargado, y el descriptor sólo da el valor de
+        # la empresa activa.
+        stored_maps = dict(
+            type(self).objects.filter(pk__in=[a.pk for a in self if a.pk])
+            .values_list('pk', 'code_store'))
+        for account in self:
+            stored = stored_maps.get(account.pk) or {}
+            account.placeholder_code = False
+            if active_root is not None and stored.get(str(active_root)):
+                account.placeholder_code = stored[str(active_root)]
+                continue
+            companies = sorted(
+                (company for company
+                 in related_manager(account, 'company_ids').all()
+                 if authorized is None or company.pk in authorized),
+                key=lambda company: company.pk,
+            )
+            if not companies:
+                continue
+            company = companies[0]
+            code = stored.get(str(self._root_company_id(company)))
+            if code:
+                account.placeholder_code = f'{code} ({company.name})'
+
+    def _search_placeholder_code(self, operator, value):
+        """≙ ``_search_placeholder_code``
+        (``odoo19c: addons/account/models/account_account.py:367-377``)."""
+        if operator not in ('=ilike', 'in'):
+            return NotImplemented
+        query = Query(self.env, 'account_account')
+        placeholder_code_sql = self._field_to_sql(
+            'account_account', 'placeholder_code', query)
+        if operator == 'in':
+            query.add_where(SQL("%s = ANY(%s)", placeholder_code_sql,
+                                list(value)))
+        else:
+            query.add_where(SQL("%s ILIKE %s", placeholder_code_sql, value))
+        return [('id', 'in', query)]
+
+    def _field_to_sql(self, alias, field_expr, query=None):
+        """≙ ``_field_to_sql``
+        (``odoo19c: addons/account/models/account_account.py:130-186``), la
+        rama de ``placeholder_code``.
+
+        La primera empresa autorizada de la cuenta se une una sola vez por
+        consulta, con el alias ``account_first_company`` de la fuente.
+        """
+        if field_expr != 'placeholder_code':
+            return super()._field_to_sql(alias, field_expr, query)
+        authorized = self._authorized_company_ids()
+        if 'account_first_company' not in query._joins:
+            company_filter = (
+                SQL("WHERE rel.rescompany_id = ANY(%s)", list(authorized))
+                if authorized is not None else SQL())
+            query.add_join(
+                'LEFT JOIN',
+                'account_first_company',
+                SQL(
+                    """(
+                        SELECT DISTINCT ON (rel.accountaccount_id)
+                            rel.accountaccount_id AS account_id,
+                            rel.rescompany_id AS company_id,
+                            COALESCE(
+                                NULLIF(SPLIT_PART(res_company.parent_path,
+                                                  '/', 1), ''),
+                                res_company.id::text) AS root_company_id,
+                            res_partner.name AS company_name
+                        FROM account_account_res_company_rel rel
+                        JOIN res_company
+                            ON res_company.id = rel.rescompany_id
+                        JOIN res_partner
+                            ON res_partner.id = res_company.partner_id
+                        %(company_filter)s
+                        ORDER BY rel.accountaccount_id, company_id
+                    )""",
+                    company_filter=company_filter,
+                ),
+                SQL('account_first_company.account_id = %(account_id)s',
+                    account_id=SQL.identifier(alias, 'id')),
+            )
+        active_root = self._root_company_id(self.env.company)
+        return SQL(
+            """
+                COALESCE(
+                    %(code_store)s->>%(active_company_root_id)s,
+                    %(code_store)s->>%(account_first_company_root_id)s
+                        || ' (' || %(account_first_company_name)s || ')'
+                )
+            """,
+            code_store=SQL.identifier(alias, 'code_store'),
+            active_company_root_id=str(active_root or ''),
+            account_first_company_name=SQL.identifier(
+                'account_first_company', 'company_name'),
+            account_first_company_root_id=SQL.identifier(
+                'account_first_company', 'root_company_id'),
+        )
 
     def save(self, *args, **kwargs):
         # El orden importa y es el de la referencia: el tipo se computa antes
