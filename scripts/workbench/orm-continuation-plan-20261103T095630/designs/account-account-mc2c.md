@@ -62,20 +62,44 @@ descriptor, y a las pruebas fuera de los directorios recorridos.
 
 Conclusión: MC2c cabe sin reabrir DEC-AISL-04.
 
-## La unidad, una vez medida
+## La unidad, partida en dos
 
-1. `code` calculado con `_compute_code`, `_search_code` e `_inverse_code`;
-   migración que copia la columna `code` a `code_store` (ya replicado desde
-   MC1) y retira `code` y `company`, con su restricción `(company, code)`.
-2. `_ensure_code_is_unique` al final de `create` y en `write`.
-3. `_check_company_domain` en plural.
-4. Los lectores de la columna: `services._require_account` (3),
-   `account_analytic_plan` (2), `account_analytic_distribution_model`,
-   `authz/controllers/admin_main.py` (2), `sale_subscription/controllers/views.py`
-   (2), el cargador `chart_template.load_model_data` (fija `company` en todo
-   modelo) y `account.company` en `_get_closest_parent_account` y
-   `account_merge_wizard`.
-5. `create` deja de escribir el puente `company`.
+Medido el alcance, MC2c se parte para que cada mitad tenga un gate propio.
+
+### MC2c-1 — `code` sobre `code_store` (`account-account-mc2c1-0397`)
+
+1. `create` fija las empresas resueltas como activas mientras crea
+   (≙ `allowed_company_ids=companies.ids`, `:1042-1047`). La divergencia
+   que MC2b dejó declarada se cierra aquí. El instrumento es un contexto que
+   active la lista entera, hermano de `company_scope`, en
+   `src/orm/environments.py`.
+2. `code` calculado (`_compute_code`), con `_search_code`, `_inverse_code`
+   y la rama `code` de `_field_to_sql` (`:131-132`), todos sobre la raíz de
+   `env.company`.
+3. La migración copia la columna a `code_store` donde falte (MC1 ya lo
+   replica) y retira la columna `code` con la restricción `(company, code)`.
+   La unicidad pasa a `_ensure_code_is_unique` en MC2c-2; mientras tanto la
+   cubre `search_new_account_code` al asignar.
+4. Los lectores de la columna pasan al ORM:
+   - `services._require_account` (3 llamadas) y
+     `account_analytic_distribution_model._compute_prefix_placeholder`:
+     `search` con el orden del modelo (`code, placeholder_code`);
+   - `account_analytic_plan` (2 `order_by('code')`) y
+     `account_account._get_closest_parent_account`: ídem;
+   - el cargador `chart_template.load_model_data`: las cuentas por el
+     `create` del ORM, bajo la empresa del plan, como la fuente
+     (`chart_template.py:202`, `allowed_company_ids=[company.id]`);
+   - `seed_l0_chart`: bajo la empresa del sistema;
+   - las pruebas que filtran por `code=` (5) o leen `code` sin empresa: la
+     declaran con `company_scope`.
+
+### MC2c-2 — retirada de `company` (`account-account-mc2c2-0397`)
+
+1. `_ensure_code_is_unique` al final de `create` y en `write`.
+2. `_check_company_domain` en plural.
+3. Las dos lecturas de `account.company` (`_get_closest_parent_account`,
+   `account_merge_wizard`) pasan a la empresa activa; `create` deja de
+   escribir el puente; la migración retira la columna `company`.
 
 ## Lo que este diseño no cierra
 
