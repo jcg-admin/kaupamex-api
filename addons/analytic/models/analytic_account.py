@@ -42,7 +42,6 @@ def _default_company_id():
 
 class AccountAnalyticAccount(
     models.BaseModel,
-    models.CheckCompanyMixin,
     MailThread,
     models.RecordLoaderMixin,
 ):

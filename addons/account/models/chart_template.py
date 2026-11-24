@@ -1098,14 +1098,14 @@ class ChartTemplate:
         transfer = cls.ref('internal_transfer_reco', company,
                            raise_if_not_found=False)
         if transfer is not None and company.transfer_account is not None:
-            transfer.line_ids.write(
+            transfer.line_ids.sudo().write(
                 {'account': company.transfer_account})
 
         bank_fees = cls.ref('bank_fees_reco', company, raise_if_not_found=False)
         if bank_fees is not None:
             account = cls.get_bank_fees_reco_account(company)
             if account is not None:
-                bank_fees.line_ids.write(
+                bank_fees.line_ids.sudo().write(
                     {'account': account})
 
     @classmethod

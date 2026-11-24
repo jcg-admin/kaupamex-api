@@ -480,7 +480,6 @@ def _default_company_id():
 
 class AccountAnalyticApplicability(
     models.BaseModel,
-    models.CheckCompanyMixin,
     models.RecordLoaderMixin,
 ):
     """``account.analytic.applicability`` — regla de aplicabilidad por plan

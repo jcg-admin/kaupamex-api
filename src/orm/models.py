@@ -6926,7 +6926,8 @@ def _copy_data_blacklist(records, default):
     return {_canonical_field_name(records, name) for name in blacklist}
 
 
-class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin, Model):
+class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin,
+                CheckCompanyMixin, Model):
     """El recordset — ≙ ``BaseModel`` (``odoo19c:
     odoo/orm/models.py:334-7004``).
 

@@ -86,7 +86,7 @@ from orm.models_transient import TransientModel
 from tools.translate import _
 
 
-class AccountFinancialYearOp(models.CheckCompanyMixin, TransientModel):
+class AccountFinancialYearOp(TransientModel):
     """≙ ``account.financial.year.op`` — fecha de apertura y cierre fiscal
     de la empresa (``odoo19c: setup_wizards.py:10-91``)."""
 

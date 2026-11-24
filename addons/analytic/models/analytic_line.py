@@ -154,7 +154,6 @@ class AnalyticPlanFieldsMixin(models.Model):
 
 class AccountAnalyticLine(
     models.BaseModel,
-    models.CheckCompanyMixin,
     AnalyticPlanFieldsMixin,
     models.RecordLoaderMixin,
 ):
