@@ -37,6 +37,31 @@ empresa que en la fuente la tendría y (c) defecto real.
 - Si (b) exige que `env.company` caiga a la empresa del usuario, eso
   reabre DEC-AISL-04 y se eleva al ejecutor. No se decide aquí.
 
+## La medición (2026-11-24)
+
+`probes/mc2c/code_read_probe.py` (EXPERIMENTAL) registró cada lectura de
+`account.account.code` hecha con `env().company is None` sobre los
+directorios de pruebas que nombran cuentas o asientos: 15 086 lecturas en
+224 pruebas, todas en `probes/mc2c/code-reads-without-company.tsv`.
+
+- (b) Las lecturas internas del modelo durante el alta (`save`,
+  `_compute_account_tags`, `_get_closest_parent_account`,
+  `_sync_code_store`, `_compute_account_type`): la fuente las hace dentro
+  de `create`, que fija `allowed_company_ids=companies.ids`
+  (`:1042-1047`). MC2b dejó esa divergencia declarada; MC2c la porta.
+- (b) Procesos: `seed_l0_chart.handle` (10) y el cargador del plan, que
+  pasa por `create`.
+- (a) Pruebas sin empresa: los placeholders analíticos
+  (`account_analytic_plan`, `account_analytic_distribution_model`) y 14
+  lecturas directas.
+- (c) Ninguna depende de que `env.company` caiga a la empresa del usuario.
+
+*Métrica:* lecturas del descriptor de `code` con `env().company is None`.
+*Ciega a:* lecturas por SQL crudo de la columna, que no pasan por el
+descriptor, y a las pruebas fuera de los directorios recorridos.
+
+Conclusión: MC2c cabe sin reabrir DEC-AISL-04.
+
 ## La unidad, una vez medida
 
 1. `code` calculado con `_compute_code`, `_search_code` e `_inverse_code`;

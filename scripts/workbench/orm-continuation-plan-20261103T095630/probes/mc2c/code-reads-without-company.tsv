@@ -1,0 +1,18 @@
+lecturas	llamador
+4116	/src/orm/models.py:1861:save
+2196	/addons/account/models/account_account.py:343:_compute_account_tags
+2175	/addons/account/models/account_account.py:270:_get_closest_parent_account
+2175	/addons/account/models/account_account.py:282:_get_closest_parent_account
+2105	/addons/account/models/account_account.py:509:_sync_code_store
+2105	/addons/account/models/account_account.py:512:_sync_code_store
+97	/addons/account/models/account_account.py:320:_compute_account_type
+73	/src/orm/fields.py:1813:__get__
+14	(lectura directa de la prueba)
+10	/addons/sale_subscription/management/commands/seed_l0_chart.py:72:handle
+4	/addons/account/models/account_analytic_plan.py:138:_default_account_prefix_placeholder
+4	/addons/account/models/account_analytic_plan.py:139:_default_account_prefix_placeholder
+3	/addons/account/models/account_analytic_plan.py:175:_account_prefix_categ_bonus
+3	/addons/account/models/account_analytic_plan.py:176:_account_prefix_categ_bonus
+2	/addons/account/models/account_account.py:660:_unlink_except_linked_to_fiscal_position
+2	/addons/account/models/account_analytic_distribution_model.py:100:_compute_prefix_placeholder
+2	/addons/account/models/account_analytic_distribution_model.py:101:_compute_prefix_placeholder
