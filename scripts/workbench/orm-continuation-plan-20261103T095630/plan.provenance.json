@@ -1864,6 +1864,13 @@
         "account-account-mc1-0397"
       ],
       "writtenAt": "2026-11-24T13:47:13Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "account-account-mc2a-0397"
+      ],
+      "writtenAt": "2026-11-24T15:16:57Z"
     }
   ]
 }
