@@ -1857,6 +1857,13 @@
         "basemodel-check-company-0397"
       ],
       "writtenAt": "2026-11-24T12:16:02Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "account-account-mc1-0397"
+      ],
+      "writtenAt": "2026-11-24T13:47:13Z"
     }
   ]
 }
