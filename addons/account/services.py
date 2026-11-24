@@ -31,7 +31,7 @@ _STATE_CONFIRMED = 'sale'
 
 def _require_account(company, account_type: str, label: str) -> AccountAccount:
     account = (AccountAccount.objects
-               .filter(company=company, account_type=account_type,
+               .filter(company_ids=company, account_type=account_type,
                        deprecated=False)
                .order_by('code').first())
     if account is None:

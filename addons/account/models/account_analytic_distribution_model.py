@@ -93,7 +93,7 @@ def _compute_prefix_placeholder(instance):
     """
     accounts = AccountAccount.objects.filter(account_type='expense')
     if instance.company_id is not None:
-        accounts = accounts.filter(company=instance.company_id)
+        accounts = accounts.filter(company_ids=instance.company_id)
     expense_account = accounts.order_by('code').first()
 
     account_prefixes = '60, 61, 62'

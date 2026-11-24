@@ -59,7 +59,7 @@ class TestLoading:
 
         # 46 del CSV + las 4 de utilidad que crea el paso del banco
         # (transitoria, transferencia y las dos de pendientes).
-        assert AccountAccount.objects.filter(company=company).count() == 50
+        assert AccountAccount.objects.filter(company_ids=company).count() == 50
         assert AccountTaxGroup.objects.filter(company=company).count() == 2
         assert AccountTax.objects.filter(company=company).count() == 4
         assert (
@@ -223,7 +223,8 @@ class TestLoadOnCompanyCreate:
             code='acme-mx', name='ACME México', parent=company
         )
 
-        assert AccountAccount.objects.filter(company=subsidiary).count() == 46
+        assert AccountAccount.objects.filter(
+            company_ids=subsidiary).count() == 46
         assert AccountJournal.objects.filter(
             company=subsidiary, type='sale'
         ).exists()
@@ -240,7 +241,8 @@ class TestLoadOnCompanyCreate:
             code='acme-co', name='ACME Colombia', parent=company
         )
 
-        assert AccountAccount.objects.filter(company=subsidiary).count() == 0
+        assert AccountAccount.objects.filter(
+            company_ids=subsidiary).count() == 0
 
     def test_root_does_not_load_itself(self, db):
         """
@@ -251,7 +253,7 @@ class TestLoadOnCompanyCreate:
             code='beta-root', name='BETA', chart_template='generic_coa'
         )
 
-        assert AccountAccount.objects.filter(company=root).count() == 0
+        assert AccountAccount.objects.filter(company_ids=root).count() == 0
 
 
 @pytest.mark.django_db
@@ -277,7 +279,7 @@ class TestCompanyIsolation:
         ChartTemplate.try_loading('generic_coa', company)
         ChartTemplate.try_loading('generic_coa', company)
 
-        assert AccountAccount.objects.filter(company=company).count() == 50
+        assert AccountAccount.objects.filter(company_ids=company).count() == 50
 
 
 @pytest.mark.django_db
@@ -517,7 +519,7 @@ class TestTaxTagMapper:
         )
 
         assert landed == [tax_tags['Base imponible']]
-        assert AccountAccount.objects.filter(company=company).exists()
+        assert AccountAccount.objects.filter(company_ids=company).exists()
 
 
 @pytest.mark.django_db
@@ -548,7 +550,7 @@ class TestAccountCodeWidth:
         company.refresh_from_db()
 
         anchos = set(
-            AccountAccount.objects.filter(company=company).values_list(
+            AccountAccount.objects.filter(company_ids=company).values_list(
                 'code', flat=True
             )
         )
@@ -621,7 +623,7 @@ class TestUtilityBankAccounts:
             == '443000'
         )
         assert (
-            AccountAccount.objects.filter(company=company, code='999998')
+            AccountAccount.objects.filter(company_ids=company, code='999998')
             .get()
             .name
             == 'Accumulated Retained Earnings'
@@ -702,7 +704,7 @@ class TestAccountTags:
         """
         ChartTemplate.try_loading('generic_coa', company)
 
-        sales = AccountAccount.objects.get(company=company, code='400000')
+        sales = AccountAccount.objects.get(company_ids=company, code='400000')
         assert list(sales.tags.all()) == [master_tags['account_tag_operating']]
 
     def test_an_account_without_its_own_tag_inherits_the_previous_one(

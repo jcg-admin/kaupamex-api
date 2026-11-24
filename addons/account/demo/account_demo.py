@@ -926,7 +926,7 @@ class AccountChartTemplate(ChartTemplate):
                 return account
         return (
             AccountAccount.objects.filter(
-                company=company, account_type=account_type
+                company_ids=company, account_type=account_type
             ).first()
-            or AccountAccount.objects.filter(company=company).first()
+            or AccountAccount.objects.filter(company_ids=company).first()
         )
