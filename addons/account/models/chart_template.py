@@ -133,11 +133,12 @@ REPARTITION_FIELDS = (
 #: **Por qué una lista global y no un registro por código de plan.** En la
 #: referencia el override de ``l10n_mx`` no está atado al plan ``mx``: es un
 #: ``_inherit = 'account.chart.template'`` que se instala para **toda** carga,
-#: y es el propio método el que decide con ``if company.account_fiscal_country_id
-#: .code == 'MX'`` (``odoo19c: l10n_mx/models/template_mx.py:66``). Un registro
-#: por código habría movido esa guarda del método al cableado, cambiando
-#: **cuándo** se evalúa: el país fiscal de la empresa no tiene por qué coincidir
-#: con el plan que se le carga.
+#: y es el propio método el que decide con
+#: ``if company.account_fiscal_country_id.code == 'MX'``
+#: (``odoo19c: l10n_mx/models/template_mx.py:66``). Un registro por código
+#: habría movido esa guarda del método al cableado, cambiando **cuándo** se
+#: evalúa: el país fiscal de la empresa no tiene por qué coincidir con el plan
+#: que se le carga.
 #:
 #: Cada función recibe ``(cls, company, accounts_data, template_data)`` y muta
 #: el dict en sitio, igual que el ``accounts_data.update(...)`` de la
@@ -1097,13 +1098,15 @@ class ChartTemplate:
         transfer = cls.ref('internal_transfer_reco', company,
                            raise_if_not_found=False)
         if transfer is not None and company.transfer_account is not None:
-            transfer.line_ids.update(account=company.transfer_account)
+            transfer.line_ids.write(
+                {'account': company.transfer_account})
 
         bank_fees = cls.ref('bank_fees_reco', company, raise_if_not_found=False)
         if bank_fees is not None:
             account = cls.get_bank_fees_reco_account(company)
             if account is not None:
-                bank_fees.line_ids.update(account=account)
+                bank_fees.line_ids.write(
+                    {'account': account})
 
     @classmethod
     def _get_property_accounts(cls, additional_properties):

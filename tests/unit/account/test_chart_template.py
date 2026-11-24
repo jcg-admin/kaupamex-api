@@ -160,8 +160,8 @@ class TestBaseTemplate:
 
         fee_rule = ChartTemplate.ref('bank_fees_reco', company)
         assert fee_rule.match_label == 'contains'
-        assert fee_rule.line_ids.count() == 1
-        assert fee_rule.line_ids.get().amount_string == '100'
+        assert len(fee_rule.line_ids) == 1
+        assert fee_rule.line_ids[0].amount_string == '100'
 
     def test_journals_carry_the_three_dashboard_fields(self, company):
         """``sequence``, ``show_on_dashboard`` y ``color`` — de la referencia.
@@ -636,7 +636,8 @@ class TestUtilityBankAccounts:
         ChartTemplate.try_loading('generic_coa', company)
 
         fees = ChartTemplate.ref('bank_fees_reco', company)
-        line = fees.line_ids.get()
+        assert len(fees.line_ids) == 1
+        line = fees.line_ids[0]
         assert line.account is not None
         assert line.account.account_type == 'expense'
 

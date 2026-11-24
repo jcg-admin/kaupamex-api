@@ -39,6 +39,7 @@ addons/account/models/account_tax.py::redondear
 addons/account/models/account_tax.py::signo
 addons/account/models/account_tax.py::sumar_base
 addons/account/models/account_tax.py::valor
+addons/account/models/chart_template.py::caba
 addons/account/models/ir_attachment.py::adjunto
 addons/account/models/product.py::clave
 addons/account/models/product.py::cuenta

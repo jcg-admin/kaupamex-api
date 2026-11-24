@@ -66,7 +66,7 @@ from exceptions import UserError
 from tools.translate import _
 
 
-class AccountReconcileModel(models.RecordLoaderMixin, models.Model):
+class AccountReconcileModel(models.BaseModel):
     """``account.reconcile.model`` — regla que propone conciliaciones."""
 
     #: Atributos de clase de ``account.reconcile.model``, verbatim
@@ -76,6 +76,7 @@ class AccountReconcileModel(models.RecordLoaderMixin, models.Model):
                     'payments matching')
     _inherit = ['mail.thread']
     _order = 'sequence, id'
+    _check_company_auto = True
 
     TRIGGERS = [
         ('manual', 'Manual'),
@@ -230,7 +231,7 @@ class AccountReconcileModel(models.RecordLoaderMixin, models.Model):
         """Odoo ``_compute_partner_mapping``: si la regla tiene exactamente una
         línea con partner fijo y sin cuenta fija, y usa match_label, esa línea
         define el partner que se propone."""
-        lines = list(self.line_ids.all())
+        lines = list(self.line_ids)
         is_partner_mapping = bool(
             self.match_label
             and len(lines) == 1
@@ -252,7 +253,7 @@ class AccountReconcileModel(models.RecordLoaderMixin, models.Model):
         self.save(update_fields=['trigger'])
 
 
-class AccountReconcileModelLine(models.RecordLoaderMixin, models.Model):
+class AccountReconcileModelLine(models.BaseModel):
     """
     ``account.reconcile.model.line`` — línea que la regla genera al aplicarse.
     """
@@ -263,6 +264,7 @@ class AccountReconcileModelLine(models.RecordLoaderMixin, models.Model):
     _inherit = ['analytic.mixin']
     _description = 'Rules for the reconciliation model'
     _order = 'sequence, id'
+    _check_company_auto = True
 
     AMOUNT_TYPES = [
         ('fixed', 'Fijo'),
