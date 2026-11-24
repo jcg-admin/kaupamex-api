@@ -62,7 +62,7 @@ def test_new_record_reads_the_assigned_compute_value(
     assert record.prefix_placeholder == 'e.g. ' + expected
     assert record.pk is None
     select.assert_called_once_with(account_type='expense')
-    queryset.filter.assert_called_once_with(company=11)
+    queryset.filter.assert_called_once_with(company_ids=11)
     queryset.order_by.assert_called_once_with('code')
 
 
