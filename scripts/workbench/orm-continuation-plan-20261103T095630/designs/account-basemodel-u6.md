@@ -77,6 +77,11 @@ pasa a `related_manager`, que sirve para los dos casos.
 - `addons/account/models/chart_template.py`: `load_model_data`, `load_child_lines`.
 - `addons/l10n_mx/models/account_account.py`: `_apply_l10n_mx_balance_tag`.
 - `addons/account/wizard/account_merge_wizard.py`: `_action_merge`.
+- `addons/account/models/product.py`: `_get_category_account` — subía el árbol
+  comparando con `None`; con la cuenta como recordset una categoría sin
+  cuenta devuelve el vacío y el bucle paraba en la primera. Pasa a la forma
+  de la fuente: `if account:` y el recordset vacío al final
+  (odoo19c: addons/account/models/product.py:80-92). Lo destapó el gate.
 
 ## Auxiliares de `placeholder_code`
 
