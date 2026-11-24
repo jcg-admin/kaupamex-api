@@ -30,8 +30,6 @@ El cargador del plan contable (`chart_template.load_model_data`) fija
 1. **`AccountAccount.create`**, porte de la referencia:
    - resuelve las empresas de cada alta desde sus comandos de `company_ids`
      (`SET`, `LINK`, ids sueltos o filas) con la regla de la activa primero;
-     sin ninguna y sin empresa activa levanta `ValidationError`, que es lo
-     que `required=True` produce en la fuente;
    - `prefix`/`code_digits` → `search_new_account_code` en la primera empresa,
      con la caché de los códigos ya reservados en el lote;
    - escribe `company_ids` con `Command.set` de las empresas resueltas.
@@ -50,6 +48,11 @@ El cargador del plan contable (`chart_template.load_model_data`) fija
   la cuenta depende hoy de la empresa activa salvo `company_ids`, que la
   unidad resuelve antes de llamar a `super`. Se revisa en MC2c, cuando `code`
   pase a calculado sobre `code_store` de la empresa activa.
+- Sin empresa pedida ni activa la fuente no tiene caso: `env.company` existe
+  siempre allá, y `required=True` en un Many2many no lo comprueba el ORM
+  (`odoo19c: odoo/orm/models.py` no lee `field.required` en `_create`). Aquí
+  `env.company` puede faltar, y la columna puente `company` rechaza el alta.
+  No se inventa un error propio.
 - `_ensure_code_is_unique` es MC2c: hoy la unicidad la da la restricción
   `(company, code)` de la tabla.
 
@@ -64,9 +67,10 @@ El cargador del plan contable (`chart_template.load_model_data`) fija
 `tests/unit/account/test_account_account_create.py`:
 `test_the_active_company_comes_first`,
 `test_explicit_companies_without_the_active_one_are_kept`,
-`test_without_companies_the_active_company_is_used`,
-`test_without_any_company_the_create_is_refused` y
+`test_without_companies_the_active_company_is_used` y
 `test_a_prefix_becomes_the_first_free_code`.
 
-Anulación: sin la regla de la activa primero caen las dos primeras; sin el
-default, la tercera; sin la traducción del prefijo, la quinta.
+Anulación, medida: sin reordenar cae sólo la primera; sin el default caen la
+tercera y la cuarta, que crea sin empresas pedidas; sin la traducción del
+prefijo cae sólo la cuarta. La segunda no depende de ninguna de las tres: mide
+que una empresa pedida sin la activa se conserva.
