@@ -58,8 +58,6 @@ Divergencias declaradas (DEC-KX-03):
 
 import re
 
-from django.conf import settings
-
 import fields
 import models
 from exceptions import UserError
@@ -128,7 +126,7 @@ class AccountReconcileModel(models.BaseModel):
         ),
     )
     mapped_partner = fields.Many2one(
-        settings.AUTH_USER_MODEL,
+        'base.ResPartner',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -181,7 +179,7 @@ class AccountReconcileModel(models.BaseModel):
         help_text='Parámetro de match_label (Odoo match_label_param).',
     )
     match_partner_ids = fields.Many2many(
-        settings.AUTH_USER_MODEL,
+        'base.ResPartner',
         blank=True,
         related_name='+',
         help_text=(
@@ -303,7 +301,7 @@ class AccountReconcileModelLine(models.BaseModel):
         help_text='Cuenta destino de la línea generada (Odoo account_id).',
     )
     partner = fields.Many2one(
-        settings.AUTH_USER_MODEL,
+        'base.ResPartner',
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
