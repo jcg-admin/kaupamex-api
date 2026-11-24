@@ -171,7 +171,7 @@ HORIZONTAL_SPLIT_SIDES = [
 ]
 
 
-class AccountReport(models.RecordLoaderMixin, models.Model):
+class AccountReport(models.BaseModel):
     """``account.report`` — la declaración de un reporte contable."""
 
     #: Atributos de clase de ``account.report``, verbatim
@@ -432,13 +432,13 @@ class AccountReport(models.RecordLoaderMixin, models.Model):
             return propio
         if self.root_report_id is not None:
             return self.root_report.resolver_opcion(nombre)
-        principal = self.section_main_reports.first()
-        if principal is not None:
+        principal = self.section_main_reports[:1]
+        if principal:
             return principal.resolver_opcion(nombre)
         return propio
 
 
-class AccountReportLine(models.RecordLoaderMixin, models.Model):
+class AccountReportLine(models.BaseModel):
     """``account.report.line`` — una fila jerárquica del reporte."""
 
     #: Atributos de clase de ``account.report.line``, verbatim
@@ -476,10 +476,13 @@ class AccountReportLine(models.RecordLoaderMixin, models.Model):
         default=0,
         help_text='Orden dentro del reporte (Odoo sequence).',
     )
+    # ``null=True`` y sin ``default=''``: en la fuente la línea sin código
+    # guarda NULL, y ``_code_uniq`` (``unique (report_id, code)``) no compara
+    # dos NULL; con ``''`` un informe sólo admitía una línea sin código.
     code = fields.Char(
         max_length=64,
+        null=True,
         blank=True,
-        default='',
         help_text=(
             'Identificador único de la línea dentro del reporte; lo '
             'usan las fórmulas de agregación para referirse a ella '
@@ -559,7 +562,7 @@ class AccountReportLine(models.RecordLoaderMixin, models.Model):
         ]
 
 
-class AccountReportExpression(models.RecordLoaderMixin, models.Model):
+class AccountReportExpression(models.BaseModel):
     """
     ``account.report.expression`` — cómo se calcula una columna de una línea.
     """
@@ -730,7 +733,7 @@ class AccountReportExpression(models.RecordLoaderMixin, models.Model):
             self.create_tax_tags(self.formula, country)
 
 
-class AccountReportColumn(models.RecordLoaderMixin, models.Model):
+class AccountReportColumn(models.BaseModel):
     """``account.report.column`` — una columna del reporte."""
 
     #: Atributos de clase de ``account.report.column``, verbatim
@@ -797,7 +800,7 @@ class AccountReportColumn(models.RecordLoaderMixin, models.Model):
         ordering = ['sequence', 'id']
 
 
-class AccountReportExternalValue(models.RecordLoaderMixin, models.Model):
+class AccountReportExternalValue(models.BaseModel):
     """
     ``account.report.external.value`` — un valor que no sale del libro mayor.
 
@@ -810,6 +813,7 @@ class AccountReportExternalValue(models.RecordLoaderMixin, models.Model):
     #: (``odoo19c: account/models/account_report.py:948-951``).
     _name = 'account.report.external.value'
     _description = 'Accounting Report External Value'
+    _check_company_auto = True
     _order = 'date, id'
 
     name = fields.Char(
