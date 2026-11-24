@@ -14,13 +14,15 @@ import fields
 import models
 
 
-class AccountJournalGroup(models.RecordLoaderMixin, models.Model):
+class AccountJournalGroup(models.BaseModel):
     """``account.journal.group`` — agrupador de diarios para reportes."""
 
     #: Atributos de clase de ``account.journal.group``, verbatim
     #: (``odoo19c: account/models/account_journal.py:17-18``).
     _name = 'account.journal.group'
     _description = "Account Journal Group"
+    _check_company_auto = True
+    _check_company_domain = classmethod(models.check_company_domain_parent_of)
 
     name = fields.Char(
         max_length=255,

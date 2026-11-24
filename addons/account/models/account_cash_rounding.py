@@ -30,7 +30,7 @@ _ROUNDING_METHOD_TO_DECIMAL = {
 }
 
 
-class AccountCashRounding(models.RecordLoaderMixin, models.Model):
+class AccountCashRounding(models.BaseModel):
     """
     ``account.cash.rounding`` — perfil de redondeo de efectivo por factura.
     """
@@ -39,6 +39,7 @@ class AccountCashRounding(models.RecordLoaderMixin, models.Model):
     #: (``odoo19c: account/models/account_cash_rounding.py:15-16``).
     _name = 'account.cash.rounding'
     _description = 'Account Cash Rounding'
+    _check_company_auto = True
 
     STRATEGY_BIGGEST_TAX = 'biggest_tax'
     STRATEGY_ADD_INVOICE_LINE = 'add_invoice_line'

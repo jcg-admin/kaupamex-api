@@ -46,7 +46,7 @@ LOCK_DATE_FIELD_CHOICES = [
 ]
 
 
-class AccountLockException(models.RecordLoaderMixin, models.Model):
+class AccountLockException(models.BaseModel):
     """
     ``account.lock_exception`` — excepción temporal a un candado de fecha.
     """

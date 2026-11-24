@@ -12,7 +12,7 @@ import fields
 import models
 
 
-class AccountIncoterms(models.RecordLoaderMixin, models.Model):
+class AccountIncoterms(models.BaseModel):
     """``account.incoterms`` — término de comercio internacional (Incoterm)."""
 
     #: Atributos de clase de ``account.incoterms``, verbatim
