@@ -143,7 +143,7 @@ def _currency_round(currency, amount):
     return Decimal(amount).quantize(quantum, rounding=ROUND_HALF_UP)
 
 
-class AccountPaymentTerm(models.RecordLoaderMixin, models.Model):
+class AccountPaymentTerm(models.BaseModel):
     """``account.payment.term`` — plazo de pago (distribución en cuotas)."""
 
     #: Atributos de clase de ``account.payment.term``, verbatim
@@ -151,6 +151,7 @@ class AccountPaymentTerm(models.RecordLoaderMixin, models.Model):
     _name = 'account.payment.term'
     _description = "Payment Terms"
     _order = "sequence, id"
+    _check_company_domain = classmethod(models.check_company_domain_parent_of)
 
     name = fields.Char(
         max_length=255,
@@ -229,7 +230,7 @@ class AccountPaymentTerm(models.RecordLoaderMixin, models.Model):
         total_percent = sum(
             (
                 line.value_amount
-                for line in self.line_ids.all()
+                for line in self.line_ids
                 if line.value == 'percent'
             ),
             Decimal('0'),
@@ -241,7 +242,7 @@ class AccountPaymentTerm(models.RecordLoaderMixin, models.Model):
                     'porcentaje y la suma de los porcentajes debe ser 100%.'
                 )
             )
-        line_count = self.line_ids.count()
+        line_count = len(self.line_ids)
         if line_count > 1 and self.early_discount:
             raise ValidationError(
                 _(
@@ -363,7 +364,7 @@ class AccountPaymentTerm(models.RecordLoaderMixin, models.Model):
         residual_amount = total_amount
         residual_amount_currency = total_amount_currency
 
-        lines = list(self.line_ids.all())
+        lines = list(self.line_ids)
         for i, line in enumerate(lines):
             term_vals = {
                 'date': line._get_due_date(date_ref),
@@ -435,7 +436,7 @@ class AccountPaymentTerm(models.RecordLoaderMixin, models.Model):
         return amount_by_date
 
 
-class AccountPaymentTermLine(models.RecordLoaderMixin, models.Model):
+class AccountPaymentTermLine(models.BaseModel):
     """``account.payment.term.line`` — cuota de un plazo de pago."""
 
     #: Atributos de clase de ``account.payment.term.line``, verbatim
@@ -557,7 +558,7 @@ class AccountPaymentTermLine(models.RecordLoaderMixin, models.Model):
         (Odoo ``_compute_days``). Explícito — requiere que ``payment.line_ids``
         ya exista completo; no se auto-invoca en ``save()``."""
         siblings = list(
-            self.payment.line_ids.exclude(pk=self.pk).order_by('id')
+            self.payment.line_ids.filtered(lambda line: line.id != self.id)
         )
         if not self.nb_days and siblings:
             self.nb_days = siblings[-1].nb_days + 30
@@ -570,8 +571,8 @@ class AccountPaymentTermLine(models.RecordLoaderMixin, models.Model):
         if self.value == 'fixed':
             self.value_amount = Decimal('0')
             return
-        siblings = self.payment.line_ids.exclude(pk=self.pk).filter(
-            value='percent'
+        siblings = self.payment.line_ids.filtered(
+            lambda line: line.id != self.id and line.value == 'percent'
         )
         amount = sum((s.value_amount for s in siblings), Decimal('0'))
         self.value_amount = Decimal('100') - amount
