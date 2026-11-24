@@ -643,7 +643,8 @@
   "stock-basemodel-u6b-0397",
   "account-basemodel-u1-0397",
   "account-basemodel-u2-0397",
-  "account-basemodel-u3-0397"
+  "account-basemodel-u3-0397",
+  "account-basemodel-u4-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
