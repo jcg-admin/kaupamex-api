@@ -91,6 +91,19 @@ nominal. Con MC3, U6 queda desbloqueada.
   odoo19c: addons/account/models/account_account.py:335-377 y
   odoo19c: addons/account/models/account_account.py:1079-1130.
 
+## Orden de ejecución, corregido al abrir MC2b
+
+Medido el 2026-11-24 al abrir MC2b: `AccountAccount` es todavía un
+`models.Model`, y `objects.create(...)` de Django no acepta un Many2many
+como argumento. La forma de la fuente —crear la cuenta con `company_ids`—
+necesita el `create` del ORM, que llega con U6 (adopción de `BaseModel`). A
+su vez U6 necesita que `_order = 'code, placeholder_code'` sea válido, que
+es MC3. El ORM local ya ordena por una expresión propia: `FieldSqlMixin._field_to_sql`
+(`src/orm/models.py:2699`) y `_order_to_sql` (`:4509`), con precedente en
+`crm_lead._field_to_sql` (`addons/crm/models/crm_lead.py:682`). El orden
+queda así: **MC1 → MC2a → MC3 → U6 → MC2b → MC2c**. MC3 se apoya en la
+columna `code` y en `code_store`, que conviven desde MC1.
+
 ## MC1 — símbolos tocados por archivo
 
 - `addons/account/models/account_account.py`: `AccountAccount`, `save`, `_sync_code_store`.
