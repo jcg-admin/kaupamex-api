@@ -60,13 +60,23 @@ Pruebas: la migración llena las dos columnas nuevas; crear o cambiar el
 código de una cuenta actualiza `code_store` bajo la raíz de su empresa; dos
 empresas de la misma raíz leen el mismo `code_store`.
 
-**MC2 — los consumidores pasan a la búsqueda del ORM y `code` se calcula.**
-Los ~30 sitios medidos pasan de `filter(company=…, code=…)` y
-`order_by('code')` a `search` con dominio sobre `company_ids` y `code` y al
-orden del modelo. Entonces `code` pasa a calculado con inverso y búsqueda
-como en la fuente, `_ensure_code_is_unique` sustituye a la restricción SQL,
-se retiran las columnas `code` y `company`, y el divergente
-`_check_company_domain` vuelve al de la fuente.
+**MC2 — los consumidores dejan `company` y `code` como columnas.** Medido
+el 2026-11-24 al abrirla: 13 sitios de producción y de prueba filtran u
+ordenan cuentas por `company` o `code`, **89 altas** en 32 archivos pasan
+`company=` a `AccountAccount.objects.create`/`get_or_create`, y 4 leen
+`account.company`. Se divide en tres pasos, cada uno con su gate:
+
+- **MC2a — lecturas.** Los filtros por `company` pasan a `company_ids`,
+  `order_by('code')` queda donde la columna siga existiendo y el resto se
+  lee por el orden del modelo. Las 4 lecturas de `account.company` pasan a
+  `company_ids`.
+- **MC2b — altas.** Las 89 altas declaran `company_ids` como la fuente
+  (odoo19c: addons/account/models/account_account.py:97-99, `required=True`
+  con la empresa activa por defecto), y `company` deja de exigirse.
+- **MC2c — retirada.** `code` pasa a calculado con inverso y búsqueda,
+  `_ensure_code_is_unique` sustituye a la restricción SQL, se retiran las
+  columnas `code` y `company`, y `_check_company_domain` pasa al plural
+  `check_companies_domain_parent_of` de la fuente (:25).
 
 **MC3 — `placeholder_code` y `_order`.** `placeholder_code` con cómputo,
 búsqueda y su expresión SQL, y `root_id` derivado de él con
