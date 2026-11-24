@@ -41,8 +41,12 @@ Pruebas: `tests/unit/account/test_account_payment_term_basemodel.py`.
 
 ## Símbolos tocados por archivo
 
-Se completa al implementar.
+- `addons/account/models/account_payment_term.py`: `AccountPaymentTerm`, `AccountPaymentTermLine`, `_check_lines`, `_compute_days`, `_compute_terms`, `_compute_value_amount`.
+
+Anulación, restaurada con `cmp`: devolver la línea a `models.Model` tumba
+los tres casos de la prueba, que dependen todos de que la línea sea
+`BaseModel`.
 
 ## Lo que este corte no cierra
 
-Se completa al implementar.
+Nada propio de la unidad.
