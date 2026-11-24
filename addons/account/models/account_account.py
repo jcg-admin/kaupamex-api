@@ -13,6 +13,7 @@ Hallazgo H-ACC-01 (drift 18→19): el enum ``account_type`` de 19 añade
 fabricado; ambos valores existen en 19). Ver audit.
 """
 
+import itertools
 from bisect import bisect_left
 
 from django.apps import apps
@@ -22,9 +23,12 @@ import api
 import fields
 import models
 from exceptions import UserError
+from orm.environments import env
 from tools.query import Query
 from tools.sql import SQL
 from tools.translate import _
+
+from addons.base.models import ResCompany
 
 
 class AccountAccount(models.BaseModel):
@@ -506,6 +510,73 @@ class AccountAccount(models.BaseModel):
             return
         field = self._meta.get_field('code_store')
         field.set_for_company(self, self.company.root_id.pk, self.code)
+
+    @api.model_create_multi
+    @classmethod
+    def create(cls, vals_list):
+        """≙ ``create``
+        (``odoo19c: addons/account/models/account_account.py:1011-1051``).
+
+        Agrupa las altas por su ``company_ids``, resuelve las empresas con la
+        activa primero (:meth:`_resolve_companies`) y traduce
+        ``prefix``/``code_digits`` al primer código libre en la primera
+        empresa. Divergencias declaradas en
+        ``designs/account-account-mc2b.md``: ``code_mapping_ids`` no viaja,
+        ``allowed_company_ids`` no se fija en el contexto y
+        ``_ensure_code_is_unique`` llega con MC2c. Hasta MC2c la columna
+        ``company`` toma la primera empresa resuelta.
+        """
+        if not vals_list:
+            return super().create(vals_list)
+        records_list = []
+        for company_ids, vals_list_for_company in itertools.groupby(
+                vals_list, lambda vals: vals.get('company_ids', [])):
+            cache = set()
+            vals_list_for_company = list(vals_list_for_company)
+            companies = cls._resolve_companies(company_ids)
+            for vals in vals_list_for_company:
+                if 'prefix' in vals:
+                    prefix = vals.pop('prefix') or ''
+                    digits = vals.pop('code_digits')
+                    start_code = (prefix.ljust(digits - 1, '0') + '1'
+                                  if len(prefix) < digits else prefix)
+                    vals['code'] = cls.search_new_account_code(
+                        start_code, companies[0] if companies else None,
+                        cache)
+                    cache.add(vals['code'])
+                vals['company_ids'] = [fields.Command.set(
+                    [company.pk for company in companies])]
+                if companies:
+                    vals.setdefault('company', companies[0])
+            records_list.append(super().create(vals_list_for_company))
+        return records_list[0].union(*records_list[1:])
+
+    @classmethod
+    def _resolve_companies(cls, company_ids):
+        """Las empresas de un alta, con la activa primero — el paso de
+        ``create`` (``:1018-1022``): la activa encabeza cuando está entre las
+        pedidas o no se pidió ninguna.
+
+        ``company_ids`` llega como comandos (``SET``, ``LINK``), ids sueltos
+        o filas, lo que ``convert_to_cache`` lee en la fuente.
+        """
+        ids = []
+        for command in company_ids or []:
+            if isinstance(command, (list, tuple)):
+                if command[0] == fields.Command.SET:
+                    ids = [getattr(item, 'pk', item) for item in command[2]]
+                elif command[0] == fields.Command.LINK:
+                    ids.append(command[1])
+            else:
+                ids.append(getattr(command, 'pk', command))
+        found = {company.pk: company
+                 for company in ResCompany.objects.filter(pk__in=ids)}
+        companies = [found[pk] for pk in ids if pk in found]
+        active = env().company
+        if active is not None and (active.pk in found or not companies):
+            companies = [active] + [company for company in companies
+                                    if company.pk != active.pk]
+        return companies
 
     @classmethod
     def search_new_account_code(cls, start_code, company, cache=None):
