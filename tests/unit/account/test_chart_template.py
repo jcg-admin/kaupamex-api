@@ -795,7 +795,7 @@ class TestAccountTags:
         ≙ ``_unlink_except_master_tags``: el plan las cita por identificador.
         """
         with pytest.raises(UserError):
-            master_tags['account_tag_investing'].delete()
+            master_tags['account_tag_investing'].unlink()
 
     def test_a_plain_tag_can_be_deleted(self, db):
         """La guarda protege las tres maestras, no toda etiqueta."""
@@ -803,6 +803,6 @@ class TestAccountTags:
             name='Casilla 33', applicability='taxes'
         )
 
-        tag.delete()
+        tag.unlink()
 
         assert not AccountAccountTag.objects.filter(name='Casilla 33').exists()

@@ -61,7 +61,7 @@ import models
 from addons.base.models import _reject_hierarchy_cycle
 
 
-class AccountGroup(models.RecordLoaderMixin, models.Model):
+class AccountGroup(models.BaseModel):
     """``account.group`` — nodo del árbol de agrupación por rango de código."""
 
     #: Atributos de clase de ``account.group``, verbatim
@@ -69,6 +69,8 @@ class AccountGroup(models.RecordLoaderMixin, models.Model):
     _name = 'account.group'
     _description = 'Account Group'
     _order = 'code_prefix_start'
+    _check_company_auto = True
+    _check_company_domain = classmethod(models.check_company_domain_parent_of)
 
     parent = fields.Many2one(
         'self',

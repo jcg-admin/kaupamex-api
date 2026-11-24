@@ -30,6 +30,7 @@ siempre) y sí se cargan aquí desde la migración anterior. La guarda se porta
 abajo. Ver :ref:`h-api-352`.
 """
 
+import api
 import fields
 import models
 from addons.base.models.ir_model import IrModelData
@@ -37,7 +38,7 @@ from exceptions import UserError
 from tools.translate import _
 
 
-class AccountAccountTag(models.RecordLoaderMixin, models.Model):
+class AccountAccountTag(models.BaseModel):
     """``account.account.tag`` — etiqueta de cuenta/impuesto/producto."""
 
     #: Atributos de clase de ``account.account.tag``, verbatim
@@ -145,14 +146,14 @@ class AccountAccountTag(models.RecordLoaderMixin, models.Model):
         'account.account_tag_investing',
     )
 
-    def delete(self, *args, **kwargs):
+    @api.ondelete(at_uninstall=False)
+    def _unlink_except_master_tags(self):
         """
         Impide borrar una etiqueta maestra — ≙ ``_unlink_except_master_tags``.
 
         ≙ ``odoo19c: account_account_tag.py:110-120``
-        (``odoo-tools@622ddc2a``).
-        Allá la guarda cuelga de ``@api.ondelete``; aquí del ``delete`` del
-        modelo, que es el punto equivalente en este stack.
+        (``odoo-tools@622ddc2a``). La guarda corre en ``BaseModel.unlink``
+        sobre el recordset, como en la fuente.
 
         No es una protección decorativa: el CSV del plan genérico cita las tres
         por identificador externo, y ``get_accounts_data_values`` etiqueta con
@@ -161,12 +162,11 @@ class AccountAccountTag(models.RecordLoaderMixin, models.Model):
         """
         for xmlid in self.MASTER_XMLIDS:
             master = IrModelData.ref(xmlid, raise_if_not_found=False)
-            if master is not None and master.pk == self.pk:
+            if master is not None and master.pk in self.ids:
                 raise UserError(
                     _(
                         'No se puede borrar la etiqueta «%(name)s»: la usa la '
                         'definición del plan contable.'
                     )
-                    % {'name': self.name}
+                    % {'name': master.name}
                 )
-        return super().delete(*args, **kwargs)
