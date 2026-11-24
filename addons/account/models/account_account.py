@@ -45,12 +45,13 @@ class AccountAccount(models.RecordLoaderMixin, models.Model):
     _check_company_auto = True
     #: **Divergencia declarada** de ``_check_company_domain =
     #: models.check_companies_domain_parent_of`` (``:25``). La fuente usa el
-    #: plural porque su cuenta lleva el M2M ``company_ids``; aquí la cuenta
-    #: tiene una sola ``company``, y el plural devolvería ``None`` —el modelo
-    #: dejaría de participar en la comprobación de empresa—. El singular
+    #: plural sobre el M2M ``company_ids``. Desde MC1 ``company_ids`` existe
+    #: y ``save`` lo mantiene igual a ``company``, pero los consumidores
+    #: todavía filtran por ``company``; el singular
     #: ``check_company_domain_parent_of`` conserva el criterio jerárquico de
-    #: la fuente sobre el campo que existe. Se cambia al plural cuando
-    #: ``company_ids`` esté portado.
+    #: la fuente sobre ese campo hasta MC2, que pasa los consumidores a
+    #: ``company_ids`` y cambia al plural
+    #: (``designs/account-account-multicompany-code.md``).
     _check_company_domain = classmethod(models.check_company_domain_parent_of)
 
     # account_type — superset de Odoo 19 (18 + expense_other). H-ACC-01.

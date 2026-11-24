@@ -25,14 +25,15 @@ def test_the_class_attributes_the_source_declares():
 
 
 def test_the_company_domain_stays_on_the_single_company_field():
-    """Divergencia declarada: la fuente usa
-    ``check_companies_domain_parent_of``
-    sobre el M2M ``company_ids``, que aquí no existe; con él este modelo
-    dejaría de participar en la comprobación de empresa. El singular conserva
-    el criterio jerárquico sobre ``company``."""
+    """Divergencia declarada hasta MC2: la fuente usa
+    ``check_companies_domain_parent_of`` sobre el M2M ``company_ids``. Desde
+    MC1 el M2M existe y el plural ya devuelve un dominio, pero los
+    consumidores filtran todavía por ``company``; el singular conserva el
+    criterio jerárquico sobre ese campo hasta que MC2 los pase al plural."""
     assert (AccountAccount._check_company_domain.__func__
             is models.check_company_domain_parent_of)
-    assert models.check_companies_domain_parent_of(AccountAccount, []) is None
+    assert models.check_companies_domain_parent_of(
+        AccountAccount, []) is not None
 
 
 @pytest.mark.django_db
