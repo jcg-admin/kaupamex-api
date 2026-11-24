@@ -47,21 +47,25 @@ y `placeholder_code` no se puede portar solo.
 
 ## Partición — tres unidades, cada una con su gate
 
-**MC1 — `company_ids` y `code_store`.** Se añaden `company_ids`
-(Many2many a `base.ResCompany`) y `code_store`
+**MC1 — `company_ids` y `code_store`, en paralelo a las columnas actuales.**
+Se añaden `company_ids` (Many2many a `base.ResCompany`) y `code_store`
 (`fields.Char(company_dependent=True)`). La migración copia `company` a
 `company_ids` y escribe en `code_store` el código bajo la empresa raíz de
-esa compañía. `code` pasa a calculado con inverso y búsqueda como en la
-fuente, y `_ensure_code_is_unique` sustituye a la restricción SQL. `company`
-sigue existiendo en MC1 como columna de transición, sincronizada por el
-`create`/`write`, porque la retiran los consumidores en MC2.
-Pruebas: el código depende de la raíz de la empresa activa; dos empresas
-de la misma raíz ven el mismo código; un duplicado en una empresa hija se
-rechaza; un código ausente en una de sus raíces se rechaza.
+esa compañía. `code` y `company` siguen siendo columnas en MC1: `save`
+mantiene `company_ids` y `code_store` al día, porque los ~30 consumidores
+filtran y ordenan por ellas con el ORM de Django, que no filtra un campo no
+almacenado (corregido 2026-11-24T11:20:49: la primera partición hacía `code`
+calculado ya en MC1 y rompía esos sitios en el acto).
+Pruebas: la migración llena las dos columnas nuevas; crear o cambiar el
+código de una cuenta actualiza `code_store` bajo la raíz de su empresa; dos
+empresas de la misma raíz leen el mismo `code_store`.
 
-**MC2 — los consumidores leen `company_ids`.** Los ~30 sitios medidos
-pasan de `company=` a `company_ids=` y de `order_by('code')` al orden del
-modelo; se retira la columna `company` y el divergente
+**MC2 — los consumidores pasan a la búsqueda del ORM y `code` se calcula.**
+Los ~30 sitios medidos pasan de `filter(company=…, code=…)` y
+`order_by('code')` a `search` con dominio sobre `company_ids` y `code` y al
+orden del modelo. Entonces `code` pasa a calculado con inverso y búsqueda
+como en la fuente, `_ensure_code_is_unique` sustituye a la restricción SQL,
+se retiran las columnas `code` y `company`, y el divergente
 `_check_company_domain` vuelve al de la fuente.
 
 **MC3 — `placeholder_code` y `_order`.** `placeholder_code` con cómputo,
