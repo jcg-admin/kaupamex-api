@@ -83,6 +83,16 @@ pasa a `related_manager`, que sirve para los dos casos.
   de la fuente: `if account:` y el recordset vacío al final
   (odoo19c: addons/account/models/product.py:80-92). Lo destapó el gate.
 
+## La frontera de la fachada
+
+Los addons no importan de la capa de implementación
+(`tests/unit/orm/test_fields_facade.py::test_no_addon_crosses_the_facade_boundary`).
+`related_manager` vivía sólo en `orm/commands.py`; la fachada `models`
+(`src/models/__init__.py`) lo publica de forma explícita, y los tres addons
+lo usan como `models.related_manager`. Lo destapó el gate.
+
+- `src/models/__init__.py`: exportación de `related_manager`.
+
 ## Auxiliares de `placeholder_code`
 
 - `_authorized_company_ids` es `self.env.user._get_company_ids()` de la
