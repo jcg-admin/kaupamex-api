@@ -12,6 +12,7 @@ from addons.account.models import (
     AccountReconcileModelLine,
 )
 from addons.base.models import ResCompany, ResPartner
+from orm.commands import Command
 
 pytestmark = pytest.mark.django_db
 
@@ -47,5 +48,5 @@ def test_the_rule_restricts_to_res_partners(bank):
     rule = AccountReconcileModel.objects.create(
         name='Sólo el banco', company=ResCompany.objects.create(
             name='Otra', code='kaupamex_test_reco_partner_b'))
-    rule.match_partner_ids.add(bank)
+    rule.sudo().write({'match_partner_ids': [Command.link(bank.pk)]})
     assert rule.compute_can_be_proposed() is True
