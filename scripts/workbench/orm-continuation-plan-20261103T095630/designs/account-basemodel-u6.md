@@ -73,10 +73,23 @@ pasa a `related_manager`, que sirve para los dos casos.
 
 ## Símbolos tocados por archivo
 
-- `addons/account/models/account_account.py`: `AccountAccount`, `save`, `_compute_internal_group`, `_compute_account_type`, `_compute_account_tags`, `_get_closest_parent_account`, `_compute_placeholder_code`, `_search_placeholder_code`, `_field_to_sql`.
+- `addons/account/models/account_account.py`: `AccountAccount`, `save`, `_compute_internal_group`, `_compute_account_type`, `_compute_account_tags`, `_get_closest_parent_account`, `_compute_placeholder_code`, `_search_placeholder_code`, `_field_to_sql`, `_authorized_company_ids`, `_root_company_id`.
 - `addons/account/models/chart_template.py`: `load_model_data`, `load_child_lines`.
 - `addons/l10n_mx/models/account_account.py`: `_apply_l10n_mx_balance_tag`.
 - `addons/account/wizard/account_merge_wizard.py`: `_action_merge`.
+
+## Auxiliares de `placeholder_code`
+
+- `_authorized_company_ids` es `self.env.user._get_company_ids()` de la
+  fuente (odoo19c: addons/account/models/account_account.py:160, 362):
+  las empresas del usuario, no las activas del contexto. Sin usuario no
+  acota.
+- `_root_company_id` es la raíz de una empresa, la clave con que
+  `code_store` guarda el código (odoo19c: addons/account/models/account_account.py:134, 169-170).
+
+La prueba fija un usuario contable con acceso a las dos empresas: el
+usuario de sistema de este árbol no tiene ninguna, y con él la fuente no
+autoriza ninguna empresa.
 
 ## Lo que este diseño no cierra
 
