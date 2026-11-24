@@ -39,4 +39,4 @@ def test_the_company_domain_stays_on_the_single_company_field():
 @pytest.mark.django_db
 def test_the_environment_resolves_the_model_by_its_name():
     with Environment(None, SUPERUSER_ID, {}) as env:
-        assert env['account.account'] is AccountAccount
+        assert isinstance(env['account.account'], AccountAccount)

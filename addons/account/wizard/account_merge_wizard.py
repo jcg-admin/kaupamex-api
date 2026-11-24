@@ -332,7 +332,7 @@ class AccountMergeWizard(TransientModel):
             accounts_to_remove, account_to_merge_into
         )
         for account in accounts_to_remove:
-            account.delete()
+            account.unlink()
         return account_to_merge_into
 
 

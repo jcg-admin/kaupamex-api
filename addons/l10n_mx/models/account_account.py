@@ -50,6 +50,7 @@ from django.db.models.signals import post_save
 
 from addons.account.models import AccountAccount
 from addons.base.models.ir_model import IrModelData
+from orm.commands import related_manager
 
 #: Primer dígito del código que corresponde a saldo DEUDOR — cualquier otro
 #: es acreedor. ≙ ``DEBIT_CODES`` (``odoo19c: l10n_mx/models/
@@ -87,12 +88,13 @@ def _apply_l10n_mx_balance_tag(sender, instance, created, **kwargs):
     company = instance.company
     if company is None or company.country_code != 'MX':
         return
-    if instance.tags.filter(pk__in=(debit_tag.pk, credit_tag.pk)).exists():
+    tags = related_manager(instance, 'tags')
+    if tags.filter(pk__in=(debit_tag.pk, credit_tag.pk)).exists():
         return
     if not instance.code:
         return
     tag = debit_tag if instance.code[0] in DEBIT_CODES else credit_tag
-    instance.tags.add(tag)
+    tags.add(tag)
 
 
 def apply_l10n_mx_extensions():

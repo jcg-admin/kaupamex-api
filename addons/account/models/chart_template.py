@@ -92,11 +92,14 @@ from django.db import transaction
 from addons.base.models.ir_default import IrDefault
 from addons.base.models.ir_model import IrModelData
 from exceptions import UserError
+from orm.commands import related_manager
 from orm.registry import model_by_name
 from tools.translate import _
 
 #: Raíz de los CSV de plantilla, espejo de ``<addon>/data/template/``.
-TEMPLATE_DIR = pathlib.Path(__file__).resolve().parent.parent / 'data' / 'template'
+TEMPLATE_DIR = (
+    pathlib.Path(__file__).resolve().parent.parent / 'data' / 'template'
+)
 
 #: ``codigo_plantilla -> modelo -> [funciones]``. Lo puebla el decorador al
 #: importar el módulo que declara la plantilla.
@@ -219,7 +222,8 @@ class ChartTemplate:
 
     @classmethod
     def get_chart_template_mapping(cls):
-        """Los planes disponibles y su nombre — ≙ ``_get_chart_template_mapping``.
+        """Los planes disponibles y su nombre —
+        ≙ ``_get_chart_template_mapping``.
 
         La referencia los descubre recorriendo los módulos instalados; aquí
         salen del registro, que es la misma información sin el rodeo del
@@ -309,7 +313,8 @@ class ChartTemplate:
         parent_code = getattr(company, 'parent', None)
         if parent_code is not None:
             record = IrModelData.ref(
-                cls.company_xmlid(xmlid, parent_code), raise_if_not_found=False)
+                cls.company_xmlid(xmlid, parent_code), raise_if_not_found=False
+            )
             if record is not None:
                 return record
         if raise_if_not_found:
@@ -360,8 +365,13 @@ class ChartTemplate:
         if not isinstance(value, str) or not value:
             return value
         model_class = type(field).__name__
-        if model_class in ('BooleanField', 'IntegerField', 'FloatField',
-                     'DecimalField', 'PositiveIntegerField'):
+        if model_class in (
+            'BooleanField',
+            'IntegerField',
+            'FloatField',
+            'DecimalField',
+            'PositiveIntegerField',
+        ):
             try:
                 return ast.literal_eval(value)
             except (ValueError, SyntaxError):
@@ -376,7 +386,8 @@ class ChartTemplate:
 
         - ``campo`` → un valor del registro;
         - ``relacion/campo`` → un valor de una **línea hija**. Una fila con el
-          ``id`` vacío no es un registro nuevo: es otra línea hija del anterior.
+          ``id`` vacío no es un registro nuevo: es otra línea hija del
+          anterior.
           Así el CSV de impuestos describe un impuesto y sus cuatro líneas de
           reparto en cinco filas.
 
@@ -413,13 +424,18 @@ class ChartTemplate:
                     if '/' in key and value
                 }
                 if child:
-                    relation = next(c for c in row if '/' in c).split('/', 1)[0]
+                    relation = next(c for c in row if '/' in c).split('/', 1)[
+                        0
+                    ]
                     res[last_xmlid].setdefault(relation, []).append(child)
         return dict(res)
 
     @classmethod
-    def get_chart_template_model_data(cls, template_code, model_name, model_class):
-        """CSV + función decorada para un modelo — ≙ ``_get_chart_template_model_data``.
+    def get_chart_template_model_data(
+        cls, template_code, model_name, model_class
+    ):
+        """CSV + función decorada para un modelo —
+        ≙ ``_get_chart_template_model_data``.
 
         La función decorada **se aplica encima** del CSV, no lo reemplaza: así
         una plantilla puede corregir un campo suelto sin copiar la tabla.
@@ -434,7 +450,8 @@ class ChartTemplate:
         anterior de este puerto invertía la lista "porque parecía al revés":
         cambiar la precedencia de un mecanismo sin decidirlo es la divergencia
         que ``referencia-odoo-gobierna-las-decisiones.md`` prohíbe. Hoy no
-        cambia nada observable —``generic_coa`` no declara ``parent``—, y el día
+        cambia nada observable —``generic_coa`` no declara ``parent``—, y el
+        día
         que exista un plan con padre el comportamiento será el de la referencia
         y no el que supuse.
         """
@@ -450,13 +467,16 @@ class ChartTemplate:
         """Toda la definición del plan — ≙ ``_get_chart_template_data``.
 
         El orden **importa**: los grupos de impuesto antes que los impuestos,
-        las cuentas antes que los repartos que las nombran. Es el mismo orden de
+        las cuentas antes que los repartos que las nombran. Es el mismo orden
+        de
         creación de la referencia.
         """
         funcs = TEMPLATE_REGISTRY[template_code].get(TEMPLATE_DATA, [])
         if not funcs:
             raise UserError(
-                _('No existe el plan contable «%(code)s».') % {'code': template_code})
+                _('No existe el plan contable «%(code)s».')
+                % {'code': template_code}
+            )
         loose_values = {}
         for func in funcs:
             loose_values.update(func(cls, template_code))
@@ -495,12 +515,20 @@ class ChartTemplate:
         return [
             ('account.group', apps.get_model('account', 'AccountGroup')),
             ('account.account', apps.get_model('account', 'AccountAccount')),
-            ('account.tax.group', apps.get_model('account', 'AccountTaxGroup')),
+            (
+                'account.tax.group',
+                apps.get_model('account', 'AccountTaxGroup'),
+            ),
             ('account.tax', apps.get_model('account', 'AccountTax')),
-            ('account.fiscal.position', apps.get_model('account', 'AccountFiscalPosition')),
+            (
+                'account.fiscal.position',
+                apps.get_model('account', 'AccountFiscalPosition'),
+            ),
             ('account.journal', apps.get_model('account', 'AccountJournal')),
-            ('account.reconcile.model',
-             apps.get_model('account', 'AccountReconcileModel')),
+            (
+                'account.reconcile.model',
+                apps.get_model('account', 'AccountReconcileModel'),
+            ),
         ]
 
     # -- instanciación ------------------------------------------------------
@@ -544,7 +572,8 @@ class ChartTemplate:
 
     @classmethod
     def skip_existing_account_groups(cls, data, company):
-        """No re-crea los grupos si ya hay — ≙ el guard de ``_pre_reload_data``.
+        """No re-crea los grupos si ya hay —
+        ≙ el guard de ``_pre_reload_data``.
 
         ≙ ``odoo19c: chart_template.py:308-312``, que vive dentro de
         ``_pre_reload_data`` y por tanto **sólo corre al recargar** un plan
@@ -559,7 +588,8 @@ class ChartTemplate:
         agrupación.
 
         El dominio de la referencia es asimétrico y se conserva: una empresa
-        **hija** cuenta los grupos de **todas** las empresas —comparte los de su
+        **hija** cuenta los grupos de **todas** las empresas —comparte los de
+        su
         raíz—, mientras que una raíz cuenta sólo los suyos.
         """
         groups = apps.get_model('account', 'AccountGroup').objects
@@ -570,7 +600,8 @@ class ChartTemplate:
 
     @classmethod
     def normalize_account_codes(cls, data):
-        """Lleva cada ``code`` al ancho del plan — ≙ la parte de ``_pre_load_data``.
+        """Lleva cada ``code`` al ancho del plan —
+        ≙ la parte de ``_pre_load_data``.
 
         ≙ ``odoo19c: chart_template.py:520-523``. El CSV del plan genérico
         mezcla anchos —43 códigos de 4 dígitos y 3 de 6— y la referencia los
@@ -597,7 +628,8 @@ class ChartTemplate:
 
     @classmethod
     def get_tag_mapper(cls, country, company):
-        """Resuelve nombres de etiqueta fiscal a registros — ≙ ``_get_tag_mapper``.
+        """Resuelve nombres de etiqueta fiscal a registros —
+        ≙ ``_get_tag_mapper``.
 
         ≙ ``odoo19c: chart_template.py:1244``. Devuelve un invocable porque la
         consulta de etiquetas del país se hace **una vez** y se reutiliza para
@@ -628,7 +660,9 @@ class ChartTemplate:
             out = []
             for name in names:
                 match = re.fullmatch(r'(?P<module>\w+)\.\w+', name or '')
-                if match and apps.is_installed(f"addons.{match.group('module')}"):
+                if match and apps.is_installed(
+                    f"addons.{match.group('module')}"
+                ):
                     tag = cls.ref(name, company, raise_if_not_found=False)
                     if tag is not None:
                         out.append(tag)
@@ -642,7 +676,8 @@ class ChartTemplate:
 
     @classmethod
     def deref_account_tags(cls, template_code, tax_data, company):
-        """Cambia los nombres de etiqueta por sus registros — ≙ ``_deref_account_tags``.
+        """Cambia los nombres de etiqueta por sus registros —
+        ≙ ``_deref_account_tags``.
 
         ≙ ``odoo19c: chart_template.py:1294``. Recorre los tres campos de
         reparto de cada impuesto y, donde la columna ``tag_ids`` llegó como
@@ -661,7 +696,9 @@ class ChartTemplate:
         for tax_values in tax_data.values():
             for field_name in REPARTITION_FIELDS:
                 for row in tax_values.get(field_name, []):
-                    tags = row.get('tag_ids') if isinstance(row, dict) else None
+                    tags = (
+                        row.get('tag_ids') if isinstance(row, dict) else None
+                    )
                     if isinstance(tags, str) and tags:
                         row['tag_ids'] = mapper(*tags.split(TAX_TAG_DELIMITER))
 
@@ -701,8 +738,10 @@ class ChartTemplate:
             else:
                 record_data = model_class.objects.create(**flat_values)
             for name, records in many_to_many.items():
-                getattr(record_data, name).set(records)
-            IrModelData.set_xmlid(record_data, cls.company_xmlid(xmlid, company))
+                related_manager(record_data, name).set(records)
+            IrModelData.set_xmlid(
+                record_data, cls.company_xmlid(xmlid, company)
+            )
             cls.load_child_lines(record_data, children, company)
             created[xmlid] = record_data
         return created
@@ -731,17 +770,21 @@ class ChartTemplate:
             reverse_name = field.field.name
             for order, row in enumerate(rows):
                 row = dict(row)
-                many_to_many = cls.split_prepared_many_to_many(child_class, row)
+                many_to_many = cls.split_prepared_many_to_many(
+                    child_class, row
+                )
                 many_to_many.update(
                     cls.resolve_many_to_many(child_class, row, company))
                 values = cls.resolve_values(child_class, row, company)
                 values[reverse_name] = parent
                 values['company'] = company
-                if 'sequence' in {f.name for f in child_class._meta.get_fields()}:
+                if 'sequence' in {
+                    f.name for f in child_class._meta.get_fields()
+                }:
                     values.setdefault('sequence', order)
                 child = child_class.objects.create(**values)
                 for m2m_name, records in many_to_many.items():
-                    getattr(child, m2m_name).set(records)
+                    related_manager(child, m2m_name).set(records)
 
     @classmethod
     def split_prepared_many_to_many(cls, model_class, row):
@@ -767,7 +810,8 @@ class ChartTemplate:
         """Traduce los valores del CSV a lo que el modelo espera.
 
         Un valor de una relación llega como identificador externo
-        (``tax_group_15``, ``tax_received``) y aquí se convierte en el registro.
+        (``tax_group_15``, ``tax_received``) y aquí se convierte en el
+        registro.
         Los campos que el modelo no tiene **se descartan en silencio**: el CSV
         viene de la referencia y describe más columnas de las que este puerto
         porta todavía; abortar por eso impediría cargar el plan por un campo
@@ -825,7 +869,8 @@ class ChartTemplate:
 
     @classmethod
     def post_load_data(cls, template_code, company, template_data):
-        """Escribe en la empresa lo que el plan declara — ≙ ``_post_load_data``.
+        """Escribe en la empresa lo que el plan declara —
+        ≙ ``_post_load_data``.
 
         Las claves ``property_*`` nombran cuentas por identificador externo; se
         resuelven ahora, cuando ya existen. Es el paso que deja a la empresa
@@ -844,7 +889,9 @@ class ChartTemplate:
         for key, xmlid in properties.items():
             target = key.replace('property_', '').replace('_id', '')
             if target in model_fields:
-                to_write[target] = cls.ref(xmlid, company, raise_if_not_found=False)
+                to_write[target] = cls.ref(
+                    xmlid, company, raise_if_not_found=False
+                )
         if company_values:
             for key, value in company_values.items():
                 if key not in model_fields:
@@ -854,7 +901,9 @@ class ChartTemplate:
                     # prefijos de código, que son cadenas y no identificadores.
                     to_write[key] = value
                 elif isinstance(value, str):
-                    resolved = cls.ref(value, company, raise_if_not_found=False)
+                    resolved = cls.ref(
+                        value, company, raise_if_not_found=False
+                    )
                     if resolved is not None:
                         to_write[key] = resolved
                 else:
@@ -896,7 +945,9 @@ class ChartTemplate:
             model_class = model_by_name(model_name)
             if model_class is None:
                 continue
-            if field_name not in {f.name for f in model_class._meta.get_fields()}:
+            if field_name not in {
+                f.name for f in model_class._meta.get_fields()
+            }:
                 continue
             account = cls.ref(xmlid, company, raise_if_not_found=False)
             if account is not None:
@@ -917,7 +968,8 @@ class ChartTemplate:
     @classmethod
     def get_accounts_data_values(cls, company, template_data,
                                  bank_prefix='', code_digits=0):
-        """Las seis cuentas de utilidad y cómo se piden — ≙ ``_get_accounts_data_values``.
+        """Las seis cuentas de utilidad y cómo se piden —
+        ≙ ``_get_accounts_data_values``.
 
         Cada una se declara por **prefijo**, no por código: el plan dice bajo
         qué familia va y ``AccountAccount.search_new_account_code`` busca el
@@ -1004,8 +1056,11 @@ class ChartTemplate:
         return values
 
     @classmethod
-    def setup_utility_bank_accounts(cls, template_code, company, template_data):
-        """Crea las cuentas que el banco necesita — ≙ ``_setup_utility_bank_accounts``.
+    def setup_utility_bank_accounts(
+        cls, template_code, company, template_data
+    ):
+        """Crea las cuentas que el banco necesita —
+        ≙ ``_setup_utility_bank_accounts``.
 
         Transitoria, diferencias de efectivo, descuentos por pronto pago y
         transferencia de liquidez. Sin ellas un diario de banco no puede
@@ -1086,7 +1141,8 @@ class ChartTemplate:
 
     @classmethod
     def wire_bank_fees_account(cls, company):
-        """Apunta las dos reglas de conciliación a su cuenta — ≙ el cierre de ``_load``.
+        """Apunta las dos reglas de conciliación a su cuenta —
+        ≙ el cierre de ``_load``.
 
         La referencia lo hace en ``chart_template.py:785-792``: la regla de
         transferencia interna apunta a ``transfer_account`` de la empresa, y la
@@ -1101,7 +1157,9 @@ class ChartTemplate:
             transfer.line_ids.sudo().write(
                 {'account': company.transfer_account})
 
-        bank_fees = cls.ref('bank_fees_reco', company, raise_if_not_found=False)
+        bank_fees = cls.ref(
+            'bank_fees_reco', company, raise_if_not_found=False
+        )
         if bank_fees is not None:
             account = cls.get_bank_fees_reco_account(company)
             if account is not None:
@@ -1110,7 +1168,8 @@ class ChartTemplate:
 
     @classmethod
     def _get_property_accounts(cls, additional_properties):
-        """Qué modelo consume cada cuenta de propiedad — ≙ ``_get_property_accounts``.
+        """Qué modelo consume cada cuenta de propiedad —
+        ≙ ``_get_property_accounts``.
 
         El mapa dice, para cada clave ``property_*`` que el plan declara, **de
         qué modelo** es el valor por defecto. ``set_property_account_defaults``
@@ -1136,19 +1195,25 @@ class ChartTemplate:
 
     @classmethod
     def get_bank_fees_reco_account(cls, company):
-        """La cuenta donde cae una comisión bancaria — ≙ ``_get_bank_fees_reco_account``.
+        """La cuenta donde cae una comisión bancaria —
+        ≙ ``_get_bank_fees_reco_account``.
 
         Preferimos una cuenta que se llame así; si no la hay, la primera de
         gasto. Es lo que la regla de conciliación de comisiones necesita para
         tener dónde asentar.
         """
         account_model = apps.get_model('account', 'AccountAccount')
-        return (account_model.objects.filter(
-                    company=company, name__icontains='Bank Fees').first()
-                or account_model.objects.filter(
-                    company=company, name__icontains='comisiones').first()
-                or account_model.objects.filter(
-                    company=company, account_type='expense').first())
+        return (
+            account_model.objects.filter(
+                company=company, name__icontains='Bank Fees'
+            ).first()
+            or account_model.objects.filter(
+                company=company, name__icontains='comisiones'
+            ).first()
+            or account_model.objects.filter(
+                company=company, account_type='expense'
+            ).first()
+        )
 
     # -- plantillas base (Root template functions) ---------------------------
     #
@@ -1172,7 +1237,8 @@ class ChartTemplate:
         (``odoo19c: account_journal.py:883``) compone el prefijo ``BNK`` con el
         primer número libre, así que en una empresa nueva da ``BNK1``. Aquí se
         escribe ese valor: ``AccountJournal`` declara
-        ``UniqueConstraint(company, code)`` y dejarlo vacío haría colisionar dos
+        ``UniqueConstraint(company, code)`` y dejarlo vacío haría colisionar
+        dos
         diarios en blanco en cuanto hubiera un segundo.
         """
         return {
@@ -1222,13 +1288,15 @@ class ChartTemplate:
 
     @template(model='account.reconcile.model')
     def get_account_reconcile_model(cls, template_code):
-        """Las dos reglas de conciliación por defecto — ≙ ``_get_account_reconcile_model``.
+        """Las dos reglas de conciliación por defecto —
+        ≙ ``_get_account_reconcile_model``.
 
         También base, y por el mismo motivo que los diarios: una transferencia
         interna y una comisión bancaria aparecen en el extracto de cualquier
         empresa, no de una localización concreta.
 
-        La referencia expresa las líneas hijas con ``Command.create({...})``, la
+        La referencia expresa las líneas hijas con ``Command.create({...})``,
+        la
         forma con la que su ORM distingue crear de enlazar. Aquí una lista de
         diccionarios bajo el nombre de la relación ya significa «crear estas
         hijas» — es lo que el cargador hace con ``repartition_line_ids`` del

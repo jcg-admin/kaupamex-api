@@ -31,6 +31,7 @@ from addons.account.models.account_tax_repartition_line import (
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_company import ResCompany
 from exceptions import UserError
+from orm.commands import Command
 
 pytestmark = [pytest.mark.unit]
 
@@ -640,7 +641,7 @@ class TestUtilityBankAccounts:
         fees = ChartTemplate.ref('bank_fees_reco', company)
         assert len(fees.line_ids) == 1
         line = fees.line_ids[0]
-        assert line.account is not None
+        assert line.account
         assert line.account.account_type == 'expense'
 
     def test_a_subsidiary_takes_the_accounts_of_its_root(self, company):
@@ -705,7 +706,7 @@ class TestAccountTags:
         ChartTemplate.try_loading('generic_coa', company)
 
         sales = AccountAccount.objects.get(company_ids=company, code='400000')
-        assert list(sales.tags.all()) == [master_tags['account_tag_operating']]
+        assert list(sales.tags) == [master_tags['account_tag_operating']]
 
     def test_an_account_without_its_own_tag_inherits_the_previous_one(
         self, company, master_tags
@@ -721,7 +722,9 @@ class TestAccountTags:
             name='Cash Difference Gain',
             account_type='income_other',
         )
-        parent.tags.set([master_tags['account_tag_investing']])
+        parent.write(
+            {'tags': [Command.set([master_tags['account_tag_investing'].pk])]}
+        )
 
         child = AccountAccount.objects.create(
             company=company,
@@ -730,7 +733,7 @@ class TestAccountTags:
             account_type='income_other',
         )
 
-        assert list(child.tags.all()) == [master_tags['account_tag_investing']]
+        assert list(child.tags) == [master_tags['account_tag_investing']]
 
     def test_an_explicit_tag_wins_over_the_inherited_one(
         self, company, master_tags
@@ -742,7 +745,9 @@ class TestAccountTags:
             name='Cash Difference Gain',
             account_type='income_other',
         )
-        parent.tags.set([master_tags['account_tag_investing']])
+        parent.write(
+            {'tags': [Command.set([master_tags['account_tag_investing'].pk])]}
+        )
 
         child = AccountAccount.objects.create(
             company=company,
@@ -750,10 +755,12 @@ class TestAccountTags:
             name='Otra',
             account_type='income_other',
         )
-        child.tags.set([master_tags['account_tag_operating']])
+        child.write(
+            {'tags': [Command.set([master_tags['account_tag_operating'].pk])]}
+        )
         child.save()
 
-        assert list(child.tags.all()) == [master_tags['account_tag_operating']]
+        assert list(child.tags) == [master_tags['account_tag_operating']]
 
     def test_an_account_without_a_type_inherits_the_previous_one(
         self, company

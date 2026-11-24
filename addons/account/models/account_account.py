@@ -22,10 +22,11 @@ import api
 import fields
 import models
 from exceptions import UserError
+from orm.commands import related_manager
 from tools.translate import _
 
 
-class AccountAccount(models.RecordLoaderMixin, models.Model):
+class AccountAccount(models.BaseModel):
     """``account.account`` — cuenta contable del plan (Odoo base contable)."""
 
     #: Los atributos de clase de la fuente
@@ -222,8 +223,10 @@ class AccountAccount(models.RecordLoaderMixin, models.Model):
     def _compute_internal_group(self):
         # Odoo _compute_internal_group: el grupo es el prefijo del account_type
         # ('asset_receivable' -> 'asset'; 'off_balance' -> 'off').
-        at = self.account_type or ''
-        self.internal_group = at.split('_')[0] if at else ''
+        for account in self:
+            account_type = account.account_type or ''
+            account.internal_group = (
+                account_type.split('_')[0] if account_type else '')
 
     @classmethod
     def _get_closest_parent_account(
@@ -265,10 +268,14 @@ class AccountAccount(models.RecordLoaderMixin, models.Model):
             if closest_index == -1:
                 out.append(default_value)
                 continue
-            value = getattr(
-                cls.objects.get(pk=rows[closest_index][0]), field_name
-            )
-            out.append(list(value.all()) if hasattr(value, 'all') else value)
+            parent = cls.objects.get(pk=rows[closest_index][0])
+            if cls._meta.get_field(field_name).many_to_many:
+                # La tabla, no el descriptor: leer el campo calculado lo
+                # recomputaría sobre el recordset que se está calculando.
+                value = list(related_manager(parent, field_name).all())
+            else:
+                value = getattr(parent, field_name)
+            out.append(value)
         return out
 
     @api.depends('code')
@@ -292,14 +299,14 @@ class AccountAccount(models.RecordLoaderMixin, models.Model):
         ``asset_current`` es el default de la referencia cuando no hay cuenta
         anterior — la primera del plan.
         """
-        if not self.code or self.account_type:
-            return
-        self.account_type = (
-            self._get_closest_parent_account(
-                [self], 'account_type', 'asset_current'
-            )[0]
-            or 'asset_current'
-        )
+        accounts_to_process = [
+            account for account in self
+            if account.code and not account.account_type
+        ]
+        values = self._get_closest_parent_account(
+            accounts_to_process, 'account_type', 'asset_current')
+        for account, account_type in zip(accounts_to_process, values):
+            account.account_type = account_type or 'asset_current'
 
     @api.depends('code')
     def _compute_account_tags(self):
@@ -315,11 +322,15 @@ class AccountAccount(models.RecordLoaderMixin, models.Model):
         ``not account.tag_ids`` de la referencia, y lo que hace que el valor
         explícito del CSV gane sobre el heredado.
         """
-        if not self.code or self.tags.exists():
-            return
-        tags = self._get_closest_parent_account([self], 'tags', [])[0]
-        if tags:
-            self.tags.set(tags)
+        accounts_to_process = [
+            account for account in self
+            if account.code and not related_manager(account, 'tags').exists()
+        ]
+        values = self._get_closest_parent_account(
+            accounts_to_process, 'tags', [])
+        for account, tags in zip(accounts_to_process, values):
+            if tags:
+                related_manager(account, 'tags').set(tags)
 
     def save(self, *args, **kwargs):
         # El orden importa y es el de la referencia: el tipo se computa antes
@@ -338,9 +349,10 @@ class AccountAccount(models.RecordLoaderMixin, models.Model):
             if update_fields is not None:
                 kwargs['update_fields'] = {*update_fields, 'code_store'}
         result = super().save(*args, **kwargs)
-        if self.company_id and not self.company_ids.filter(
+        companies = related_manager(self, 'company_ids')
+        if self.company_id and not companies.filter(
                 pk=self.company_id).exists():
-            self.company_ids.add(self.company_id)
+            companies.add(self.company_id)
         self._compute_account_tags()
         return result
 

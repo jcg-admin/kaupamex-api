@@ -104,11 +104,11 @@ def test_a_mapped_account_is_refused_with_the_source_message(company, side):
     sides = {'account_src': other, 'account_dest': other, side: mapped}
     mapping = FiscalPositionAccount.objects.create(position=position, **sides)
     with pytest.raises(UserError, match='account mapping of a fiscal'):
-        mapped.delete()
+        mapped.unlink()
     assert FiscalPositionAccount.objects.filter(pk=mapping.pk).exists()
 
 
 def test_an_unmapped_account_is_deleted(company):
     account = _account(company, '409')
-    account.delete()
+    account.unlink()
     assert not AccountAccount.objects.filter(pk=account.pk).exists()

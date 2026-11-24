@@ -100,6 +100,7 @@ from django.apps import apps
 from orm import registry
 from orm.environments import env, transaction_scope
 from orm.utils import model_field_registry
+from orm.commands import related_manager
 
 AccountAccount = apps.get_model('account', 'AccountAccount')
 AccountAccountTag = apps.get_model('account', 'AccountAccountTag')
@@ -141,7 +142,7 @@ def tagged(company):
     first = AccountAccount.objects.create(
         code='4000', name='Ventas', account_type='income', company=company
     )
-    first.tags.set([tag])
+    related_manager(first, 'tags').set([tag])
     return tag, first
 
 
@@ -257,8 +258,8 @@ class TestTheCycleReachesTheJoinTable:
             account_type='income',
             company=company,
         )
-        second.tags.clear()
-        assert list(second.tags.all()) == []
+        related_manager(second, 'tags').clear()
+        assert list(related_manager(second, 'tags').all()) == []
 
         with transaction_scope():
             second.modified(['code'])
@@ -267,7 +268,7 @@ class TestTheCycleReachesTheJoinTable:
             )
             second.flush_recordset(['tags'])
 
-        assert list(second.tags.all()) == [tag]
+        assert list(related_manager(second, 'tags').all()) == [tag]
 
     def test_without_touching_it_the_relation_is_left_alone(
         self, tagged, company
@@ -282,12 +283,12 @@ class TestTheCycleReachesTheJoinTable:
             company=company,
         )
         _settle_creation()
-        second.tags.clear()
+        related_manager(second, 'tags').clear()
 
         with transaction_scope():
             second.flush_recordset(['tags'])
 
-        assert list(second.tags.all()) == []
+        assert list(related_manager(second, 'tags').all()) == []
 
     def test_the_flush_is_the_only_writer_when_the_cache_is_seeded(
         self, tagged, company
@@ -295,24 +296,26 @@ class TestTheCycleReachesTheJoinTable:
         """El control que discrimina la rama del volcado, y costo encontrarlo.
 
         En los dos casos de arriba el computo escribe la relacion **el mismo**
-        —``self.tags.set(...)`` en su cuerpo—, asi que anular la rama de
-        ``_flush_m2m`` los dejaba en verde: median el computo, no el volcado.
+        —``related_manager(account, 'tags').set(...)`` en su cuerpo—, asi que
+        anular la rama de ``_flush_m2m`` los dejaba en verde: median el
+        computo, no el volcado.
         Aqui el computo no corre. El valor se siembra en el cache y se marca
         sucio a mano, que es el estado en que el motor deja un campo calculado,
         y lo unico que puede escribirlo es el volcado.
         """
+
         tag, _first = tagged
         alone = AccountAccount.objects.create(
             code='7000', name='Orden', account_type='expense', company=company
         )
-        alone.tags.clear()
+        related_manager(alone, 'tags').clear()
 
         field = model_field_registry(AccountAccount)['tags']
         with transaction_scope():
             field._update_cache([alone], [tag], dirty=True)
             alone.flush_recordset(['tags'])
 
-        assert list(alone.tags.all()) == [tag]
+        assert list(related_manager(alone, 'tags').all()) == [tag]
 
     def test_a_scalar_field_still_flushes_through_its_column(self, company):
         """El segundo control, y protege lo que ya funcionaba: la rama nueva
