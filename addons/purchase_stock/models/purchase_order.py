@@ -261,7 +261,7 @@ def _compute_effective_date(self):
         for p in self._compute_picking_ids()
         if p.state == 'done'
         and p.date_done
-        and p.location_dest is not None
+        and p.location_dest
         and p.location_dest.usage != 'supplier'
     ]
     return min(dates) if dates else None

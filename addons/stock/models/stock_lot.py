@@ -379,7 +379,7 @@ class StockLot(models.BaseModel, MailThread, MailActivityMixin,
         ubicaciones = {
             q.location
             for q in self.quants.filtered(lambda q: q.quantity > 0)
-            if q.location is not None
+            if q.location
         }
         self.location = (
             next(iter(ubicaciones)) if len(ubicaciones) == 1 else None
@@ -396,7 +396,7 @@ class StockLot(models.BaseModel, MailThread, MailActivityMixin,
         (``stock_quant.py:2142``) es la pieza que faltaba.
         """
         quants = list(self.quants.filtered(lambda q: q.quantity > 0))
-        ubicaciones = {q.location for q in quants if q.location is not None}
+        ubicaciones = {q.location for q in quants if q.location}
         if len(ubicaciones) > 1:
             raise UserError(
                 _(

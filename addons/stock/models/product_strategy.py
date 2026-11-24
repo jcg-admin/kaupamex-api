@@ -462,10 +462,10 @@ class StockPutawayRule(models.BaseModel, TimeStampedModel):
         for ubicacion in hijas:
             if ubicacion.pk in descartadas:
                 continue
-            if tipo_paquete is not None:
-                ya_tiene = ubicacion.quant_ids.filter(
-                    package__isnull=False,
-                    package__package_type=tipo_paquete).exists()
+            if tipo_paquete:
+                ya_tiene = ubicacion.quant_ids.filtered(
+                    lambda q: q.package
+                    and q.package.package_type == tipo_paquete)
                 if not ya_tiene:
                     continue
                 if ubicacion.check_can_be_used(

@@ -847,9 +847,9 @@ class StockPickingType(models.BaseModel, TimeStampedModel):
         self._compute_use_existing_lots()
         self._compute_print_label()
         self.compute_warehouse()
-        if self.default_location_src is None:
+        if not self.default_location_src:
             self.compute_default_location_src()
-        if self.default_location_dest is None:
+        if not self.default_location_dest:
             self.compute_default_location_dest()
         return super().save(*args, **kwargs)
 
@@ -2158,7 +2158,7 @@ class StockPicking(models.BaseModel, MailThread, MailActivityMixin,
                 nuevo_estado = self.STATE_CANCEL
             else:
                 nuevo_estado = self.STATE_DONE
-        elif (self.location is not None
+        elif (self.location
                 and self.location.should_bypass_reservation()
                 and all(m.procure_method == stock_move.PROCURE_MAKE_TO_STOCK
                         for m in moves)):
@@ -2203,12 +2203,12 @@ class StockPicking(models.BaseModel, MailThread, MailActivityMixin,
             if not move.move_orig_ids.exists():
                 continue
             for ml in move.move_line_ids:
-                if ml.location is None or not ml.location.parent_path:
+                if not ml.location or not ml.location.parent_path:
                     continue
                 ruta = [
                     int(x) for x in ml.location.parent_path.split('/') if x
                 ]
-                if self.location is not None and self.location.pk not in ruta:
+                if self.location and self.location.pk not in ruta:
                     return {
                         'warning': {
                             'title': _('Aviso: cambio de ubicación origen'),

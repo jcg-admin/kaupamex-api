@@ -796,7 +796,7 @@ class StockWarehouseOrderpoint(models.BaseModel, TimeStampedModel):
         warehouse_model = apps.get_model('stock', 'StockWarehouse')
         if (
             self.location_id is not None
-            and self.location.warehouse is not None
+            and self.location.warehouse
         ):
             self.warehouse = self.location.warehouse
         elif self.company_id is not None:
@@ -1541,11 +1541,11 @@ class StockWarehouseOrderpoint(models.BaseModel, TimeStampedModel):
             return False
         origin = move.location
         other_warehouse = (
-            origin is not None
-            and origin.warehouse is not None
+            origin
+            and origin.warehouse
             and origin.warehouse != self.warehouse
         )
-        in_transit = origin is not None and origin.usage == 'transit'
+        in_transit = bool(origin) and origin.usage == 'transit'
         picking = getattr(move, 'picking', None)
         if not (other_warehouse or in_transit) or picking is None:
             return False

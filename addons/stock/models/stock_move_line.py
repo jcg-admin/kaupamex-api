@@ -553,14 +553,14 @@ class StockMoveLine(models.BaseModel, TimeStampedModel):
     @property
     def location_usage(self):
         """≙ ``location_usage`` (``related='location_id.usage'``, ``:73``)."""
-        return self.location.usage if self.location is not None else None
+        return self.location.usage if self.location else None
 
     @property
     def location_dest_usage(self):
         """≙ ``location_dest_usage`` (related, ``:74``)."""
         return (
             self.location_dest.usage
-            if self.location_dest is not None
+            if self.location_dest
             else None
         )
 

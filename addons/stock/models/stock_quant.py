@@ -385,7 +385,7 @@ class StockQuant(models.BaseModel, TimeStampedModel):
     #: ``ondelete='restrict'`` en la fuente (``stock_quant.py:56-59``).
     location = fields.Many2one(
         'stock.StockLocation', null=False, on_delete=models.PROTECT,
-        related_name='quants',
+        related_name='quant_ids',
         help_text='Ubicación (Odoo location_id).',
     )
     #: ``ondelete='restrict'`` en la fuente (``stock_quant.py:63-66``).
@@ -541,14 +541,14 @@ class StockQuant(models.BaseModel, TimeStampedModel):
     @property
     def warehouse(self):
         """≙ ``warehouse_id`` (related a ``location_id``, ``:61``)."""
-        return self.location.warehouse if self.location is not None else None
+        return self.location.warehouse if self.location else None
 
     @property
     def storage_category(self):
         """≙ ``storage_category_id`` (related a ``location_id``, ``:62``)."""
         return (
             self.location.storage_category
-            if self.location is not None
+            if self.location
             else None
         )
 
@@ -557,7 +557,7 @@ class StockQuant(models.BaseModel, TimeStampedModel):
         """≙ ``cyclic_inventory_frequency`` (related a ``location_id``,
         ``:63``).
         """
-        if self.location is None:
+        if not self.location:
             return 0
         return self.location.cyclic_inventory_frequency
 
@@ -704,7 +704,7 @@ class StockQuant(models.BaseModel, TimeStampedModel):
         ``store=True``).
         """
         self.company = (
-            self.location.company if self.location is not None else None
+            self.location.company if self.location else None
         )
 
     def _compute_inventory_date(self):
@@ -715,7 +715,7 @@ class StockQuant(models.BaseModel, TimeStampedModel):
         """
         if self.inventory_date is not None:
             return
-        if self.location is None or self.location.usage not in (
+        if not self.location or self.location.usage not in (
             'internal',
             'transit',
         ):
@@ -974,7 +974,7 @@ class StockQuant(models.BaseModel, TimeStampedModel):
         forbidden_fields = self._get_forbidden_fields_write()
         if (self._is_inventory_mode()
                 and any(field in vals for field in forbidden_fields)):
-            if any(quant.location is not None
+            if any(quant.location
                    and quant.location.usage == 'inventory'
                    for quant in self):
                 # La referencia no hace nada cuando se intenta editar a mano
@@ -1295,7 +1295,7 @@ class StockQuant(models.BaseModel, TimeStampedModel):
             q for q in quants
             if q.tracking == 'serial'
             and q.lot
-            and (q.location is None or q.location.usage != 'inventory')
+            and (not q.location or q.location.usage != 'inventory')
         ]
         if not seriales:
             return
@@ -1324,7 +1324,7 @@ class StockQuant(models.BaseModel, TimeStampedModel):
         """≙ ``check_location_id`` (``odoo19c: :606-610``,
         ``@api.constrains``).
         """
-        if self.location is not None and self.location.usage == 'view':
+        if self.location and self.location.usage == 'view':
             raise ValidationError(
                 _('No se pueden tomar ni entregar productos en una ubicación '
                   'de tipo «vista» (%s).') % self.location.name)
@@ -1868,7 +1868,7 @@ class StockQuant(models.BaseModel, TimeStampedModel):
         arranca en 1.
         """
         cambios = {}
-        if not self.product or self.location is None:
+        if not self.product or not self.location:
             return cambios
         if self.lot:
             if self.tracking == 'none' or self.product != self.lot.product:
@@ -1891,7 +1891,7 @@ class StockQuant(models.BaseModel, TimeStampedModel):
 
     def _onchange_inventory_quantity(self):
         """≙ ``_onchange_inventory_quantity`` (``odoo19c: :959-970``)."""
-        if self.location is not None and self.location.usage == 'inventory':
+        if self.location and self.location.usage == 'inventory':
             return {
                 'warning': {
                     'title': _(
@@ -1924,7 +1924,7 @@ class StockQuant(models.BaseModel, TimeStampedModel):
         Propone la ubicación: la del último quant del producto si tiene
         trazabilidad, o el almacén de la empresa.
         """
-        if self.location is not None:
+        if self.location:
             return None
         if self.tracking in ('lot', 'serial'):
             previo = (
@@ -1936,7 +1936,7 @@ class StockQuant(models.BaseModel, TimeStampedModel):
             )
             if previo is not None:
                 self.location = previo.location
-        if self.location is None:
+        if not self.location:
             warehouse_model = apps.get_model('stock', 'StockWarehouse')
             almacen = (
                 warehouse_model.objects.filter(company=self.company).first()
@@ -1978,7 +1978,7 @@ class StockQuant(models.BaseModel, TimeStampedModel):
             if date is not None:
                 movimiento.date = date
                 movimiento.save(update_fields=['date', 'write_date'])
-        if self.location is not None:
+        if self.location:
             self.location.last_inventory_date = timezone.now().date()
             self.location.save(
                 update_fields=['last_inventory_date', 'write_date'],

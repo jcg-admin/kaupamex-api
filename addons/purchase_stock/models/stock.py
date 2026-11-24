@@ -305,7 +305,7 @@ def _compute_effective_date(self):
     validación.
     """
     if (self.state == self.STATE_DONE
-            and self.location_dest is not None
+            and self.location_dest
             and self.location_dest.usage != 'supplier'
             and self.date_done):
         return self.date_done
@@ -784,7 +784,7 @@ def _compute_purchase_order_ids(self):
         if move is None or not move.purchase_line_id:
             continue
         picking = move.picking
-        if picking is None or picking.location is None:
+        if not picking or not picking.location:
             continue
         if picking.location.usage not in ('supplier', 'transit'):
             continue

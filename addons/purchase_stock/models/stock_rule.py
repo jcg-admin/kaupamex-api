@@ -593,7 +593,7 @@ def _push_prepare_move_copy_values(self, move_to_copy, new_date):
     """
     vals = {'purchase_line_id': None}
     if (
-        self.location_dest is not None
+        self.location_dest
         and self.location_dest.usage == 'supplier'
     ):
         line, partner = (
