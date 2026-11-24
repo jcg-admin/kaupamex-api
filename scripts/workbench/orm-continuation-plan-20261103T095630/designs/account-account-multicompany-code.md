@@ -106,6 +106,29 @@ nominal. Con MC3, U6 queda desbloqueada.
 Anulación: sin `_sync_code_store` en `save` caen las dos últimas; la
 primera depende sólo del alta en `company_ids`.
 
+## MC2a — símbolos tocados por archivo
+
+La fuente filtra estas búsquedas con `_check_company_domain(company)`, que
+en la cuenta es `check_companies_domain_parent_of` sobre `company_ids`
+(odoo19c: addons/account/demo/account_demo.py:669-675,
+odoo19c: addons/account/models/account_analytic_distribution_model.py:53-57).
+MC2a pasa el filtro de `company` a igualdad en `company_ids`, que da lo
+mismo mientras `company_ids` replique `company`; el `parent_of` llega en
+MC2c con el plural. Las dos lecturas de `account.company`
+(`_get_closest_parent_account`, `account_merge_wizard`) quedan para MC2c,
+porque la fuente las resuelve con la empresa activa y no con la columna.
+
+- `addons/account/services.py`: `_require_account`.
+- `addons/account/models/account_analytic_distribution_model.py`: `_compute_prefix_placeholder`.
+- `addons/account/demo/account_demo.py`: `_get_demo_account`.
+
+## MC2a — pruebas
+
+`tests/unit/account/test_chart_template.py` filtra las cuentas cargadas por
+`company_ids` en sus nueve consultas (`test_loads_the_four_families`, las
+de sucursal y raíz, y las de plantilla). Anulación: sin el alta en
+`company_ids` de `save` (MC1) caen esas consultas.
+
 ## Lo que este diseño no cierra
 
 Cada unidad registra su fila en el plan al abrirse (`account-account-mc1-0397`,
