@@ -152,6 +152,25 @@ class AccountAccount(models.RecordLoaderMixin, models.Model):
         related_name='accounts',
         help_text='Empresa (Odoo company_id / company_ids).',
     )
+    #: ≙ ``company_ids``
+    #: (``odoo19c: addons/account/models/account_account.py:97-98``): la
+    #: cuenta pertenece a varias empresas. Durante MC1 convive con
+    #: ``company``, y ``save`` la mantiene al día
+    #: (``designs/account-account-multicompany-code.md``).
+    company_ids = fields.Many2many(
+        'base.ResCompany',
+        blank=True,
+        related_name='+',
+        db_table='account_account_res_company_rel',
+        help_text='Empresas de la cuenta (Odoo company_ids).',
+    )
+    #: ≙ ``code_store = fields.Char(company_dependent=True)`` (``:40``): el
+    #: código por empresa raíz, del que la fuente calcula ``code``. Durante
+    #: MC1 ``save`` lo escribe desde la columna ``code``.
+    code_store = fields.Char(
+        company_dependent=True,
+        help_text='Código por empresa raíz (Odoo code_store).',
+    )
     note = fields.Text(
         blank=True,
         default='',
@@ -312,9 +331,30 @@ class AccountAccount(models.RecordLoaderMixin, models.Model):
         if not self._state.adding:
             self._compute_account_type()
             self._compute_internal_group()
+        update_fields = kwargs.get('update_fields')
+        if update_fields is None or {'code', 'company'} & set(update_fields):
+            self._sync_code_store()
+            if update_fields is not None:
+                kwargs['update_fields'] = {*update_fields, 'code_store'}
         result = super().save(*args, **kwargs)
+        if self.company_id and self.company_id not in self.company_ids.ids:
+            self.company_ids.add(self.company_id)
         self._compute_account_tags()
         return result
+
+    def _sync_code_store(self):
+        """Escribe ``code`` bajo la empresa raíz de ``company``.
+
+        ≙ ``_inverse_code``
+        (``odoo19c: addons/account/models/account_account.py:344-355``), que
+        escribe ``code_store`` con la empresa raíz activa. En MC1
+        ``code`` sigue siendo columna, así que el inverso se aplica al
+        guardar en vez de al asignar.
+        """
+        if not self.company_id or not self.code:
+            return
+        field = self._meta.get_field('code_store')
+        field.set_for_company(self, self.company.root_id.pk, self.code)
 
     @classmethod
     def search_new_account_code(cls, start_code, company, cache=None):
