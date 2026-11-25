@@ -59,3 +59,24 @@ Con `test_orm.user` (`group_count` almacenado, `@depends('group_ids')`) y
 ## Anulación prevista
 
 Sin el aviso al comodelo caen 1, 2 y 3; el 4 sobrevive.
+
+## Addendum — premisa refutada: REUSE (2026-11-25)
+
+Los cuatro casos pasan sin implementar nada. El puerto ya cumple el contrato
+de `:1586-1593` por otra vía: `_notify_m2m_modified` avisa al dueño
+(`group.modified(['user_ids'])`) y `_modified_triggers` baja por
+`registry.field_inverses` (`src/orm/models.py:5093`) hasta los dependientes
+del inverso, que es donde vive `test_orm.user.group_count`.
+
+Control de anulación, medido: con `_notify_m2m_modified` reducido a `return`
+caen los cuatro casos; restaurado, pasan los cuatro (`cmp` contra la copia).
+
+La primera versión de los casos **no discriminaba**: sin señal sólo caía
+`remove`. El usuario recién creado dejaba pendiente el cómputo de
+`group_count` y el `flush_all` final lo resolvía leyendo la relación actual,
+con o sin aviso (sub-patrón D). El fixture ahora vuelca y verifica `0` antes
+de escribir.
+
+Veredicto: **REUSE**. Esta unidad no implementa nada; los casos quedan como
+regresión del contrato. Para 0356 la dependencia está satisfecha por el
+mecanismo existente.
