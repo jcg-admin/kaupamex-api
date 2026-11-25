@@ -1744,7 +1744,7 @@ class IrModelFields(models.OriginMixin, TimeStampedModel):
         return created, updated
 
 
-class IrModelInherit(models.RecordLoaderMixin, models.Model):
+class IrModelInherit(models.BaseModel):
     """``ir.model.inherit`` — el árbol de herencia entre modelos.
 
     Sin marcas de tiempo: la fuente declara ``_log_access = False``, así que

@@ -89,10 +89,11 @@ def test_a_declared_one2many_is_not_a_column_to_index(registry, cr):
 
 def test_a_django_model_without_basemodel_is_walked_by_its_fields(
         registry, cr):
-    """``ir.model.inherit`` es un modelo de Django sin ``BaseModel``: sus
-    campos se leen con ``model_field_registry``. Ya tiene ``_fields`` (lo
-    trae ``RecordLoaderMixin`` desde ``record-loader-universality-0485``),
-    así que la premisa es la clase, no la ausencia del atributo."""
-    model = registry['ir.model.inherit']
+    """``ir.module.category`` es un modelo de Django sin ``BaseModel``: sus
+    campos se leen con ``model_field_registry``. Lleva un campo indexado
+    (``parent``), así que el recorrido tiene algo que comprobar. Hasta
+    ``basemodel-adoption-0397`` el sujeto era ``ir.model.inherit``, que hoy
+    hereda ``BaseModel`` como en la fuente."""
+    model = registry['ir.module.category']
     assert not issubclass(model, BaseModel)
-    registry.check_indexes(cr, ['ir.model.inherit'])
+    registry.check_indexes(cr, ['ir.module.category'])
