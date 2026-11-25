@@ -198,7 +198,6 @@
   "TASK-API-0383",
   "TASK-API-0398",
   "TASK-API-0403",
-  "TASK-API-0404",
   "TASK-API-0406",
   "TASK-API-0407",
   "TASK-API-0408",
@@ -208,7 +207,6 @@
   "TASK-API-0414",
   "TASK-API-0419",
   "TASK-API-0420",
-  "TASK-API-0422",
   "TASK-API-0424",
   "TASK-API-0427",
   "TASK-API-0429",
@@ -242,9 +240,11 @@
   "TASK-API-0399",
   "TASK-API-0401",
   "TASK-API-0402",
+  "TASK-API-0404",
   "TASK-API-0411",
   "TASK-API-0417",
   "TASK-API-0418",
+  "TASK-API-0422",
   "TASK-API-0479",
   "TASK-API-0486",
   "TASK-API-0504"
@@ -657,7 +657,9 @@
   "account-account-write-branches-0397",
   "account-code-mapping-0397",
   "orm-field-descriptor-size-guard-test-0401",
-  "orm-relational-unknown-comodel-check-0411"
+  "orm-relational-unknown-comodel-check-0411",
+  "orm-many2one-ondelete-django-label-0404",
+  "orm-create-bypass-search-access-check-0422"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
