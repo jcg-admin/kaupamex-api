@@ -16,11 +16,11 @@
 - El gate de estilo mide la clase entera cuando cambia su cabecera; se pagan
   las 19 incidencias heredadas de las dos clases (alineación en `Meta`, líneas
   largas). Sin cambio de conducta.
--  sólo se reflowa: el conjunto de
+- `IrModuleDependency._compute_depend_batch` sólo se reflowa: el conjunto de
   alias y el índice por nombre se parten en líneas ≤ 79, con el mismo cuerpo.
-  Referencia:  (),
-  que busca los módulos por nombre y asigna . Prueba:
-  .
+  Referencia: `_compute_depend` (`odoo19c: odoo/addons/base/models/ir_module.py:1022`),
+  que busca los módulos por nombre y asigna `depend_id`. Prueba:
+  `tests/integration/base/test_ir_module_dependencies.py`.
 
 ## Pruebas
 
