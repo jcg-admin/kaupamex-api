@@ -79,3 +79,35 @@ Y en `tests/unit/base/test_load_manifest.py`: `True` → `set(depends)`; lista �
 - sin el punto fijo: cae el 5; sin la rama `skip`: cae el 6;
 - sin la precondición de `installed`: cae el 7;
 - `is_initialized` con `True` fijo: cae el 2.
+
+## Addendum — versión: bloqueo medido, fuera de esta unidad (2026-11-25)
+
+`adapt_version` y `check_version` del puerto (`src/modules/module.py:265-288`)
+son parciales frente a `odoo19c: odoo/modules/module.py:550-579`: les falta la
+validación de 2 a 5 partes, el análisis entero de cada parte y la regla «más de
+3 partes no se prefija», y `_load_manifest` no llama `check_version`.
+
+Portarlos fiel choca con la serie propia del puerto. `src/release.py` declara
+`version_info = (0, 1, 0, ALPHA, 0, '')`, así que `serie = '0.1'`.
+`html_builder` y `purchase_requisition` declaran `'version': '0.1'`, igual que
+en la fuente (`odoo19c: addons/html_builder/__manifest__.py:16`,
+`addons/purchase_requisition/__manifest__.py:4`). Con serie `19.0` la fuente
+los prefija a `19.0.0.1`; con serie `0.1` la regla `version.startswith(serie)`
+no los prefija, `check_version` falla y quedarían `installable=False`.
+
+La colisión la crea la serie del puerto, no la fuente. Decidir la serie o cómo
+tratar esa coincidencia no es de esta unidad. **DESCONOCIDO**, con su
+condición de cierre: una decisión del ejecutor sobre `release.version_info` (o
+sobre la regla de prefijo cuando la versión del addon coincide con la serie).
+Hasta entonces esta unidad porta de `_load_manifest` el `deepcopy`, la
+`license` por defecto, la regla de `depends` y la normalización de
+`auto_install`, y deja `adapt_version`/`check_version` como están.
+
+## Addendum — lectura cruda en `update_module_list`
+
+El comando lee el manifest crudo (`addons.authz.declaration.read_manifest`) y
+no el normalizado, como hace la fuente en `update_list` (`get_manifest`). Esta
+unidad no cambia eso: el servicio extraído normaliza sólo `auto_install` para
+calcular `auto_install_required`, con `_load_manifest(name, raw)`. Que
+`update_module_list` guarde la versión prefijada y el autor derivado es una
+divergencia previa del porte de `update_list`, no de `initialize`.
