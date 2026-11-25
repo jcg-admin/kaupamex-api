@@ -5249,7 +5249,7 @@ def _notify_m2m_modified(sender, instance, action, reverse, model,
             else:
                 # Simétrico: sus propios dueños. Directo: los corecords que
                 # hay que avisar en ``post_clear`` (``:1586-1593``).
-                related = getattr(instance, field.name).using(using)
+                related = related_manager(instance, field.name).using(using)
                 previous = related.values_list('pk', flat=True)
             owners = instance.__dict__.setdefault(_M2M_CLEAR_OWNERS, {})
             owners[key] = tuple(previous)
