@@ -1927,6 +1927,20 @@
         "orm-relational-unknown-comodel-check-0411"
       ],
       "writtenAt": "2026-11-25T08:49:57Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "orm-many2one-ondelete-django-label-0404"
+      ],
+      "writtenAt": "2026-11-25T10:29:15Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "orm-create-bypass-search-access-check-0422"
+      ],
+      "writtenAt": "2026-11-25T10:29:15Z"
     }
   ]
 }
