@@ -238,7 +238,7 @@ def apply_directive(
         raise ValueError('Directiva inesperada: %r' % directive)
 
 
-class IrAsset(models.RecordLoaderMixin, models.Model):
+class IrAsset(models.BaseModel):
     """Una directiva declarativa sobre un bundle (``ir.asset``).
 
     Los cuatro atributos de clase son los de la fuente

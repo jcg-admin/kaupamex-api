@@ -267,7 +267,7 @@ ORIENTATION_LANDSCAPE = 'Landscape'
 ORIENTATION_PORTRAIT = 'Portrait'
 
 
-class ReportPaperformat(models.RecordLoaderMixin, models.Model):
+class ReportPaperformat(models.BaseModel):
     """Configuración de formato de papel (``report.paperformat``)."""
 
     #: Los dos atributos de clase que la fuente declara
