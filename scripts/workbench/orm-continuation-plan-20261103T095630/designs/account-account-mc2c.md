@@ -213,7 +213,10 @@ Queda:
    nunca corría; pasa a `company_ids` del usuario.
 3. `AccountAccount.save` deja de añadir `company` a `company_ids` y `create`
    deja de escribir el puente `company`.
-4. Migración `0057`: la columna se vuelve nula y se retira; al revertir se
+4. Migración `0057_remove_accountaccount_company` (≙ `company_ids`,
+   `odoo19c: addons/account/models/account_account.py:97-99`, única relación
+   de empresa de la fuente; la prueba es `tests/integration/company/test_seed_l0_chart.py`,
+   que filtra por `company_ids` sobre la base migrada): la columna se vuelve nula y se retira; al revertir se
    rellena desde `account_account_res_company_rel` antes de volver a exigir
    `NOT NULL`. `0055` ya copió los datos y `save` los mantuvo al día, así
    que no se pierde nada.
@@ -227,9 +230,16 @@ con una sola causa (el singular `check_company_domain_parent_of` devuelve
 real de la forma A; pasa a `account_journal.company`, que sigue en esa
 forma. Ninguna otra lectura de la columna en `src` ni `addons`.
 
+5. `ChartTemplate.get_bank_fees_reco_account` ≙ `_get_bank_fees_reco_account`
+   (`odoo19c: addons/account/models/chart_template.py:796-800`): búsqueda del
+   ORM con `_check_company_domain(company.id)` bajo la empresa, en vez de un
+   filtro Django por la columna. La búsqueda de «comisiones» entre las dos de
+   la fuente es una adición local que se conserva y se declara.
+
 Símbolos tocados: `AccountAccount._check_company_domain`,
 `AccountAccount.save`, `AccountAccount.create`,
-`AccountMergeWizard._check_access_rights`.
+`AccountMergeWizard._check_access_rights`,
+`ChartTemplate.get_bank_fees_reco_account`.
 
 Tests: `tests/unit/account/test_account_merge_wizard_companies.py` (usuario
 sin una empresa → `UserError` que la nombra; usuario con todas → pasa).
