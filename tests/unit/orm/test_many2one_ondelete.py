@@ -39,18 +39,15 @@ omisión. Ni una aserción más en ninguna de las tres.
 
 *Métrica:* la política que el campo construido lleva en
 ``remote_field.on_delete``, o la excepción que levantó al construirse.
-*Ciega a:* el caso 3 declarado con la **etiqueta de Django** —
-``fields.Many2one('base.IrModel', ondelete='restrict')``—. ``:289`` compara la
-cadena declarada contra ``IR_MODELS``, que lleva ``_name`` de la fuente, y
-allá no hay segundo vocabulario que comparar. Medido antes de dejarlo así:
-**0** declaraciones del árbol combinan etiqueta de Django con ``ondelete=``
-(``grep -rnE "Many2one\(\s*['\"][a-z_]+\.[A-Z]" src/ --include=*.py |
-grep -c ondelete``), así que el caso es hoy inalcanzable. Sucesor registrado:
-TASK-API-0404.
+*Ciega a:* el orden de carga real del árbol: la mitad diferida se mide con
+modelos de ``isolate_apps``, no con un ``IrModel`` declarado después de su
+referente. La etiqueta de Django, el destino por ``to=`` y el ``'restrict'``
+que sale del default quedan medidos abajo (TASK-API-0404).
 """
 
 import pytest
 from django.db import models as django_models
+from django.test.utils import isolate_apps
 
 import fields
 
@@ -126,3 +123,92 @@ class TestTheDjangoVocabularyStaysAlive:
         )
 
         assert deletion_policy(field) is django_models.CASCADE
+
+
+class TestTheRegistryGuardSeesBothVocabularies:
+    """La guarda de ``:289-294`` con el destino en cualquiera de sus formas.
+
+    ``IR_MODELS`` lleva los ``_name`` de la fuente; aquí el destino también
+    puede llegar como etiqueta de Django, por ``to=``, o sin cargar todavía.
+    """
+
+    def test_a_django_label_is_refused(self):
+        with pytest.raises(ValueError, match='ir.model'):
+            fields.Many2one('base.IrModel', ondelete='restrict', null=True)
+
+    def test_a_lowercase_label_is_refused(self):
+        with pytest.raises(ValueError, match='ir.model.fields'):
+            fields.Many2one('base.irmodelfields', ondelete='restrict',
+                            null=True)
+
+    def test_a_target_passed_by_to_is_refused(self):
+        with pytest.raises(ValueError, match='ir.model'):
+            fields.Many2one(to='ir.model', ondelete='restrict', null=True)
+
+    def test_a_label_outside_the_registry_models_keeps_restrict(self):
+        field = fields.Many2one('base.ResPartner', ondelete='restrict',
+                                null=True)
+        assert deletion_policy(field) is django_models.RESTRICT
+
+    def test_set_null_towards_a_registry_model_stays_allowed(self):
+        field = fields.Many2one('base.IrModel', ondelete='set null',
+                                null=True)
+        assert deletion_policy(field) is django_models.SET_NULL
+
+
+class TestTheDeferredGuard:
+    """El destino que aún no está cargado se comprueba cuando existe."""
+
+    def test_a_target_registered_later_is_refused(self):
+        with isolate_apps('addons.stock'):
+            class ReferrerProbe(django_models.Model):
+                target = fields.Many2one(
+                    'stock.LateIrModelProbe', ondelete='restrict', null=True)
+
+                class Meta:
+                    app_label = 'stock'
+
+            with pytest.raises(ValueError, match="ondelete='restrict'"):
+                class LateIrModelProbe(django_models.Model):
+                    _name = 'ir.model'
+
+                    class Meta:
+                        app_label = 'stock'
+
+    def test_a_required_default_towards_a_registry_model_is_refused(self):
+        """``:282`` fija ``'restrict'`` para un requerido y ``:289`` corre
+        sobre ese valor: el default también rehúsa."""
+        with isolate_apps('addons.stock'):
+            class IrModelTargetProbe(django_models.Model):
+                _name = 'ir.model'
+
+                class Meta:
+                    app_label = 'stock'
+
+            with pytest.raises(ValueError, match="ondelete='restrict'"):
+                class RequiredReferrerProbe(django_models.Model):
+                    target = fields.Many2one('stock.IrModelTargetProbe')
+
+                    class Meta:
+                        app_label = 'stock'
+
+    def test_django_on_delete_towards_a_registry_model_stays_allowed(self):
+        with isolate_apps('addons.stock'):
+            class IrModelCascadeProbe(django_models.Model):
+                _name = 'ir.model'
+
+                class Meta:
+                    app_label = 'stock'
+
+            class CascadeReferrerProbe(django_models.Model):
+                target = fields.Many2one(
+                    'stock.IrModelCascadeProbe',
+                    on_delete=django_models.CASCADE)
+
+                class Meta:
+                    app_label = 'stock'
+
+            assert deletion_policy(
+                CascadeReferrerProbe._meta.get_field('target')) is \
+                django_models.CASCADE
+
