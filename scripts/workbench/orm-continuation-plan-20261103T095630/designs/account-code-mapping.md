@@ -127,3 +127,32 @@ registrado bajo su nombre de la fuente, sin tabla (`_auto = False`,
 prueba porque buscó el archivo nuevo y no el nombre del modelo
 (`grep -rln "accountcodemapping\|account.code.mapping" tests/` da los dos
 archivos).
+
+## El id virtual supone empresas con pk < 10000 (F2 de df916a24)
+
+`odoo19c: account_code_mapping.py:6,42,65` codifica el id como
+`account_id * COMPANY_OFFSET + company.id` con `COMPANY_OFFSET = 10000` y lo
+decodifica con `//` y `%`. Con un pk de empresa ≥ 10000 no falla: devuelve otra
+cuenta y otra empresa (185096 → cuenta + 18, empresa 5096). Medido: las bases
+de los workers del gate tienen `res_company_id_seq` entre 105509 y 185096
+(`--reuse-db` no reinicia la secuencia); por eso la prueba pasó sola (base del
+worktree, pks bajos) y falló en el F2.
+
+Decisión de esta unidad:
+
+- La codificación se conserva verbatim: el id virtual es contrato público.
+- Nueva `_mapping_id(account_id, company_id)`, única constructora del id, usada
+  por `create` y `_search`; rehúsa con `UserError` si
+  `company_id >= COMPANY_OFFSET`. Divergencia declarada: la fuente no comprueba
+  nada porque supone ids pequeños; aquí devolver filas de otra cuenta en
+  silencio es peor que rehusar. Funciones cuyo cuerpo cambia: `create`,
+  `_search`; nueva: `_mapping_id`.
+- Pruebas: las empresas de `test_account_code_mapping_virtual.py` se crean con
+  pk explícito libre bajo el límite; caso nuevo: una empresa con pk ≥ límite en
+  las empresas del usuario hace que leer `code_mapping_ids` rehúse. Anulación:
+  sin la comprobación cae exactamente ese caso.
+
+DESCONOCIDO, decisión del ejecutor: una codificación válida para más de 9999
+empresas (Kaupamex hospeda empresas L1 sin tope declarado) cambia el contrato
+público del id. Condición de cierre: el ejecutor elige entre conservar el límite
+de la fuente con esta guarda o fijar otra codificación.
