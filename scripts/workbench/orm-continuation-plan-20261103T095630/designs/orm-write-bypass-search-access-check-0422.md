@@ -46,3 +46,19 @@ registro legible pasan.
 
 Anulación: sin la llamada en `RecordLoaderMixin.write` caen 1 y 2; sin el
 check en `_many2one_write` cae 3.
+
+## Corrección medida (implementación)
+
+La comprobación en `RecordLoaderMixin.write` sobraba: con ella anulada los seis
+casos seguían verdes, porque la escritura de una fila acaba pasando por
+`ForeignKey.write`. Se retira; queda un solo sitio, `_many2one_write`, el mismo
+que la fuente (`Many2one.write`). Anularlo tumba exactamente 1, 2 y 3.
+
+El modo superusuario se lee del `env` de los registros (`records.env.su`, como
+la fuente), con `is_su()` como respaldo para una fila de Django sin `env`
+(`_records_su`): con `is_su()` a secas, `foo.sudo().write(...)` rehusaba.
+
+Funciones cuyo cuerpo cambia: en `src/orm/fields_relational.py`,
+`check_bypassed_comodel_read`, `_records_su`, `_check_many2one_write_access` y
+`_many2one_write` (nuevas); en `src/orm/models.py`, `DefaultGetMixin.create`
+importa el helper y se retira el local `_check_bypassed_comodel_read`.
