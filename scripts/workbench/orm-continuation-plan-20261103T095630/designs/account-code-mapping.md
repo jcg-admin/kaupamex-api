@@ -65,6 +65,46 @@ verdad») se cumplió.
 4. **Acceso**: filas de ACL para el modelo; sin medir cómo trata el puerto un
    modelo sin tabla en `check_access` (`models.py:9057`).
 
+## Lo que entró en la unidad (medido)
+
+- `addons/account/models/account_code_mapping.py`: `AccountCodeMapping`
+  (`_auto = False`, `_table_query = '0'`, `Meta.managed = False`) con
+  `create`, `_search`, `_compute_account_id`, `_compute_company_id`,
+  `_compute_code` y `_inverse_code`; migración de estado
+  `0058_accountcodemapping`; `AccountAccount.code_mapping_ids`.
+- `One2many.__get__` (`src/orm/fields_relational.py`) deja de rehusar un
+  inverso sin columna: el One2many se lee buscando en el comodelo, como
+  `One2many.read` (`odoo19c: odoo/orm/fields_relational.py:940-967`).
+- `BaseModel._field_to_sql` (`src/orm/models.py`) separa el nombre inválido
+  del campo sin columna: `Invalid field` sólo si el campo no existe o es un
+  reverso de Django (`ForeignObjectRel`), y `Cannot convert … because it is
+  not stored` si existe sin columna (`odoo19c: odoo/orm/models.py:2920-2930`
+  y `odoo/orm/fields.py:1215-1216`). Así el control
+  `test_create_one2many_with_unsearchable_field` sigue rehusando con el
+  mensaje de la fuente.
+
+Divergencias de mecanismo, declaradas en el docstring del módulo:
+
+- `_compute_code`/`_inverse_code` leen y escriben bajo
+  `company_scope(company)`: aquí `env.company` sale de ese `ContextVar`, no
+  del contexto `allowed_company_ids` que escribe `with_company`.
+- `res.company` y `res.users` son modelos de Django: `company_id` se asigna
+  con la instancia, y las empresas del usuario se filtran por `active` y se
+  ordenan por `sequence, partner__name`.
+
+Tests: `tests/unit/account/test_account_code_mapping_virtual.py` (3).
+Anulaciones: con el guard repuesto caen las dos pruebas que leen o escriben
+a través del One2many; con la rama antigua de `_field_to_sql` cae
+exactamente el control del comodelo sin columna.
+
+## Sucesor: los comandos sobre `code_mapping_ids`
+
+`default_get` (`:724-725`), `copy_data` (`:903-923`) y `create`
+(`:1033-1046`) de `account.account` escriben `code_mapping_ids` con
+`Command.create({'company_id': …, 'code': …})`. Aplicar comandos One2many
+sobre un comodelo sin tabla no está medido. Sucesor
+`account-code-mapping-commands-0397`, con su prueba roja propia.
+
 ## Lo que este diseño no cierra
 
 - Si Django vuelve antes con `update_fields=[]` vacío (el camino de `write`
