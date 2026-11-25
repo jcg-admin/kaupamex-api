@@ -81,3 +81,9 @@ usuario. Ahora cada comprobación corre dentro del alcance del usuario.
 Anulaciones, restauradas con `cmp`: sin `_inaccessible_comodel_records` caen
 los casos 1 y 6; sin la regla del creador cae el 4; sin el dominio de
 seguridad de `_search` cae el 5.
+
+## Fila del plan
+
+Se incorpora como `attachment-record-access-0397`, con sus obligaciones y su
+`verify` reales. La fila `attachment-record-access` queda como registro del
+bloqueo anterior (su `verify` era `false`); esta la reemplaza.

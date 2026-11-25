@@ -114,3 +114,18 @@ ya estaba portada fiel: `src/addons/base/models/res_lang.py:221-226`
 `_get_active_by` (`:229-240`, ≙ `:315-330`). Su prueba:
 `tests/unit/base/test_res_lang_data.py::test_get_installed_is_built_from_the_active_cache_sorted_by_name`.
 No hay nada que implementar; la fila del plan la lista como verificación.
+
+## Addendum — un consumidor que el subconjunto no alcanzó (2026-11-25)
+
+El F2 de `42c36012` paró en
+`tests/unit/base/test_res_users_deactivate_portal.py::test_an_internal_user_cannot_deactivate_its_own_account`.
+`_deactivate_portal_user` rehúsa con `not user.share` y su helper creaba un
+grupo interno propio. El subconjunto derivado buscaba `.share` en los tests y
+no en el **código** que lee `share`; el test no nombra el campo.
+
+Re-derivado desde el código de producción
+(`grep -rnE "user\.share\b|\.share\b|'share'" src addons`): `res_users`
+(`_deactivate_portal_user`), `res_partner`, `hr_employee`,
+`hr_employee_public`, `resource_resource`, `digest`, `base_setup`
+(controlador y ajustes). Sus directorios de prueba dan 369 de 369 tras pasar
+el helper a `base.group_user` (`c9254c39`).
