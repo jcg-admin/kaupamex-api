@@ -202,11 +202,39 @@ restantes, por causa:
 
 ### MC2c-2 — retirada de `company` (`account-account-mc2c2-0397`)
 
-1. `_ensure_code_is_unique` al final de `create` y en `write`.
-2. `_check_company_domain` en plural.
-3. La lectura de `account.company` en `account_merge_wizard` pasa a la
-   empresa activa; `create` deja de escribir el puente; la migración
-   retira la columna `company`.
+`_ensure_code_is_unique` ya entró en MC2c-1 (sin columna no había otro orden).
+Queda:
+
+1. `_check_company_domain = models.check_companies_domain_parent_of`
+   (`:25`): el plural sobre `company_ids`, sin rama «compartida».
+2. `AccountMergeWizard._check_access_rights` ≙ `:125-132`: las
+   `company_ids` de las cuentas menos las del usuario. El guard leía
+   `user.companies`, un atributo que el modelo de usuario no tiene, así que
+   nunca corría; pasa a `company_ids` del usuario.
+3. `AccountAccount.save` deja de añadir `company` a `company_ids` y `create`
+   deja de escribir el puente `company`.
+4. Migración `0057`: la columna se vuelve nula y se retira; al revertir se
+   rellena desde `account_account_res_company_rel` antes de volver a exigir
+   `NOT NULL`. `0055` ya copió los datos y `save` los mantuvo al día, así
+   que no se pierde nada.
+
+Consumidores medidos retirando el campo en el worktree y ejecutando los 43
+archivos de tests que nombran `account.account` (comando: `grep -rlE
+"AccountAccount|'account\.account'" --include=*.py tests`): 235 rojos, 234
+con una sola causa (el singular `check_company_domain_parent_of` devuelve
+`None` sin columna, desde `_get_closest_parent_account`) y uno
+(`test_check_fk_naming`) que usaba `account_account.company` como positivo
+real de la forma A; pasa a `account_journal.company`, que sigue en esa
+forma. Ninguna otra lectura de la columna en `src` ni `addons`.
+
+Símbolos tocados: `AccountAccount._check_company_domain`,
+`AccountAccount.save`, `AccountAccount.create`,
+`AccountMergeWizard._check_access_rights`.
+
+Tests: `tests/unit/account/test_account_merge_wizard_companies.py` (usuario
+sin una empresa → `UserError` que la nombra; usuario con todas → pasa).
+Anulación: con el guard retirado cae exactamente el caso del usuario
+parcial (1 failed, 1 passed).
 
 ## Lo que este diseño no cierra
 
