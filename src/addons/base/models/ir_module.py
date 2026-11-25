@@ -545,21 +545,21 @@ class IrModule(TimeStampedModel):
         return modules.filter(pk__in=seen)
 
 
-class IrModuleDependency(TimeStampedModel):
+class IrModuleDependency(models.BaseModel, TimeStampedModel):
     """Una arista ``depends`` declarada por el manifest de un addon.
 
     Tabla aparte y no un M2M a ``IrModule``, igual que la referencia: la
     dependencia se declara por **nombre**, y el nombre puede apuntar a un addon
-    que todavía no está en el catálogo. Un M2M exigiría que el destino exista, y
-    perdería justamente el caso que interesa detectar.
+    que todavía no está en el catálogo. Un M2M exigiría que el destino
+    exista, y perdería justamente el caso que interesa detectar.
 
     **Divergencia declarada en** ``_log_access``. La referencia lo pone en
     ``False`` —*"inserts are done manually, create and write uid, dates are
-    always null"*— y aquí la clase hereda ``TimeStampedModel``, que sí escribe
-    esas columnas. No se retira: nuestra siembra **no** inserta a mano, pasa por
-    el ORM, así que las columnas llevan un valor real y no el ``null`` que la
-    fuente describe. El atributo se declara verbatim para que la divergencia sea
-    greppeable, no para que el ORM lo obedezca.
+    always null"*— y aquí la clase hereda ``TimeStampedModel``, que sí
+    escribe esas columnas. No se retira: nuestra siembra **no** inserta a
+    mano, pasa por el ORM, así que las columnas llevan un valor real y no el
+    ``null`` que la fuente describe. El atributo se declara verbatim para que
+    la divergencia sea greppeable, no para que el ORM lo obedezca.
     """
 
     _name = 'ir.module.module.dependency'
@@ -568,10 +568,11 @@ class IrModuleDependency(TimeStampedModel):
     _allow_sudo_commands = False
 
     module = fields.Many2one(
-        IrModule, on_delete=models.CASCADE, null=True, blank=True, related_name='dependencies',
+        IrModule, on_delete=models.CASCADE, null=True, blank=True,
+        related_name='dependencies',
         help_text='El addon que declara la dependencia.',
     )
-    name   = fields.Char(
+    name = fields.Char(
         db_index=True,
         help_text='Nombre técnico del addon del que depende.',
     )
@@ -589,10 +590,10 @@ class IrModuleDependency(TimeStampedModel):
     )
 
     class Meta:
-        db_table            = 'ir_module_module_dependency'
-        unique_together     = [('module', 'name')]
-        ordering            = ['name']
-        verbose_name        = 'Dependencia de módulo'
+        db_table = 'ir_module_module_dependency'
+        unique_together = [('module', 'name')]
+        ordering = ['name']
+        verbose_name = 'Dependencia de módulo'
         verbose_name_plural = 'Dependencias de módulo'
 
     def __str__(self):
@@ -627,14 +628,16 @@ class IrModuleDependency(TimeStampedModel):
         dependencies = list(dependencies)
         if not dependencies:
             return {}
-        aliases = {dependency._state.db or router.db_for_read(IrModule, instance=dependency)
+        aliases = {dependency._state.db
+                   or router.db_for_read(IrModule, instance=dependency)
                    for dependency in dependencies}
         if len(aliases) != 1:
-            raise ValidationError('A dependency batch must belong to one database')
+            raise ValidationError(
+                'A dependency batch must belong to one database')
         using = aliases.pop()
         names = {dependency.name for dependency in dependencies}
-        by_name = {module.name: module
-                   for module in IrModule.objects.using(using).filter(name__in=names)}
+        modules = IrModule.objects.using(using).filter(name__in=names)
+        by_name = {module.name: module for module in modules}
         return {dependency.pk: by_name.get(dependency.name)
                 for dependency in dependencies}
 
@@ -699,7 +702,7 @@ class IrModuleDependency(TimeStampedModel):
         return result
 
 
-class IrModuleExclusion(TimeStampedModel):
+class IrModuleExclusion(models.BaseModel, TimeStampedModel):
     """Una arista ``excludes`` — el addon que este otro no admite al lado.
 
     ≙ ``ir.module.module.exclusion`` (``odoo19c: ir_module.py:1065-1102``).
@@ -716,20 +719,21 @@ class IrModuleExclusion(TimeStampedModel):
     _description = "Module exclusion"
     _allow_sudo_commands = False
 
-    module    = fields.Many2one(
-        IrModule, on_delete=models.CASCADE, null=True, blank=True, related_name='exclusions',
+    module = fields.Many2one(
+        IrModule, on_delete=models.CASCADE, null=True, blank=True,
+        related_name='exclusions',
         help_text='El addon que declara la exclusión.',
     )
-    name      = fields.Char(
+    name = fields.Char(
         db_index=True,
         help_text='Nombre técnico del addon excluido.',
     )
 
     class Meta:
-        db_table            = 'ir_module_module_exclusion'
-        unique_together     = [('module', 'name')]
-        ordering            = ['name']
-        verbose_name        = 'Exclusión de módulo'
+        db_table = 'ir_module_module_exclusion'
+        unique_together = [('module', 'name')]
+        ordering = ['name']
+        verbose_name = 'Exclusión de módulo'
         verbose_name_plural = 'Exclusiones de módulo'
 
     def _compute_exclusion(self):

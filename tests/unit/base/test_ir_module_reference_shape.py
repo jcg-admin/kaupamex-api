@@ -23,10 +23,12 @@ inexistente describe un orden que el modelo no puede ejecutar, y ningún gate de
 conteo de símbolos lo ve.
 """
 
+import models
 import pytest
 from django.db import connection
 
-from addons.base.models import IrModule, IrModuleCategory, IrModuleDependency
+from addons.base.models import (IrModule, IrModuleCategory, IrModuleDependency,
+                                IrModuleExclusion)
 
 pytestmark = [pytest.mark.unit]
 
@@ -145,3 +147,12 @@ def test_the_display_name_falls_back_when_rec_name_is_empty():
 
     assert str(with_shortdesc) == 'Ventas'
     assert str(without_shortdesc) == 'sale'
+
+
+@pytest.mark.parametrize('model', [IrModuleDependency, IrModuleExclusion])
+def test_dependency_and_exclusion_are_basemodel(model):
+    """≙ ``class IrModuleModuleDependency(models.Model)`` y
+    ``IrModuleModuleExclusion`` (``odoo19c: ir_module.py:999,1065``): en la
+    fuente todo modelo con ``_name`` es ``BaseModel``."""
+    assert issubclass(model, models.BaseModel)
+
