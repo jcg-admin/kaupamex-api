@@ -1951,6 +1951,14 @@
         "orm-m2m-modified-inverse-side-0356"
       ],
       "writtenAt": "2026-11-25T14:08:25Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "base-res-users-share-field-0356",
+        "attachment-record-access-0397"
+      ],
+      "writtenAt": "2026-11-25T17:09:44Z"
     }
   ]
 }
