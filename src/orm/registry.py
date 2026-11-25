@@ -3308,4 +3308,3 @@ def identity_for_key(key):
     """
     model = model_by_key(key)
     return identity_of(model) if model is not None else key
-
