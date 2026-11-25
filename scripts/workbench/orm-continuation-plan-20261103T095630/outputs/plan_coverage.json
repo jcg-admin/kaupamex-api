@@ -665,7 +665,8 @@
   "orm-modules-db-initialize-0058",
   "orm-m2m-modified-inverse-side-0356",
   "base-res-users-share-field-0356",
-  "attachment-record-access-0397"
+  "attachment-record-access-0397",
+  "basemodel-adoption-base-ir-exports-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
