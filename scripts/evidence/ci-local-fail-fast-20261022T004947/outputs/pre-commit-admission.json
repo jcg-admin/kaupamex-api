@@ -3,26 +3,49 @@
     "/home/user/kaupamex-api-wt-mc2b/.venv/bin/python3",
     "/home/user/kaupamex-api-wt-mc2b/scripts/check_python_style_increment.py",
     "--base",
-    "0d8ed4b4ef899da4340884f87a852954b9af3f0f",
+    "b61fe498fda732b06df9de495eb4bf9e182410d0",
     "--index-tree",
-    "365d6d85512140554cdc8942a3091a0eb63a88fe",
+    "a1af432e194a47ee20a6b63857e0fc692abadff1",
     "--qualify-checkers",
     "--report",
     "/home/user/kaupamex-api-wt-mc2b/scripts/evidence/ci-local-fail-fast-20261022T004947/outputs/pre-commit-admission.json"
   ],
-  "files": [],
-  "reasons": [],
-  "increment_admission": "PASS",
+  "files": [
+    {
+      "path": "addons/account/migrations/0058_accountcodemapping.py",
+      "old_path": "addons/account/migrations/0058_accountcodemapping.py",
+      "status": "A",
+      "old_mode": "000000",
+      "new_mode": "100644",
+      "old_blob": "0000000000000000000000000000000000000000",
+      "new_blob": "da77ccfecdd70fbd2cc2ef09c3540e14b84eb245",
+      "inherited": [],
+      "introduced": [],
+      "corrected": [],
+      "invalidated_context": [],
+      "candidate_checks": {
+        "compilation_exit": 0,
+        "style_exit": 0,
+        "imports_exit": 0
+      },
+      "decision": "PASS",
+      "comparison": "STRICT_NEW_OR_MOVED_FILE"
+    }
+  ],
+  "reasons": [
+    "New or changed suppression requires review"
+  ],
+  "increment_admission": "ERROR",
   "global_style_compliance": "NOT_EVALUATED",
   "ci_verification": "NOT_EVALUATED",
   "contract_verification": "NOT_EVALUATED",
   "integration": "NOT_EVALUATED",
   "acceptance": "NOT_EVALUATED",
   "activation": "EXPLICIT_INCREMENT_EVALUATION",
-  "base": "0d8ed4b4ef899da4340884f87a852954b9af3f0f",
+  "base": "b61fe498fda732b06df9de495eb4bf9e182410d0",
   "candidate": {
-    "index_tree": "365d6d85512140554cdc8942a3091a0eb63a88fe",
-    "head": "0d8ed4b4ef899da4340884f87a852954b9af3f0f"
+    "index_tree": "a1af432e194a47ee20a6b63857e0fc692abadff1",
+    "head": "b61fe498fda732b06df9de495eb4bf9e182410d0"
   },
   "verifiers": {
     "/home/user/kaupamex-api-wt-mc2b/scripts/check_python_style_increment.py": "9d1cf3a3e90883d36fda4128bea9bf92322f993d6d3e290492a5217da74e8237",
@@ -36,6 +59,5 @@
     "imports": "check_no_lazy_imports.find_misplaced_imports",
     "compilation": "compile(exec), SyntaxWarning treated as error"
   },
-  "python_scope": "NONE",
-  "exit_code": 0
+  "exit_code": 2
 }

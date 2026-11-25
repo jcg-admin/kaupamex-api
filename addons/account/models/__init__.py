@@ -1,34 +1,46 @@
-"""Modelos del addon ``account`` — paquete espejo de ``odoo/addons/account/models/``.
+"""Modelos del addon ``account`` — paquete espejo de
+``odoo/addons/account/models/``.
 
 Un archivo por modelo (monolito modular, como Odoo). Núcleo del libro mayor de
 doble entrada:
 
-- ``account_account.py``          → ``AccountAccount``          (plan de cuentas).
-- ``account_account_tag.py``      → ``AccountAccountTag``       (casillas fiscales).
-- ``account_group.py``            → ``AccountGroup``            (agrupación por rango de código).
-- ``account_root.py``             → utilidades puras (prefijo de 2 dígitos; NO es modelo, ver docstring).
-- ``account_fiscal_position.py``  → ``AccountFiscalPosition``   (posición fiscal).
-- ``account_fiscal_position_account.py`` → ``AccountFiscalPositionAccount`` (mapeo de cuentas).
+- ``account_account.py`` → ``AccountAccount`` (plan de cuentas).
+- ``account_account_tag.py`` → ``AccountAccountTag`` (casillas fiscales).
+- ``account_group.py`` → ``AccountGroup`` (agrupación por rango de código).
+- ``account_root.py`` → utilidades puras (prefijo de 2 dígitos; NO es modelo,
+  ver docstring).
+- ``account_fiscal_position.py`` → ``AccountFiscalPosition`` (posición fiscal).
+- ``account_fiscal_position_account.py`` → ``AccountFiscalPositionAccount``
+  (mapeo de cuentas).
 - ``account_journal.py``          → ``AccountJournal``          (diarios).
-- ``account_journal_group.py``    → ``AccountJournalGroup``     (grupos de diarios).
+- ``account_journal_group.py`` → ``AccountJournalGroup`` (grupos de diarios).
 - ``account_tax.py``              → ``AccountTax``              (impuestos).
-- ``account_tax_group.py``        → ``AccountTaxGroup``         (grupo de impuestos).
-- ``account_tax_repartition_line.py`` → ``AccountTaxRepartitionLine`` (reparto de un impuesto).
-- ``account_move.py``             → ``AccountMove``             (asientos / facturas).
+- ``account_tax_group.py`` → ``AccountTaxGroup`` (grupo de impuestos).
+- ``account_tax_repartition_line.py`` → ``AccountTaxRepartitionLine`` (reparto
+  de un impuesto).
+- ``account_move.py`` → ``AccountMove`` (asientos / facturas).
 - ``account_move_line.py``        → ``AccountMoveLine``         (apuntes).
 - ``account_payment.py``          → ``AccountPayment``          (pagos).
-- ``account_payment_method.py``   → ``AccountPaymentMethod``, ``AccountPaymentMethodLine``
+- ``account_payment_method.py`` → ``AccountPaymentMethod``,
+  ``AccountPaymentMethodLine``
   (métodos de pago y su habilitación por diario).
-- ``account_payment_term.py``     → ``AccountPaymentTerm``, ``AccountPaymentTermLine``
+- ``account_payment_term.py`` → ``AccountPaymentTerm``,
+  ``AccountPaymentTermLine``
   (plazos de pago y sus cuotas).
-- ``account_bank_statement.py``   → ``AccountBankStatement``    (estados de cuenta).
-- ``account_bank_statement_line.py`` → ``AccountBankStatementLine`` (líneas bancarias).
-- ``account_lock_exception.py``   → ``AccountLockException``    (excepciones de candado).
-- ``account_cash_rounding.py``    → ``AccountCashRounding``     (redondeo de efectivo).
+- ``account_bank_statement.py`` → ``AccountBankStatement`` (estados de cuenta).
+- ``account_bank_statement_line.py`` → ``AccountBankStatementLine`` (líneas
+  bancarias).
+- ``account_lock_exception.py`` → ``AccountLockException`` (excepciones de
+  candado).
+- ``account_cash_rounding.py`` → ``AccountCashRounding`` (redondeo de
+  efectivo).
 - ``account_incoterms.py``        → ``AccountIncoterms``        (Incoterms).
-- ``account_partial_reconcile.py`` → ``AccountPartialReconcile`` (emparejamiento debe/haber).
-- ``account_full_reconcile.py``    → ``AccountFullReconcile``    (número de conciliación total).
-- ``account_reconcile_model.py``   → ``AccountReconcileModel`` + ``AccountReconcileModelLine``
+- ``account_partial_reconcile.py`` → ``AccountPartialReconcile``
+  (emparejamiento debe/haber).
+- ``account_full_reconcile.py`` → ``AccountFullReconcile`` (número de
+  conciliación total).
+- ``account_reconcile_model.py`` → ``AccountReconcileModel`` +
+  ``AccountReconcileModelLine``
   (reglas de conciliación automática).
 - ``account_report.py``            → ``AccountReport`` + ``AccountReportLine``
   + ``AccountReportExpression`` + ``AccountReportColumn``
@@ -67,8 +79,8 @@ la propia tupla ``_EXTENSIONES`` de ``apps.py``, que es su único dueño:
   ``display_account_prefix``/``account_prefix_placeholder`` (``store=False``)
   de ``analytic.account.analytic.applicability``.
 
-``account_code_mapping.py`` no declara ``apply_*_extensions()``: no crea
-modelo (divergencia de mecanismo declarada en su propio docstring).
+``account_code_mapping.py`` declara el modelo virtual ``account.code.mapping``
+(sin tabla); no extiende ningún modelo de ``analytic``.
 """
 from .account_account import AccountAccount
 from .account_account_tag import AccountAccountTag
@@ -110,10 +122,12 @@ from .chart_template import ChartTemplate, template
 # registro en chart_template.py). Sin estos imports el plan 'generic_coa' no
 # existiría para el cargador, y ninguna empresa recibiría sus diarios.
 from . import template_generic_coa  # noqa: F401
+from .account_code_mapping import AccountCodeMapping
 
 __all__ = [
     'AccountAccount',
     'AccountAccountTag',
+    'AccountCodeMapping',
     'AccountBankStatement',
     'AccountBankStatementLine',
     'AccountCashRounding',

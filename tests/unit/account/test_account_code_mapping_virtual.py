@@ -62,7 +62,10 @@ def shared_account(first_company, second_company):
 def test_each_company_of_the_user_gets_a_mapping_with_its_code(
         shared_account, first_company, second_company, accountant):
     with user_scope(accountant.pk), company_scope(first_company.pk):
-        mappings = shared_account.code_mapping_ids
+        # La cuenta se lee en el entorno del contable: las filas son las de
+        # sus empresas (``self.env.user.company_ids``, ``:62-64``).
+        account = current_env()['account.account'].browse(shared_account.id)
+        mappings = account.code_mapping_ids
         rows = {(mapping.company_id.id, mapping.code) for mapping in mappings}
     assert rows == {(first_company.pk, '101000'),
                     (second_company.pk, '101900')}

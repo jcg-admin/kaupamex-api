@@ -165,6 +165,11 @@ class AccountAccount(models.BaseModel):
         db_table='account_account_res_company_rel',
         help_text='Empresas de la cuenta (Odoo company_ids).',
     )
+    #: ≙ ``code_mapping_ids`` (``:100-103``): un registro virtual por empresa
+    #: del usuario con el código de la cuenta en ella
+    #: (``designs/account-code-mapping.md``).
+    code_mapping_ids = fields.One2many(
+        'account.code.mapping', 'account_id')
     #: ≙ ``code_store = fields.Char(company_dependent=True)`` (``:40``): el
     #: código por empresa raíz, del que la fuente calcula ``code``. Durante
     #: MC1 ``save`` lo escribe desde la columna ``code``.

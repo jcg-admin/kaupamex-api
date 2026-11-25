@@ -2717,14 +2717,19 @@ class FieldSqlMixin:
                             else f"{field.name}.{property_name}")
             return model._field_to_sql(alias, related_expr, query)
 
-        if not field or not getattr(field, 'concrete', False):
-            # El rechazo del campo sin columna vive AQUÍ y no en ``_fields``:
-            # quien compone SQL es quien sabe qué puede convertir. Antes lo
-            # hacía el mapa, filtrando por ``concrete``, y con eso el registro
-            # del modelo quedaba más estrecho que el de la fuente para todos
-            # sus consumidores — no sólo para éste (tarea #215).
+        # Un reverso de Django (``ForeignObjectRel``) no es un campo
+        # declarado: en la fuente no existe, así que es un nombre inválido.
+        if not field or isinstance(field, ForeignObjectRel):
             raise ValueError(
                 f"Invalid field {fname!r} on model {self._meta.label!r}")
+        if not getattr(field, 'concrete', False):
+            # El rechazo del campo sin columna vive AQUÍ y no en ``_fields``:
+            # quien compone SQL es quien sabe qué puede convertir (tarea
+            # #215). Un campo que existe pero no tiene columna no es un
+            # nombre inválido: es el ``to_sql`` de la fuente el que rehúsa
+            # (``odoo19c: odoo/orm/fields.py:1215-1216``), con su mensaje.
+            raise ValueError(
+                f"Cannot convert {field} to SQL because it is not stored")
 
         self._check_field_access(field, 'read')
 

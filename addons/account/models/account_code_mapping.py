@@ -1,77 +1,138 @@
+"""``account.code.mapping`` — los códigos de una cuenta por empresa.
+
+Adaptación de ``odoo19c: addons/account/models/account_code_mapping.py``
+(LGPL-3, copia y adaptación con atribución). Modelo sólo de interfaz, sin
+tabla ni filas (``_auto = False``, ``_table_query = '0'``): sus registros se
+fabrican con el id ``account_id * COMPANY_OFFSET + company_id`` (``:6``) y
+viven sólo en la caché.
+
+Hasta MC2c este archivo declaraba la divergencia porque la cuenta tenía una
+sola empresa. Desde MC2b–MC2c-2 la cuenta tiene ``company_ids`` y su código
+vive por empresa raíz en ``code_store``: la premisa de la fuente existe y el
+modelo se porta (``designs/account-code-mapping.md``).
+
+Divergencia de mecanismo declarada: ``Meta.managed = False`` con un
+``db_table`` simbólico, porque Django exige una tabla nominal para un modelo
+concreto; ningún código de este modelo la consulta.
 """
-``account.code.mapping`` — Odoo
-``addons/account/models/account_code_mapping.py``.
+from django.db import models as dj_models
 
-Adaptación de la referencia (``odoo-tools@622ddc2a``, ``odoo19c:``, LGPL-3,
-86 líneas, 6 ``def`` medidos por AST: ``create``, ``_search``,
-``_compute_account_id``, ``_compute_company_id``, ``_compute_code``,
-``_inverse_code``). Divergencia de mecanismo declarada — **ningún modelo
-Django se crea en este archivo**: el propio comentario de la referencia
-explica por qué su premisa no existe aquí.
+import api
+import fields
+import models
+from addons.base.models import ResCompany
+from exceptions import UserError
+from orm.domains import Domain
+from orm.environments import company_scope, env
+from tools.translate import _
 
-Qué es en la referencia, y por qué su premisa no aplica
-==========================================================
+COMPANY_OFFSET = 10000
 
-El comentario de cabecera de la clase (odoo19c: líneas 10-12) lo dice
-verbatim: *"This model is used purely for UI, to display the account codes
-for each company. It is not stored in DB."* Es un modelo **virtual**
-(``_auto = False``, ``_table_query = '0'`` — sin tabla real), cuyo único
-trabajo es dejar que la vista del plan de cuentas muestre, para **una misma
-cuenta contable compartida entre varias compañías**, un **código de cuenta
-distinto por compañía** — la semántica de ``company_dependent`` aplicada al
-campo ``code`` de ``account.account``.
 
-Esa premisa —una fila de ``account.account`` visible en N compañías, cada una
-con su propio código— **no existe en este árbol**. Medido:
-``account_account.py:86-89`` declara ``company = fields.Many2one('base.
-ResCompany', on_delete=models.CASCADE, ...)`` — **un** ``ForeignKey``, no un
-``ManyToMany``: cada cuenta pertenece exactamente a **una** compañía. El
-``UniqueConstraint(fields=['company', 'code'], ...)`` de ese mismo archivo
-(:101-107) ya impone "un código por cuenta por compañía" — pero porque la
-relación cuenta↔compañía es 1:1, no 1:N. No hay "la misma cuenta, dos
-compañías, dos códigos" que mapear: el concepto entero que
-``account.code.mapping`` existe para resolver está fuera del modelo de datos
-de este árbol.
+class AccountCodeMapping(models.BaseModel):
+    """≙ ``AccountCodeMapping`` (``:9-86``)."""
 
-Fabricar un modelo Django ``managed=False`` con un ``_search`` a medida sobre
-un ID sintético (``account_id * 10000 + company_id``, odoo19c: línea 6,
-``COMPANY_OFFSET``) construiría una feature nueva sobre una premisa que no
-existe — el anti-patrón exacto que ``porte-completo-no-parcial.md`` prohíbe
-en su forma inversa: no es *no portar lo que sí aplica*, es *inventar sobre
-lo que no aplica*. Se declara la divergencia, no se fabrica el modelo.
+    _name = 'account.code.mapping'
+    _description = "Mapping of account codes per company"
+    _auto = False
+    _table_query = '0'
 
-Los 6 símbolos, uno por uno
-=============================
+    account_id = fields.Many2one(
+        'account.AccountAccount', store=False,
+        compute='_compute_account_id', on_delete=dj_models.DO_NOTHING,
+        related_name='+', string="Account")
+    company_id = fields.Many2one(
+        'base.ResCompany', store=False, compute='_compute_company_id',
+        on_delete=dj_models.DO_NOTHING, related_name='+', string="Company")
+    code = fields.Char(
+        store=False, compute='_compute_code', inverse='_inverse_code',
+        string="Code")
 
-- ``create`` — construye el ID sintético a partir de ``vals['account_id']``/
-  ``vals['company_id']``. Sin el ID sintético (que existe sólo porque no hay
-  tabla propia), no hay nada que construir.
-- ``_search`` — intercepta el dominio ``[('account_id', 'in', [...])]`` y
-  expande manualmente el producto cartesiano cuenta×compañía. Depende del
-  framework de dominios/``_search`` override de Odoo — ausente en este ORM
-  (misma ausencia que documenta ``account_analytic_distribution_model.py``
-  para su propio ``_create_domain`` heredado).
-- ``_compute_account_id`` / ``_compute_company_id`` — decodifican el ID
-  sintético (``// COMPANY_OFFSET``, ``% COMPANY_OFFSET``). Sin ID sintético,
-  no hay qué decodificar.
-- ``_compute_code`` / ``_inverse_code`` — leen/escriben ``account.code`` con
-  ``with_company(record.company_id)`` — el cambio de contexto de compañía
-  activa de Odoo, sin análogo en este stack (no hay ``self.env`` ambiental).
-  Y como ``AccountAccount.company`` es 1:1, ``account.with_company(X).code``
-  no tiene sentido cuando ``X`` no es ya la única compañía de la cuenta.
+    class Meta:
+        managed = False
+        db_table = 'account_code_mapping'
 
-Qué NO se pierde
-==================
+    @api.model_create_multi
+    @classmethod
+    def create(cls, vals_list):
+        """≙ ``create`` (``:39-47``): devuelve los registros de los ids
+        sintéticos y escribe su ``code``, que dispara el inverso."""
+        mappings = env()[cls._name].browse([
+            vals['account_id'] * COMPANY_OFFSET + vals['company_id']
+            for vals in vals_list
+        ])
+        for mapping, vals in zip(mappings, vals_list):
+            mapping.write({'code': vals['code']})
+        return mappings
 
-Nada del dato real: el código de una cuenta en **su** compañía ya es
-consultable directo, ``AccountAccount.objects.get(pk=...).code`` — sin
-necesitar un modelo intermedio, porque no hay ambigüedad de "en cuál
-compañía" que resolver.
+    @classmethod
+    def _search(cls, domain, offset=0, limit=None, order=None, **kw):
+        """≙ ``_search`` (``:49-67``): exige ``('account_id', 'in', ids)``
+        y devuelve cuenta × empresas activas del usuario (por ``sequence,
+        name``) filtradas por el resto del dominio."""
+        account_ids = []
 
-Sucesor: tarea PENDIENTE DE ASIGNAR — si el proyecto decide adoptar
-``company_dependent`` de verdad (una cuenta contable compartida por varias
-compañías, cada una con su propio código — cambio de ``AccountAccount.company``
-de ``ForeignKey`` a través de una tabla puente), este archivo es el punto de
-partida para re-derivar el modelo virtual que lo expone a la UI. Hasta
-entonces, DESCONOCIDO con esta condición de cierre explícita.
-"""
+        def get_accounts(condition):
+            if (not account_ids and condition.field_expr == 'account_id'
+                    and condition.operator == 'in'):
+                account_ids.extend(condition.value)
+                return Domain(bool(condition.value))
+            return condition
+
+        remaining_domain = Domain(domain).map_conditions(get_accounts)
+        if not account_ids:
+            raise UserError(_(
+                "Account Code Mapping cannot be accessed directly. "
+                "It is designed to be used only through the Chart of "
+                "Accounts."
+            ))
+        # ``res.users`` es aquí un modelo de Django: el
+        # ``with_context(active_test=True).company_ids.sorted(...)`` de la
+        # fuente es el filtro ``active`` y el orden ``sequence, name``
+        # (``name`` es el ``related='partner_id.name'`` de la empresa).
+        companies = env().user.company_ids.filter(active=True).order_by(
+            'sequence', 'partner__name')
+        return env()[cls._name].browse([
+            account_id * COMPANY_OFFSET + company.id
+            for account_id in account_ids
+            for company in companies
+        ]).filtered_domain(remaining_domain)._as_query()
+
+    def _compute_account_id(self):
+        """≙ ``_compute_account_id`` (``:69-71``). La fuente asigna el id y su
+        ``convert_to_cache`` lo vuelve registro; aquí se asigna el registro."""
+        accounts = self.env['account.account']
+        for record in self:
+            record.account_id = accounts.browse(
+                record._origin.id // COMPANY_OFFSET)
+
+    def _compute_company_id(self):
+        """≙ ``_compute_company_id`` (``:73-75``). ``res.company`` es aquí un
+        modelo de Django: se asigna su instancia."""
+        ids = {record._origin.id % COMPANY_OFFSET for record in self}
+        companies = ResCompany.objects.in_bulk(ids)
+        for record in self:
+            record.company_id = companies.get(
+                record._origin.id % COMPANY_OFFSET)
+
+    @api.depends('account_id.code')
+    def _compute_code(self):
+        """≙ ``_compute_code`` (``:77-81``).
+
+        Divergencia de mecanismo declarada: la fuente lee
+        ``account.with_company(company).code``; aquí ``env.company`` sale de
+        ``company_scope``, no del contexto ``allowed_company_ids`` que
+        ``with_company`` escribe, así que el código se lee bajo
+        ``company_scope(company)``.
+        """
+        for record in self:
+            with company_scope(record.company_id.pk):
+                record.code = record.account_id.code
+
+    def _inverse_code(self):
+        """≙ ``_inverse_code`` (``:83-86``), bajo ``company_scope`` por la
+        misma razón que :meth:`_compute_code`."""
+        for record in self:
+            code = record.code
+            with company_scope(record.company_id.pk):
+                record.account_id.write({'code': code})

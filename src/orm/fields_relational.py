@@ -652,12 +652,12 @@ class One2many:
         if self.related:
             return self._get_related(instance)
         comodel, inverse = self._inverse_field()
-        if getattr(inverse, 'store', True) is False:
-            # ≙ ``Field.to_sql`` (``odoo19c: odoo/orm/fields.py:1215-1216``):
-            # el One2many se lee filtrando por su inverso, y un inverso sin
-            # columna no tiene SQL que emitir.
-            raise ValueError(
-                f'Cannot convert {inverse} to SQL because it is not stored')
+        # Un inverso sin columna no se rechaza aquí: como en la fuente, el
+        # One2many se lee buscando en el comodelo (``One2many.read``,
+        # ``odoo19c: odoo/orm/fields_relational.py:940-967``), y el rechazo
+        # sale de ``Field.to_sql`` (``odoo19c: odoo/orm/fields.py:1215-1216``)
+        # sólo si el comodelo no intercepta esa condición en su ``_search``,
+        # como hace ``account.code.mapping``.
         if (isinstance(instance.pk, NewId) and hasattr(instance, '_ids')
                 and hasattr(comodel, '_from_ids')):
             # Un registro de ``new()`` sólo vive en caché: sus líneas son las
