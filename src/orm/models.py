@@ -922,10 +922,11 @@ class DefaultGetMixin:
           del ``INSERT``; el sitio es el mismo, el instrumento es
           ``manager.set``.
         - **El check de ``bypass_search_access`` del ``many2one``**
-          (``:4686-4687``) no viaja: ningún campo de este árbol declara ese
-          atributo (``grep -rn bypass_search_access src addons`` → 0), y el
-          registro por nombre lo resolvería ``check_access('read')`` del
-          comodelo. Se declara, no se omite: tarea sucesora en el hallazgo.
+          (``:4686-4687``) lee el registro del comodelo con el
+          ``AccessQuerySet`` de su manager
+          (:func:`_check_bypassed_comodel_read`): una fila de Django no tiene
+          ``browse``. Lo llevan los FK delegados
+          de ``_inherits`` (``orm/inherits.py``).
         - **``invalidate_recordset`` sobre los x2many no almacenados tras el
           inverso** (``:4737-4738``): aquí un x2many sin columna no tiene
           caché que invalidar — un campo sin columna recalcula al leer
@@ -1018,6 +1019,12 @@ class DefaultGetMixin:
                 # against (re)computation
                 if compute and (not readonly or precompute):
                     protected.update(_computed_group(field))
+                # ``:4686-4687``: un Many2one que salta la búsqueda de su
+                # comodelo no deja enlazar un registro que el usuario no lee.
+                if (isinstance(field, ForeignKey)
+                        and getattr(field, 'bypass_search_access', False)
+                        and not is_su()):
+                    _check_bypassed_comodel_read(field, val)
             # los precompute que ``vals`` no trae los añade
             # ``_add_precomputed_values`` (``:4814-4846``) antes de esta
             # condición, así que también quedan protegidos
@@ -1382,6 +1389,23 @@ def _parent_store_update(record):
     )))
     if record.pk in updated:
         record.__dict__['parent_path'] = updated[record.pk]
+
+
+def _check_bypassed_comodel_read(field, value):
+    """``check_access('read')`` sobre el registro del comodelo de ``field``.
+
+    ≙ ``odoo19c: odoo/orm/models.py:4686-4687``: ``browse(convert_to_cache(
+    val)).check_access('read')``. El valor llega como entero, instancia o
+    recordset; se reduce a su pk y lo comprueba el ``AccessQuerySet`` del
+    manager del comodelo, como ``inherits._check_delegate_access``. Un valor
+    vacío no comprueba nada: allá el recordset queda vacío.
+    """
+    pk = getattr(value, 'pk', value)
+    if not pk:
+        return
+    rows = field.related_model._default_manager.filter(pk=pk)
+    if hasattr(rows, 'check_access'):
+        rows.check_access('read')
 
 
 def _creation_flags(field):
