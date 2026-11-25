@@ -1966,6 +1966,13 @@
         "basemodel-adoption-base-ir-exports-0397"
       ],
       "writtenAt": "2026-11-25T18:28:05Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-base-ir-cron-trigger-progress-0397"
+      ],
+      "writtenAt": "2026-11-25T19:42:57Z"
     }
   ]
 }
