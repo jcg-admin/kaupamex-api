@@ -105,3 +105,12 @@ por usar un grupo interno propio se corrigen para dar `base.group_user`.
 | `src/orm/models.py: _notify_inverse_side` | `odoo19c: odoo/orm/fields_relational.py:1586-1593` | `tests/unit/base/test_res_users_share_field.py` (casos 2-4 desde el grupo), `tests/unit/orm/test_m2m_modified_inverse_side.py` |
 | `src/addons/base/migrations/0129_res_users_share.py` (`0129_res_users_share`) | `odoo19c: odoo/addons/base/models/res_users.py:234-235,459-464` | `tests/unit/base/test_res_users_share_field.py::test_share_is_a_stored_compute` |
 | `ResUsers._compute_share` | `odoo19c: odoo/addons/base/models/res_users.py:459-464` | `tests/unit/base/test_res_users_share_field.py` |
+
+## La otra mitad de TASK-GEN-0356: `ResLang.get_installed`
+
+La tarea nombra «share de ResUsers **y get_installed de ResLang**». La segunda
+ya estaba portada fiel: `src/addons/base/models/res_lang.py:221-226`
+(≙ `odoo19c: odoo/addons/base/models/res_lang.py:311-313`), leída de la caché
+`_get_active_by` (`:229-240`, ≙ `:315-330`). Su prueba:
+`tests/unit/base/test_res_lang_data.py::test_get_installed_is_built_from_the_active_cache_sorted_by_name`.
+No hay nada que implementar; la fila del plan la lista como verificación.
