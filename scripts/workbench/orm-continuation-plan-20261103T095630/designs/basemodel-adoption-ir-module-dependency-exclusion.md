@@ -16,6 +16,11 @@
 - El gate de estilo mide la clase entera cuando cambia su cabecera; se pagan
   las 19 incidencias heredadas de las dos clases (alineación en `Meta`, líneas
   largas). Sin cambio de conducta.
+-  sólo se reflowa: el conjunto de
+  alias y el índice por nombre se parten en líneas ≤ 79, con el mismo cuerpo.
+  Referencia:  (),
+  que busca los módulos por nombre y asigna . Prueba:
+  .
 
 ## Pruebas
 
