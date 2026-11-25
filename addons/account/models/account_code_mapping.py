@@ -52,13 +52,29 @@ class AccountCodeMapping(models.BaseModel):
         managed = False
         db_table = 'account_code_mapping'
 
+    @classmethod
+    def _mapping_id(cls, account_id, company_id):
+        """El id virtual de la fila (cuenta, empresa): ``:42`` y ``:65``.
+
+        La fuente supone pks de empresa menores que ``COMPANY_OFFSET``; con uno
+        mayor, ``//`` y ``%`` decodificarían otra cuenta y otra empresa sin
+        error. Divergencia declarada: aquí se rehúsa en vez de devolverlas
+        (``designs/account-code-mapping.md``).
+        """
+        if company_id >= COMPANY_OFFSET:
+            raise UserError(_(
+                "Account Code Mapping supports companies with an id below "
+                "%(offset)s; company %(company)s is past that limit.",
+                offset=COMPANY_OFFSET, company=company_id))
+        return account_id * COMPANY_OFFSET + company_id
+
     @api.model_create_multi
     @classmethod
     def create(cls, vals_list):
         """≙ ``create`` (``:39-47``): devuelve los registros de los ids
         sintéticos y escribe su ``code``, que dispara el inverso."""
         mappings = env()[cls._name].browse([
-            vals['account_id'] * COMPANY_OFFSET + vals['company_id']
+            cls._mapping_id(vals['account_id'], vals['company_id'])
             for vals in vals_list
         ])
         for mapping, vals in zip(mappings, vals_list):
@@ -93,7 +109,7 @@ class AccountCodeMapping(models.BaseModel):
         companies = env().user.company_ids.filter(active=True).order_by(
             'sequence', 'partner__name')
         return env()[cls._name].browse([
-            account_id * COMPANY_OFFSET + company.id
+            cls._mapping_id(account_id, company.id)
             for account_id in account_ids
             for company in companies
         ]).filtered_domain(remaining_domain)._as_query()
