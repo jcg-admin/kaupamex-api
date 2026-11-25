@@ -21,9 +21,9 @@ Vive en ``company`` (dueño del concepto L0/system) y **lee** los modelos de
 import fields
 
 from addons.base.management.unit_of_work import UnitOfWorkCommand
-from addons.account.models import AccountAccount, AccountJournal
+from addons.account.models import AccountJournal
 from addons.base.models import ResCompany
-from orm.environments import env
+from orm.environments import company_scope, env
 
 # Carta contable L0 mínima (códigos alineados con el fixture ``l0_chart``).
 _JOURNAL = {'code': 'VEN', 'name': 'Ventas plataforma', 'type': 'sale'}
@@ -61,15 +61,22 @@ class Command(UnitOfWorkCommand):
         for spec in _ACCOUNTS:
             # La cuenta pertenece a sus empresas por ``company_ids``, como en
             # la fuente (``designs/account-account-mc2b.md``).
-            account = AccountAccount.objects.filter(
-                company_ids=system, code=spec['code']).first()
-            created = account is None
-            if created:
-                account = env()['account.account'].sudo().create({
-                    **spec,
-                    'company_ids': [fields.Command.set([system.pk])],
-                })
-            self._report('Cuenta', account.code, created)
+            # El código vive por empresa raíz: se busca y se escribe con la
+            # empresa del sistema activa.
+            with company_scope(system.pk):
+                accounts = env()['account.account'].sudo()
+                account = accounts.search([
+                    ('company_ids', '=', system.pk),
+                    ('code', '=', spec['code']),
+                ], limit=1)
+                created = not account
+                if created:
+                    account = accounts.create({
+                        **spec,
+                        'company_ids': [fields.Command.set([system.pk])],
+                    })
+                code = account.code
+            self._report('Cuenta', code, created)
 
     def _report(self, kind, code, created):
         verb = 'creado' if created else 'existía'

@@ -2,16 +2,16 @@
 
 ≙ ``company_ids`` y ``code_store`` (``odoo19c:
 addons/account/models/account_account.py:40, 97-99``) y el inverso de
-``code`` que escribe en la raíz (``:344-355``). Primer paso del porte
-multiempresa: ``company`` y ``code`` siguen siendo columnas y ``save``
-mantiene al día las nuevas.
+``code`` que escribe en la raíz (``:344-355``). Desde MC2c-1 ``code`` no
+tiene columna: el inverso escribe ``code_store`` en la raíz de la empresa
+activa.
 """
 import pytest
 
 from addons.account.models import AccountAccount
 from addons.base.models import ResCompany
 from orm.commands import Command
-from orm.environments import env as current_env
+from orm.environments import company_scope, env as current_env
 
 pytestmark = pytest.mark.django_db
 
@@ -56,6 +56,7 @@ def test_the_code_is_stored_under_the_root_company(branch, root):
 
 def test_changing_the_code_rewrites_the_root_value(root):
     account = _account(root)
-    account.code = '101001'
-    account.save(update_fields=['code'])
+    with company_scope(root.pk):
+        current_env()['account.account'].sudo().browse(account.id).write(
+            {'code': '101001'})
     assert _code_store(account) == {str(root.pk): '101001'}

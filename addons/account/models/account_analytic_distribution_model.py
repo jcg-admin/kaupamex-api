@@ -79,6 +79,7 @@ from addons.analytic.models.analytic_distribution_model import (
     AccountAnalyticDistributionModel,
 )
 from addons.product.models import ProductCategory, ProductProduct
+from orm.environments import company_scope, env, get_current_company
 from orm.method_chain import chain_method
 from tools.translate import _
 
@@ -91,14 +92,19 @@ def _compute_prefix_placeholder(instance):
     """≙ ``_compute_prefix_placeholder`` (odoo19c: :53-70), ver docstring del
     módulo para la sustitución de ``self.env.company`` por ``self.company``.
     """
-    accounts = AccountAccount.objects.filter(account_type='expense')
+    domain = [('account_type', '=', 'expense')]
     if instance.company_id is not None:
-        accounts = accounts.filter(company_ids=instance.company_id)
-    expense_account = accounts.order_by('code').first()
+        domain.append(('company_ids', '=', instance.company_id))
+    # El código se lee en la empresa del modelo, que aquí ocupa el lugar
+    # de ``self.env.company``.
+    with company_scope(instance.company_id or get_current_company()):
+        expense_account = env()['account.account'].sudo().search(
+            domain, limit=1)
+        expense_code = expense_account.code if expense_account else False
 
     account_prefixes = '60, 61, 62'
-    if expense_account and expense_account.code:
-        prefix_base = expense_account.code[:2]
+    if expense_code:
+        prefix_base = expense_code[:2]
         try:
             prefix_num = int(prefix_base)
             account_prefixes = (

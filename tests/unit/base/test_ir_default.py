@@ -502,6 +502,16 @@ class TestEvaluateConditionWithFallback:
         assert IrDefault._evaluate_condition_with_fallback(
             self.MODEL, self.FIELD, '=', 'optional') is False
 
+    def test_the_model_is_named_by_its_reference_name(self):
+        """``_field_condition_to_sql_company`` pasa ``model._name``
+        (``'account.analytic.plan'``), como la fuente; resolverlo con
+        ``apps.get_model`` lo leía como app ``account``, modelo
+        ``analytic.plan``."""
+        self._clear()
+        IrDefault.set(self.MODEL, self.FIELD, 'optional')
+        assert IrDefault._evaluate_condition_with_fallback(
+            'account.analytic.plan', self.FIELD, '=', 'optional') is True
+
 
 class TestWriteSurface:
     """``create``/``write``/``unlink`` — y que ``save``/``delete`` no se salten."""

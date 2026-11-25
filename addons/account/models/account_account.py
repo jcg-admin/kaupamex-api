@@ -23,7 +23,7 @@ import api
 import fields
 import models
 from exceptions import UserError
-from orm.environments import env
+from orm.environments import company_scope, env
 from tools.query import Query
 from tools.sql import SQL
 from tools.translate import _
@@ -93,8 +93,14 @@ class AccountAccount(models.BaseModel):
         ('off', 'Fuera de balance'),
     ]
 
+    #: ≙ ``code`` (``odoo19c: addons/account/models/account_account.py:39``):
+    #: sin columna, calculado sobre ``code_store`` en la raíz de la empresa
+    #: activa, con búsqueda e inverso (``:333-353``).
     code = fields.Char(
-        max_length=64,
+        compute='_compute_code',
+        search='_search_code',
+        inverse='_inverse_code',
+        store=False,
         help_text='Código de cuenta (Odoo account.account.code).',
     )
     name = fields.Char(
@@ -222,13 +228,10 @@ class AccountAccount(models.BaseModel):
 
     class Meta:
         db_table = 'account_account'
-        ordering = ['code']
-        constraints = [
-            models.UniqueConstraint(
-                fields=['company', 'code'],
-                name='unique_account_code_company',
-            ),
-        ]
+        # El orden es ``_order`` (``code, placeholder_code``), que el ORM
+        # resuelve con ``_field_to_sql``; ``code`` no tiene columna que dar a
+        # Django.
+        ordering = ['id']
         verbose_name = 'Cuenta contable'
         verbose_name_plural = 'Cuentas contables'
 
@@ -256,35 +259,30 @@ class AccountAccount(models.BaseModel):
         declare. Por eso el CSV del plan genérico sólo etiqueta 13 de sus 46
         cuentas — las otras 33 heredan de su vecina anterior.
 
-        La búsqueda es la misma: todas las cuentas de la empresa ordenadas por
-        código, y ``bisect_left`` sobre esa lista.
+        La búsqueda es la misma: las cuentas de la empresa activa
+        (``_check_company_domain(env.company)``) ordenadas por código, y
+        ``bisect_left`` sobre esa lista.
 
         Devuelve una **lista alineada con la entrada** en vez de escribir el
         campo, por dos razones que la referencia no tiene: una relación M2M no
         se puede asignar antes de que la fila exista, y una cuenta todavía sin
         ``pk`` no es hasheable, así que tampoco sirve de clave.
         """
-        codes_of_the_company = {}
+        environment = env()
+        domain = cls._check_company_domain(environment.company)
+        all_accounts = environment['account.account'].sudo().search(
+            domain, order='code')
+        accounts_with_codes = {}
+        for parent in all_accounts:
+            accounts_with_codes[parent.code] = parent
+        codes_list = list(accounts_with_codes)
         out = []
         for account in accounts_to_process:
-            if not account.code:
-                out.append(default_value)
-                continue
-            company = account.company
-            if company.pk not in codes_of_the_company:
-                codes_of_the_company[company.pk] = list(
-                    cls.objects.filter(company=company)
-                    .order_by('code')
-                    .values_list('pk', 'code')
-                )
-            rows = codes_of_the_company[company.pk]
-            closest_index = (
-                bisect_left([code for _pk, code in rows], account.code) - 1
-            )
+            closest_index = bisect_left(codes_list, account.code) - 1
             if closest_index == -1:
                 out.append(default_value)
                 continue
-            parent = cls.objects.get(pk=rows[closest_index][0])
+            parent = accounts_with_codes[codes_list[closest_index]]
             if cls._meta.get_field(field_name).many_to_many:
                 # La tabla, no el descriptor: leer el campo calculado lo
                 # recomputaría sobre el recordset que se está calculando.
@@ -365,6 +363,36 @@ class AccountAccount(models.BaseModel):
             return None
         return tuple(user._get_company_ids())
 
+    @api.depends_context('company')
+    @api.depends('code_store')
+    def _compute_code(self):
+        """≙ ``_compute_code``
+        (``odoo19c: addons/account/models/account_account.py:333-338``): el
+        valor de ``code_store`` en la raíz de la empresa activa."""
+        with company_scope(self._root_company_id(self.env.company)):
+            for account in self:
+                account.code = account.code_store or False
+
+    def _search_code(self, operator, value):
+        """≙ ``_search_code`` (``:340-341``): busca en ``code_store`` con la
+        raíz de la empresa activa."""
+        with company_scope(self._root_company_id(self.env.company)):
+            found = self.env['account.account'].sudo().with_context(
+                active_test=False)._search([('code_store', operator, value)])
+        return [('id', 'in', found)]
+
+    def _inverse_code(self):
+        """≙ ``_inverse_code`` (``:343-353``): escribe ``code_store`` en la
+        raíz de la empresa activa, que comparten todas sus sucursales."""
+        # El valor se lee en la empresa activa —``code`` depende de ella— y
+        # se escribe en su raíz, como ``zip(self, self.with_company(root))``.
+        codes = [(account, account.code) for account in self]
+        with company_scope(self._root_company_id(self.env.company)):
+            for account, code in codes:
+                # ``write`` y no la asignación: el valor tiene que llegar a
+                # la fila, y el ORM lo guarda bajo la empresa activa.
+                account.write({'code_store': code})
+
     @api.depends('code', 'code_store')
     def _compute_placeholder_code(self):
         """≙ ``_compute_placeholder_code``
@@ -423,6 +451,10 @@ class AccountAccount(models.BaseModel):
         La primera empresa autorizada de la cuenta se une una sola vez por
         consulta, con el alias ``account_first_company`` de la fuente.
         """
+        if field_expr == 'code':
+            # ≙ la rama ``code`` (``:131-132``): ``code_store`` en la raíz.
+            with company_scope(self._root_company_id(self.env.company)):
+                return super()._field_to_sql(alias, 'code_store', query)
         if field_expr != 'placeholder_code':
             return super()._field_to_sql(alias, field_expr, query)
         authorized = self._authorized_company_ids()
@@ -484,11 +516,6 @@ class AccountAccount(models.BaseModel):
         if not self._state.adding:
             self._compute_account_type()
             self._compute_internal_group()
-        update_fields = kwargs.get('update_fields')
-        if update_fields is None or {'code', 'company'} & set(update_fields):
-            self._sync_code_store()
-            if update_fields is not None:
-                kwargs['update_fields'] = {*update_fields, 'code_store'}
         result = super().save(*args, **kwargs)
         companies = models.related_manager(self, 'company_ids')
         if self.company_id and not companies.filter(
@@ -496,20 +523,6 @@ class AccountAccount(models.BaseModel):
             companies.add(self.company_id)
         self._compute_account_tags()
         return result
-
-    def _sync_code_store(self):
-        """Escribe ``code`` bajo la empresa raíz de ``company``.
-
-        ≙ ``_inverse_code``
-        (``odoo19c: addons/account/models/account_account.py:344-355``), que
-        escribe ``code_store`` con la empresa raíz activa. En MC1
-        ``code`` sigue siendo columna, así que el inverso se aplica al
-        guardar en vez de al asignar.
-        """
-        if not self.company_id or not self.code:
-            return
-        field = self._meta.get_field('code_store')
-        field.set_for_company(self, self.company.root_id.pk, self.code)
 
     @api.model_create_multi
     @classmethod
@@ -520,11 +533,12 @@ class AccountAccount(models.BaseModel):
         Agrupa las altas por su ``company_ids``, resuelve las empresas con la
         activa primero (:meth:`_resolve_companies`) y traduce
         ``prefix``/``code_digits`` al primer código libre en la primera
-        empresa. Divergencias declaradas en
-        ``designs/account-account-mc2b.md``: ``code_mapping_ids`` no viaja,
-        ``allowed_company_ids`` no se fija en el contexto y
-        ``_ensure_code_is_unique`` llega con MC2c. Hasta MC2c la columna
-        ``company`` toma la primera empresa resuelta.
+        empresa. Crea con las empresas resueltas activas, el
+        ``allowed_company_ids=companies.ids`` de la fuente (``:1042-1047``).
+        Divergencias declaradas en ``designs/account-account-mc2b.md``:
+        ``code_mapping_ids`` no viaja y ``_ensure_code_is_unique`` llega con
+        MC2c-2. Hasta MC2c-2 la columna ``company`` toma la primera empresa
+        resuelta.
         """
         if not vals_list:
             return super().create(vals_list)
@@ -548,7 +562,8 @@ class AccountAccount(models.BaseModel):
                     [company.pk for company in companies])]
                 if companies:
                     vals.setdefault('company', companies[0])
-            records_list.append(super().create(vals_list_for_company))
+            with company_scope([company.pk for company in companies]):
+                records_list.append(super().create(vals_list_for_company))
         return records_list[0].union(*records_list[1:])
 
     @classmethod
@@ -604,10 +619,22 @@ class AccountAccount(models.BaseModel):
             cache = {start_code}
 
         def is_free(code):
-            return (
-                code not in cache
-                and not cls.objects.filter(company=company, code=code).exists()
-            )
+            # ≙ ``code_is_available``
+            # (``odoo19c: account_account.py:509-526``): libre si ninguna
+            # cuenta con ese código pertenece a una empresa madre o hija de
+            # ``company``.
+            if code in cache:
+                return False
+            if company is None:
+                return True
+            with company_scope(company.pk):
+                return not env()['account.account'].sudo().with_context(
+                    active_test=False).search_count([
+                        ('code', '=', code),
+                        '|',
+                        ('company_ids', 'parent_of', company.pk),
+                        ('company_ids', 'child_of', company.pk),
+                    ], limit=1)
 
         if is_free(start_code):
             return start_code

@@ -16,6 +16,7 @@ from decimal import Decimal
 from django.utils import timezone
 
 from exceptions import UserError
+from orm.environments import company_scope, env
 from tools.translate import _
 
 from addons.account.models import (
@@ -30,10 +31,15 @@ _STATE_CONFIRMED = 'sale'
 
 
 def _require_account(company, account_type: str, label: str) -> AccountAccount:
-    account = (AccountAccount.objects
-               .filter(company_ids=company, account_type=account_type,
-                       deprecated=False)
-               .order_by('code').first())
+    # El orden es el ``_order`` de la cuenta (``code, placeholder_code``),
+    # que se lee en la empresa emisora: el código vive por empresa raíz.
+    with company_scope(company.pk):
+        found = env()['account.account'].sudo().search([
+            ('company_ids', '=', company.pk),
+            ('account_type', '=', account_type),
+            ('deprecated', '=', False),
+        ], limit=1)
+    account = found or None
     if account is None:
         raise UserError(_(
             'La empresa no tiene una cuenta contable de tipo "%(label)s".'
@@ -81,7 +87,8 @@ def create_invoice_from_sale_order(order, company) -> AccountMove:
         company=company,
     )
 
-    # Doble entrada (Odoo _check_balanced): débito por cobrar == crédito ingreso
+    # Doble entrada (Odoo _check_balanced): débito por cobrar == crédito
+    # ingreso
     # + crédito IVA.
     AccountMoveLine.objects.create(
         move=move, account=receivable, name=order.name or _('Factura'),
@@ -111,7 +118,8 @@ def create_refund_from_invoice(invoice) -> AccountMove:
     construcción (si la factura cuadraba, su reversión cuadra). Devuelve el
     asiento en ``draft``; el llamador decide cuándo ``post()``.
 
-    :param invoice: factura de cliente **publicada** (``out_invoice``/``posted``).
+    :param invoice: factura de cliente **publicada**
+        (``out_invoice``/``posted``).
     :raises UserError: si el asiento no es una factura de cliente o no está
         publicado.
     """
@@ -148,17 +156,18 @@ def create_invoice_from_subscription(sub_invoice, company) -> AccountMove:
     cobro de suscripción es de un solo importe: por cobrar (débito) contra
     ingreso de plataforma (crédito), balanceado por construcción. Sin línea de
     IVA (el tratamiento fiscal del cobro L0 es una decisión aparte). El
-    ``company`` emisora la pasa el llamador (``get_system()``) — así ``account``
-    no importa ``company`` y *duck-typea* la ``sub_invoice``.
+    ``company`` emisora la pasa el llamador (``get_system()``) — así
+    ``account`` no importa ``company`` y *duck-typea* la ``sub_invoice``.
 
     :param sub_invoice: ``SubscriptionInvoice`` con ``amount`` a cobrar.
     :param company: empresa emisora (la system company / Kaupamex).
-    :raises UserError: si el importe no es positivo, o a la empresa le faltan el
-        diario de ventas o las cuentas requeridas.
+    :raises UserError: si el importe no es positivo, o a la empresa le
+        faltan el diario de ventas o las cuentas requeridas.
     """
     amount = getattr(sub_invoice, 'amount', None)
     if amount is None or amount <= Decimal('0.00'):
-        raise UserError(_('La factura de suscripción no tiene importe a cobrar.'))
+        raise UserError(
+            _('La factura de suscripción no tiene importe a cobrar.'))
     journal = (AccountJournal.objects
                .filter(company=company, type='sale', active=True)
                .order_by('code').first())

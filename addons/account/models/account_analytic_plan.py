@@ -64,6 +64,7 @@ import models
 from addons.account.models.account_account import AccountAccount
 from addons.analytic.models.analytic_plan import AccountAnalyticApplicability
 from addons.product.models import ProductCategory, ProductProduct
+from orm.environments import env
 from orm.method_chain import chain_method
 from orm.model_classes import extend_selection_choices
 from tools.translate import _
@@ -117,16 +118,11 @@ def _default_account_prefix_placeholder(instance):
     """≙ ``_compute_prefix_placeholder`` (odoo19c: :34-57). Sin filtro de
     compañía — ver docstring del módulo, la referencia tampoco lo aplica
     aquí."""
-    account_expense = (
-        AccountAccount.objects.filter(account_type='expense')
-        .order_by('code')
-        .first()
-    )
-    account_income = (
-        AccountAccount.objects.filter(account_type='income')
-        .order_by('code')
-        .first()
-    )
+    accounts = env()['account.account'].sudo()
+    account_expense = accounts.search(
+        [('account_type', '=', 'expense')], limit=1)
+    account_income = accounts.search(
+        [('account_type', '=', 'income')], limit=1)
 
     if instance.business_domain == 'bill':
         account = account_expense

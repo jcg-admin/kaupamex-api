@@ -78,3 +78,12 @@ class TestCanalDeElevacion:
             assert get_current_company() == 5
             assert is_su() is False
         assert get_current_company() is None
+
+    def test_company_scope_activates_a_list_with_the_first_as_company(self):
+        """≙ ``allowed_company_ids=[...]``: la lista entera es
+        ``env.companies`` y la primera es ``env.company``
+        (``odoo19c: odoo/orm/environments.py:236-243``)."""
+        with company_scope([9, 7]):
+            assert get_current_companies() == (9, 7)
+            assert get_current_company() == 9
+        assert get_current_companies() == ()

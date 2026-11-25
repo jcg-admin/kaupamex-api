@@ -84,4 +84,5 @@ def test_a_prefix_becomes_the_first_free_code(parent_company, accountant):
     with user_scope(accountant.pk), company_scope(parent_company.pk):
         _create({'code': '101001'})
         account = _create({'prefix': '1010', 'code_digits': 6})
-    assert AccountAccount.objects.get(pk=account.id).code == '101002'
+        # El código se lee en la empresa activa (MC2c-1).
+        assert AccountAccount.objects.get(pk=account.id).code == '101002'

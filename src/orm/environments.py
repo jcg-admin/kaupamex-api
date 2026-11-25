@@ -296,9 +296,20 @@ def activate_companies(requested_ids, permitted_ids):
 
 @contextmanager
 def company_scope(company_id):
-    """Activa la compañía en el bloque y **restaura** el valor previo."""
-    token = _current_companies.set(
-        () if company_id is None else (company_id,))
+    """Activa la compañía en el bloque y **restaura** el valor previo.
+
+    Una lista activa todas, con la primera como ``env.company``: es el
+    ``allowed_company_ids=[...]`` de la fuente
+    (``odoo19c: odoo/orm/environments.py:236-243``), que ``create`` de
+    ``account.account`` fija con las empresas de la cuenta.
+    """
+    if company_id is None:
+        companies = ()
+    elif isinstance(company_id, (list, tuple)):
+        companies = tuple(company_id)
+    else:
+        companies = (company_id,)
+    token = _current_companies.set(companies)
     try:
         yield
     finally:

@@ -93,6 +93,7 @@ from addons.base.models.ir_default import IrDefault
 from addons.base.models.ir_model import IrModelData
 import models
 from exceptions import UserError
+from orm.environments import company_scope, env
 from orm.registry import model_by_name
 from tools.translate import _
 
@@ -554,6 +555,16 @@ class ChartTemplate:
         Atómico a propósito: un plan a medias es peor que ninguno — deja
         cuentas sin sus impuestos y una empresa que parece configurada.
         """
+        # La fuente carga con ``allowed_company_ids=[company.id]``
+        # (``odoo19c: chart_template.py:198-206``): el código de una cuenta
+        # vive por empresa raíz y se escribe en la activa.
+        with company_scope(company.pk):
+            return cls._load_for_company(
+                template_code, company, force_create)
+
+    @classmethod
+    def _load_for_company(cls, template_code, company, force_create):
+        """El cuerpo de :meth:`load`, con ``company`` ya activa."""
         data = cls.get_chart_template_data(template_code)
         cls.skip_existing_account_groups(data, company)
         cls.normalize_account_codes(data)
@@ -729,13 +740,23 @@ class ChartTemplate:
             many_to_many = cls.resolve_many_to_many(
                 model_class, flat_values, company)
             flat_values = cls.resolve_values(model_class, flat_values, company)
-            flat_values['company'] = company
-            if existing is not None:
+            if model_name == 'account.account':
+                # La cuenta pertenece a la empresa activa por ``company_ids``
+                # y su ``code`` no tiene columna: se escribe por el ORM, como
+                # ``_load_records`` en la fuente.
+                if existing is not None:
+                    existing.write(flat_values)
+                    record_data = existing
+                else:
+                    record_data = env()[model_name].sudo().create(flat_values)
+            elif existing is not None:
+                flat_values['company'] = company
                 for field, value in flat_values.items():
                     setattr(existing, field, value)
                 existing.save()
                 record_data = existing
             else:
+                flat_values['company'] = company
                 record_data = model_class.objects.create(**flat_values)
             for name, records in many_to_many.items():
                 models.related_manager(record_data, name).set(records)

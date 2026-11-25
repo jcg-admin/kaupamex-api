@@ -32,7 +32,7 @@ from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_company import ResCompany
 from exceptions import UserError
 from orm.commands import Command
-from orm.environments import env as current_env
+from orm.environments import company_scope, env as current_env
 
 pytestmark = [pytest.mark.unit]
 
@@ -40,6 +40,18 @@ pytestmark = [pytest.mark.unit]
 @pytest.fixture
 def company(db):
     return ResCompany.objects.create(code='acme', name='ACME')
+
+
+@pytest.fixture(autouse=True)
+def _active_company(request):
+    """El código de una cuenta vive por empresa raíz y se lee en la activa
+    (``designs/account-account-mc2c.md``, MC2c-1): cada prueba que usa
+    ``company`` la declara activa, como la fuente siempre tiene una."""
+    if 'company' not in request.fixturenames:
+        yield
+        return
+    with company_scope(request.getfixturevalue('company').pk):
+        yield
 
 
 @pytest.mark.django_db
@@ -624,12 +636,9 @@ class TestUtilityBankAccounts:
             company.account_journal_early_pay_discount_loss_account.code
             == '443000'
         )
-        assert (
-            AccountAccount.objects.filter(company_ids=company, code='999998')
-            .get()
-            .name
-            == 'Accumulated Retained Earnings'
-        )
+        assert current_env()['account.account'].sudo().search([
+            ('company_ids', '=', company.pk), ('code', '=', '999998'),
+        ]).name == 'Accumulated Retained Earnings'
 
     def test_the_bank_fees_rule_gets_its_account(self, company):
         """La regla de comisiones nace apuntada — ≙ el cierre de ``_load``.
@@ -706,7 +715,9 @@ class TestAccountTags:
         """
         ChartTemplate.try_loading('generic_coa', company)
 
-        sales = AccountAccount.objects.get(company_ids=company, code='400000')
+        sales = current_env()['account.account'].sudo().search([
+            ('company_ids', '=', company.pk), ('code', '=', '400000'),
+        ])
         assert list(sales.tags) == [master_tags['account_tag_operating']]
 
     def test_an_account_without_its_own_tag_inherits_the_previous_one(

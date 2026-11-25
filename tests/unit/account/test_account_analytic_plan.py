@@ -16,7 +16,7 @@ from addons.analytic.models import AccountAnalyticApplicability
 from addons.base.models import ResCompany
 from addons.product.models import ProductCategory, ProductProduct, ProductTemplate
 from orm.commands import Command
-from orm.environments import env as current_env
+from orm.environments import company_scope, env as current_env
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -191,36 +191,38 @@ class TestGetScoreWrappedWithAccountPrefixAndProductCateg:
         assert applicability._get_score(company_id=company.pk) == 0.5
 
     def test_account_prefix_matching_adds_one_point(self, company):
-        current_env()['account.account'].sudo().create({
+        account = current_env()['account.account'].sudo().create({
             'code': '601100',
             'name': 'Compras',
             'account_type': 'expense',
             'company_ids': [Command.set([company.pk])],
         })
-        account = AccountAccount.objects.get(code='601100')
         applicability = AccountAnalyticApplicability.objects.create(
             business_domain='general', applicability='optional',
             company_id=company,
             account_prefix='601, 602')
-        assert applicability._get_score(
-            company_id=company.pk, account=account.pk) == 1.5
+        # El código de la cuenta se lee en la empresa activa.
+        with company_scope(company.pk):
+            assert applicability._get_score(
+                company_id=company.pk, account=account.pk) == 1.5
 
     def test_account_prefix_not_matching_vetoes_to_minus_one(self, company):
         """El veto descarta INCLUSO el puntaje base ya ganado — mismo
         criterio de corto-circuito que la referencia (odoo19c: :69-72)."""
-        current_env()['account.account'].sudo().create({
+        account = current_env()['account.account'].sudo().create({
             'code': '701100',
             'name': 'Ventas',
             'account_type': 'income',
             'company_ids': [Command.set([company.pk])],
         })
-        account = AccountAccount.objects.get(code='701100')
         applicability = AccountAnalyticApplicability.objects.create(
             business_domain='general', applicability='optional',
             company_id=company,
             account_prefix='601, 602')
-        assert applicability._get_score(
-            company_id=company.pk, account=account.pk) == -1
+        # El código de la cuenta se lee en la empresa activa.
+        with company_scope(company.pk):
+            assert applicability._get_score(
+                company_id=company.pk, account=account.pk) == -1
 
     def test_a_base_score_of_minus_one_short_circuits_before_the_bonus(
             self, company):
@@ -249,16 +251,17 @@ class TestGetScoreWrappedWithAccountPrefixAndProductCateg:
         sin reaplicar, no doble bonus."""
         apply_account_extensions()
         apply_account_extensions()
-        current_env()['account.account'].sudo().create({
+        account = current_env()['account.account'].sudo().create({
             'code': '601200',
             'name': 'Compras',
             'account_type': 'expense',
             'company_ids': [Command.set([company.pk])],
         })
-        account = AccountAccount.objects.get(code='601200')
         applicability = AccountAnalyticApplicability.objects.create(
             business_domain='general', applicability='optional',
             company_id=company,
             account_prefix='601')
-        assert applicability._get_score(
-            company_id=company.pk, account=account.pk) == 1.5
+        # El código de la cuenta se lee en la empresa activa.
+        with company_scope(company.pk):
+            assert applicability._get_score(
+                company_id=company.pk, account=account.pk) == 1.5

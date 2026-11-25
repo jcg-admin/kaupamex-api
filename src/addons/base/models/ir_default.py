@@ -599,7 +599,10 @@ class IrDefault(models.RecordLoaderMixin, models.Model):
         ``filtered_domain`` en el mismo pase (``orm/models.py``).
         """
         field_name, _property_name = parse_field_expr(field_expr)
-        target_model = apps.get_model(model_name)
+        # ``model_name`` llega como ``_name`` de la fuente —el ORM pasa
+        # ``model._name``— o como label de Django; ``model_by_key`` resuelve
+        # las dos formas (``apps.get_model`` sólo la segunda).
+        target_model = registry.model_by_key(model_name)
         target_field = target_model._meta.get_field(field_name)
         # La fuente pasa ``self.env[model_name]``, un recordset vacío; el
         # equivalente aquí es una instancia sin guardar — el método sólo
