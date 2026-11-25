@@ -108,6 +108,7 @@ from orm.domains import Domain, to_q
 from orm.model_classes import LOG_ACCESS_COLUMNS, extend_model, parent_name_of
 from orm.fields_relational import (
     One2many as DeclaredOne2many,
+    check_bypassed_comodel_read,
     write_new_one2many,
     _multi_comodel_domain as multi_comodel_domain,
     _m2m_relation as m2m_relation,
@@ -924,7 +925,8 @@ class DefaultGetMixin:
         - **El check de ``bypass_search_access`` del ``many2one``**
           (``:4686-4687``) lee el registro del comodelo con el
           ``AccessQuerySet`` de su manager
-          (:func:`_check_bypassed_comodel_read`): una fila de Django no tiene
+          (:func:`~orm.fields_relational.check_bypassed_comodel_read`): una
+          fila de Django no tiene
           ``browse``. Lo llevan los FK delegados
           de ``_inherits`` (``orm/inherits.py``).
         - **``invalidate_recordset`` sobre los x2many no almacenados tras el
@@ -1024,7 +1026,7 @@ class DefaultGetMixin:
                 if (isinstance(field, ForeignKey)
                         and getattr(field, 'bypass_search_access', False)
                         and not is_su()):
-                    _check_bypassed_comodel_read(field, val)
+                    check_bypassed_comodel_read(field, val)
             # los precompute que ``vals`` no trae los añade
             # ``_add_precomputed_values`` (``:4814-4846``) antes de esta
             # condición, así que también quedan protegidos
@@ -1389,23 +1391,6 @@ def _parent_store_update(record):
     )))
     if record.pk in updated:
         record.__dict__['parent_path'] = updated[record.pk]
-
-
-def _check_bypassed_comodel_read(field, value):
-    """``check_access('read')`` sobre el registro del comodelo de ``field``.
-
-    ≙ ``odoo19c: odoo/orm/models.py:4686-4687``: ``browse(convert_to_cache(
-    val)).check_access('read')``. El valor llega como entero, instancia o
-    recordset; se reduce a su pk y lo comprueba el ``AccessQuerySet`` del
-    manager del comodelo, como ``inherits._check_delegate_access``. Un valor
-    vacío no comprueba nada: allá el recordset queda vacío.
-    """
-    pk = getattr(value, 'pk', value)
-    if not pk:
-        return
-    rows = field.related_model._default_manager.filter(pk=pk)
-    if hasattr(rows, 'check_access'):
-        rows.check_access('read')
 
 
 def _creation_flags(field):

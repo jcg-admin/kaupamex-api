@@ -108,7 +108,7 @@ from orm.commands import (Command, apply_many2many_commands,
                           apply_one2many_commands, command_triples,
                           comodel_records, is_command_list)
 from orm.environments import (Query, env as get_environment, get_current_cr,
-                              get_current_uid)
+                              get_current_uid, is_su)
 from orm.fields_company_dependent import CompanyDependent
 from orm.fields_nonstored import (
     _UNSET,
@@ -116,7 +116,7 @@ from orm.fields_nonstored import (
     apply_source_defaults,
     derive_source_attrs,
 )
-from exceptions import MissingError
+from exceptions import AccessError, MissingError
 from orm.identifiers import NewId
 from orm.model_classes import _logger, is_transient
 from orm.registry import (IR_MODELS, field_inverses, is_not_null,
@@ -3141,6 +3141,57 @@ def _many2one_update_inverses(self, records, value):
             (ids0 or ()) + tuple(record_ids(records)))))
 
 
+def check_bypassed_comodel_read(field, value):
+    """``check_access('read')`` sobre el registro del comodelo de ``field``.
+
+    ≙ ``browse(convert_to_cache(val)).check_access('read')`` de la fuente
+    (``models.py:4686-4687`` en ``create``, ``fields_relational.py:407-411``
+    en ``write``). El valor llega como entero, instancia o recordset; se
+    reduce a su pk y lo comprueba el ``AccessQuerySet`` del manager del
+    comodelo, como ``inherits._check_delegate_access``. Un valor vacío no
+    comprueba nada: allá el recordset queda vacío.
+    """
+    pk = getattr(value, 'pk', value)
+    if not pk:
+        return
+    rows = field.related_model._default_manager.filter(pk=pk)
+    if hasattr(rows, 'check_access'):
+        rows.check_access('read')
+
+
+def _records_su(records):
+    """El ``env.su`` de ``records``; una fila de Django no lleva ``env`` y
+    lee el modo del contexto (:func:`~orm.environments.is_su`)."""
+    environment = getattr(records, 'env', None)
+    su = getattr(environment, 'su', None)
+    return is_su() if su is None else su
+
+
+def _check_many2one_write_access(field, records, value):
+    """El check de ``Many2one.write`` (``:407-411``), con su mensaje: sólo
+    si el campo salta la búsqueda de su comodelo y ``records`` no está en
+    modo superusuario (``records.env.su``)."""
+    if (not getattr(field, 'bypass_search_access', False)
+            or _records_su(records)):
+        return
+    try:
+        check_bypassed_comodel_read(field, value)
+    except AccessError as error:
+        environment = getattr(records, 'env', None) or get_environment()
+        raise AccessError(
+            environment._("Failed to write field %s", field) + "\n"
+            + str(error),
+        ) from error
+
+
+def _many2one_write(self, records, value):
+    """≙ ``Many2one.write`` (``:400-424``): el check de ``:407-411`` antes
+    de la escritura genérica del campo (``fields.py``, ``Field.write``)."""
+    _check_many2one_write_access(self, records, value)
+    models.Field.write(self, records, value)
+
+
+models.ForeignKey.write = _many2one_write
 models.ForeignKey._remove_inverses = _many2one_remove_inverses
 models.ForeignKey._update_inverses = _many2one_update_inverses
 
