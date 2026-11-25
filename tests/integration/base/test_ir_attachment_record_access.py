@@ -54,35 +54,38 @@ def attach(name, **values):
              **values})
 
 
-def records(user, attachment):
+def as_user(user, attachment, method, *args):
+    """Llama ``method`` sobre el adjunto DENTRO del alcance del usuario: el
+    entorno que evalúa la ACL y las reglas es el ambiental."""
     with user_scope(user.pk):
-        return current_env()['ir.attachment'].browse(attachment.ids)
+        records = current_env()['ir.attachment'].browse(attachment.ids)
+        return getattr(records, method)(*args)
 
 
 def test_the_attachment_of_a_hidden_record_is_refused(companies, employee):
     _seen, hidden = companies
     attachment = attach('hidden', res_model='res.company', res_id=hidden.pk)
     with pytest.raises(AccessError):
-        records(employee, attachment).check_access('read')
+        as_user(employee, attachment, 'check_access', 'read')
 
 
 def test_the_attachment_of_a_visible_record_is_read(companies, employee):
     seen, _hidden = companies
     attachment = attach('seen', res_model='res.company', res_id=seen.pk)
-    records(employee, attachment).check_access('read')
+    as_user(employee, attachment, 'check_access', 'read')
 
 
 def test_a_public_attachment_is_read_anyway(companies, employee):
     _seen, hidden = companies
     attachment = attach('public', res_model='res.company', res_id=hidden.pk,
                         public=True)
-    records(employee, attachment).check_access('read')
+    as_user(employee, attachment, 'check_access', 'read')
 
 
 def test_without_a_record_only_its_creator_reads_it(companies, employee):
     attachment = attach('orphan')
     with pytest.raises(AccessError):
-        records(employee, attachment).check_access('read')
+        as_user(employee, attachment, 'check_access', 'read')
 
 
 def test_search_leaves_out_hidden_records(companies, employee):
@@ -101,7 +104,7 @@ def test_moving_an_attachment_to_a_hidden_record_is_refused(
     seen, hidden = companies
     attachment = attach('mv', res_model='res.company', res_id=seen.pk)
     with pytest.raises(AccessError):
-        records(employee, attachment).write({'res_id': hidden.pk})
+        as_user(employee, attachment, 'write', {'res_id': hidden.pk})
 
 
 def test_condition_values_reads_the_in_values():

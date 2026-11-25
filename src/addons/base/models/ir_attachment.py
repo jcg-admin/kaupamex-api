@@ -65,16 +65,61 @@ import base64
 import hashlib
 import mimetypes
 import uuid
+import warnings
+from collections import defaultdict
 
 from django.apps import apps
 from django.core.files.base import ContentFile
 
 import fields
 import models
-from exceptions import ValidationError
-from orm.models import BaseModel
+from exceptions import AccessError, MissingError, ValidationError
+from orm.domains import Domain
+from orm.environments import env
+from orm.models import AccessQuerySet, BaseModel
+from tools.constants import PREFETCH_MAX
 from tools.mimetypes import guess_mimetype
+from tools.misc import OrderedSet
 from tools.translate import _
+
+#: ≙ ``SECURITY_FIELDS`` (``odoo19c: ir_attachment.py:42``).
+SECURITY_FIELDS = ('res_model', 'res_id', 'create_uid', 'public', 'res_field')
+
+
+def condition_values(model, field_name, domain):
+    """Get the values in the domain for a specific field name.
+
+    Returns the values appearing in the `in` conditions that would be
+    restricted to by the domain.
+
+    ≙ ``condition_values`` (``odoo19c: ir_attachment.py:45-58``), verbatim.
+    """
+    domain = domain.optimize(model)
+    for condition in domain.map_conditions(
+        lambda cond: cond
+        if cond.field_expr == field_name and cond.operator == 'in'
+        else Domain.TRUE
+    ).optimize(model).iter_conditions():
+        return condition.value
+    return None
+
+
+def _accessible_ids(comodel, res_ids, operation, user):
+    """Los ids de ``res_ids`` que ``user`` puede ``operation`` en un
+    comodelo de Django sin ``BaseModel``.
+
+    Divergencia de mecanismo, declarada: la fuente hace
+    ``records._filtered_access(operation)`` sobre el recordset del comodelo;
+    un modelo de Django no tiene recordset, y la misma evaluación (ACL del
+    modelo y reglas de fila) la hace su :class:`AccessQuerySet`, como en
+    ``BaseModel._check_access``.
+    """
+    rows = AccessQuerySet(model=comodel).filter(pk__in=list(res_ids))
+    result = rows._check_access(operation, user=user)
+    present = set(rows.values_list('pk', flat=True))
+    if result is None:
+        return present
+    return present - set(result[0].values_list('pk', flat=True))
 
 
 class IrAttachment(BaseModel):
@@ -483,3 +528,285 @@ class IrAttachment(BaseModel):
                 _('URL attachment (%s) shouldn\'t be migrated to local.')
                 % self.pk
             )
+
+    # ------------------------------------------------------------------
+    # Acceso por registro — ≙ ``odoo19c: ir_attachment.py:504-795``
+    # ------------------------------------------------------------------
+    def check(self, mode, values=None):
+        """Restricts the access to an ir.attachment, according to referred
+        mode — ≙ ``check`` (``:504-512``), obsoleto desde 19.0."""
+        warnings.warn("Since 19.0, use check_access", DeprecationWarning,
+                      stacklevel=2)
+        # Always require an internal user (aka, employee) to access to a
+        # attachment
+        if not (self.env.is_admin() or self.env.user._is_internal()):
+            raise AccessError(
+                _("Sorry, you are not allowed to access this document."))
+        self.check_access(mode)
+        if values and any(self._inaccessible_comodel_records(
+                {values.get('res_model'): [values.get('res_id')]}, mode)):
+            raise AccessError(
+                _("Sorry, you are not allowed to access this document."))
+
+    def _check_access(self, operation):
+        """Check access for attachments — ≙ ``_check_access`` (``:514-588``).
+
+        Rules:
+        - `public` is always accessible for reading.
+        - If we have `res_model and res_id`, the attachment is accessible if
+          the referenced model is accessible. Also, when `res_field != False`
+          and the user is not an administrator, we check the access on the
+          field.
+        - If we don't have a referenced record, the attachment is accessible
+          to the administrator and the creator of the attachment.
+        """
+        res = super()._check_access(operation)
+        remaining = self
+        error_func = None
+        forbidden_ids = OrderedSet()
+        if res:
+            forbidden, error_func = res
+            if forbidden == self:
+                return res
+            remaining -= forbidden
+            forbidden_ids.update(forbidden._ids)
+        elif not self:
+            return None
+
+        if operation in ('create', 'unlink'):
+            # check write operation instead of unlinking and creating for
+            # related models and field access
+            operation = 'write'
+
+        # collect the records to check (by model)
+        model_ids = defaultdict(set)            # {model_name: set(ids)}
+        # [(att_id, (res_model, res_id))]
+        att_model_ids = []
+        remaining = remaining.sudo()
+        remaining.fetch(SECURITY_FIELDS)  # fetch only these fields
+        for attachment in remaining:
+            if attachment.public and operation == 'read':
+                continue
+            att_id = attachment.id
+            res_model, res_id = attachment.res_model, attachment.res_id
+            if not self.env.is_system():
+                # Un ``create_uid`` vacío se lee ``None`` aquí y recordset
+                # vacío allá; en los dos casos no es el usuario.
+                creator = attachment.create_uid
+                if not res_id and (creator.id if creator else False) \
+                        != self.env.uid:
+                    forbidden_ids.add(att_id)
+                    continue
+                if res_field := attachment.res_field:
+                    try:
+                        field = self.env[res_model]._fields[res_field]
+                    except (KeyError, AttributeError):
+                        # field does not exist
+                        field = None
+                    if field is None or not self._has_field_access(
+                            field, operation):
+                        forbidden_ids.add(att_id)
+                        continue
+            if res_model and res_id:
+                model_ids[res_model].add(res_id)
+                att_model_ids.append((att_id, (res_model, res_id)))
+        forbidden_res_model_id = set(
+            self._inaccessible_comodel_records(model_ids, operation))
+        forbidden_ids.update(att_id for att_id, res in att_model_ids
+                             if res in forbidden_res_model_id)
+
+        if forbidden_ids:
+            forbidden = self.browse(forbidden_ids)
+            # avoid cache pollution
+            forbidden.invalidate_recordset(SECURITY_FIELDS)
+            if error_func is None:
+                def error_func():
+                    return AccessError(self.env._(
+                        "Sorry, you are not allowed to access this "
+                        "document. Please contact your system "
+                        "administrator.\n\n"
+                        "(Operation: %(operation)s)\n\n"
+                        "Records: %(records)s, User: %(user)s",
+                        operation=operation,
+                        records=forbidden[:6],
+                        user=self.env.uid,
+                    ))
+            return forbidden, error_func
+        return None
+
+    def _inaccessible_comodel_records(self, model_and_ids, operation):
+        """Los ``(res_model, res_id)`` a los que el usuario no llega —
+        ≙ ``_inaccessible_comodel_records`` (``:590-618``)."""
+        # check access rights on the records
+        if self.env.su:
+            return
+        for res_model, res_ids in model_and_ids.items():
+            res_ids = OrderedSet(filter(None, res_ids))
+            if not res_model or not res_ids:
+                # nothing to check
+                continue
+            # forbid access to attachments linked to removed models as we do
+            # not know what persmissions should be checked
+            if res_model not in self.env:
+                for res_id in res_ids:
+                    yield res_model, res_id
+                continue
+            comodel = self.env[res_model]
+            if res_model == 'res.users' and len(res_ids) == 1 \
+                    and self.env.uid in res_ids:
+                # by default a user cannot write on itself, despite the list
+                # of writeable fields e.g. in the case of a user inserting an
+                # image into his image signature we need to bypass this check
+                # which would needlessly throw us away
+                continue
+            if hasattr(comodel, '_filtered_access'):
+                records = comodel.browse(res_ids)
+                try:
+                    records = records._filtered_access(operation)
+                except MissingError:
+                    records = records.exists()._filtered_access(operation)
+                res_ids.difference_update(records._ids)
+            else:
+                res_ids.difference_update(_accessible_ids(
+                    comodel, res_ids, operation, self.env.user))
+            for res_id in res_ids:
+                yield res_model, res_id
+
+    @classmethod
+    def _search(cls, domain, offset=0, limit=None, order=None, *,
+                active_test=True, bypass_access=False):
+        """≙ ``_search`` (``:620-708``): el dominio de seguridad de los
+        adjuntos, sobre el de ``BaseModel``."""
+        self = cls._from_ids(env(), (), ())
+        assert not cls._active_field_name(), \
+            "active name not supported on ir.attachment"
+        disable_binary_fields_attachments = False
+        domain = Domain(domain)
+        if (
+            not self.env.context.get('skip_res_field_check')
+            and not any(d.field_expr in ('id', 'res_field')
+                        for d in domain.iter_conditions())
+            and not bypass_access
+        ):
+            disable_binary_fields_attachments = True
+            domain &= Domain('res_field', '=', False)
+
+        domain = domain.optimize(self)
+        parent = super(IrAttachment, cls)._search
+        if self.env.su or bypass_access or domain.is_false():
+            return parent(domain, offset, limit, order,
+                          active_test=active_test,
+                          bypass_access=bypass_access)
+
+        # General access rules
+        # - public == True are always accessible
+        sec_domain = Domain('public', '=', True)
+        # - res_id == False needs to be system user or creator
+        res_ids = condition_values(self, 'res_id', domain)
+        if not res_ids or False in res_ids:
+            if self.env.is_system():
+                sec_domain |= Domain('res_id', '=', False)
+            else:
+                sec_domain |= (Domain('res_id', '=', False)
+                               & Domain('create_uid', '=', self.env.uid))
+
+        # Search by res_model and res_id, filter using permissions from
+        # res_model
+        # - res_id != False needs then check access on the linked res_model
+        #   record
+        # - res_field != False needs to check field access on the res_model
+        res_model_names = condition_values(self, 'res_model', domain)
+        if 0 < len(res_model_names or ()) <= 5:
+            for res_model_name in res_model_names:
+                if res_model_name not in self.env:
+                    continue
+                comodel = self.env[res_model_name]
+                codomain = Domain('res_model', '=', res_model_name)
+                comodel_res_ids = condition_values(
+                    self, 'res_id', domain.map_conditions(
+                        lambda cond: codomain & cond
+                        if cond.field_expr == 'res_model' else cond))
+                if hasattr(comodel, '_search'):
+                    query = comodel.with_context(active_test=False)._search(
+                        Domain('id', 'in', comodel_res_ids)
+                        if comodel_res_ids else Domain.TRUE)
+                    if query.is_empty():
+                        continue
+                    if query.where_clause:
+                        codomain &= Domain('res_id', 'in', query)
+                else:
+                    # Un comodelo de Django: los ids accesibles los da su
+                    # ``AccessQuerySet`` (ver :func:`_accessible_ids`).
+                    candidates = comodel_res_ids or list(
+                        comodel._default_manager.values_list('pk', flat=True))
+                    allowed = _accessible_ids(comodel, candidates, 'read',
+                                              self.env.user)
+                    if not allowed:
+                        continue
+                    codomain &= Domain('res_id', 'in', sorted(allowed))
+                if (not disable_binary_fields_attachments
+                        and not self.env.is_system()
+                        and hasattr(comodel, '_fields')):
+                    accessible_fields = [
+                        field.name
+                        for field in comodel._fields.values()
+                        if field.type == 'binary' or (
+                            field.relational
+                            and field.comodel_name == self._name)
+                        if comodel._has_field_access(field, 'read')
+                    ]
+                    accessible_fields.append(False)
+                    codomain &= Domain('res_field', 'in', accessible_fields)
+                sec_domain |= codomain
+
+            return parent(domain & sec_domain, offset, limit, order,
+                          active_test=active_test)
+
+        # We do not have a small restriction on res_model. We still need to
+        # support other queries such as: `('id', 'in' ...)`.
+        # Restrict with domain and add all attachments linked to a model.
+        domain &= sec_domain | Domain('res_model', '!=', False)
+        domain = domain.optimize_full(self)
+        ordered = bool(order)
+        if limit is None:
+            records = self.sudo().with_context(active_test=False).search_fetch(
+                domain, SECURITY_FIELDS, order=order).sudo(False)
+            return records._filtered_access('read')[offset:]._as_query(ordered)
+        # Fetch by small batches
+        sub_offset = 0
+        limit += offset
+        result = []
+        if not ordered:
+            # By default, order by model to batch access checks.
+            order = 'res_model nulls first, id'
+        while len(result) < limit:
+            records = self.sudo().with_context(active_test=False).search_fetch(
+                domain,
+                SECURITY_FIELDS,
+                offset=sub_offset,
+                limit=PREFETCH_MAX,
+                order=order,
+            ).sudo(False)
+            result.extend(records._filtered_access('read')._ids)
+            if len(records) < PREFETCH_MAX:
+                # There are no more records
+                break
+            sub_offset += PREFETCH_MAX
+        return self.browse(result[offset:limit])._as_query(ordered)
+
+    def write(self, vals):
+        """≙ ``write`` (``:710-722``): no se reasigna un adjunto a un
+        registro inaccesible."""
+        self.check_access('write')
+        if vals.get('res_model') or vals.get('res_id'):
+            model_and_ids = defaultdict(OrderedSet)
+            if 'res_model' in vals and 'res_id' in vals:
+                model_and_ids[vals['res_model']].add(vals['res_id'])
+            else:
+                for record in self:
+                    model_and_ids[vals.get('res_model', record.res_model)].add(
+                        vals.get('res_id', record.res_id))
+            if any(self._inaccessible_comodel_records(model_and_ids, 'write')):
+                raise AccessError(
+                    _("Sorry, you are not allowed to access this document."))
+        return super().write(vals)
