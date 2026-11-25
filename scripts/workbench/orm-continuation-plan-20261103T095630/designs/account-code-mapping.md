@@ -114,3 +114,16 @@ sobre un comodelo sin tabla no está medido. Sucesor
   Many2one no almacenado: sin medir.
 
 Ambos se cierran en la unidad, con su prueba roja, antes de implementar.
+
+## Prueba heredada que fijaba la ausencia (descubierta en el F2 de 22898713)
+
+`tests/unit/account/test_account_code_mapping.py::TestNoAccountCodeMappingModelExists`
+afirmaba que ninguna app registra `accountcodemapping`: era la divergencia
+declarada antes de MC2c-1. Con el modelo virtual portado esa afirmación es el
+contrato viejo y se sustituye por el nuevo: `account.code.mapping` está
+registrado bajo su nombre de la fuente, sin tabla (`_auto = False`,
+`Meta.managed = False`), como `odoo19c: account_code_mapping.py` declara
+`_auto = False` y `_table_query = '0'`. El subconjunto derivado omitió esa
+prueba porque buscó el archivo nuevo y no el nombre del modelo
+(`grep -rln "accountcodemapping\|account.code.mapping" tests/` da los dos
+archivos).
