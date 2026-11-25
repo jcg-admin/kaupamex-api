@@ -58,3 +58,26 @@ Las demás primitivas que el contrato usa están en el puerto:
 - sin la rama del registro adjuntado en `_check_access`: caen 1 y 6;
 - sin la rama del creador: cae 4;
 - sin el dominio de seguridad en `_search`: cae 5.
+
+## Implementación y anulaciones (2026-11-25)
+
+| Símbolo | Referencia | Prueba |
+|---|---|---|
+| `condition_values`, `SECURITY_FIELDS` | `odoo19c: odoo/addons/base/models/ir_attachment.py:42-58` | `test_condition_values_reads_the_in_values` |
+| `IrAttachment._check_access`, `check` | `odoo19c: ir_attachment.py:504-588` | casos 1-4 |
+| `IrAttachment._inaccessible_comodel_records` | `odoo19c: ir_attachment.py:590-618` | casos 1 y 6 |
+| `IrAttachment._search` | `odoo19c: ir_attachment.py:620-708` | caso 5 |
+| `IrAttachment.write` | `odoo19c: ir_attachment.py:710-722` | caso 6 |
+| `_accessible_ids` (helper del puerto) | divergencia de mecanismo: la fuente usa `_filtered_access` del recordset del comodelo; un comodelo de Django (p. ej. `res.company`) no tiene recordset y la misma evaluación la hace su `AccessQuerySet` | casos 1, 5 y 6 |
+
+Dos lecturas del puerto: un `create_uid` vacío se lee `None` (allá recordset
+vacío), así que la regla del creador lo trata como «no es el usuario»; y
+`_search` es `classmethod`, como `BaseModel._search`.
+
+Los casos de rechazo **no discriminaban** en su primera versión: comprobaban
+fuera del `user_scope`, y el rechazo lo producía la ACL de modelo sin
+usuario. Ahora cada comprobación corre dentro del alcance del usuario.
+
+Anulaciones, restauradas con `cmp`: sin `_inaccessible_comodel_records` caen
+los casos 1 y 6; sin la regla del creador cae el 4; sin el dominio de
+seguridad de `_search` cae el 5.
