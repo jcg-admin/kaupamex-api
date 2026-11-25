@@ -667,7 +667,8 @@
   "base-res-users-share-field-0356",
   "attachment-record-access-0397",
   "basemodel-adoption-base-ir-exports-0397",
-  "basemodel-adoption-base-ir-cron-trigger-progress-0397"
+  "basemodel-adoption-base-ir-cron-trigger-progress-0397",
+  "basemodel-adoption-base-ir-module-dependency-exclusion-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
