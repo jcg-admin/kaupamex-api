@@ -573,20 +573,90 @@ class AccountAccount(models.BaseModel):
 
     def write(self, vals):
         """≙ ``write``
-        (``odoo19c: addons/account/models/account_account.py:1053-1077``),
-        la rama de unicidad: tras escribir ``company_ids`` o ``code`` se
-        verifica el código (``:1072-1077``).
+        (``odoo19c: addons/account/models/account_account.py:1053-1077``).
 
-        Pendiente, con su razón: las otras tres ramas de la fuente —el paso
-        de ``reconcile`` (``_toggle_reconcile_to_true/false``), la moneda
-        con apuntes en otra divisa y la cuenta usada en una línea de reparto
-        al deprecarla— dependen de métodos que este árbol no tiene; su
-        sucesor está en ``designs/account-account-mc2c.md``.
+        Antes de escribir, las tres ramas de la fuente: el paso de
+        ``reconcile`` (``:1054-1058``), la moneda que contradice una divisa
+        extranjera ya asentada (``:1060-1063``) y la cuenta usada en un
+        reparto de impuestos al deprecarla (``:1065-1066``). Después, la
+        unicidad del código salvo con ``defer_account_code_checks`` en el
+        contexto (``:1070-1075``). ``code_mapping_ids`` no viaja (sucesor
+        ``account-code-mapping-0397``).
         """
+        if 'reconcile' in vals:
+            if vals['reconcile']:
+                self.filtered(
+                    lambda r: not r.reconcile)._toggle_reconcile_to_true()
+            else:
+                self.filtered(
+                    lambda r: r.reconcile)._toggle_reconcile_to_false()
+
+        currency = vals.get('currency')
+        if currency:
+            currency_id = getattr(currency, 'pk', currency)
+            for account in self:
+                if self.env['account.move.line'].sudo().search_count([
+                        ('account', '=', account.id),
+                        ('currency', 'not in', (False, currency_id))]):
+                    raise UserError(_(
+                        'You cannot set a currency on this account as it '
+                        'already has some journal entries having a '
+                        'different foreign currency.'))
+
+        # ``account.tax.repartition.line`` es aquí un modelo de Django, no un
+        # ``BaseModel``: la cuenta de la búsqueda va por su gestor.
+        if vals.get('deprecated') and self.env[
+                'account.tax.repartition.line'].objects.filter(
+                    account__in=self.ids).exists():
+            raise UserError(_(
+                'You cannot deprecate an account that is used in a tax '
+                'distribution.'))
+
         result = super().write(vals)
-        if {'company_ids', 'code'} & vals.keys():
+        if (not self.env.context.get('defer_account_code_checks')
+                and {'company_ids', 'code'} & vals.keys()):
+            if 'company_ids' in vals:
+                self.invalidate_recordset(fnames=['company_ids'])
             self._ensure_code_is_unique()
         return result
+
+    def _toggle_reconcile_to_true(self):
+        """≙ ``_toggle_reconcile_to_true`` (``:955-971``).
+
+        Pendiente, con su razón: la fuente recalcula ``reconciled``,
+        ``amount_residual`` y ``amount_residual_currency`` de las líneas sin
+        conciliar con un ``UPDATE``; ``account.move.line`` no tiene esas
+        columnas (su docstring las declara diferidas). Sucesor
+        ``account-move-line-residual-0397``.
+        """
+        if not self.ids:
+            return None
+        return None
+
+    def _toggle_reconcile_to_false(self):
+        """≙ ``_toggle_reconcile_to_false`` (``:973-997``).
+
+        Rehúsa con conciliaciones parciales pendientes (``:980-989``).
+        Pendiente, con su razón: el ``UPDATE`` que pone a cero
+        ``amount_residual`` y ``amount_residual_currency`` (``:991-997``)
+        espera esas columnas en ``account.move.line``; sucesor
+        ``account-move-line-residual-0397``.
+        """
+        if not self.ids:
+            return None
+        partial_lines_count = self.env['account.move.line'].sudo(
+        ).search_count([
+            ('account', 'in', self.ids),
+            ('full_reconcile', '=', False),
+            '|',
+            ('matched_debit_ids', '!=', False),
+            ('matched_credit_ids', '!=', False),
+        ])
+        if partial_lines_count > 0:
+            raise UserError(_(
+                'You cannot switch an account to prevent the reconciliation '
+                'if some partial reconciliations are still pending.'))
+        return None
 
     def _ensure_code_is_unique(self):
         """≙ ``_ensure_code_is_unique`` (``:1079-1130``).
