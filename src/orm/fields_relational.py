@@ -1259,12 +1259,15 @@ def _apply_ondelete(args, kwargs):
             # las 1868 declaraciones que el arbol ya tiene, y el segundo
             # posicional de `ForeignKey` es ese mismo `on_delete`. No se pisa;
             # lo que se resuelve es el ATRIBUTO, que allá tambien existiria.
-            # El llamador fijo la politica; NO es provisional.
-            return args, kwargs, declared, False
+            # El llamador fijo la politica; NO es provisional, y la guarda de
+            # `:289` tampoco aplica: la politica no la decidio la fuente.
+            return args, kwargs, declared, False, False
         kwargs['on_delete'] = ON_DELETE_POLICY[declared]
         # Provisional: la fuente lo decide en `setup_nonrelated`, donde ya
-        # tiene el modelo Y el comodelo. Aqui no hay ninguno de los dos.
-        return args, kwargs, declared, True
+        # tiene el modelo Y el comodelo. Aqui no hay ninguno de los dos. La
+        # guarda de `:289` corre sobre la politica resuelta, asi que tambien
+        # se difiere a esa fase.
+        return args, kwargs, declared, True, declared == 'restrict'
 
     declared = kwargs.pop('ondelete')
     from_default = not declared
@@ -1282,24 +1285,22 @@ def _apply_ondelete(args, kwargs):
                         _comodel_label(args[0]) if args else '<sin comodelo>')
         )
 
-    #: ``:289`` verbatim — la fuente compara la CADENA declarada contra
-    #: :data:`~orm.registry.IR_MODELS`, sin resolver el modelo: ``comodel_name``
-    #: allá es siempre el ``_name`` punteado, porque es el único vocabulario que
-    #: existe. Aquí el destino llega como esa misma cadena o como la clase ya
-    #: cargada, así que la clase se reduce a su ``_name`` con
-    #: :func:`~orm.registry.name_of`, que lee ``__dict__['_name']`` — un solo
-    #: vocabulario, como la fuente.
-    comodel = args[0] if args else None
-    if comodel is None or isinstance(comodel, str):
-        comodel_name = comodel
-    else:
-        comodel_name = name_of(comodel)
+    #: ``:289`` — la fuente compara ``comodel_name``, que allá es siempre el
+    #: ``_name`` punteado, contra :data:`~orm.registry.IR_MODELS`. Aquí el
+    #: destino llega en dos vocabularios (``_name`` o etiqueta de Django),
+    #: como clase, o por ``to=``; :func:`_restrict_target_name` lo reduce al
+    #: ``_name``. Un destino que aún no resuelve, o una política que salió del
+    #: default, se comprueban en la fase (:func:`_check_restrict_comodel`).
+    comodel = args[0] if args else kwargs.get('to')
+    comodel_name = _restrict_target_name(comodel)
     if declared == 'restrict' and comodel_name in IR_MODELS:
         raise ValueError(
             f"Field is defined as ondelete='restrict' while having "
             f"{comodel_name} as comodel, the 'restrict' mode is not supported "
             f"for this type of field as comodel."
         )
+    check_restrict = declared == 'restrict' and (
+        from_default or comodel_name is SENTINEL)
 
     try:
         kwargs['on_delete'] = ON_DELETE_POLICY[declared]
@@ -1308,7 +1309,81 @@ def _apply_ondelete(args, kwargs):
             f"ondelete={declared!r} no es uno de los tres valores que la "
             f"fuente admite: {sorted(ON_DELETE_POLICY)}"
         ) from None
-    return args, kwargs, declared, from_default
+    return args, kwargs, declared, from_default, check_restrict
+
+
+def _restrict_target_name(comodel):
+    """El ``_name`` punteado del destino, para la guarda de ``:289``.
+
+    ``None`` sin destino o con ``'self'``; :data:`~tools.misc.SENTINEL` si el
+    destino es una etiqueta de Django que aún no se registró. El orden es el de
+    :func:`_deferred_comodel`: primero Django (``'base.IrModel'`` y
+    ``'base.irmodel'`` resuelven a la misma clase), luego el ``_name``.
+    """
+    if comodel is None:
+        return None
+    if not isinstance(comodel, str):
+        return name_of(comodel)
+    if comodel.count('.') == 1:
+        try:
+            return name_of(apps.get_model(comodel, require_ready=False))
+        except (LookupError, ValueError):
+            # silent OK because: el destino no es una etiqueta registrada;
+            # se lee como ``_name`` o se difiere a la fase, abajo.
+            pass
+    if _is_source_name(comodel):
+        return comodel
+    if '.' in comodel:
+        return SENTINEL
+    return None
+
+
+def _check_restrict_comodel(field, model):
+    """La guarda de ``:289-294`` en la fase, con las dos clases a la vista.
+
+    Corre cuando la política salió del default o el destino no resolvía al
+    construir. Lee ``field.ondelete`` al ejecutarse: la decisión transitoria
+    de :func:`_setup_nonrelated`, agendada antes, puede haberla cambiado.
+    """
+    if model._meta.abstract:
+        return
+    #: El ``_name`` que ``Many2one`` guardó en la instancia, y no el
+    #: descriptor ``comodel_name``: éste lee ``related_model``, que exige los
+    #: modelos cargados y en pleno arranque levanta ``AppRegistryNotReady``.
+    comodel_name = field.__dict__.get('comodel_name')
+    if comodel_name and _is_source_name(comodel_name):
+        #: Destino declarado con el ``_name`` de la fuente: ``:289`` compara
+        #: esa cadena. Aquí ``remote_field.model`` puede ser ya el centinela
+        #: ``orm.<nombre>``, que no es un nombre que comparar.
+        _raise_if_ir_model(field, model, comodel_name)
+        return
+    comodel = field.remote_field.model
+    if isinstance(comodel, str):
+        lazy_related_operation(
+            lambda _model, _comodel, field=field: _raise_if_ir_model(
+                field, _model, name_of(_comodel)),
+            model, comodel)
+        return
+    _raise_if_ir_model(field, model, name_of(comodel))
+
+
+def _raise_if_ir_model(field, model, comodel_name):
+    """``:289-294`` verbatim, con el campo y el modelo que la fase tiene."""
+    if field.ondelete == 'restrict' and comodel_name in IR_MODELS:
+        raise ValueError(
+            f"Field {field.name} of model "
+            f"{name_of(model) or model._meta.label} is defined as "
+            f"ondelete='restrict' while having {comodel_name} as comodel, "
+            f"the 'restrict' mode is not supported for this type of field as "
+            f"comodel."
+        )
+
+
+def _setup_ondelete_phase(field, model):
+    """La fase de una política que salió del default: la rama transitoria
+    de ``:276`` y, después, la guarda de ``:289`` sobre su resultado."""
+    _setup_nonrelated(field, model)
+    _check_restrict_comodel(field, model)
 
 
 def _setup_nonrelated(field, model):
@@ -1442,7 +1517,8 @@ def _deferred_comodel(comodel):
     porta como sucesor, no un silencio.
     """
     registered = model_by_name(comodel)
-    if registered is not None and getattr(registered, '_meta', None) is not None:
+    if (registered is not None
+            and getattr(registered, '_meta', None) is not None):
         return registered._meta.label_lower
     if comodel.count('.') == 1:
         # Segunda vía del destino-primero: la cadena puede ser ya la etiqueta
@@ -1465,17 +1541,18 @@ def _deferred_comodel(comodel):
 
 def Many2one(*args, store=_UNSET, company_dependent=False,
              check_company=False, related=None, **kwargs):
-    """``fields.Many2one`` — ≙ el de la referencia: con columna, sin ella o por empresa.
+    """``fields.Many2one`` — ≙ el de la referencia: con columna, sin ella
+    o por empresa.
 
     ``store=True`` (el defecto, y el de todos los usos previos del árbol)
     devuelve un ``models.ForeignKey`` con la firma de Django, exactamente como
     antes: el alias sigue siendo transparente para quien no nombra ``store``.
 
-    ``store=False`` construye **el mismo** ``models.ForeignKey``: ``store`` es un
-    atributo del campo, no un tipo distinto. Quien lo deja sin columna es la
+    ``store=False`` construye **el mismo** ``models.ForeignKey``: ``store`` es
+    un atributo del campo, no un tipo distinto. Quien lo deja sin columna es la
     costura, que lo contribuye con ``private_only=True`` — no genera migración
-    ni aparece en ``_meta.concrete_fields``, que es lo que la referencia promete
-    con un ``compute`` sin ``store``.
+    ni aparece en ``_meta.concrete_fields``, que es lo que la referencia
+    promete con un ``compute`` sin ``store``.
 
     Y **sin comodelo declarado** —la forma que la referencia usa con
     ``related=``— el campo se construye contra su propio modelo con
@@ -1516,8 +1593,8 @@ def Many2one(*args, store=_UNSET, company_dependent=False,
     #: default literal no puede.
     if store is not _UNSET:
         kwargs['store'] = store
-    related_attrs = apply_source_defaults(related, kwargs,
-                                         company_dependent=company_dependent)
+    related_attrs = apply_source_defaults(
+        related, kwargs, company_dependent=company_dependent)
     has_column = related_attrs['store']
 
     if company_dependent:
@@ -1547,7 +1624,7 @@ def Many2one(*args, store=_UNSET, company_dependent=False,
     if 'null' not in kwargs:
         kwargs['null'] = True
         kwargs.setdefault('blank', True)
-    args, kwargs, resolved_ondelete, ondelete_from_default = \
+    args, kwargs, resolved_ondelete, ondelete_from_default, check_restrict = \
         _apply_ondelete(args, kwargs)
     # DESPUES de ``_apply_ondelete``, y no antes: su guarda de ``:289`` compara
     # la CADENA declarada contra ``IR_MODELS``, que lleva los ``_name`` de la
@@ -1555,35 +1632,37 @@ def Many2one(*args, store=_UNSET, company_dependent=False,
     args, source_name = _translate_comodel(args)
     if not has_column:
         #: **Sin columna NO hay clave foránea, así que NO hay política que
-        #: aplicar** — y la que el campo hereda de :func:`_apply_ondelete` no es
-        #: inocua: es ``SET_NULL`` para todo ``null=True``, y el recolector de
-        #: ``delete()`` de Django sólo omite ``DO_NOTHING``
+        #: aplicar** — y la que el campo hereda de :func:`_apply_ondelete` no
+        #: es inocua: es ``SET_NULL`` para todo ``null=True``, y el recolector
+        #: de ``delete()`` de Django sólo omite ``DO_NOTHING``
         #: (``django/db/models/deletion.py``: la rama que salta el campo es
         #: ``if field.remote_field.on_delete is DO_NOTHING``). Con cualquier
         #: otra política el recolector recorre el campo y manda a emitir un
         #: ``UPDATE`` sobre una columna que no existe.
         #:
-        #: Medido, y el par discrimina: con ``SET_NULL`` borrar un ``res.country``
-        #: aborta con ``FieldError: Cannot update model field <ForeignKey:
-        #: country> (only concrete fields are permitted)``
+        #: Medido, y el par discrimina: con ``SET_NULL`` borrar un
+        #: ``res.country`` aborta con ``FieldError: Cannot update model field
+        #: <ForeignKey: country> (only concrete fields are permitted)``
         #: (``deletion.py:489 delete`` → ``query.py:1274 update``); con
         #: ``DO_NOTHING`` el mismo borrado sobrevive. Sondas
         #: ``probe_column_less_fk_with_set_null_breaks_country_delete`` y
         #: ``probe_column_less_fk_with_do_nothing_survives_country_delete``,
-        #: evidencia ``scripts/evidence/ranuras2-2026-09-12T08-12-46-00{2,3}.log``.
+        #: evidencia
+        #: ``scripts/evidence/ranuras2-2026-09-12T08-12-46-00{2,3}.log``.
         #:
         #: La política DECLARADA no se pierde: ``field.ondelete`` conserva el
-        #: ``resolved_ondelete`` unas líneas más abajo, que es el atributo que la
-        #: fuente expone y que leen ``ir.model.fields``, ``_check_inherits`` y el
-        #: One2many inverso. Lo que cambia es sólo el recorrido del recolector de
-        #: Django, que es un mecanismo que la fuente no tiene.
+        #: ``resolved_ondelete`` unas líneas más abajo, que es el atributo que
+        #: la fuente expone y que leen ``ir.model.fields``, ``_check_inherits``
+        #: y el One2many inverso. Lo que cambia es sólo el recorrido del
+        #: recolector de Django, que es un mecanismo que la fuente no tiene.
         #:
         #: ``related=`` sin destino añade su propio marcador: la referencia lo
         #: declara así —``fields.Many2one(related='product_id.categ_id')``—
         #: porque el extremo de la cadena determina el comodelo. Django exige
-        #: ``to`` posicional, así que el campo se construye apuntando a su propio
-        #: modelo y ``_field_setup_related`` lo reapunta al destino real al
-        #: cerrar el ``setup``. Medido en ``probe_relational_related_without_to``.
+        #: ``to`` posicional, así que el campo se construye apuntando a su
+        #: propio modelo y ``_field_setup_related`` lo reapunta al destino real
+        #: al cerrar el ``setup``. Medido en
+        #: ``probe_relational_related_without_to``.
         if not args and 'to' not in kwargs:
             args = ('self',)
         elif len(args) > 1:
@@ -1608,11 +1687,16 @@ def Many2one(*args, store=_UNSET, company_dependent=False,
         #: default: su presencia ES la guarda ``if not self.ondelete`` de
         #: ``:273``, que aqui no se puede expresar dejando el atributo vacio
         #: porque Django exige ``on_delete`` posicional al construir la FK.
-        field.setup_nonrelated__ = _setup_nonrelated
+        field.setup_nonrelated__ = (
+            _setup_ondelete_phase if check_restrict else _setup_nonrelated)
+    elif check_restrict:
+        #: ``'restrict'`` declarado hacia un destino que aún no resolvía: la
+        #: guarda de ``:289`` espera a que la clase exista.
+        field.setup_nonrelated__ = _check_restrict_comodel
     if source_name is not None:
         # ``comodel_name`` es el atributo que la fuente declara
-        # (``odoo19c: odoo/orm/fields_relational.py:36``) y el unico sitio donde
-        # el nombre punteado sobrevive: lo que Django guarda en
+        # (``odoo19c: odoo/orm/fields_relational.py:36``) y el unico sitio
+        # donde el nombre punteado sobrevive: lo que Django guarda en
         # ``remote_field.model`` es el asa, hasta que se resuelve a la clase.
         field.comodel_name = source_name
     return annotate_related(field, related, related_attrs)
@@ -1728,7 +1812,8 @@ def _many2one_convert_to_cache(self, value, record, validate=True):
         id_ = value
     elif isinstance(value, (models.Model, models.QuerySet)):
         ids = record_ids(value)
-        if validate and (model_of(value) is not self.related_model or len(ids) > 1):
+        if validate and (model_of(value) is not self.related_model
+                         or len(ids) > 1):
             raise ValueError("Wrong value for %s: %r" % (self, value))
         id_ = ids[0] if ids else None
     elif isinstance(value, tuple):
@@ -1760,7 +1845,8 @@ def _many2one_convert_to_display_name(self, value, record):
     ``_compute_display_name`` lo distingue.
 
     ``Reference`` comparte cuerpo en la fuente (``:1101``); aquí lo hereda por
-    la adjunción a ``models.ForeignKey``, de la que ``OneToOneField`` desciende.
+    la adjunción a ``models.ForeignKey``, de la que ``OneToOneField``
+    desciende.
     """
     return display_name_of(value) if value else False
 
