@@ -1980,6 +1980,13 @@
         "basemodel-adoption-base-ir-module-dependency-exclusion-0397"
       ],
       "writtenAt": "2026-11-25T21:01:17Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-base-report-paperformat-ir-asset-0397"
+      ],
+      "writtenAt": "2026-11-25T22:02:10Z"
     }
   ]
 }
