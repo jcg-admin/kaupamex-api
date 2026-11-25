@@ -3231,12 +3231,15 @@ class RecordLoaderMixin(FieldSqlMixin):
             # (``silenced``) se anuncian aquí también.
             self.modified([fname for fname in written if fname in declared])
             # ``:4493`` — el inverso se despacha DENTRO del alcance de
-            # protección, una vez por grupo.
-            for fields in determine_inverses.values():
-                fields[0].determine_inverse(self)
+            # protección, una vez por grupo. Un ``BaseModel`` lo despacha una
+            # vez por LOTE en su ``write``, entre sus dos validaciones; aquí
+            # sólo la fila de un modelo de Django.
+            if not hasattr(type(self), '_from_ids'):
+                for fields in determine_inverses.values():
+                    fields[0].determine_inverse(self)
         # ``:4491`` y ``:4514`` — las restricciones de lo escrito, inversos
-        # incluidos. Un ``BaseModel`` las corre una vez sobre el recordset
-        # entero en su ``write``; aquí sólo la fila de un modelo de Django.
+        # incluidos. Un ``BaseModel`` las corre en su ``write`` sobre el
+        # recordset entero; aquí sólo la fila de un modelo de Django.
         if not hasattr(type(self), '_from_ids'):
             self._validate_fields(written)
         return True
@@ -10694,10 +10697,21 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin,
                 raise ValueError(
                     f"Invalid field {field_name!r} in {self._name!r}",
                 ) from error
+        determine_inverses = self._group_written_inverses(vals)
         for record in self:
             super(BaseModel, record).write(vals)
-        # ≙ ``real_recs._validate_fields(vals, inverse_fields)`` (``:4491``)
-        self._validate_fields(vals)
+        # ``odoo19c: odoo/orm/models.py:4488-4514``: primero las restricciones
+        # que no nombran ningún campo invertido; después cada grupo de
+        # inversos, UNA vez sobre todos los registros y dentro del alcance de
+        # protección; al final las de los campos invertidos.
+        inverse_fields = [field.name for fields in determine_inverses.values()
+                          for field in fields]
+        self._validate_fields(vals, inverse_fields)
+        if determine_inverses:
+            with env().protecting(self._protected_while_writing(vals), self):
+                for fields in determine_inverses.values():
+                    fields[0].determine_inverse(self)
+        self._validate_fields(inverse_fields)
         return True
 
     @api.deprecated("Deprecated since 19.0, use action_archive or "

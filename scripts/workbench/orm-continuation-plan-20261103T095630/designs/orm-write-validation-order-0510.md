@@ -195,3 +195,14 @@ y su modelo sólo declara `@api.constrains('bar', 'baz')`. Casos de
 
 Anulación: sin el despacho por lote caen 1 y 2; sin la primera validación con
 exclusión caen 2 y 3.
+
+## Anulaciones medidas (2026-11-25)
+
+- **A — sin despacho por lote** (vuelve el despacho por registro en
+  `RecordLoaderMixin.write`): caen los casos 1, 2 **y 3**, sobrevive el
+  control. El diseño preveía 1 y 2; el 3 también depende del lote porque el
+  despacho por registro corre el inverso antes de la primera validación.
+- **B — sin exclusión** (`_validate_fields(vals)` en lugar de
+  `_validate_fields(vals, inverse_fields)`): cae **sólo** el caso 2. El diseño
+  preveía 2 y 3; el 3 sobrevive porque la restricción de `baz` falla en la
+  primera validación con o sin exclusión. La exclusión la mide el caso 2.
