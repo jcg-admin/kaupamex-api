@@ -80,3 +80,25 @@ de escribir.
 Veredicto: **REUSE**. Esta unidad no implementa nada; los casos quedan como
 regresión del contrato. Para 0356 la dependencia está satisfecha por el
 mecanismo existente.
+
+## Addendum — el REUSE era parcial; corregido en 0356 (2026-11-25)
+
+El veredicto de arriba sólo vale cuando el inverso es un **campo declarado**
+(el par de `test_orm`, donde los dos lados son `Many2many` sobre la misma
+tabla). Con un **reverso de Django** (`ManyToManyRel`) no se cumple. Medido con
+una sonda al implementar 0356:
+
+- el árbol de disparo de `res.users.group_ids` (el reverso de
+  `res.groups.user_ids`) contiene `all_group_ids` y `share`, así que
+  `user.modified(['group_ids'])` marca `share`;
+- el árbol de `res.groups.user_ids` está **vacío**: escribir desde el grupo no
+  llegaba nunca a los usuarios.
+
+Es justo la vía que la fuente cubre con el `corecords.modified` explícito de
+`:1586-1593`. Se implementó `_notify_inverse_side` en `_notify_m2m_modified`
+(`src/orm/models.py`), con el filtro de la fuente
+(`invf.model_name == field.comodel_name`). Anulación medida: sin la llamada caen
+los tres casos de `share` escritos desde el grupo
+(`tests/unit/base/test_res_users_share_field.py`) y los cuatro de `test_orm`
+siguen verdes. La lección: un REUSE medido sobre un solo par no se generaliza a
+los pares cuyo inverso tiene otra forma.

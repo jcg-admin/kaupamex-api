@@ -80,3 +80,28 @@ por usar un grupo interno propio se corrigen para dar `base.group_user`.
 - `all_group_ids` → `group_ids` en el cómputo: cae el 2 (y el 5).
 - quitar `store=True`: cae el 4.
 - volver a `user_type`: cae el 6.
+
+## Addendum — implementación y anulaciones (2026-11-25)
+
+- El aviso al lado inverso **sí** hacía falta para un reverso de Django; se
+  implementó en `_notify_m2m_modified` (ver el addendum de
+  `orm-m2m-modified-inverse-side-0356.md`). Anulación B1: sin él caen los casos
+  2, 3 y 4 de esta unidad; los cuatro de `test_orm` sobreviven.
+- Anulación B2 (`group_ids` en lugar de `all_group_ids`): caen el 2 y el 5.
+- El caso 4 filtra por la columna con el manager: `res.users` es un modelo de
+  Django y no tiene `search`; la columna es lo que hace buscable al campo.
+- Migración `0129_res_users_share.py`: `makemigrations --check` limpio
+  (`editable=False`, como todo calculado almacenado).
+- Tests ajenos corregidos a `base.group_user` (decisión 1), medidos por el
+  subconjunto de consumidores de `share` (19 archivos):
+  `test_res_users_user_type.py::test_interno`,
+  `test_digest_signals.py::test_subscribes_internal_user_on_create` y el
+  helper `_user` de `test_res_partner_user_and_lang.py`.
+
+## Símbolos nuevos, su referencia y su prueba
+
+| Símbolo | Referencia | Prueba |
+|---|---|---|
+| `src/orm/models.py: _notify_inverse_side` | `odoo19c: odoo/orm/fields_relational.py:1586-1593` | `tests/unit/base/test_res_users_share_field.py` (casos 2-4 desde el grupo), `tests/unit/orm/test_m2m_modified_inverse_side.py` |
+| `src/addons/base/migrations/0129_res_users_share.py` (`0129_res_users_share`) | `odoo19c: odoo/addons/base/models/res_users.py:234-235,459-464` | `tests/unit/base/test_res_users_share_field.py::test_share_is_a_stored_compute` |
+| `ResUsers._compute_share` | `odoo19c: odoo/addons/base/models/res_users.py:459-464` | `tests/unit/base/test_res_users_share_field.py` |
