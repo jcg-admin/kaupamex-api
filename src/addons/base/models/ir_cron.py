@@ -1514,7 +1514,7 @@ class IrCron(models.DefaultGetMixin, models.RecordLoaderMixin,
         return self.save(update_fields=['active'])
 
 
-class IrCronTrigger(models.RecordLoaderMixin, models.Model):
+class IrCronTrigger(models.BaseModel):
     """``ir.cron.trigger`` — ≙ ``IrCronTrigger``
     (``odoo19c: ir_cron.py:897-916``).
 
@@ -1567,8 +1567,8 @@ class IrCronTrigger(models.RecordLoaderMixin, models.Model):
         return len(ids), len(ids) == GC_UNLINK_LIMIT
 
 
-class IrCronProgress(TimeStampedModel):
-    """``ir.cron.progress`` — ≙ ``IrCronProgress`` (``odoo19c: ir_cron.py:918-933``).
+class IrCronProgress(models.BaseModel, TimeStampedModel):
+    """``ir.cron.progress`` — ≙ ``IrCronProgress`` (``ir_cron.py:918-933``).
 
     El avance de una corrida por lotes: cuantos registros lleva hechos, cuantos
     le quedan, y cuantas veces consecutivas se le agoto el tiempo. Es lo que

@@ -356,3 +356,11 @@ def test_the_log_handler_captures_only_inside_the_block():
     assert [r.getMessage() for r in capturados] == ['dentro']
     logger.error('fuera')
     assert len(capturados) == 1
+
+
+@pytest.mark.parametrize('model', [IrCronTrigger, IrCronProgress])
+def test_trigger_and_progress_are_basemodel(model):
+    """≙ ``class IrCronTrigger(models.Model)`` y ``class
+    IrCronProgress(models.Model)`` (``odoo19c: ir_cron.py:897,918``): en la
+    fuente todo modelo con ``_name`` es ``BaseModel``."""
+    assert issubclass(model, modulo_ir_cron.models.BaseModel)
