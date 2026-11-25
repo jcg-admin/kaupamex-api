@@ -149,6 +149,32 @@ inverso leyendo dentro del alcance caen la escritura, la búsqueda y el orden
 búsqueda resuelta dentro del alcance no la exige ninguna prueba y se retiró:
 `_search_code` devuelve la consulta, como la fuente.
 
+#### MC2c-1 — el subconjunto derivado (2026-11-25)
+
+24 directorios, 16 fallos en 9734 pruebas (`scratchpad/mc2c1-derived.log`).
+Dos son del entorno del worktree (`test_check_workbench`, la variable
+`THYROX_WORKBENCH_API_WT_MC2B`; pasan en la rama principal). Los 14
+restantes, por causa:
+
+- (a) Pruebas sin empresa o que leen `code` como columna:
+  `test_analytic_prefix_compute_contract` (5, simulan el lector viejo),
+  `test_chart_template` `TestCompanyIsolation` y `TestAccountCodeWidth`
+  (`values_list('code')`), `test_compute_writes_m2m` (2) y
+  `test_compute_before_insert` (sin empresa activa el vecino de código no
+  existe). Se corrigen las pruebas: la fuente siempre tiene empresa.
+- (b) El cargador del plan aplica los Many2many con el gestor de Django
+  sobre la fila que devuelve el `create` del ORM, que no trae estado de
+  base (`TestTaxTagMapper`, `TestAccountTags`). Los Many2many de la cuenta
+  viajan en el mismo `create`, como comandos.
+- (c) La unicidad del código (`test_unique_code_per_company`) la daba la
+  restricción `(company, code)`, retirada con la columna. La fuente la
+  verifica en `_ensure_code_is_unique` (`:1079-1130`); pasa de MC2c-2 a
+  MC2c-1 para no dejar la ventana abierta.
+- (d) `test_account_code_mapping` afirma que la restricción existe: es la
+  premisa de la divergencia de `account.code.mapping` («una cuenta, una
+  empresa»), que MC2c deja de cumplir. La prueba se reescribe sobre la
+  premisa nueva y el modelo virtual queda como sucesor en este diseño.
+
 ### MC2c-2 — retirada de `company` (`account-account-mc2c2-0397`)
 
 1. `_ensure_code_is_unique` al final de `create` y en `write`.
