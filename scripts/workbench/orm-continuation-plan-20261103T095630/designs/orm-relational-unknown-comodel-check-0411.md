@@ -53,8 +53,19 @@ Medido con una sonda en `isolate_apps('addons.stock')` y `Many2one('res.partnerr
   El registro se omite cuando el módulo corre como `__main__` (`python -m
   orm.checks`): allí el módulo se importa dos veces y el check quedaría
   duplicado.
-- `src/orm/registry.py`: `import orm.checks` al final del módulo, para que el
-  check quede registrado en todo proceso que cargue el ORM.
+- `src/orm/registry.py`: `__import__('orm.checks')` al final del módulo,
+  para que el check quede registrado en todo proceso que cargue el ORM. Es
+  una llamada y no una sentencia `import`: medido, la sentencia tardía exige
+  `# noqa: E402` y el pre-commit rehúsa toda supresión nueva
+  (*"New or changed suppression requires review"*).
+- `src/orm/checks.py`, sólo formato: la admisión de estilo compara cada
+  diagnóstico heredado con su posición en el cuerpo del módulo
+  (`syntax_context` de `scripts/check_python_style_increment.py`), así que
+  la sentencia `import` nueva desplazaba ocho E501/E127 preexistentes de
+  `_bootstrap_django`, `SystemCheckSummary`,
+  `collect_system_check_summary`, `call_command_with_checks` y `main`, y
+  los contaba como introducidos. Se corrigen esas ocho líneas sin cambiar
+  comportamiento.
 
 Regla: un campo de `local_fields` o `local_many_to_many` cuyo
 `remote_field.model` es todavía una cadena con `app_label` `orm` y cuyo
