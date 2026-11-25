@@ -137,6 +137,13 @@ Medido el alcance, MC2c se parte para que cada mitad tenga un gate propio.
 `tests/unit/orm/test_environments_channels.py::…list_with_the_first_as_company`
 y `tests/unit/base/test_ir_default.py::…named_by_its_reference_name`.
 
+Anulación, medida sobre las once pruebas de `code_compute` y `create`: sin
+la raíz en `_compute_code` cae sólo la lectura en la sucursal; con el
+inverso leyendo dentro del alcance caen la escritura, la búsqueda y el orden
+(tres); sin las empresas activas en `create` caen cinco y dos dan error. La
+búsqueda resuelta dentro del alcance no la exige ninguna prueba y se retiró:
+`_search_code` devuelve la consulta, como la fuente.
+
 ### MC2c-2 — retirada de `company` (`account-account-mc2c2-0397`)
 
 1. `_ensure_code_is_unique` al final de `create` y en `write`.
