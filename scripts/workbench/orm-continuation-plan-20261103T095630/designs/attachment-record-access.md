@@ -87,3 +87,14 @@ seguridad de `_search` cae el 5.
 Se incorpora como `attachment-record-access-0397`, con sus obligaciones y su
 `verify` reales. La fila `attachment-record-access` queda como registro del
 bloqueo anterior (su `verify` era `false`); esta la reemplaza.
+
+## Addendum — `check` no se porta (2026-11-25)
+
+El F2 de `c9254c39` paró en `test_no_system_check_blocks_migrate` y en el
+comando de cron: `models.E020`, *"The 'IrAttachment.check()' class method is
+currently overridden"*. Django reserva `Model.check()` como el
+`classmethod` de sus system checks, así que un método de instancia con ese
+nombre bloquea `migrate`. La fuente lo tiene en desuso desde 19.0
+(`ir_attachment.py:506`, *"Since 19.0, use check_access"*). Se retira y se
+declara divergencia de mecanismo; el contrato vigente, `check_access`, sí
+está portado.
