@@ -34,10 +34,11 @@ fuente.
 from __future__ import annotations
 
 import ast
+import copy
 import importlib.util
 import os
 import typing
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from pathlib import Path
 
 from django.conf import settings
@@ -166,11 +167,38 @@ def _load_manifest(module: str, manifest_content: dict) -> dict:
     """
     Aplica defaults y deriva campos. ≙ ``_load_manifest`` de la referencia.
     """
-    manifest = dict(_DEFAULT_MANIFEST)
+    # ``:421`` — copia profunda: un manifest no comparte sus listas con el
+    # default ni con el siguiente.
+    manifest = copy.deepcopy(_DEFAULT_MANIFEST)
     manifest.update(manifest_content)
     # ``author`` es obligatorio en la referencia; aquí se deriva del release
-    # cuando el addon no lo declara, porque todos son first-party.
+    # cuando el addon no lo declara, porque todos son first-party (divergencia
+    # declarada frente a ``:424-430``, que cae a contributors/maintainer).
     manifest.setdefault('author', release.author)
+    if not manifest.get('license'):
+        # ``:432-434``
+        manifest['license'] = 'LGPL-3'
+    # ``:436-440`` — sólo ``base`` puede no depender de nada.
+    if module == 'base':
+        manifest['depends'] = []
+    elif not manifest['depends']:
+        manifest['depends'] = ['base']
+    depends = manifest['depends']
+    # ``:445-458`` — ``auto_install`` queda ``False`` o el conjunto de
+    # dependencias que lo disparan: ``True`` son todas, ``[]`` es «siempre».
+    if isinstance(manifest['auto_install'], Iterable):
+        manifest['auto_install'] = auto_install_set = set(
+            manifest['auto_install'])
+        non_dependencies = auto_install_set.difference(depends)
+        assert not non_dependencies, (
+            "auto_install triggers must be dependencies,"
+            f" found non-dependencies [{', '.join(non_dependencies)}]"
+            f" for module {module}"
+        )
+    elif manifest['auto_install']:
+        manifest['auto_install'] = set(depends)
+    # La versión (``:460-466``) espera la decisión sobre la serie: ver el
+    # addendum de ``designs/orm-modules-db-initialize-0058.md``.
     manifest['version'] = adapt_version(str(manifest['version']))
     if isinstance(manifest['depends'], (list, tuple)):
         manifest['depends'] = list(manifest['depends'])

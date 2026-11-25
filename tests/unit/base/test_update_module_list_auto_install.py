@@ -115,7 +115,10 @@ def test_the_check_sees_an_addon_left_out_of_installed_apps():
     """
     graph = module_graph()
     bridge = 'account_qr_code_sepa'
-    assert graph[bridge].manifest.get('auto_install') is True
+    # ``True`` llega normalizado al conjunto de sus ``depends``
+    # (``odoo19c: odoo/modules/module.py:457-458``).
+    assert graph[bridge].manifest.get('auto_install') == set(
+        graph[bridge].depends)
     assert set(graph[bridge].depends) <= installed_addon_names()
 
     reduced = installed_addon_names() - {bridge}

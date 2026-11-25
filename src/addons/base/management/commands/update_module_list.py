@@ -18,8 +18,8 @@ from addons.authz.declaration import (
 from addons.base.models import IrModule, IrModuleDependency
 from modules import ModuleGraph
 from modules.db import create_categories, validate_category_paths
-from modules.module import (ADDONS_PATHS, get_module_path, get_modules,
-                            installed_addon_names)
+from modules.module import (ADDONS_PATHS, _load_manifest, get_module_path,
+                            get_modules, installed_addon_names)
 
 
 class Command(UnitOfWorkCommand):
@@ -128,7 +128,13 @@ class Command(UnitOfWorkCommand):
                         )
 
             if not dry_run and row is not None:
-                self._sync_dependencies(row, depends, using=using)
+                # ``_update_from_terp`` lee ``auto_install`` normalizado
+                # (``odoo19c: ir_module.py:823``); aquí el manifest llega
+                # crudo, así que se normaliza esa clave.
+                normalized = _load_manifest(addon, manifest)
+                self._sync_dependencies(
+                    row, depends, using=using,
+                    auto_install=normalized['auto_install'])
 
         self._report(added, updated, without_manifest, dry_run)
         self._report_auto_install_gaps(installed)
@@ -171,7 +177,8 @@ class Command(UnitOfWorkCommand):
             depends = ', '.join(graph[name].depends) or '—'
             self.stdout.write(f'  {name}  (depends: {depends})')
 
-    def _sync_dependencies(self, module, depends, *, using):
+    def _sync_dependencies(self, module, depends, *, using,
+                           auto_install=False):
         """Deja las aristas del manifest, ni una más.
 
         Las que sobran se retiran: una dependencia que el manifest dejó de
@@ -189,6 +196,12 @@ class Command(UnitOfWorkCommand):
             )
         if existing - declared:
             dependencies.filter(name__in=existing - declared).delete()
+        # ``odoo19c: ir_module.py:836-837``: requerida es la que dispara el
+        # ``auto_install``; sin ``auto_install``, ninguna.
+        required = set(auto_install or ())
+        dependencies.update(auto_install_required=False)
+        dependencies.filter(name__in=required).update(
+            auto_install_required=True)
 
     def _report(self, added, updated, without_manifest, dry_run):
         """

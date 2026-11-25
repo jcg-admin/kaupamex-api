@@ -19,6 +19,7 @@ from django.db import connections, router, transaction
 from django.db.migrations.executor import MigrationExecutor
 from django.db.transaction import TransactionManagementError
 
+from modules.db import is_initialized
 from modules.module import installed_addon_names
 from modules.module_graph import ModuleGraph
 from orm.environments import Environment
@@ -237,6 +238,14 @@ def load_modules(using):
     a module loads and leaves a failing one rolled back: a data file that
     fails halfway leaves none of that module's rows behind.
     """
+    # ``odoo19c: loading.py:371-373``. Esta base no se inicializa aquí: el
+    # esquema lo crean las migraciones de ``base``, así que sin la tabla no
+    # hay nada que cargar.
+    with connections[using].cursor() as cursor:
+        if not is_initialized(cursor):
+            _logger.error('Database %s not initialized, run migrate for base',
+                          connections[using].settings_dict['NAME'])
+            return
     call_command('update_module_list', database=using, verbosity=0)
     IrModule = apps.get_model('base', 'IrModule')
     rows = {row.name: row for row in IrModule.objects.using(using)}

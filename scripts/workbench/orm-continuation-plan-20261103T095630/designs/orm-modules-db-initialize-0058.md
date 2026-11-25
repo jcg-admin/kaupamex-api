@@ -111,3 +111,29 @@ unidad no cambia eso: el servicio extraído normaliza sólo `auto_install` para
 calcular `auto_install_required`, con `_load_manifest(name, raw)`. Que
 `update_module_list` guarde la versión prefijada y el autor derivado es una
 divergencia previa del porte de `update_list`, no de `initialize`.
+
+## Addendum — implementación, consumidores y anulaciones (2026-11-25)
+
+- **`reset_modules_state` sale de la unidad.** La fuente no usa ahí
+  `is_initialized` sino `table_exists(cr, 'ir_module_module')`
+  (`odoo19c: odoo/modules/loading.py:623`); el puerto pregunta con
+  `introspection.table_names`. Es una divergencia de esa función, no de
+  `initialize`, y no se toca en este pase.
+- **`initialize` llama `update_module_list` por `call_command`**, como ya hace
+  `load_modules` (`loading.py:240`), en vez de extraer `_refresh`: `modules`
+  no importa de `addons`. `auto_install_required` vive en `_sync_dependencies`
+  del comando, ≙ `_update_dependencies` (`odoo19c: ir_module.py:829-840`).
+- **Consumidor ajustado:** `test_update_module_list_auto_install.py` afirmaba
+  `auto_install is True`; tras la normalización fiel llega `set(depends)`.
+
+Anulaciones medidas, cada una restaurada con `cmp`:
+
+| Anulación | Caen |
+|---|---|
+| A1 sin la rama del iterable en `_load_manifest` | los 3 casos de lista de `_load_manifest`, el de `auto_install_required` y el del punto fijo; el de `True` sobrevive porque lo cubre el `elif` |
+| A2 sin `_ensure_module_identities` | sólo el de la identidad `base.module_<name>` |
+| A3 sin el punto fijo | sólo el del cierre de `auto_install` |
+| A4 sin la rama `skip_auto_install` | sólo el de `skip` |
+| A5 sin la precondición de `installed` | sólo el del rechazo |
+| A6 `is_initialized` con `True` fijo | sólo el del esquema vacío |
+| A7 sin la guarda de `load_modules` | sólo el de la base sin inicializar |
