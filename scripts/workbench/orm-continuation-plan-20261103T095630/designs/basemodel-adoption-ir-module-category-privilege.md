@@ -13,9 +13,17 @@ Estado: **no implementado**. Primer intento revertido sin commit el
 
 ## Lo que el cambio de base destapa
 
-El gestor de un `BaseModel` es un `AccessQuerySet`: un `objects.filter(...)`
-dentro del alcance de un usuario pasa por la ACL. Con sólo cambiar las dos
-bases, el subconjunto derivado (26 archivos) dio **11 failed, 1 error** con
+Un `BaseModel` comprueba la ACL al **leer un registro** —`check_access('read')`,
+`src/orm/models.py:10627-10635`—, también cuando se llega a él recorriendo un
+`Many2one` desde otro modelo (`ResGroups` → `privilege` → `category`) dentro del
+alcance de un usuario. El gestor **no** filtra las consultas: una sonda de
+2026-11-25 ejecutó, bajo un usuario sólo con `base.group_user`,
+`IrCronTrigger.objects.filter(...)`, `IrCronProgress.objects.filter(...)`,
+`cron._trigger(...)` y `cron._add_progress()` sobre los dos modelos ya
+adoptados (ACL `group_system`), y los cuatro devolvieron filas sin error. (La
+primera versión de este documento atribuía el rechazo al gestor; la sonda la
+desmiente.) Con sólo cambiar las dos bases, el subconjunto derivado (26
+archivos) dio **11 failed, 1 error** con
 `PermissionDenied: No tiene permiso para consultar registros de «Application»`
 y de «Privileges», y conjuntos vacíos donde se esperaba la fila:
 
