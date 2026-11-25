@@ -116,7 +116,12 @@ Medido el alcance, MC2c se parte para que cada mitad tenga un gate propio.
 - `addons/account/models/account_account.py`: `AccountAccount`,
   `_get_closest_parent_account`, `_compute_code`, `_search_code`,
   `_inverse_code`, `_field_to_sql`, `save`, `create`,
-  `search_new_account_code`; se retira `_sync_code_store`.
+  `search_new_account_code` y su `search_new_account_code.is_free`
+  (≙ `code_is_available`,
+  odoo19c: addons/account/models/account_account.py:509-526: libre si
+  ninguna cuenta con ese código pertenece a una empresa madre o hija; lo
+  prueba `test_a_prefix_becomes_the_first_free_code`); se retira
+  `_sync_code_store`.
 - `addons/account/migrations/0056_account_code_over_code_store.py`.
 - `addons/account/models/chart_template.py`: `load`, `_load_for_company`,
   `load_model_data`.
