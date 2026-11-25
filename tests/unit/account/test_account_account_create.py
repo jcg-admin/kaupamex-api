@@ -56,10 +56,12 @@ def _company_ids(account):
 def test_the_active_company_comes_first(
         parent_company, other_company, accountant):
     with user_scope(accountant.pk), company_scope(parent_company.pk):
+        resolved = AccountAccount._resolve_companies(
+            [Command.set([other_company.pk, parent_company.pk])])
         account = _create({'code': '101000', 'company_ids': [
             Command.set([other_company.pk, parent_company.pk])]})
-    row = AccountAccount.objects.get(pk=account.id)
-    assert row.company_id == parent_company.pk
+    assert [company.pk for company in resolved] == [
+        parent_company.pk, other_company.pk]
     assert _company_ids(account) == {parent_company.pk, other_company.pk}
 
 
@@ -68,8 +70,6 @@ def test_explicit_companies_without_the_active_one_are_kept(
     with user_scope(accountant.pk), company_scope(parent_company.pk):
         account = _create({'code': '101000', 'company_ids': [
             Command.set([other_company.pk])]})
-    row = AccountAccount.objects.get(pk=account.id)
-    assert row.company_id == other_company.pk
     assert _company_ids(account) == {other_company.pk}
 
 
@@ -77,8 +77,6 @@ def test_without_companies_the_active_company_is_used(
         parent_company, accountant):
     with user_scope(accountant.pk), company_scope(parent_company.pk):
         account = _create({'code': '101000'})
-    row = AccountAccount.objects.get(pk=account.id)
-    assert row.company_id == parent_company.pk
     assert _company_ids(account) == {parent_company.pk}
 
 

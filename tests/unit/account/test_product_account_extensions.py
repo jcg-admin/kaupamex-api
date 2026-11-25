@@ -115,13 +115,13 @@ class TestLaExtensionSeAplico:
 class TestResolutionOfAccount:
     """Los dos escalones portados de ``_get_product_accounts``."""
 
-    def test_la_cuenta_del_producto_gana(self, cuentas):
+    def test_la_cuenta_del_producto_gana(self, cuentas, company):
         ingreso, gasto = cuentas
         otra = current_env()['account.account'].sudo().create({
             'code': '402',
             'name': 'Otros ingresos',
             'account_type': 'income',
-            'company_ids': [Command.set([ingreso.company.pk])],
+            'company_ids': [Command.set([company.pk])],
         })
         categoria = ProductCategory.objects.create(
             name='Collares', property_account_income_categ=otra

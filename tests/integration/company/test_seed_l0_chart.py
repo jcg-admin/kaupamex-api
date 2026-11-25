@@ -42,10 +42,11 @@ class TestSeedL0Chart:
         call_command('seed_l0_chart', stdout=StringIO())
         system = ResCompany.get_system()
         assert AccountAccount.objects.filter(
-            company=system, account_type='asset_receivable', deprecated=False
+            company_ids=system, account_type='asset_receivable',
+            deprecated=False,
         ).exists()
         assert AccountAccount.objects.filter(
-            company=system, account_type='income', deprecated=False
+            company_ids=system, account_type='income', deprecated=False
         ).exists()
 
     def test_is_idempotent(self):
@@ -58,13 +59,13 @@ class TestSeedL0Chart:
         )
         assert (
             AccountAccount.objects.filter(
-                company=system, account_type='asset_receivable'
+                company_ids=system, account_type='asset_receivable'
             ).count()
             == 1
         )
         assert (
             AccountAccount.objects.filter(
-                company=system, account_type='income'
+                company_ids=system, account_type='income'
             ).count()
             == 1
         )

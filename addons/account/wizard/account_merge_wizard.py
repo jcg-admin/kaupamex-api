@@ -90,6 +90,7 @@ from collections import defaultdict
 from django.db import transaction
 
 from addons.account.models.account_account import AccountAccount
+import models
 from exceptions import UserError
 from orm.models_transient import TransientModel
 from tools.translate import _
@@ -245,16 +246,24 @@ class AccountMergeWizard(TransientModel):
         el usuario alcance TODAS las empresas de las cuentas. Aquí la
         autorización por registro/capacidad es de la capa DRF (capacidades
         ``authz``, fail-closed — quien exponga el wizard gatea la vista);
-        cuando el llamador pasa ``user`` con ``companies`` accesibles, el
-        guard de empresas se aplica con la FK simple del puerto.
+        cuando el llamador pasa ``user``, el
+        guard de empresas compara las ``company_ids`` de las cuentas con las
+        del usuario, como ``accounts.sudo().company_ids -
+        self.env.user.company_ids`` (``:128``).
         """
-        if user is None or not hasattr(user, 'companies'):
+        if user is None:
             return accounts
-        allowed = {company.pk for company in user.companies.all()}
-        forbidden = sorted(
-            str(account.company)
+        allowed = set(models.related_manager(user, 'company_ids')
+                      .values_list('pk', flat=True))
+        companies = {
+            company.pk: company
             for account in accounts
-            if account.company_id not in allowed
+            for company in models.related_manager(account, 'company_ids').all()
+        }
+        forbidden = sorted(
+            company.name
+            for pk, company in companies.items()
+            if pk not in allowed
         )
         if forbidden:
             raise UserError(

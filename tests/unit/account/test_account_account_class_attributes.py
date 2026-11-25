@@ -24,16 +24,13 @@ def test_the_class_attributes_the_source_declares():
     assert AccountAccount._check_company_auto is True
 
 
-def test_the_company_domain_stays_on_the_single_company_field():
-    """Divergencia declarada hasta MC2: la fuente usa
-    ``check_companies_domain_parent_of`` sobre el M2M ``company_ids``. Desde
-    MC1 el M2M existe y el plural ya devuelve un dominio, pero los
-    consumidores filtran todavía por ``company``; el singular conserva el
-    criterio jerárquico sobre ese campo hasta que MC2 los pase al plural."""
+def test_the_company_domain_is_the_plural_on_company_ids():
+    """≙ ``_check_company_domain = models.check_companies_domain_parent_of``
+    (``odoo19c: addons/account/models/account_account.py:25``): desde MC2c-2
+    la cuenta no tiene columna ``company`` y su dominio de empresa es el
+    plural sobre ``company_ids``."""
     assert (AccountAccount._check_company_domain.__func__
-            is models.check_company_domain_parent_of)
-    assert models.check_companies_domain_parent_of(
-        AccountAccount, []) is not None
+            is models.check_companies_domain_parent_of)
 
 
 @pytest.mark.django_db

@@ -1226,21 +1226,23 @@ class ChartTemplate:
         ≙ ``_get_bank_fees_reco_account``.
 
         Preferimos una cuenta que se llame así; si no la hay, la primera de
-        gasto. Es lo que la regla de conciliación de comisiones necesita para
-        tener dónde asentar.
+        gasto. Busca con ``_check_company_domain(company.id)`` sobre la
+        empresa activa, como la fuente (``:796-800``). La búsqueda de
+        «comisiones» entre las dos es una adición local declarada: los planes
+        en español nombran así la cuenta.
         """
-        account_model = apps.get_model('account', 'AccountAccount')
-        return (
-            account_model.objects.filter(
-                company=company, name__icontains='Bank Fees'
-            ).first()
-            or account_model.objects.filter(
-                company=company, name__icontains='comisiones'
-            ).first()
-            or account_model.objects.filter(
-                company=company, account_type='expense'
-            ).first()
-        )
+        accounts = env()['account.account'].sudo()
+        with company_scope(company.pk):
+            domain = list(accounts._check_company_domain(company.pk))
+            found = (
+                accounts.search([*domain, ('name', 'like', 'Bank Fees')],
+                                limit=1)
+                or accounts.search([*domain, ('name', 'ilike', 'comisiones')],
+                                   limit=1)
+                or accounts.search([*domain, ('account_type', '=', 'expense')],
+                                   limit=1)
+            )
+        return next(iter(found), None)
 
     # -- plantillas base (Root template functions) ---------------------------
     #

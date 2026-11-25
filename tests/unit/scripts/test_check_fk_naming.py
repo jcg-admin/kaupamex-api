@@ -79,7 +79,9 @@ class TestItReadsTheRealTree:
     """Los positivos conocidos, leídos de sus archivos."""
 
     def test_a_known_form_a_declaration_is_reported_as_a(self):
-        path = REPO / 'addons' / 'account' / 'models' / 'account_account.py'
+        # ``account_account.company`` era este positivo hasta MC2c-2, que
+        # retira la columna; ``account_journal.company`` sigue en forma A.
+        path = REPO / 'addons' / 'account' / 'models' / 'account_journal.py'
 
         forms = {name: form for _k, name, form in gate.declarations(path)}
 

@@ -5,8 +5,8 @@ núcleo: ``code``, ``name``, ``account_type`` (Selection), ``reconcile``,
 ``deprecated``, ``currency``, ``note``. ``internal_group`` deriva de
 ``account_type`` (Odoo ``_compute_internal_group``) → se computa en ``save()``.
 
-Cross-app (DEC-SALE-01): ``currency`` → ``base.ResCurrency``; ``company`` →
-``base.ResCompany`` (Odoo ``res.company``).
+Cross-app (DEC-SALE-01): ``currency`` → ``base.ResCurrency``; ``company_ids``
+→ ``base.ResCompany`` (Odoo ``res.company``).
 
 Hallazgo H-ACC-01 (drift 18→19): el enum ``account_type`` de 19 añade
 ``expense_other`` respecto de 18. Se adopta el **superset de 19** (nada
@@ -49,16 +49,11 @@ class AccountAccount(models.BaseModel):
     #: clase no hereda ``CheckCompanyMixin`` (es un ``models.Model`` de
     #: Django, no ``TimeStampedModel``), que es quien lo lee al guardar.
     _check_company_auto = True
-    #: **Divergencia declarada** de ``_check_company_domain =
-    #: models.check_companies_domain_parent_of`` (``:25``). La fuente usa el
-    #: plural sobre el M2M ``company_ids``. Desde MC1 ``company_ids`` existe
-    #: y ``save`` lo mantiene igual a ``company``, pero los consumidores
-    #: todavía filtran por ``company``; el singular
-    #: ``check_company_domain_parent_of`` conserva el criterio jerárquico de
-    #: la fuente sobre ese campo hasta MC2, que pasa los consumidores a
-    #: ``company_ids`` y cambia al plural
-    #: (``designs/account-account-multicompany-code.md``).
-    _check_company_domain = classmethod(models.check_company_domain_parent_of)
+    #: ≙ ``_check_company_domain = models.check_companies_domain_parent_of``
+    #: (``odoo19c: addons/account/models/account_account.py:25``): el plural
+    #: sobre el M2M ``company_ids``, sin rama de «compartida entre todas».
+    _check_company_domain = classmethod(
+        models.check_companies_domain_parent_of)
 
     # account_type — superset de Odoo 19 (18 + expense_other). H-ACC-01.
     ACCOUNT_TYPES = [
@@ -159,17 +154,10 @@ class AccountAccount(models.BaseModel):
         related_name='accounts',
         help_text='Moneda de la cuenta (Odoo currency_id).',
     )
-    company = fields.Many2one(
-        'base.ResCompany',
-        null=False, on_delete=models.CASCADE,
-        related_name='accounts',
-        help_text='Empresa (Odoo company_id / company_ids).',
-    )
     #: ≙ ``company_ids``
     #: (``odoo19c: addons/account/models/account_account.py:97-98``): la
-    #: cuenta pertenece a varias empresas. Durante MC1 convive con
-    #: ``company``, y ``save`` la mantiene al día
-    #: (``designs/account-account-multicompany-code.md``).
+    #: cuenta pertenece a varias empresas, y es su única relación de empresa
+    #: desde MC2c-2 (``designs/account-account-mc2c.md``).
     company_ids = fields.Many2many(
         'base.ResCompany',
         blank=True,
@@ -526,10 +514,6 @@ class AccountAccount(models.BaseModel):
             self._compute_account_type()
             self._compute_internal_group()
         result = super().save(*args, **kwargs)
-        companies = models.related_manager(self, 'company_ids')
-        if self.company_id and not companies.filter(
-                pk=self.company_id).exists():
-            companies.add(self.company_id)
         self._compute_account_tags()
         return result
 
@@ -544,10 +528,9 @@ class AccountAccount(models.BaseModel):
         ``prefix``/``code_digits`` al primer código libre en la primera
         empresa. Crea con las empresas resueltas activas, el
         ``allowed_company_ids=companies.ids`` de la fuente (``:1042-1047``).
-        Divergencias declaradas en ``designs/account-account-mc2b.md``:
-        ``code_mapping_ids`` no viaja y ``_ensure_code_is_unique`` llega con
-        MC2c-2. Hasta MC2c-2 la columna ``company`` toma la primera empresa
-        resuelta.
+        Divergencia declarada en ``designs/account-account-mc2b.md``:
+        ``code_mapping_ids`` no viaja (sucesor ``account-code-mapping-0397``).
+        Cierra con ``_ensure_code_is_unique`` (``:1049``).
         """
         if not vals_list:
             return super().create(vals_list)
@@ -569,8 +552,6 @@ class AccountAccount(models.BaseModel):
                     cache.add(vals['code'])
                 vals['company_ids'] = [fields.Command.set(
                     [company.pk for company in companies])]
-                if companies:
-                    vals.setdefault('company', companies[0])
             without_type = [index for index, vals
                             in enumerate(vals_list_for_company)
                             if not vals.get('account_type')]

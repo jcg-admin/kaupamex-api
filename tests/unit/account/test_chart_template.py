@@ -30,6 +30,7 @@ from addons.account.models.account_tax_repartition_line import (
 )
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_company import ResCompany
+import models
 from exceptions import UserError
 from orm.commands import Command
 from orm.environments import company_scope, env as current_env
@@ -289,7 +290,10 @@ class TestCompanyIsolation:
         # El código se lee en la empresa activa: la de cada cuenta.
         with company_scope(other.pk):
             assert second.code == '121000'
-        assert first.company == company and second.company == other
+        assert set(models.related_manager(first, 'company_ids')
+                   .values_list('pk', flat=True)) == {company.pk}
+        assert set(models.related_manager(second, 'company_ids')
+                   .values_list('pk', flat=True)) == {other.pk}
 
     def test_reloading_does_not_duplicate(self, company):
         """Idempotente por identificador externo, como la referencia."""
