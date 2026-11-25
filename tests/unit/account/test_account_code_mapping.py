@@ -1,34 +1,32 @@
 """``account.code.mapping`` (tarea #398, tramo 2) — divergencia de mecanismo.
 
-No hay modelo Django que probar: ``account_code_mapping.py`` declara por qué
-la premisa de la referencia (una cuenta compartida entre compañías, con un
-código distinto por compañía) no existe en este árbol —
-``AccountAccount.company`` es un ``ForeignKey`` 1:1, no un ``ManyToMany``. Lo
-que este test fija es exactamente esa premisa, para que la divergencia deje
-de ser válida el día que alguien la cambie sin darse cuenta.
+``account_code_mapping.py`` declaraba la divergencia porque la premisa de la
+referencia —una cuenta compartida entre compañías, con un código distinto
+por compañía— no existía aquí. Desde MC2c-1 existe: la cuenta tiene
+``company_ids`` y su código vive por empresa raíz en ``code_store``, sin la
+restricción ``(company, code)``. Este test fija la premisa nueva; el modelo
+virtual pasa a ser un sucesor (``designs/account-account-mc2c.md``).
 """
 
 import pytest
 from django.apps import apps
-from django.db.models import ForeignKey, ManyToManyField
+from django.db.models import ManyToManyField
 
 from addons.account.models.account_account import AccountAccount
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
 
-class TestTheAccountAccountCompanyPremiseIsStillOneToOne:
-    def test_company_is_a_foreignkey_not_a_manytomany(self):
-        field = AccountAccount._meta.get_field('company')
-        assert isinstance(field, ForeignKey)
-        assert not isinstance(field, ManyToManyField)
+class TestTheAccountBelongsToManyCompanies:
+    def test_the_companies_are_a_manytomany(self):
+        field = AccountAccount._meta.get_field('company_ids')
+        assert isinstance(field, ManyToManyField)
 
-    def test_there_is_a_unique_company_code_constraint(self):
-        """La UNIQUE(company, code) sólo tiene sentido en el modelo 1:1 —
-        si ``company`` fuera M2M, esta restricción no podría existir tal cual
-        (una fila no tiene "una" compañía que combinar con el código)."""
+    def test_there_is_no_unique_company_code_constraint(self):
+        """Con varias empresas por cuenta no hay "una" compañía que combinar
+        con el código: la unicidad es ``_ensure_code_is_unique``."""
         constraint_names = {c.name for c in AccountAccount._meta.constraints}
-        assert 'unique_account_code_company' in constraint_names
+        assert 'unique_account_code_company' not in constraint_names
 
 
 class TestNoAccountCodeMappingModelExists:

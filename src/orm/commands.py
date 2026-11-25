@@ -13,6 +13,7 @@ manager* de Django.
 import enum
 
 from django.db import models as _django_models
+from django.db import router as _django_router
 from django.db.models.fields import related_descriptors as _related_descriptors
 
 from exceptions import MissingError
@@ -173,7 +174,16 @@ def related_manager(record, name):
 
     Lo usan los consumidores internos que escriben la relación (``set``,
     ``add``, ``clear``): este intérprete, ``create`` y ``_check_company``.
+
+    Un registro que el ORM construye por id (``_from_ids``) representa una
+    fila existente y no trae ``_state.db``; Django rehúsa relacionarlo
+    («instance is on database None»). La fila vive en la base de escritura
+    del modelo, y ésa es la que se le declara.
     """
+    state = getattr(record, '_state', None)
+    if (state is not None and state.db is None
+            and getattr(record, 'pk', None) is not None):
+        state.db = _django_router.db_for_write(type(record), instance=record)
     return _DJANGO_X2MANY_GET(getattr(type(record), name), record)
 
 

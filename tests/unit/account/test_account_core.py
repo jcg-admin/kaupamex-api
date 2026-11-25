@@ -23,7 +23,7 @@ import pytest
 from django.db import IntegrityError, transaction
 from django.utils import timezone
 
-from exceptions import UserError
+from exceptions import UserError, ValidationError
 from addons.account.models import (
     AccountAccount,
     AccountJournal,
@@ -82,7 +82,8 @@ class TestAccountAccount:
             'account_type': 'asset_cash',
             'company_ids': [Command.set([company.pk])],
         })
-        with transaction.atomic(), pytest.raises(IntegrityError):
+        # ≙ ``_ensure_code_is_unique`` (``odoo19c: account_account.py:1079``).
+        with transaction.atomic(), pytest.raises(ValidationError):
             current_env()['account.account'].sudo().create({
                 'code': '100',
                 'name': 'B',

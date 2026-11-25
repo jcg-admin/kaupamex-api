@@ -98,7 +98,7 @@ import fields
 from django.apps import apps
 
 from orm import registry
-from orm.environments import env, transaction_scope
+from orm.environments import company_scope, env, transaction_scope
 from orm.utils import model_field_registry
 from orm.commands import related_manager
 from orm.commands import Command
@@ -131,6 +131,16 @@ def field_of(model, name):
 @pytest.fixture
 def company(db):
     return ResCompany.objects.create(code='m2m-313', name='M2M 313')
+
+
+@pytest.fixture(autouse=True)
+def _active_company(request):
+    """El código de una cuenta se lee en la empresa activa (MC2c-1)."""
+    if 'company' not in request.fixturenames:
+        yield
+        return
+    with company_scope(request.getfixturevalue('company').pk):
+        yield
 
 
 @pytest.fixture

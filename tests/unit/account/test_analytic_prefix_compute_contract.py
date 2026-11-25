@@ -29,12 +29,12 @@ def prefix_field():
 
 @pytest.fixture
 def accounts(monkeypatch):
-    queryset = Mock()
-    queryset.filter.return_value = queryset
-    queryset.order_by.return_value = queryset
-    select = Mock(return_value=queryset)
-    monkeypatch.setattr(addon.AccountAccount.objects, 'filter', select)
-    return select, queryset
+    """La búsqueda de cuentas del ORM, simulada: ``env()['account.account']
+    .sudo().search(domain, limit=1)`` con el orden del modelo."""
+    model = Mock()
+    model.sudo.return_value = model
+    monkeypatch.setattr(addon, 'env', lambda: {'account.account': model})
+    return model
 
 
 def test_prefix_is_computed_without_a_default_or_column(prefix_field):
@@ -53,24 +53,22 @@ def test_prefix_is_computed_without_a_default_or_column(prefix_field):
 def test_new_record_reads_the_assigned_compute_value(
     prefix_field, accounts, code, expected
 ):
-    select, queryset = accounts
-    queryset.first.return_value = (
+    accounts.search.return_value = (
         SimpleNamespace(code=code) if code is not None else None
     )
     record = AccountAnalyticDistributionModel(company_id=11)
 
     assert record.prefix_placeholder == 'e.g. ' + expected
     assert record.pk is None
-    select.assert_called_once_with(account_type='expense')
-    queryset.filter.assert_called_once_with(company_ids=11)
-    queryset.order_by.assert_called_once_with('code')
+    accounts.search.assert_called_once_with(
+        [('account_type', '=', 'expense'), ('company_ids', '=', 11)],
+        limit=1)
 
 
 def test_distinct_new_records_cannot_share_a_computed_prefix(
     prefix_field, accounts
 ):
-    _, queryset = accounts
-    queryset.first.side_effect = [
+    accounts.search.side_effect = [
         SimpleNamespace(code='550100'), SimpleNamespace(code='700100'),
     ]
     first = AccountAnalyticDistributionModel(company_id=11)
@@ -80,7 +78,7 @@ def test_distinct_new_records_cannot_share_a_computed_prefix(
     assert second.prefix_placeholder == 'e.g. 70, 71, 72'
     assert first.prefix_placeholder == 'e.g. 55, 56, 57'
     assert first.pk is None and second.pk is None
-    assert queryset.first.call_count == 2
+    assert accounts.search.call_count == 2
 
 
 def test_compute_must_assign_instead_of_returning_a_value(

@@ -91,6 +91,7 @@ from django.db import transaction
 
 from addons.base.models.ir_default import IrDefault
 from addons.base.models.ir_model import IrModelData
+import fields
 import models
 from exceptions import UserError
 from orm.environments import company_scope, env
@@ -743,7 +744,12 @@ class ChartTemplate:
             if model_name == 'account.account':
                 # La cuenta pertenece a la empresa activa por ``company_ids``
                 # y su ``code`` no tiene columna: se escribe por el ORM, como
-                # ``_load_records`` en la fuente.
+                # ``_load_records`` en la fuente, y sus Many2many viajan en
+                # la misma escritura, como comandos.
+                for name, records in many_to_many.items():
+                    flat_values[name] = [fields.Command.set(
+                        [record.pk for record in records])]
+                many_to_many = {}
                 if existing is not None:
                     existing.write(flat_values)
                     record_data = existing

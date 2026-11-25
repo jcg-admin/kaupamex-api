@@ -24,9 +24,11 @@ def parent_company():
 
 
 @pytest.fixture
-def other_company():
+def other_company(parent_company):
+    """Una sucursal: comparte la raíz, así que el código dado en el alta
+    vale para las dos empresas (``_ensure_code_is_unique`` lo exige)."""
     return ResCompany.objects.create(
-        name='Otra', code='kaupamex_test_mc2b_otra')
+        name='Otra', code='kaupamex_test_mc2b_otra', parent=parent_company)
 
 
 @pytest.fixture

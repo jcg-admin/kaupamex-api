@@ -21,7 +21,7 @@ from django.utils import timezone
 from addons.crm.models import CrmLead
 from addons.sale.models import SaleOrder, SaleOrderLine
 from orm.environments import env as current_env
-from orm.environments import transaction_scope
+from orm.environments import company_scope, transaction_scope
 from tests.factories.order_factory import make_order
 from tests.factories.product_factory import make_product
 from orm.commands import Command
@@ -119,13 +119,14 @@ def test_an_account_computes_its_group_once_and_keeps_a_given_type(
     el marcado de creación."""
     spy(AccountAccount, '_compute_account_type')
     counts = spy(AccountAccount, '_compute_internal_group')
-    account = current_env()['account.account'].sudo().create({
-        'code': '105',
-        'name': 'Clientes',
-        'account_type': 'asset_receivable',
-        'company_ids': [Command.set([company.pk])],
-    })
-    _flush()
+    with company_scope(company.pk):
+        account = current_env()['account.account'].sudo().create({
+            'code': '105',
+            'name': 'Clientes',
+            'account_type': 'asset_receivable',
+            'company_ids': [Command.set([company.pk])],
+        })
+        _flush()
     assert counts == {'_compute_account_type': 0,
                       '_compute_internal_group': 1}
     row = AccountAccount.objects.values('account_type', 'internal_group').get(

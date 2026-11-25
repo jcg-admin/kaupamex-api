@@ -22,7 +22,7 @@ from django.db.models import Q
 import api
 import fields
 import models
-from exceptions import UserError
+from exceptions import UserError, ValidationError
 from orm.environments import company_scope, env
 from tools.query import Query
 from tools.sql import SQL
@@ -387,11 +387,20 @@ class AccountAccount(models.BaseModel):
         # El valor se lee en la empresa activa —``code`` depende de ella— y
         # se escribe en su raíz, como ``zip(self, self.with_company(root))``.
         codes = [(account, account.code) for account in self]
-        with company_scope(self._root_company_id(self.env.company)):
-            for account, code in codes:
-                # ``write`` y no la asignación: el valor tiene que llegar a
-                # la fila, y el ORM lo guarda bajo la empresa activa.
-                account.write({'code_store': code})
+        root = str(self._root_company_id(self.env.company))
+        rows = type(self).objects.filter(pk__in=[a.id for a in self])
+        stored_maps = dict(rows.values_list('pk', 'code_store'))
+        for account, code in codes:
+            stored = dict(stored_maps.get(account.id) or {})
+            stored[root] = code
+            # La fila, no ``save``: el ``save`` de este modelo recalcula el
+            # tipo y el grupo, y la fuente sólo escribe ``code_store``.
+            type(self).objects.filter(pk=account.id).update(
+                code_store=stored)
+        # ≙ ``invalidate_recordset(fnames=['code'], flush=False)`` y el
+        # recálculo inmediato (``:351-353``): todas las empresas de la raíz
+        # leen el valor nuevo.
+        self.invalidate_recordset(fnames=['code'], flush=False)
 
     @api.depends('code', 'code_store')
     def _compute_placeholder_code(self):
@@ -562,9 +571,92 @@ class AccountAccount(models.BaseModel):
                     [company.pk for company in companies])]
                 if companies:
                     vals.setdefault('company', companies[0])
+            without_type = [index for index, vals
+                            in enumerate(vals_list_for_company)
+                            if not vals.get('account_type')]
             with company_scope([company.pk for company in companies]):
-                records_list.append(super().create(vals_list_for_company))
-        return records_list[0].union(*records_list[1:])
+                created = super().create(vals_list_for_company)
+                # Divergencia de mecanismo, declarada: la fuente precalcula
+                # el tipo con el ``code`` dado ya en la caché; aquí el código
+                # vive en ``code_store``, que el inverso escribe tras la
+                # inserción, así que el tipo heredado se calcula después.
+                if without_type:
+                    pending = created.browse(
+                        [created.ids[index] for index in without_type])
+                    pending._compute_account_type()
+                    pending.flush_recordset(['account_type'])
+                records_list.append(created)
+        records = records_list[0].union(*records_list[1:])
+        records._ensure_code_is_unique()
+        return records
+
+    def write(self, vals):
+        """≙ ``write``
+        (``odoo19c: addons/account/models/account_account.py:1053-1077``),
+        la rama de unicidad: tras escribir ``company_ids`` o ``code`` se
+        verifica el código (``:1072-1077``).
+
+        Pendiente, con su razón: las otras tres ramas de la fuente —el paso
+        de ``reconcile`` (``_toggle_reconcile_to_true/false``), la moneda
+        con apuntes en otra divisa y la cuenta usada en una línea de reparto
+        al deprecarla— dependen de métodos que este árbol no tiene; su
+        sucesor está en ``designs/account-account-mc2c.md``.
+        """
+        result = super().write(vals)
+        if {'company_ids', 'code'} & vals.keys():
+            self._ensure_code_is_unique()
+        return result
+
+    def _ensure_code_is_unique(self):
+        """≙ ``_ensure_code_is_unique`` (``:1079-1130``).
+
+        1. Cada empresa de la cuenta tiene su código.
+        2. Ninguna empresa madre o hija tiene otra cuenta con el mismo
+           código, ni dentro del lote ni en la base.
+        """
+        accounts = self.sudo()
+        for account in accounts:
+            roots = {self._root_company_id(company)
+                     for company in models.related_manager(
+                         account, 'company_ids').all()}
+            for root in roots:
+                with company_scope(root):
+                    if not type(self).objects.get(pk=account.id).code:
+                        raise ValidationError(_(
+                            "The code must be set for every company to "
+                            "which this account belongs."))
+        account_ids_by_company = {}
+        for account in accounts:
+            for company in models.related_manager(
+                    account, 'company_ids').all():
+                account_ids_by_company.setdefault(company, []).append(
+                    account.id)
+        for company, account_ids in account_ids_by_company.items():
+            with company_scope(company.pk):
+                batch = self.env['account.account'].sudo().browse(
+                    account_ids)
+                accounts_by_code = batch.grouped('code')
+                duplicate_codes = None
+                if len(accounts_by_code) < len(batch):
+                    duplicate_codes = [
+                        code for code, grouped in accounts_by_code.items()
+                        if len(grouped) > 1]
+                else:
+                    duplicates = self.env['account.account'].sudo(
+                    ).with_context(active_test=False).search([
+                        ('code', 'in', list(accounts_by_code)),
+                        ('id', 'not in', self.ids),
+                        '|',
+                        ('company_ids', 'parent_of', company.pk),
+                        ('company_ids', 'child_of', company.pk),
+                    ])
+                    if duplicates:
+                        duplicate_codes = duplicates.mapped('code')
+            if duplicate_codes:
+                raise ValidationError(_(
+                    "Account codes must be unique. You can't create "
+                    "accounts with these duplicate codes: %s",
+                    ", ".join(duplicate_codes)))
 
     @classmethod
     def _resolve_companies(cls, company_ids):

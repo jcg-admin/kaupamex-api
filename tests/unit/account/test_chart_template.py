@@ -285,7 +285,10 @@ class TestCompanyIsolation:
         first = ChartTemplate.ref('receivable', company)
         second = ChartTemplate.ref('receivable', other)
         assert first != second
-        assert first.code == second.code == '121000'
+        assert first.code == '121000'
+        # El código se lee en la empresa activa: la de cada cuenta.
+        with company_scope(other.pk):
+            assert second.code == '121000'
         assert first.company == company and second.company == other
 
     def test_reloading_does_not_duplicate(self, company):
@@ -563,11 +566,8 @@ class TestAccountCodeWidth:
         ChartTemplate.try_loading('generic_coa', company)
         company.refresh_from_db()
 
-        anchos = set(
-            AccountAccount.objects.filter(company_ids=company).values_list(
-                'code', flat=True
-            )
-        )
+        anchos = set(current_env()['account.account'].sudo().search(
+            [('company_ids', '=', company.pk)]).mapped('code'))
         assert {len(code) for code in anchos} == {6}
         # Y la generada por ``resolve_account_code`` cae en el mismo ancho.
         assert len(company.account_journal_suspense_account.code) == 6
