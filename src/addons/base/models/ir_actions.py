@@ -883,7 +883,7 @@ class ServerActionHistoryWizard(TransientModel):
         self.action.save(update_fields=['code'])
 
 
-class IrActionsServerHistory(TimeStampedModel):
+class IrActionsServerHistory(models.BaseModel, TimeStampedModel):
     """≙ ``IrActionsServerHistory`` (``odoo19c: ir_actions.py:503-539``).
 
     Una fila por versión del código de una acción de servidor. La escribe
