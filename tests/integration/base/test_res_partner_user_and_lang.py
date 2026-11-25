@@ -28,7 +28,7 @@ from django.contrib.auth import get_user_model
 
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.res_partner import ResPartner, ResPartnerCategory
-from orm.environments import context_scope, user_scope
+from orm.environments import context_scope, sudo, user_scope
 from orm.utils import SUPERUSER_ID
 
 User = get_user_model()
@@ -178,8 +178,11 @@ class TestComputeMainUser:
         shared = _user('principal.shared@kaupamex.mx', internal=False)
         internal = _user('principal.internal@kaupamex.mx')
         who = shared.partner
-        internal.partner = who
-        internal.save()
+        # La fuente prueba como superusuario; reasignar el partner
+        # delegado exige leerlo (``fields_relational.py:407-411``).
+        with sudo():
+            internal.partner = who
+            internal.save()
         assert who.main_user_id.pk == internal.pk
 
     def test_among_internal_users_the_lowest_id_wins(self, db):
@@ -191,8 +194,11 @@ class TestComputeMainUser:
         first = _user('principal.first@kaupamex.mx')
         second = _user('principal.second@kaupamex.mx')
         who = first.partner
-        second.partner = who
-        second.save()
+        # La fuente prueba como superusuario; reasignar el partner
+        # delegado exige leerlo (``fields_relational.py:407-411``).
+        with sudo():
+            second.partner = who
+            second.save()
         assert who.main_user_id.pk == first.pk
 
     def test_an_archived_user_is_not_chosen(self, db):
@@ -204,8 +210,11 @@ class TestComputeMainUser:
         archived = _user('principal.archived@kaupamex.mx')
         alive = _user('principal.alive@kaupamex.mx')
         who = archived.partner
-        alive.partner = who
-        alive.save()
+        # La fuente prueba como superusuario; reasignar el partner
+        # delegado exige leerlo (``fields_relational.py:407-411``).
+        with sudo():
+            alive.partner = who
+            alive.save()
         archived.active = False
         archived.save()
         assert who.main_user_id.pk == alive.pk
@@ -222,8 +231,11 @@ class TestComputeMainUser:
         first = _user('principal.otro@kaupamex.mx')
         viewer = _user('principal.yo@kaupamex.mx')
         who = first.partner
-        viewer.partner = who
-        viewer.save()
+        # La fuente prueba como superusuario; reasignar el partner
+        # delegado exige leerlo (``fields_relational.py:407-411``).
+        with sudo():
+            viewer.partner = who
+            viewer.save()
         with user_scope(viewer.pk):
             assert who.main_user_id.pk == viewer.pk
 
