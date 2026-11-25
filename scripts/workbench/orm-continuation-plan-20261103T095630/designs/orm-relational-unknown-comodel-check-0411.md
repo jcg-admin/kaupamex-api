@@ -94,8 +94,15 @@ registro global.
    `orm.E001`, como la fuente;
 5. el check está en el registro de Django con la etiqueta `models`;
 6. el árbol real (`run_checks()`): ningún `orm.E001`.
+7. un proceso nuevo que sólo hace `django.setup()` tiene el check
+   registrado exactamente una vez. La prueba 5 no discrimina la carga: el
+   propio archivo de prueba importa `orm.checks`, y ese import registra el
+   check aunque `BaseConfig.ready()` no lo cargue. Medido: sin la línea de
+   `ready()`, el proceso nuevo da 0 registros.
 
 Anulación: `unknown_comodel_errors` devuelve `[]`; deben caer 1 y 2.
+Anulación de la carga: sin `importlib.import_module('orm.checks')` en
+`ready()` debe caer sólo la 7.
 
 ## Lo que no cierra
 
