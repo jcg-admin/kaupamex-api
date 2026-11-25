@@ -69,7 +69,8 @@ verdad») se cumplió.
 
 - `addons/account/models/account_code_mapping.py`: `AccountCodeMapping`
   (`_auto = False`, `_table_query = '0'`, `Meta.managed = False`) con
-  `create`, `_search`, `_compute_account_id`, `_compute_company_id`,
+  `create`, `_search` (con su función interna `get_accounts`, `:52-56`),
+  `_compute_account_id`, `_compute_company_id`,
   `_compute_code` y `_inverse_code`; migración de estado
   `0058_accountcodemapping`; `AccountAccount.code_mapping_ids`.
 - `One2many.__get__` (`src/orm/fields_relational.py`) deja de rehusar un
