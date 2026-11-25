@@ -65,7 +65,6 @@ import base64
 import hashlib
 import mimetypes
 import uuid
-import warnings
 from collections import defaultdict
 
 from django.apps import apps
@@ -532,21 +531,12 @@ class IrAttachment(BaseModel):
     # ------------------------------------------------------------------
     # Acceso por registro — ≙ ``odoo19c: ir_attachment.py:504-795``
     # ------------------------------------------------------------------
-    def check(self, mode, values=None):
-        """Restricts the access to an ir.attachment, according to referred
-        mode — ≙ ``check`` (``:504-512``), obsoleto desde 19.0."""
-        warnings.warn("Since 19.0, use check_access", DeprecationWarning,
-                      stacklevel=2)
-        # Always require an internal user (aka, employee) to access to a
-        # attachment
-        if not (self.env.is_admin() or self.env.user._is_internal()):
-            raise AccessError(
-                _("Sorry, you are not allowed to access this document."))
-        self.check_access(mode)
-        if values and any(self._inaccessible_comodel_records(
-                {values.get('res_model'): [values.get('res_id')]}, mode)):
-            raise AccessError(
-                _("Sorry, you are not allowed to access this document."))
+    # ``check(mode, values)`` (``odoo19c: ir_attachment.py:504-512``) no se
+    # porta: está en desuso desde 19.0 —su cuerpo avisa *"Since 19.0, use
+    # check_access"*— y en un modelo de Django el nombre lo ocupa
+    # ``Model.check()``, el ``classmethod`` de los system checks: un método
+    # con ese nombre dispara ``models.E020`` y bloquea ``migrate``.
+    # Divergencia declarada; el contrato vigente es ``check_access``.
 
     def _check_access(self, operation):
         """Check access for attachments — ≙ ``_check_access`` (``:514-588``).
