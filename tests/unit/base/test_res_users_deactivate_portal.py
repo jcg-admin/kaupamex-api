@@ -39,6 +39,7 @@ import pytest
 from addons.base.models.res_users import ResUsers
 from addons.base.models.res_users_deletion import ResUsersDeletion
 from addons.base.models.res_partner import ResPartner
+from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.res_users import ResUsersApikeys
 from exceptions import AccessDenied
@@ -53,12 +54,11 @@ def _make_user(login, internal=False):
     user.set_password('secreto-original')
     user.save(update_fields=['password'])
     if internal:
-        user.group_ids.add(
-            ResGroups.objects.create(
-                name='Empleados %s' % login,
-                user_type=ResGroups.USER_TYPE_INTERNAL,
-            )
-        )
+        # Interno es tener ``base.group_user`` en la clausura
+        # (``odoo19c: res_users.py:459-464``).
+        user.group_ids.add(ResGroups.objects.get(
+            pk=IrModelData._xmlid_to_res_id('base.group_user',
+                                            raise_if_not_found=True)))
     return user
 
 
