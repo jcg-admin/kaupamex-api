@@ -177,7 +177,8 @@ class TestTheDeferredGuard:
 
     def test_a_required_default_towards_a_registry_model_is_refused(self):
         """``:282`` fija ``'restrict'`` para un requerido y ``:289`` corre
-        sobre ese valor: el default también rehúsa."""
+        sobre ese valor: el default también rehúsa. El puerto declara un
+        ``Many2one`` requerido con ``null=False``."""
         with isolate_apps('addons.stock'):
             class IrModelTargetProbe(django_models.Model):
                 _name = 'ir.model'
@@ -187,7 +188,8 @@ class TestTheDeferredGuard:
 
             with pytest.raises(ValueError, match="ondelete='restrict'"):
                 class RequiredReferrerProbe(django_models.Model):
-                    target = fields.Many2one('stock.IrModelTargetProbe')
+                    target = fields.Many2one(
+                        'stock.IrModelTargetProbe', null=False)
 
                     class Meta:
                         app_label = 'stock'
