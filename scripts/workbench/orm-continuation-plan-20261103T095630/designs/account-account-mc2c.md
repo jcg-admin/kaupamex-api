@@ -175,6 +175,31 @@ restantes, por causa:
   empresa»), que MC2c deja de cumplir. La prueba se reescribe sobre la
   premisa nueva y el modelo virtual queda como sucesor en este diseño.
 
+#### MC2c-1 — lo que cerró el subconjunto derivado
+
+- `AccountAccount.write`: la rama de unicidad de la fuente
+  (`:1072-1077`), que llama a `_ensure_code_is_unique` tras escribir
+  `company_ids` o `code`. Las otras tres ramas (`reconcile`, moneda con
+  apuntes en otra divisa, cuenta usada en un reparto al deprecarla) dependen
+  de `_toggle_reconcile_to_true/false` y de las comprobaciones sobre
+  `account.move.line`, que este árbol no tiene: sucesor
+  `account-account-write-branches-0397`.
+- `AccountAccount._ensure_code_is_unique` (`:1079-1130`), al final de
+  `create` y en `write`. Probada por
+  `test_account_core.py::TestAccountAccount::test_unique_code_per_company`,
+  que ahora espera el `ValidationError` de la fuente.
+- `_inverse_code` escribe el mapa de `code_store` en la fila e invalida
+  `code` (`:349-353`), sin pasar por `save`, que en este modelo recalcula
+  tipo y grupo.
+- Divergencia de mecanismo en `create`: el tipo heredado
+  (`_compute_account_type`) se calcula tras la inserción para las altas
+  sin tipo; la fuente lo precalcula con el `code` dado en la caché.
+- `orm.commands.related_manager` declara la base de escritura a un
+  registro construido por id sin `_state.db`; Django rehusaba relacionarlo.
+- `account.code.mapping`: su premisa («una cuenta, una empresa») dejó de
+  cumplirse. El modelo virtual de la fuente pasa a sucesor
+  `account-code-mapping-0397`.
+
 ### MC2c-2 — retirada de `company` (`account-account-mc2c2-0397`)
 
 1. `_ensure_code_is_unique` al final de `create` y en `write`.
