@@ -345,7 +345,8 @@ def check_unknown_comodel(app_configs=None, **kwargs):
 
 # Corriendo como ``python -m orm.checks`` este archivo es ``__main__`` y el
 # arranque de Django lo importa otra vez como ``orm.checks`` (lo importa
-# ``orm.registry``): registrar desde las dos copias duplicaría el mensaje.
+# ``BaseConfig.ready()``): registrar desde las dos copias duplicaría el
+# mensaje.
 if __name__ != '__main__':
     django_checks.register(django_checks.Tags.models)(check_unknown_comodel)
 

@@ -3309,12 +3309,3 @@ def identity_for_key(key):
     model = model_by_key(key)
     return identity_of(model) if model is not None else key
 
-
-# Al final del módulo, y la posición es el mecanismo: ``orm.checks`` importa
-# ``SENTINEL_APP_LABEL``, ``model_by_name`` y ``name_of`` de este archivo, que
-# aquí ya existen. Cargarlo registra el check ``orm.E001`` en todo proceso que
-# cargue el ORM; sin esto nada de ``src/`` lo carga y el check no correría.
-# Es una llamada y no una sentencia ``import`` por la misma razón que la
-# excepción 4 de ``no-lazy-imports.md``: una sentencia aquí exige suprimir
-# E402, y el pre-commit rehúsa toda supresión nueva.
-__import__('orm.checks')

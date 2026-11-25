@@ -126,6 +126,12 @@ class BaseConfig(AppConfig):
         # datos; designs/compute-new-stored-columns.md).
         post_migrate.connect(run_pending_computes, sender=self,
                              dispatch_uid='base.run_pending_computes')
+        # Registra el system check ``orm.E001`` (comodelo desconocido),
+        # ≙ el ``assert`` de ``Relational.setup_nonrelated``
+        # (``odoo19c: odoo/orm/fields_relational.py:92-94``). Se carga
+        # aquí con el registro de apps poblado (excepción #4 de
+        # ``no-lazy-imports.md``), el sitio donde Django registra checks.
+        importlib.import_module('orm.checks')
         cycle = importlib.import_module('addons.base.install_cycle')
         post_migrate.connect(cycle.load_modules_after_migrate, sender=self,
                              dispatch_uid='base.load_modules_after_migrate')
