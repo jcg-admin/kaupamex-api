@@ -1973,6 +1973,13 @@
         "basemodel-adoption-base-ir-cron-trigger-progress-0397"
       ],
       "writtenAt": "2026-11-25T19:42:57Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-base-ir-module-dependency-exclusion-0397"
+      ],
+      "writtenAt": "2026-11-25T21:01:17Z"
     }
   ]
 }
