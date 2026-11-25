@@ -126,6 +126,8 @@ from django.apps import apps
 from django.core import checks as django_checks
 from django.core.management import call_command as _django_call_command
 
+from orm.registry import SENTINEL_APP_LABEL, model_by_name, name_of
+
 # Importado al top del módulo, como el resto de `src/` — este archivo corre
 # siempre bajo el intérprete del venv del proyecto (pytest, kaupamex-bin), a
 # diferencia de los gates de `scripts/`, que corren bajo el `python3` del
@@ -140,7 +142,8 @@ def _bootstrap_django():
     ya corrió (pytest-django, otro llamador), ``apps.populate()`` retorna de
     inmediato (``ready`` ya es ``True``) — no repuebla ni reimporta modelos.
     """
-    root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    root = os.path.dirname(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     src = os.path.join(root, 'src')
     if src not in sys.path:
         sys.path.insert(0, src)
@@ -159,7 +162,8 @@ class SystemCheckSummary:
     def __init__(self, messages, models_scanned):
         self.messages = list(messages)
         self.models_scanned = models_scanned
-        self.errors = [m for m in self.messages if m.level >= django_checks.ERROR]
+        self.errors = [
+            m for m in self.messages if m.level >= django_checks.ERROR]
         self.warnings = [
             m for m in self.messages
             if django_checks.WARNING <= m.level < django_checks.ERROR
@@ -173,10 +177,11 @@ class SystemCheckSummary:
         causa, reportada desde el otro lado del mecanismo de resolución
         diferida). Ambos IDs cubren el caso que originó H-API-584/H-API-583.
         """
-        return [m for m in self.errors if (m.id or '').startswith('fields.E30')]
+        return [m for m in self.errors
+                if (m.id or '').startswith('fields.E30')]
 
     def render(self, quiet=False):
-        """Texto del reporte, en el mismo formato que consumía el gate previo."""
+        """Texto del reporte, en el formato que consumía el gate previo."""
         lines = []
         if not self.errors:
             lines.append(
@@ -212,7 +217,7 @@ class SystemCheckSummary:
 
 
 def collect_system_check_summary(app_configs=None, tags=None,
-                                  include_deployment_checks=False):
+                                 include_deployment_checks=False):
     """Corre ``checks.run_checks()`` y devuelve un :class:`SystemCheckSummary`.
 
     ``app_configs=None`` (el default) mide el registro **global**
@@ -250,8 +255,9 @@ def run_checks_or_raise(app_configs=None, tags=None):
     return summary
 
 
-def call_command_with_checks(command_name, *args, _call_command=_django_call_command,
-                              **options):
+def call_command_with_checks(command_name, *args,
+                             _call_command=_django_call_command,
+                             **options):
     """``call_command()`` que NO se salta los system checks por defecto.
 
     ``django.core.management.call_command()`` fija internamente
@@ -273,10 +279,81 @@ def call_command_with_checks(command_name, *args, _call_command=_django_call_com
     return _call_command(command_name, *args, **options)
 
 
+#: El identificador del check que porta la aserción de comodelo de la fuente.
+UNKNOWN_COMODEL_ID = 'orm.E001'
+
+
+def unknown_comodel_errors(models_to_check):
+    """Los campos relacionales cuyo ``comodel_name`` no está en el registro.
+
+    ≙ ``Relational.setup_nonrelated`` (``odoo19c: odoo/orm/
+    fields_relational.py:92-94``)::
+
+        assert self.comodel_name in model.pool, \\
+            f"Field {self} with unknown comodel_name {...!r}"
+
+    **Divergencia de mecanismo, declarada.** La fuente afirma en una fase del
+    registro y aborta la carga; aquí no hay esa fase: un ``_name`` punteado
+    que nunca se registró deja a Django la etiqueta centinela
+    (``_deferred_comodel``) y la clave ``orm.<nombre>`` colgada en
+    ``_pending_operations``. La aserción se porta como system check, que es
+    la fase declarativa de Django, y el mensaje es el de la fuente: nombra el
+    campo y el ``comodel_name`` que el autor escribió, no el centinela que
+    ``fields.E300`` nombra.
+
+    Un comodelo anotado con ``register_abstract`` está en
+    ``MODELS_BY_NAME`` aunque su centinela no resuelva nunca: la fuente lo
+    tiene en ``model.pool`` y no lo rechaza, así que aquí tampoco.
+
+    *Ciega a* ``One2many``, que no es campo de Django ni deja centinela.
+    """
+    errors = []
+    for model in models_to_check:
+        meta = model._meta
+        for field in (*meta.local_fields, *meta.local_many_to_many):
+            remote = getattr(field, 'remote_field', None)
+            target = getattr(remote, 'model', None)
+            if not (isinstance(target, str) and target.partition('.')[0]
+                    == SENTINEL_APP_LABEL):
+                continue
+            comodel_name = getattr(field, 'comodel_name', None)
+            if comodel_name and model_by_name(comodel_name) is not None:
+                continue
+            owner = name_of(model) or meta.label_lower
+            errors.append(django_checks.Error(
+                f"Field {owner}.{field.name} with unknown comodel_name "
+                f"{comodel_name or '???'!r}",
+                obj=field,
+                id=UNKNOWN_COMODEL_ID,
+            ))
+    return errors
+
+
+def check_unknown_comodel(app_configs=None, **kwargs):
+    """System check ``orm.E001`` sobre los modelos de ``app_configs``.
+
+    Con ``app_configs=None`` recorre el registro global, como los checks de
+    modelo de Django.
+    """
+    if app_configs is None:
+        models_to_check = apps.get_models()
+    else:
+        models_to_check = [model for app_config in app_configs
+                           for model in app_config.get_models()]
+    return unknown_comodel_errors(models_to_check)
+
+
+# Corriendo como ``python -m orm.checks`` este archivo es ``__main__`` y el
+# arranque de Django lo importa otra vez como ``orm.checks`` (lo importa
+# ``orm.registry``): registrar desde las dos copias duplicaría el mensaje.
+if __name__ != '__main__':
+    django_checks.register(django_checks.Tags.models)(check_unknown_comodel)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--quiet', action='store_true',
-                     help='sólo el conteo, sin el detalle por mensaje')
+                    help='sólo el conteo, sin el detalle por mensaje')
     args = ap.parse_args(argv)
 
     _bootstrap_django()
