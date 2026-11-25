@@ -21,15 +21,29 @@ pytestmark = pytest.mark.django_db
 COMPANY_OFFSET = 10000
 
 
+def free_company_pk(below):
+    """El mayor pk libre por debajo de ``below``.
+
+    El id virtual supone empresas con pk < ``COMPANY_OFFSET``; las bases de
+    prueba reutilizadas tienen la secuencia de ``res_company`` muy por encima,
+    así que las empresas de estos casos fijan su pk explícitamente.
+    """
+    taken = set(ResCompany.objects.filter(pk__lt=below).values_list(
+        'pk', flat=True))
+    return next(pk for pk in range(below - 1, 0, -1) if pk not in taken)
+
+
 @pytest.fixture
 def first_company():
     return ResCompany.objects.create(
+        pk=free_company_pk(COMPANY_OFFSET),
         name='Primera', code='kaupamex_test_mapping_first')
 
 
 @pytest.fixture
-def second_company():
+def second_company(first_company):
     return ResCompany.objects.create(
+        pk=free_company_pk(first_company.pk),
         name='Segunda', code='kaupamex_test_mapping_second')
 
 
@@ -93,3 +107,17 @@ def test_searching_without_an_account_is_refused(accountant, first_company):
     with user_scope(accountant.pk), company_scope(first_company.pk):
         with pytest.raises(UserError, match='cannot be accessed directly'):
             current_env()['account.code.mapping'].search([])
+
+
+def test_a_company_past_the_offset_is_refused(
+        shared_account, first_company, accountant):
+    """Con un pk ≥ ``COMPANY_OFFSET`` el id virtual decodificaría otra
+    cuenta y otra empresa; el puerto rehúsa en vez de devolverlas."""
+    large = ResCompany.objects.create(
+        pk=free_company_pk(3 * COMPANY_OFFSET),
+        name='Grande', code='kaupamex_test_mapping_large')
+    accountant.company_ids.add(large)
+    with user_scope(accountant.pk), company_scope(first_company.pk):
+        account = current_env()['account.account'].browse(shared_account.id)
+        with pytest.raises(UserError, match='10000'):
+            account.code_mapping_ids
