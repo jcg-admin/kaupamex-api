@@ -53,11 +53,17 @@ Medido con una sonda en `isolate_apps('addons.stock')` y `Many2one('res.partnerr
   El registro se omite cuando el módulo corre como `__main__` (`python -m
   orm.checks`): allí el módulo se importa dos veces y el check quedaría
   duplicado.
-- `src/orm/registry.py`: `__import__('orm.checks')` al final del módulo,
-  para que el check quede registrado en todo proceso que cargue el ORM. Es
-  una llamada y no una sentencia `import`: medido, la sentencia tardía exige
-  `# noqa: E402` y el pre-commit rehúsa toda supresión nueva
-  (*"New or changed suppression requires review"*).
+- `src/addons/base/apps.py`, `BaseConfig.ready()`:
+  `importlib.import_module('orm.checks')`. Es el sitio que la excepción 4
+  de `no-lazy-imports.md` sanciona para registrar algo que necesita el
+  registro de apps poblado, y el que Django documenta para los system
+  checks. Una primera versión lo cargaba con `__import__('orm.checks')` al
+  final de `src/orm/registry.py`: funcionaba, pero ponía un efecto lateral
+  de import en un módulo de núcleo que importan también procesos que nunca
+  corren checks, y fuera de la forma que la regla admite. Con `ready()` el
+  check queda registrado en todo proceso que arranque Django, que es el
+  único que puede correr checks (`base` es la app fundacional, instalada
+  siempre). `orm.registry` vuelve a no importar `orm.checks`.
 - `src/orm/checks.py`, sólo formato: la admisión de estilo compara cada
   diagnóstico heredado con su posición en el cuerpo del módulo
   (`syntax_context` de `scripts/check_python_style_increment.py`), así que
