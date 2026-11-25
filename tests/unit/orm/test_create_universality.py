@@ -9,6 +9,7 @@ create-universality.md``.
 """
 import pytest
 from django.apps import apps
+from django.contrib.auth import get_user_model
 
 from orm.commands import _row_id
 from orm.environments import sudo
@@ -17,16 +18,19 @@ from orm.model_classes import THIRD_PARTY_MODULE_PREFIXES
 pytestmark = pytest.mark.django_db
 
 IrExports = apps.get_model('base', 'IrExports')
+ExportJob = apps.get_model('base', 'ExportJob')
 
 
 def test_create_takes_a_list_and_keeps_its_order():
+    # ``ir.exports`` es ``BaseModel``: las lecturas también corren como
+    # superusuario, como en la fuente.
     with sudo():
         rows = IrExports.create([{'name': 'Uno', 'resource': 'a.B'},
                                  {'name': 'Dos', 'resource': 'a.B'}])
-    assert [row.name for row in rows] == ['Uno', 'Dos']
-    # los dos campos declaran ``default=''``
-    assert IrExports.default_get(['name', 'resource']) == {
-        'name': '', 'resource': ''}
+        assert [row.name for row in rows] == ['Uno', 'Dos']
+        # los dos campos declaran ``default=''``
+        assert IrExports.default_get(['name', 'resource']) == {
+            'name': '', 'resource': ''}
 
 
 def test_name_create_goes_through_create(monkeypatch):
@@ -41,9 +45,9 @@ def test_name_create_goes_through_create(monkeypatch):
     monkeypatch.setattr(IrExports, 'create', classmethod(spy))
     with sudo():
         created = IrExports.name_create('Por nombre')
-    assert seen and seen[0] in ({'name': 'Por nombre'},
-                                [{'name': 'Por nombre'}])
-    assert IrExports.objects.get(pk=created[0]).name == 'Por nombre'
+        assert seen and seen[0] in ({'name': 'Por nombre'},
+                                    [{'name': 'Por nombre'}])
+        assert IrExports.objects.get(pk=created[0]).name == 'Por nombre'
 
 
 def test_every_own_concrete_model_has_create():
@@ -57,6 +61,10 @@ def test_every_own_concrete_model_has_create():
 def test_a_command_takes_the_id_of_a_created_queryset():
     """``Command.create`` sobre un comodelo sin ``BaseModel`` enlaza la fila:
     ``_row_id`` lee el pk del ``QuerySet`` que devuelve ``create``."""
+    # ``base.ExportJob`` es propio del L0 y no es ``BaseModel``.
+    user = get_user_model().objects.create_user(
+        login='create.universality@kaupamex.mx', group_ids=[])
     with sudo():
-        rows = IrExports.create([{'name': 'Fila', 'resource': 'a.B'}])
-    assert _row_id(rows) == rows.get().pk
+        rows = ExportJob.create([{'requested_by': user,
+                                  'file_path': 'a.csv'}])
+        assert _row_id(rows) == rows.get().pk

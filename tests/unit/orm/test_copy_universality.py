@@ -9,32 +9,39 @@ copy-universality.md``.
 """
 import pytest
 from django.apps import apps
+from django.contrib.auth import get_user_model
 
+from orm.environments import sudo
 from orm.model_classes import THIRD_PARTY_MODULE_PREFIXES
 
 pytestmark = pytest.mark.django_db
 
 IrExports = apps.get_model('base', 'IrExports')
-IrExportsLine = apps.get_model('base', 'IrExportsLine')
+ExportJob = apps.get_model('base', 'ExportJob')
 
 
 def test_a_timestamped_model_duplicates_its_row():
-    original = IrExports.objects.create(name='Pedidos',
-                                        resource='sale.SaleOrder')
-    duplicate = original.copy()
-    assert duplicate.pk != original.pk
-    assert (duplicate.name, duplicate.resource) == ('Pedidos',
-                                                    'sale.SaleOrder')
-    assert duplicate.create_date >= original.create_date
+    # ``ir.exports`` es ``BaseModel``: su ACL rige, y la fuente prueba como
+    # superusuario.
+    with sudo():
+        original = IrExports.objects.create(name='Pedidos',
+                                            resource='sale.SaleOrder')
+        duplicate = original.copy()
+        assert duplicate.pk != original.pk
+        assert (duplicate.name, duplicate.resource) == ('Pedidos',
+                                                        'sale.SaleOrder')
+        assert duplicate.create_date >= original.create_date
 
 
 def test_a_django_only_model_duplicates_its_row():
-    export = IrExports.objects.create(name='Columnas', resource='x.Y')
-    line = IrExportsLine.objects.create(name='amount', export_id=export)
-    duplicate = line.copy({'name': 'amount_total'})
-    assert duplicate.pk != line.pk
-    assert duplicate.name == 'amount_total'
-    assert duplicate.export_id_id == export.pk
+    """``base.ExportJob`` es propio del L0 y no es ``BaseModel``."""
+    user = get_user_model().objects.create_user(
+        login='copy.universality@kaupamex.mx', group_ids=[])
+    job = ExportJob.objects.create(requested_by=user, file_path='a.csv')
+    duplicate = job.copy({'file_path': 'b.csv'})
+    assert duplicate.pk != job.pk
+    assert duplicate.file_path == 'b.csv'
+    assert duplicate.requested_by_id == user.pk
 
 
 def test_every_own_concrete_model_has_copy():

@@ -27,10 +27,10 @@ from django.db import models
 
 import fields
 from addons.base.models.timestamped_mixin import TimeStampedModel
-from orm.models import RecordLoaderMixin
+from orm.models import BaseModel
 
 
-class IrExports(TimeStampedModel):
+class IrExports(BaseModel, TimeStampedModel):
     """Selección de campos guardada para exportar (``ir.exports``)."""
 
     _name = 'ir.exports'
@@ -64,7 +64,7 @@ class IrExports(TimeStampedModel):
         return self.name or f'{self.resource} #{self.pk}'
 
 
-class IrExportsLine(RecordLoaderMixin, models.Model):
+class IrExportsLine(BaseModel):
     """Un campo dentro de una exportación (``ir.exports.line``)."""
 
     _name = 'ir.exports.line'
