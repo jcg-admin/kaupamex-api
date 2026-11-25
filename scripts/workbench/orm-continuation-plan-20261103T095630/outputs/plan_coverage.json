@@ -216,16 +216,13 @@
   "TASK-API-0490",
   "TASK-API-0492",
   "TASK-API-0493",
-  "TASK-API-0510",
   "TASK-API-0511",
   "TASK-API-0512",
   "TASK-DOCS-0111",
   "TASK-DOCS-0539",
-  "TASK-GEN-0058",
   "TASK-GEN-0060",
   "TASK-GEN-0062",
   "TASK-GEN-0312",
-  "TASK-GEN-0356",
   "TASK-GEN-0391",
   "TASK-GEN-0453",
   "TASK-GEN-0558",
@@ -247,7 +244,10 @@
   "TASK-API-0422",
   "TASK-API-0479",
   "TASK-API-0486",
-  "TASK-API-0504"
+  "TASK-API-0504",
+  "TASK-API-0510",
+  "TASK-GEN-0058",
+  "TASK-GEN-0356"
  ],
  "obligations": {
   "satisfied": 980,
@@ -659,7 +659,11 @@
   "orm-field-descriptor-size-guard-test-0401",
   "orm-relational-unknown-comodel-check-0411",
   "orm-many2one-ondelete-django-label-0404",
-  "orm-create-bypass-search-access-check-0422"
+  "orm-create-bypass-search-access-check-0422",
+  "orm-write-bypass-search-access-check-0422",
+  "orm-write-validation-order-0510",
+  "orm-modules-db-initialize-0058",
+  "orm-m2m-modified-inverse-side-0356"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
