@@ -9,6 +9,7 @@ modelo ``user_type``-en-grupo de este árbol (``res_groups.py``).
 import pytest
 from django.contrib.auth import get_user_model
 
+from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_groups import ResGroups
 
 User = get_user_model()
@@ -42,6 +43,11 @@ class TestUserTypeAxis:
         interno.user_ids.add(u)
         assert u._is_internal() is True
         assert u._is_portal() is False
+        # ``share`` sigue la regla literal de la fuente, ``base.group_user``
+        # en la clausura, no el tipo del grupo (``res_users.py:459-464``).
+        assert u.share is True
+        ResGroups.objects.get(pk=IrModelData._xmlid_to_res_id(
+            'base.group_user', raise_if_not_found=True)).user_ids.add(u)
         assert u.share is False
 
     def test_portal(self, grupos):

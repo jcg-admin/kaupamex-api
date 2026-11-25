@@ -11,7 +11,7 @@ from django.contrib.auth import get_user_model
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_groups import ResGroups
 from orm.commands import related_manager
-from orm.environments import env as current_env, sudo
+from orm.environments import env as current_env
 
 pytestmark = pytest.mark.django_db
 
@@ -63,11 +63,12 @@ def test_share_is_searchable(group_user):
     internal = account('share.search.internal@kaupamex.mx')
     external = account('share.search.external@kaupamex.mx')
     related_manager(group_user, 'user_ids').add(internal)
-    with sudo():
-        found = current_env()['res.users'].search([
-            ('share', '=', False),
-            ('id', 'in', [internal.pk, external.pk])])
-    assert list(found.ids) == [internal.pk]
+    current_env().flush_all()
+    # ``res.users`` es un modelo de Django: buscable es filtrable por la
+    # columna, el ``('share', '=', False)`` de la fuente.
+    found = User._base_manager.filter(
+        share=False, pk__in=[internal.pk, external.pk])
+    assert list(found.values_list('pk', flat=True)) == [internal.pk]
 
 
 def test_changing_an_implication_recomputes(group_user):

@@ -5246,23 +5246,27 @@ def _notify_m2m_modified(sender, instance, action, reverse, model,
             if reverse:
                 previous = owner._base_manager.using(using).filter(
                     **{field.name: instance.pk}).values_list('pk', flat=True)
-            elif symmetrical:
+            else:
+                # Simétrico: sus propios dueños. Directo: los corecords que
+                # hay que avisar en ``post_clear`` (``:1586-1593``).
                 related = getattr(instance, field.name).using(using)
                 previous = related.values_list('pk', flat=True)
-            else:
-                continue
             owners = instance.__dict__.setdefault(_M2M_CLEAR_OWNERS, {})
             owners[key] = tuple(previous)
             continue
         if action == 'post_clear':
             snapshots = instance.__dict__.get(_M2M_CLEAR_OWNERS, {})
-            owner_ids = set(snapshots.pop(key, ()))
+            changed_ids = set(snapshots.pop(key, ()))
             if not snapshots:
                 instance.__dict__.pop(_M2M_CLEAR_OWNERS, None)
         else:
             if not pk_set:
                 continue
-            owner_ids = set(pk_set) if reverse or symmetrical else set()
+            changed_ids = set(pk_set)
+        owner_ids = changed_ids if reverse or symmetrical else set()
+        if not symmetrical:
+            _notify_inverse_side(
+                field, {instance.pk} if reverse else changed_ids, using)
         if not reverse or symmetrical:
             owner_ids.add(instance.pk)
         if not owner_ids:
@@ -5273,6 +5277,24 @@ def _notify_m2m_modified(sender, instance, action, reverse, model,
             records = (instance,)
         for record in records:
             record.modified([field.name])
+
+
+def _notify_inverse_side(field, corecord_ids, using):
+    """Avisa a los corecords con los campos inversos de ``field``.
+
+    ≙ ``odoo19c: odoo/orm/fields_relational.py:1586-1593``: tras escribir la
+    tabla relacional, ``corecords.modified`` con los inversos de ``field``
+    declarados sobre el comodelo, para que un calculado almacenado que
+    dependa de ellos se recompute.
+    """
+    names = [invf.name for invf in registry.field_inverses[field]
+             if invf.model_name == field.comodel_name]
+    comodel = field.related_model
+    if not names or not corecord_ids or not hasattr(comodel, 'modified'):
+        return
+    for corecord in comodel._base_manager.using(using).filter(
+            pk__in=corecord_ids):
+        corecord.modified(names)
 
 
 def _sync_fk_attname(records, ids, field, value):

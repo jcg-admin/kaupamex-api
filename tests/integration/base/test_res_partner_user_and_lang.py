@@ -26,6 +26,7 @@ import pytest
 
 from django.contrib.auth import get_user_model
 
+from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.res_partner import ResPartner, ResPartnerCategory
 from orm.environments import context_scope, sudo, user_scope
@@ -45,9 +46,10 @@ def _user(login, internal=True, active=True):
     account = User.objects.create_user(login=login, password=PASSWORD,
                                        group_ids=[])
     if internal:
-        group = ResGroups.objects.create(
-            name=f'grupo-{login}', user_type='internal'
-        )
+        # Interno es tener ``base.group_user`` en la clausura
+        # (``odoo19c: res_users.py:459-464``).
+        group = ResGroups.objects.get(pk=IrModelData._xmlid_to_res_id(
+            'base.group_user', raise_if_not_found=True))
         account.group_ids.add(group)
     if not active:
         account.active = False

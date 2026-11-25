@@ -9,7 +9,8 @@ El disparo es ``base.models.signals.res_users_created``, emitida por
 
 import pytest
 
-from addons.base.models import ResCompany, ResGroups, ResUsers, SystemParameter
+from addons.base.models import (IrModelData, ResCompany, ResGroups, ResUsers,
+                                SystemParameter)
 from addons.digest.models import DigestDigest
 
 pytestmark = pytest.mark.django_db
@@ -29,9 +30,10 @@ def digest(company):
 
 @pytest.fixture
 def grupo_interno():
-    return ResGroups.objects.create(
-        name='Empleado digest', user_type='internal'
-    )
+    """``base.group_user``: interno es quien lo tiene en su clausura
+    (``odoo19c: res_users.py:459-464``)."""
+    return ResGroups.objects.get(pk=IrModelData._xmlid_to_res_id(
+        'base.group_user', raise_if_not_found=True))
 
 
 @pytest.fixture

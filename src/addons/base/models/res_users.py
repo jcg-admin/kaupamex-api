@@ -1425,15 +1425,15 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
         La lista se porta verbatim salvo los campos que este árbol no tiene, y
         cada ausencia se nombra: ``tz_offset`` (derivado que no declaramos),
         ``action_id`` (BLOQUEADO por ``ir.actions.act_window``, ver el bloque 3
-        del docstring de este archivo) y ``share`` (su noción de usuario
-        compartido, que aquí resuelve ``_is_portal``).
+        del docstring de este archivo).
         """
         return [
             'signature', 'company_id', 'login', 'email', 'name',
             'image_1920', 'image_1024', 'image_512', 'image_256', 'image_128',
             'lang', 'tz', 'group_ids', 'partner_id', 'write_date',
             'avatar_1920', 'avatar_1024', 'avatar_512', 'avatar_256',
-            'avatar_128', 'device_ids', 'api_key_ids', 'phone', 'display_name',
+            'avatar_128', 'share', 'device_ids', 'api_key_ids', 'phone',
+            'display_name',
         ]
 
     @property
@@ -1840,13 +1840,13 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
                 MIN_ROUNDS, int(config.get_param('password.hashing.rounds', 0))),
         )
 
-    @property
-    def share(self):
-        """≙ ``_compute_share`` (res_users.py:460-464): compartido = NO
-        interno. Un usuario sin ningún grupo de tipo es 'share' (portal/
-        público), igual que la referencia marca ``share=True`` a todo lo que
-        no está en ``group_user``."""
-        return not self._is_internal()
+    @api.depends('all_group_ids')
+    def _compute_share(self):
+        """≙ ``_compute_share`` (``odoo19c: res_users.py:459-464``): interno es
+        quien tiene ``base.group_user`` en ``all_group_ids``, la clausura."""
+        data = apps.get_model('base', 'IrModelData')
+        gid = data._xmlid_to_res_id('base.group_user')
+        self.share = gid not in self.all_group_ids.values_list('pk', flat=True)
 
     # ------------------------------------------------------------------
     # Segundo factor — el eslabón BASE de una cadena de tres
@@ -2267,6 +2267,15 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
         'base.ResGroups', 'Groups and implied groups', store=False,
         compute='_compute_all_group_ids', compute_sudo=True,
         search='_search_all_group_ids')
+
+    #: ≙ ``share`` (``odoo19c: res_users.py:234-235``). ``default=True`` es
+    #: divergencia declarada, como ``IrRule.global``: la fila se inserta
+    #: antes que sus grupos, y eso es lo que el cómputo da sin grupos.
+    share = fields.Boolean(
+        compute='_compute_share', compute_sudo=True, store=True, default=True,
+        verbose_name='Share User',
+        help_text='External user with limited access, created only for the '
+                  'purpose of sharing data.')
 
     @classmethod
     def _search_all_group_ids(cls, operator, value):

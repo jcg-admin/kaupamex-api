@@ -2136,12 +2136,10 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         particion en tres es la misma; lo que cambia es que aqui no hay
         conjunto que filtrar.
 
-        ``user.share`` de la fuente es lo contrario de interno; aqui eso es
-        ``user._is_internal()`` (``res_users.py:1625``) — la misma
-        equivalencia que usa ``_compute_partner_share``.
+        ``not user.share``, como la fuente (``:357``).
         """
         has_internal_user = bool(
-            self.pk and any(user._is_internal() for user in self.users.all()))
+            self.pk and any(not user.share for user in self.users.all()))
         if has_internal_user or self.type == self.TYPE_CONTACT:
             return super()._compute_avatar(image_field)
         imagen = getattr(self, image_field, None)
@@ -2479,7 +2477,7 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         return self.user
 
     @api.depends_context('uid')
-    @api.depends('users.active')
+    @api.depends('users.active', 'users.share')
     def _compute_main_user_id(self):
         """≙ ``_compute_main_user_id`` (``odoo19c: res_partner.py:426-441``).
 
@@ -2499,12 +2497,9 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
            ``not share`` pone al interno primero, y descendente por ``-id``
            deja arriba el id mas bajo.
 
-        **Dependencia bloqueada, medida:** la fuente declara
-        ``@api.depends("user_ids.active", "user_ids.share")``. ``share`` es
-        aqui un ``@property`` de ``ResUsers`` y no un campo, y
-        ``resolve_depends`` rehusa un nombre que no es campo, como la fuente:
-        se declara ``users.active`` y ``users.share`` entra con
-        **TASK-GEN-0356**, que porta ``share`` como campo calculado.
+        Sus dependencias son las de la fuente,
+        ``@api.depends("user_ids.active", "user_ids.share")``; el reverso aqui
+        se llama ``users``.
 
         **Divergencia de mecanismo, declarada:** el caso especial de la fuente
         —*"Special case for OdooBot as its user might be archived"*— ancla la
@@ -2567,19 +2562,14 @@ class ResPartner(AvatarMixin, models.OriginMixin, models.DefaultGetMixin,
         partner.user_ids)``, con el partner del super-usuario forzado a
         ``False``.
 
-        ``user.share`` todavia no esta portado como campo (tarea **#104**),
-        pero su definicion en la fuente es
-        ``not user.has_group('base.group_user')`` — lo contrario de interno.
-        Aqui eso es ``user._is_internal()`` (``res_users.py:1625``), que SI
-        existe. Asi que la expresion se porta sin degradar: «comparte» =
-        ningun usuario suyo es interno.
+        ``user.share`` es el campo almacenado de ``res.users``.
         """
         if self.pk and self.users.filter(pk=SUPERUSER_ID).exists():
             return False
         usuarios = list(self.users.all()) if self.pk else []
         if not usuarios:
             return True
-        return not any(user._is_internal() for user in usuarios)
+        return not any(not user.share for user in usuarios)
 
     @api.depends('vat', 'company_registry', 'country')
     def _compute_same_vat_partner_id(self):
