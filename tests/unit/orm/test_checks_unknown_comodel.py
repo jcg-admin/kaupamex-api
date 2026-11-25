@@ -18,6 +18,11 @@ contaminaría los checks de toda la suite.
 *Ciega a:* ``One2many``, que no es campo de Django ni deja centinela.
 """
 
+import os
+import pathlib
+import subprocess
+import sys
+
 from django.core import checks as django_checks
 from django.core.checks import run_checks
 from django.core.checks.registry import registry as check_registry
@@ -26,6 +31,16 @@ from django.test.utils import isolate_apps
 
 import fields
 from orm.checks import UNKNOWN_COMODEL_ID, check_unknown_comodel
+
+ROOT = pathlib.Path(__file__).resolve().parents[3]
+
+# Arranca Django en un proceso nuevo y cuenta cuántas veces quedó
+# registrado el check, sin importar ``orm.checks`` desde fuera.
+COUNT_REGISTRATIONS = (
+    'import django; django.setup()\n'
+    'from django.core.checks.registry import registry\n'
+    'print(sum(check.__name__ == "check_unknown_comodel"\n'
+    '          for check in registry.registered_checks))\n')
 
 
 def unknown_comodel_messages(isolated_apps):
@@ -104,3 +119,19 @@ class TestTheCheckIsRegistered:
     def test_the_real_tree_has_no_unknown_comodel(self):
         assert [message for message in run_checks()
                 if message.id == UNKNOWN_COMODEL_ID] == []
+
+    def test_a_fresh_process_registers_it_once(self):
+        """``BaseConfig.ready()`` lo carga; este módulo no cuenta.
+
+        La prueba de arriba pasa aunque nadie cargue ``orm.checks``, porque
+        este archivo lo importa. Un proceso que sólo arranca Django mide la
+        carga real, y el conteo exacto atrapa también un registro doble.
+        """
+        environment = dict(os.environ,
+                           DJANGO_SETTINGS_MODULE='config.settings.testing')
+        result = subprocess.run(
+            [sys.executable, '-c', COUNT_REGISTRATIONS],
+            cwd=ROOT / 'src', env=environment, capture_output=True,
+            text=True, check=False)
+        assert result.returncode == 0, result.stderr
+        assert result.stdout.strip().splitlines()[-1] == '1'
