@@ -38,6 +38,13 @@ DOMAIN_MULTICOMPANY = "[('company_id', 'in', company_ids)]"
 #: base_security.xml:50-54``) deja a cada usuario sólo sus personalizaciones.
 _RULES = (
     ('Company Setting multi-company', 'base.CompanySetting'),
+    # ``odoo19c: odoo/addons/base/security/base_security.xml:5-10``.
+    {
+        'name': 'res.users.log per user',
+        'model': 'base.ResUsersLog',
+        'domain_force': "[('create_uid','=', user.id)]",
+        'perm_read': False,
+    },
     {
         'name': 'ir.ui.view_custom rule',
         'model': 'base.IrUiViewCustom',

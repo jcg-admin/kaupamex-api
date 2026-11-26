@@ -140,7 +140,7 @@ class BaseSetupDataView(APIView):
                 if not user.share
             ]
             with_access = set(
-                ResUsersLog.objects.values_list('user_id', flat=True)
+                ResUsersLog.objects.values_list('create_uid', flat=True)
             )
         pending = [user for user in active_users if user.pk not in with_access]
         pending.sort(key=lambda user: user.pk, reverse=True)

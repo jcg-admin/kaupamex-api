@@ -98,19 +98,19 @@ class TestComputeKpiResUsersConnectedValue:
         self, digest, user_a, user_b
     ):
         now = timezone.now()
-        in_range = ResUsersLog.objects.create(user=user_a)
+        in_range = ResUsersLog.objects.create(create_uid=user_a)
         _backdate(
             ResUsersLog.objects.filter(pk=in_range.pk),
             now - timedelta(hours=1),
         )
 
-        out_of_range = ResUsersLog.objects.create(user=user_a)
+        out_of_range = ResUsersLog.objects.create(create_uid=user_a)
         _backdate(
             ResUsersLog.objects.filter(pk=out_of_range.pk),
             now - timedelta(days=10),
         )
 
-        other_company = ResUsersLog.objects.create(user=user_b)
+        other_company = ResUsersLog.objects.create(create_uid=user_b)
         _backdate(
             ResUsersLog.objects.filter(pk=other_company.pk),
             now - timedelta(hours=1),
@@ -162,7 +162,7 @@ class TestComputeKpis:
         self, digest, user_a
     ):
         now = timezone.now()
-        log = ResUsersLog.objects.create(user=user_a)
+        log = ResUsersLog.objects.create(create_uid=user_a)
         _backdate(
             ResUsersLog.objects.filter(pk=log.pk), now - timedelta(hours=1)
         )

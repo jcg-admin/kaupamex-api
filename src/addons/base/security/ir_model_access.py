@@ -470,6 +470,12 @@ _ACCESS = (
         (1, 1, 1, 1),
     ),
     (
+        'res_users_log_all',
+        'base.ResUsersLog',
+        'group_system',
+        (1, 0, 1, 0),
+    ),
+    (
         'res_users_deletion all',
         'base.ResUsersDeletion',
         None,

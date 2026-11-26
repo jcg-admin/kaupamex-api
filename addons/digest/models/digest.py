@@ -452,7 +452,8 @@ class DigestDigest(TimeStampedModel):
             create_date__gte=start, create_date__lt=end
         )
         if self.company_id:
-            qs = qs.filter(user__in=self.company_id.user_ids.all())
+            qs = qs.filter(
+                create_uid__in=self.company_id.user_ids.all())
         return qs.count()
 
     def _compute_kpi_mail_message_total_value(self, start, end):

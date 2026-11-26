@@ -92,11 +92,12 @@ from addons.base.models import signals
 from addons.base.models.ir_http import (DEFAULT_LANG, best_lang,
                                         get_current_request)
 from addons.base.models.res_device import _client_ip, is_current_session
-from addons.base.models.timestamped_mixin import TimeStampedModel
+from addons.base.models.timestamped_mixin import (
+    LogAccessUserField, TimeStampedModel)
 from exceptions import AccessDenied, AccessError, UserError
 from orm import registry
 from orm.environments import (Environment, get_current_company,
-                              get_current_user, is_su, sudo)
+                              get_current_user, is_su, sudo, user_scope)
 from orm.utils import SUPERUSER_ID
 from tools.cache import ormcache
 from tools.misc import frozendict
@@ -2039,10 +2040,10 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
         simultáneos del mismo usuario no compiten por la misma fila. El exceso
         lo recorta ``ResUsersLog._gc_user_logs``, que conserva la última.
 
-        DIVERGENCIA DE MECANISMO, declarada: la fuente crea el registro vacío y
-        su ORM lo puebla con los campos mágicos ``create_uid``/``create_date``.
-        Aquí ``create_uid`` es la FK ``user``, que se pasa explícita; la fecha
-        la pone ``TimeStampedModel``.
+        La fuente crea el registro vacío con ``sudo()`` (``:746``) y su ORM
+        lo puebla con los campos mágicos ``create_uid``/``create_date``; aquí
+        también: el alta corre elevada y bajo el usuario que entra, que es el
+        ``env.uid`` que la fuente estampa.
 
         DIVERGENCIA DE FIRMA, declarada: la fuente lo declara ``@api.model`` y
         resuelve el actor desde el entorno del recordset. Aquí no hay entorno,
@@ -2050,7 +2051,8 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
         llamada (``_login`` y el RPC) lo invocan sobre el usuario que acaba de
         entrar, que es exactamente lo que su ``create_uid`` acaba valiendo.
         """
-        ResUsersLog.objects.create(user=self)
+        with sudo(), user_scope(self.pk):
+            ResUsersLog.create({})
 
     @classmethod
     def _get_login_domain(cls, login):
@@ -2197,7 +2199,7 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
         # huso heredado del partner se lee y escribe elevado.
         with sudo():
             if tz and tz in available_timezones() and (
-                    not user.tz or not user.logs.exists()):
+                    not user.tz or not user.log_ids.exists()):
                 user.tz = tz
                 user.save()
 
@@ -2490,7 +2492,7 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
         return [self.pk] if self.pk else []
 
 
-class ResUsersLog(TimeStampedModel):
+class ResUsersLog(models.BaseModel, TimeStampedModel):
     """``res.users.log`` — que hubo un acceso, no una auditoría.
 
     Fiel a ``odoo19c: odoo/addons/base/models/res_users.py:134-152``, y la
@@ -2500,7 +2502,8 @@ class ResUsersLog(TimeStampedModel):
         # Uses the magical fields `create_uid` and `create_date` for recording
         # logins. See `mail.presence` for more recent activity tracking.
 
-    Y su ``_gc_user_logs`` conserva **una fila por usuario**, borrando el resto.
+    Y su ``_gc_user_logs`` conserva **una fila por usuario**, borrando el
+    resto.
     No es un registro de auditoría: es un "último acceso" con historia mínima.
 
     El ``AuthEvent`` que murió con el addon ``users`` guardaba tipo de evento,
@@ -2510,20 +2513,28 @@ class ResUsersLog(TimeStampedModel):
     referencia mantiene separadas.
     """
 
-    user = fields.Many2one(
-        'base.ResUsers', null=False, on_delete=models.CASCADE, db_index=True,
-        related_name='logs',
-        help_text='Usuario que accedió (Odoo create_uid).',
+    _name = 'res.users.log'
+    _order = 'id desc'
+    _description = 'Users Log'
+
+    #: ≙ ``create_uid`` (``odoo19c: res_users.py:141``): el dueño del acceso,
+    #: indexado, con su inverso ``res.users.log_ids`` (``:231``). Redefine el
+    #: de ``TimeStampedModel`` sólo en el índice y el inverso.
+    create_uid = LogAccessUserField(
+        'base.ResUsers', models.SET_NULL, null=True, blank=True,
+        editable=False, related_name='log_ids', db_index=True,
+        db_column='create_uid', stamp_on_create_only=True,
+        verbose_name='Created by',
     )
 
     class Meta:
-        db_table            = 'res_users_log'
-        ordering            = ['-id']
-        verbose_name        = 'Registro de acceso'
+        db_table = 'res_users_log'
+        ordering = ['-id']
+        verbose_name = 'Registro de acceso'
         verbose_name_plural = 'Registros de acceso'
 
     def __str__(self) -> str:
-        return f'acceso de {self.user_id} el {self.create_date}'
+        return f'acceso de {self.create_uid_id} el {self.create_date}'
 
     @classmethod
     @api.autovacuum
@@ -2538,12 +2549,13 @@ class ResUsersLog(TimeStampedModel):
         sobre ``create_uid``/``create_date``: una fila se borra sólo si existe
         otra del mismo usuario con fecha **estrictamente** mayor, así que las
         empatadas en la fecha máxima se conservan todas. Aquí el mismo
-        predicado se expresa con ``Exists`` correlacionado por ``user``, sin
+        predicado se expresa con ``Exists`` correlacionado por
+        ``create_uid``, sin
         desempate por ``id``, y el conteo sale del propio ``delete()``, que es
         el ``cr.rowcount`` de la fuente.
         """
         later = cls.objects.filter(
-            user=models.OuterRef('user'),
+            create_uid=models.OuterRef('create_uid'),
             create_date__gt=models.OuterRef('create_date'),
         )
         deleted, _ = cls.objects.filter(models.Exists(later)).delete()

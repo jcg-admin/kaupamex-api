@@ -188,7 +188,7 @@ def test_update_last_login_creates_one_row(user):
     """≙ ``_update_last_login`` (``:742-746``) — crea, no actualiza."""
     user._update_last_login()
     user._update_last_login()
-    assert ResUsersLog.objects.filter(user=user).count() == 2
+    assert ResUsersLog.objects.filter(create_uid=user).count() == 2
 
 
 def _stamp_logs(user, *offsets_in_seconds):
@@ -201,7 +201,8 @@ def _stamp_logs(user, *offsets_in_seconds):
     rows = []
     for offset in offsets_in_seconds:
         user._update_last_login()
-        row = ResUsersLog.objects.filter(user=user).order_by('-id').first()
+        row = ResUsersLog.objects.filter(
+            create_uid=user).order_by('-id').first()
         ResUsersLog.objects.filter(pk=row.pk).update(
             create_date=base + datetime.timedelta(seconds=offset))
         rows.append(row.pk)
@@ -214,7 +215,7 @@ def test_the_gc_keeps_the_newest_row_per_user(user):
 
     ResUsersLog._gc_user_logs()
 
-    quedan = list(ResUsersLog.objects.filter(user=user).values_list(
+    quedan = list(ResUsersLog.objects.filter(create_uid=user).values_list(
         'pk', flat=True))
     assert quedan == [newest]
 
@@ -230,7 +231,7 @@ def test_the_gc_keeps_every_row_tied_at_the_newest_date(user):
 
     ResUsersLog._gc_user_logs()
 
-    quedan = set(ResUsersLog.objects.filter(user=user).values_list(
+    quedan = set(ResUsersLog.objects.filter(create_uid=user).values_list(
         'pk', flat=True))
     assert quedan == {tied_a, tied_b}
     assert older not in quedan
@@ -248,8 +249,8 @@ def test_the_gc_does_not_touch_another_users_rows(user):
 
     ResUsersLog._gc_user_logs()
 
-    assert ResUsersLog.objects.filter(user=user).count() == 1
-    assert ResUsersLog.objects.filter(user=otro).count() == 1
+    assert ResUsersLog.objects.filter(create_uid=user).count() == 1
+    assert ResUsersLog.objects.filter(create_uid=otro).count() == 1
 
 
 # --------------------------------------------------------------------------
@@ -276,7 +277,7 @@ def test_a_successful_login_records_one_log_row(
         {'type': 'password', 'login': 'acceso-uno', 'password': PASSWORD},
         {'interactive': True},
     )
-    assert ResUsersLog.objects.filter(user=user).count() == 1
+    assert ResUsersLog.objects.filter(create_uid=user).count() == 1
 
 
 def test_an_unknown_login_is_denied(db, counter, request_in_context):
@@ -313,7 +314,7 @@ def test_a_failed_login_leaves_no_log_row(user, counter, request_in_context):
             {'type': 'password', 'login': 'acceso-uno', 'password': 'mala'},
             {'interactive': True},
         )
-    assert not ResUsersLog.objects.filter(user=user).exists()
+    assert not ResUsersLog.objects.filter(create_uid=user).exists()
 
 
 def test_repeated_failures_put_the_source_on_cooldown(
