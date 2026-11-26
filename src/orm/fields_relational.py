@@ -3376,6 +3376,17 @@ class _RelationalMulti:
     #: de un ``write``, porque al borrar líneas vuelcan otros campos.
     write_sequence = 20
 
+    def convert_to_read(self, value, record, use_display_name=True):
+        """≙ ``_RelationalMulti.convert_to_read`` (``:668-669``): los ids.
+
+        Un comodelo de Django entrega su ``QuerySet``
+        (:func:`_many2many_convert_to_record`): sus claves, en su orden.
+        """
+        ids = getattr(value, 'ids', None)
+        if ids is not None:
+            return ids
+        return list(value.values_list('pk', flat=True))
+
     def convert_to_record_multi(self, values, records):
         """≙ ``_RelationalMulti.convert_to_record_multi`` (``:655-666``): la
         unión, sin repetir, de los ids de ``values`` como recordset del
@@ -3466,6 +3477,118 @@ for _relational_multi_owner in (One2many, models.ManyToManyField):
                     _relational_multi_member)
 models.ManyToManyField.write_real = _many2many_write_real
 models.ManyToManyField.write_new = _many2many_write_new
+
+
+def _overrides_search(comodel_cls):
+    """¿Redefine el comodelo ``_search``? ≙ ``type(comodel)._search is not
+    BaseModel._search`` (``odoo19c: fields_relational.py:1377``).
+
+    ``orm.models`` importa este archivo, así que ``BaseModel`` no se nombra
+    aquí: la clase que define el ``_search`` efectivo se busca en el MRO.
+    """
+    owner = next(klass for klass in comodel_cls.__mro__
+                 if '_search' in vars(klass))
+    return not (owner.__name__ == 'BaseModel'
+                and owner.__module__ == 'orm.models')
+
+
+def _many2many_read(self, records):
+    """≙ ``Many2many.read`` (``odoo19c: odoo/orm/fields_relational.py:
+    1370-1410``): las líneas de cada registro, leídas de la tabla de relación
+    en el orden del comodelo, guardadas en caché como una tupla por registro.
+
+    Con un comodelo ``BaseModel`` es el cuerpo de la fuente: ``_search`` del
+    comodelo con ``active_test=False``, ``JOIN`` con la relación y
+    ``column1 IN ids``. Un comodelo de Django (``res.users``) no tiene
+    ``_search``: la misma relación sale de la tabla intermedia, ordenada por
+    el orden del comodelo y sin filtro de activos, que es el
+    ``active_test=False`` de la fuente
+    (``designs/orm-many2many-field-read.md``).
+    """
+    comodel_cls = self.related_model
+    relation = self.m2m_db_table()
+    column1, column2 = self.m2m_column_name(), self.m2m_reverse_name()
+    group = collections.defaultdict(list)
+    ids = tuple(records.ids)
+    if not ids:
+        self._insert_cache(records, [() for _id in records._ids])
+        return
+    if hasattr(comodel_cls, '_from_ids'):
+        context = {'active_test': False}
+        context.update(self.context or {})
+        comodel = records.env[comodel_cls._name].with_context(**context)
+
+        # bypass the access during search if method is overwriten to avoid
+        # possibly filtering all records of the comodel before joining
+        filter_access = (self.bypass_search_access
+                         and _overrides_search(comodel_cls))
+
+        # make the query for the lines
+        domain = _multi_comodel_domain(self, records)
+        try:
+            query = comodel._search(domain, order=comodel._order,
+                                    active_test=False,
+                                    bypass_access=filter_access)
+        except AccessError as e:
+            raise AccessError(
+                records.env._("Failed to read field %s", self) + '\n'
+                + str(e)) from e
+
+        # join with many2many relation table
+        sql_id1 = SQL.identifier(relation, column1)
+        sql_id2 = SQL.identifier(relation, column2)
+        query.add_join('JOIN', relation, None, SQL(
+            "%s = %s", sql_id2,
+            SQL.identifier(comodel_cls._meta.db_table, 'id'),
+        ))
+        # ``IN %s`` con tupla en la fuente; psycopg 3 no adapta la tupla
+        # (ver la cabecera de ``_field_condition_to_sql`` en ``fields.py``).
+        query.add_where(SQL("%s = ANY(%s)", sql_id1, list(ids)))
+
+        # retrieve pairs (record, line) and group by record
+        for id1, id2 in records.env.execute_query(
+                query.select(sql_id1, sql_id2)):
+            group[id1].append(id2)
+
+        # filter using record rules
+        if filter_access and group:
+            corecord_ids = OrderedSet(
+                id_ for line_ids in group.values() for id_ in line_ids)
+            accessible = comodel.browse(corecord_ids)._filtered_access('read')
+            if len(accessible) < len(corecord_ids):
+                # some records are inaccessible, remove them from groups
+                corecord_ids = set(accessible._ids)
+                for id1, line_ids in group.items():
+                    group[id1] = [id_ for id_ in line_ids
+                                  if id_ in corecord_ids]
+    else:
+        through = self.remote_field.through
+        source = self.m2m_field_name()
+        target = self.m2m_reverse_field_name()
+        order = [
+            f'-{target}__{key[1:]}' if key.startswith('-')
+            else f'{target}__{key}'
+            for key in comodel_cls._meta.ordering
+        ] + [f'{target}__pk']
+        alias = records.env.db_alias
+        pairs = (through._base_manager.using(alias)
+                 .filter(**{f'{source}__in': ids}).order_by(*order)
+                 .values_list(f'{source}_id', f'{target}_id'))
+        for id1, id2 in pairs:
+            group[id1].append(id2)
+        # La caché de un comodelo de Django guarda su ``QuerySet``
+        # (:func:`_many2many_convert_to_cache`), en el orden del comodelo.
+        manager = comodel_cls._base_manager.using(alias)
+        self._insert_cache(records, [
+            manager.filter(pk__in=group[id_]) for id_ in records._ids])
+        return
+
+    # store result in cache
+    values = [tuple(group[id_]) for id_ in records._ids]
+    self._insert_cache(records, values)
+
+
+models.ManyToManyField.read = _many2many_read
 
 
 #: ``ondelete`` de un ``Many2many`` → ``on_delete`` de la FK de la intermedia
