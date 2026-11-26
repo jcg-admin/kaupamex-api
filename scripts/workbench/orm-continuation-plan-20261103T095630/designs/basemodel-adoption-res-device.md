@@ -77,3 +77,37 @@ Anulaciones, restauradas con `cmp`:
 
 Consumidores del nombre anterior `devices`: 0 en `src/`, `addons/` y `tests/`
 (la única coincidencia es un comentario de `html_editor`).
+
+## Segundo paso — plan (base, escritores, `is_current`, orden)
+
+Medido en la fuente (`odoo19c: odoo/addons/base/models/res_device.py:17-19,34-68,175-196`):
+
+- `res.device.log` declara `_name`, `_description`, `_rec_names_search =
+  ['platform', 'browser']`; `res.device` hereda con `_inherit`, `_auto = False`
+  y `_order = 'last_activity desc'`.
+- `is_current` es un **campo** calculado (`:34,46-48`), no un método con
+  la petición como argumento: lo leen `_revoke` (`self.filtered('is_current')`,
+  `:193`) y el orden.
+- El orden por `is_current` es el gancho `_order_field_to_sql` (`:65-68`).
+  `models.BaseModel._order_field_to_sql` existe aquí (`src/orm/models.py:4568`),
+  así que la divergencia declarada de `order_by_is_current` deja de tener causa:
+  se porta el gancho y el método explícito se retira.
+- `_revoke` (`:185-196`) busca el log con `sudo()`, escribe `revoked` y cierra
+  la sesión si estaba el dispositivo actual. Va al recordset del modelo.
+
+Escritores que pasan a `with sudo():` (`orm.environments.sudo`), porque la
+fuente los hace con SQL crudo o `sudo()`: `_update_device` (`:92-113`),
+`_gc_device_log` (`:120-128`), `__update_revoked` (`:143-169`, cron) y la
+búsqueda del log en `_revoke` (`:189`).
+
+Consumidores que cambian (medido con
+`grep -rnE "is_current\(|order_by_is_current|_revoke\(|ResDevice(Log)?\.objects"`):
+`src/addons/base/models/res_users.py` (2) y las pruebas
+`tests/unit/base/test_res_device.py`, `test_res_device_port_closure.py` y
+`test_res_device_revoke.py`. Las coincidencias de `hr` y `account` son otro
+`is_current`.
+
+Controles previstos: un usuario sin grupo de sistema lee sólo sus
+dispositivos (regla), `_update_device` escribe sin usuario elevado (la
+anulación del `sudo()` tiene que hacer caer exactamente ese caso), y
+`search([], order='is_current desc')` pone primero el dispositivo actual.
