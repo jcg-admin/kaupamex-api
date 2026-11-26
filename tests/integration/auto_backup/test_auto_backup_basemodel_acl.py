@@ -65,7 +65,8 @@ def installed_data():
     loaded.delete()
     package = SimpleNamespace(name='auto_backup',
                               manifest=get_manifest('auto_backup'))
-    load_data({}, 'init', 'data', package, using=DEFAULT_DB_ALIAS)
+    with sudo():
+        load_data({}, 'init', 'data', package, using=DEFAULT_DB_ALIAS)
 
 
 def test_the_system_group_implies_the_backup_manager(installed_data):

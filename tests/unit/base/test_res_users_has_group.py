@@ -365,11 +365,12 @@ class TestSeededCatalog:
         """
         ``group_allow_export`` → Export, ``group_partner_manager`` → Contact.
         """
-        assert (
-            IrModelData.ref('base.group_allow_export').privilege.name
-            == 'Export'
-        )
-        assert (
-            IrModelData.ref('base.group_partner_manager').privilege.name
-            == 'Contact'
-        )
+        with sudo():
+            assert (
+                IrModelData.ref('base.group_allow_export').privilege.name
+                == 'Export'
+            )
+            assert (
+                IrModelData.ref('base.group_partner_manager').privilege.name
+                == 'Contact'
+            )
