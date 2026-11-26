@@ -2086,6 +2086,13 @@
         "basemodel-adoption-base-ir-actions-todo-0397"
       ],
       "writtenAt": "2026-11-26T18:47:06Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-base-res-users-deletion-0397"
+      ],
+      "writtenAt": "2026-11-26T20:16:27Z"
     }
   ]
 }
