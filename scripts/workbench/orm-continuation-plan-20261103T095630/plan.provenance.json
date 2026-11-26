@@ -2029,6 +2029,13 @@
         "base-security-group-rules-seed-0397"
       ],
       "writtenAt": "2026-11-26T06:34:14Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-base-ir-ui-view-custom-0397"
+      ],
+      "writtenAt": "2026-11-26T07:55:28Z"
     }
   ]
 }
