@@ -96,7 +96,7 @@ from django.apps import apps
 from django.conf import settings
 from django.contrib.auth import logout as django_logout
 from django.contrib.postgres.aggregates import ArrayAgg
-from orm.environments import get_context
+from orm.environments import get_context, sudo
 from tools._vendor.useragents import parse_user_agent
 
 _logger = logging.getLogger(__name__)
@@ -252,7 +252,7 @@ class _ResDeviceFields(TimeStampedModel):
         return '\n'.join(dict.fromkeys(ip_map.get(key, [])))
 
 
-class ResDeviceLog(_ResDeviceFields):
+class ResDeviceLog(models.BaseModel, _ResDeviceFields):
     """``res.device.log`` — una fila por actividad de sesión en un dispositivo.
 
     Fiel a ``odoo19c: odoo/addons/base/models/res_device.py:17-35``.
@@ -348,7 +348,9 @@ class ResDeviceLog(_ResDeviceFields):
             return None
         session_key = getattr(request.session, 'session_key', None) or ''
         # La fuente inserta por SQL (``:98-113``), sin el ``create`` del ORM:
-        # ``bulk_create`` es aquí el ``INSERT`` sin ``save()`` ni señales.
+        # ``bulk_create`` es aquí el ``INSERT`` sin ``save()`` ni señales, y
+        # tampoco consulta la ACL: un usuario interno, que sólo lee el log,
+        # registra su actividad.
         [fila] = cls.objects.bulk_create([cls(
             session_identifier=session_key[:STORED_SESSION_BYTES],
             platform=trace['platform'] or '',
@@ -405,6 +407,8 @@ class ResDeviceLog(_ResDeviceFields):
         )
         if lastcall := get_context().get('lastcall'):
             superseding = superseding.filter(last_activity__gte=lastcall)
+        # ``QuerySet.delete`` no consulta la ACL, como el ``DELETE ... USING``
+        # de la fuente (``:120-128``).
         deleted, _rest = cls.objects.filter(
             models.Exists(superseding)
         ).delete()
@@ -467,8 +471,10 @@ class ResDeviceLog(_ResDeviceFields):
             ]
             # ≙ ``to_revoke.write({'revoked': True})`` (``:167``): por el
             # ``write`` del ORM, que fecha la escritura, y no por la tabla.
-            for row in to_revoke:
-                row.write({'revoked': True})
+            # Elevado: el barrido corre como cron, sin usuario dueño.
+            with sudo():
+                for row in to_revoke:
+                    row.write({'revoked': True})
             offset -= len(to_revoke)
 
 
@@ -529,10 +535,14 @@ class ResDeviceQuerySet(models.AccessQuerySet):
         log = apps.get_model('base', 'ResDeviceLog')
         # ≙ ``revoked_devices.write({'revoked': True})`` (``:190``): por el
         # ``write`` del ORM, que fecha la escritura de cada fila.
+        # ≙ ``ResDeviceLog.sudo().search(...)`` (``:189``).
         revoked = 0
-        for row in log.objects.filter(session_identifier__in=identifiers):
-            row.write({'revoked': True})
-            revoked += 1
+        with sudo():
+            for row in log.objects.filter(
+                session_identifier__in=identifiers
+            ):
+                row.write({'revoked': True})
+                revoked += 1
         _logger.info(
             'Se revocan dispositivos (%s): %s filas de log',
             ', '.join(identifiers),
@@ -577,7 +587,7 @@ class ResDeviceQuerySet(models.AccessQuerySet):
         ).order_by('-_current', '-last_activity')
 
 
-class ResDevice(_ResDeviceFields):
+class ResDevice(models.BaseModel, _ResDeviceFields):
     """``res.device`` — la última actividad viva por dispositivo (vista SQL).
 
     Fiel a ``odoo19c: res_device.py:175-256``: ``_auto = False`` + ``init()``
