@@ -174,11 +174,6 @@
    "id": "gate-preflight-migrate-through-default-0485",
    "task": "TASK-API-0485",
    "reason": "state failed"
-  },
-  {
-   "id": "ir-filters-port-19-0397",
-   "task": "TASK-API-0397",
-   "reason": "conflicts with a unit in flight or ahead in the frontier"
   }
  ],
  "unrepresented": [
@@ -683,7 +678,8 @@
   "base-security-group-rules-seed-0397",
   "basemodel-adoption-base-ir-ui-view-custom-0397",
   "res-users-context-get-0397",
-  "orm-many2many-field-read-0485"
+  "orm-many2many-field-read-0485",
+  "ir-filters-port-19-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
