@@ -58,7 +58,7 @@ from addons.base.models.res_company import ResCompany
 from addons.base.models.res_country import ResCountry
 from addons.base.models.res_lang import ResLang
 from addons.base.models.res_partner import ResPartner
-from orm.environments import set_current_company
+from orm.environments import set_current_company, sudo
 
 pytestmark = pytest.mark.integration
 
@@ -261,7 +261,9 @@ class TestVatLabel:
         company.save()
         set_current_company(company.pk)
         try:
-            assert ResPartner.objects.create(name='Ana').vat_label == 'RFC'
+            with sudo():
+                partner = ResPartner.objects.create(name='Ana')
+                assert partner.vat_label == 'RFC'
         finally:
             set_current_company(None)
 
@@ -277,7 +279,9 @@ class TestVatLabel:
         company.save()
         set_current_company(company.pk)
         try:
-            assert ResPartner.objects.create(name='Ana').vat_label == 'Tax ID'
+            with sudo():
+                partner = ResPartner.objects.create(name='Ana')
+                assert partner.vat_label == 'Tax ID'
         finally:
             set_current_company(None)
 

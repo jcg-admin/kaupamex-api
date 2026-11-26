@@ -30,6 +30,7 @@ from addons.sale.models import SaleOrder, SaleOrderLine
 from tests.factories.product_factory import make_category, make_product
 from tests.factories.user_factory import UserFactory
 from addons.base.models.res_currency import ResCurrency
+from orm.environments import sudo
 
 
 def _pricelist_currency():
@@ -239,7 +240,9 @@ class TestTheFiveComputesCalculateWhatTheSourceCalculates:
     def test_tax_country_falls_back_to_the_company(self, company):
         """Sin posición fiscal, el país fiscal es el de la empresa."""
         order = SaleOrder.objects.create(company=company)
-        assert order.tax_country_id == company.account_fiscal_country
+        with sudo():
+            fallback = company.account_fiscal_country_id or False
+            assert order.tax_country_id.id == fallback
 
     def test_has_active_pricelist_is_false_without_any(self, company):
         order = SaleOrder.objects.create(company=company)

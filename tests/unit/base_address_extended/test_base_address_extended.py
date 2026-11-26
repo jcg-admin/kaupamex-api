@@ -102,7 +102,7 @@ class TestResCity:
         c = ResCity.objects.create(name='Zapopan', country_id=mx, state_id=jal)
         assert c.state_id == jal
         c2 = ResCity.objects.create(name='Tlaquepaque', country_id=mx)
-        assert c2.state_id is None
+        assert not c2.state_id
 
     def test_state_set_null_on_delete(self):
         mx = ResCountry.objects.get_or_create(
@@ -114,7 +114,7 @@ class TestResCity:
         c = ResCity.objects.create(name='Zapopan', country_id=mx, state_id=jal)
         jal.delete()
         c.refresh_from_db()
-        assert c.state_id is None
+        assert not c.state_id
         assert ResCity.objects.filter(pk=c.pk).exists()
 
     def test_cities_reverse_on_country(self):
@@ -123,7 +123,7 @@ class TestResCity:
         )[0]
         ResCity.objects.create(name='Guadalajara', country_id=mx)
         ResCity.objects.create(name='Monterrey', country_id=mx)
-        assert mx.cities.count() == 2
+        assert len(mx.cities) == 2
 
 
 class TestCountryAddressPolicy:

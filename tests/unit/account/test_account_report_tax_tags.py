@@ -18,6 +18,7 @@ from addons.account.models import (
     AccountReportExpression,
     AccountReportLine,
 )
+from orm.environments import sudo
 
 pytestmark = pytest.mark.django_db
 
@@ -130,14 +131,15 @@ class TestExpressionSaveCreatesItsTag:
         ).exists()
 
     def test_saving_the_expression_again_does_not_duplicate_the_tag(self):
-        expression = AccountReportExpression.objects.create(
-            report_line=_report_line(),
-            label='balance',
-            engine='tax_tags',
-            formula='DIOT: Refunds',
-        )
-        expression.blank_if_zero = True
-        expression.save()
+        with sudo():
+            expression = AccountReportExpression.objects.create(
+                report_line=_report_line(),
+                label='balance',
+                engine='tax_tags',
+                formula='DIOT: Refunds',
+            )
+            expression.blank_if_zero = True
+            expression.save()
         assert (
             AccountAccountTag.objects.filter(name='DIOT: Refunds').count() == 1
         )

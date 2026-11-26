@@ -22,7 +22,7 @@ from addons.base.models.ir_fields import IrFieldsConverter, ImportWarning
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.res_country import ResCountry
 from addons.base.models.res_partner import ResPartner
-from orm.environments import context_scope
+from orm.environments import context_scope, sudo
 from service.db import Savepoint
 from django.db import DEFAULT_DB_ALIAS, connections
 
@@ -164,9 +164,10 @@ class TestTheNameSubfield:
     def test_a_visible_name_resolves(self, country, savepoint):
         field = ResPartner._meta.get_field('country')
 
-        resolved, _warnings = IrFieldsConverter.db_id_for(
-            ResPartner, field, None, 'Sinelandia', savepoint
-        )
+        with sudo():
+            resolved, _warnings = IrFieldsConverter.db_id_for(
+                ResPartner, field, None, 'Sinelandia', savepoint
+            )
 
         assert resolved == country.pk
 
@@ -174,9 +175,10 @@ class TestTheNameSubfield:
         ResCountry.objects.create(name='Sinelandia', code='ZX')
         field = ResPartner._meta.get_field('country')
 
-        _resolved, warnings = IrFieldsConverter.db_id_for(
-            ResPartner, field, None, 'Sinelandia', savepoint
-        )
+        with sudo():
+            _resolved, warnings = IrFieldsConverter.db_id_for(
+                ResPartner, field, None, 'Sinelandia', savepoint
+            )
 
         assert any(isinstance(w, ImportWarning) for w in warnings)
 
@@ -195,9 +197,10 @@ class TestTheManyToOneConverter:
     def test_it_resolves_through_the_subfield(self, country, savepoint):
         field = ResPartner._meta.get_field('country')
 
-        resolved, _warnings = IrFieldsConverter._str_to_many2one(
-            ResPartner, field, [{None: 'Sinelandia'}], savepoint
-        )
+        with sudo():
+            resolved, _warnings = IrFieldsConverter._str_to_many2one(
+                ResPartner, field, [{None: 'Sinelandia'}], savepoint
+            )
 
         assert resolved == country.pk
 

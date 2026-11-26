@@ -1,4 +1,13 @@
-"""Many2one opcional sin columna: ausencia Django, valores y errores reales."""
+"""Many2one opcional sin columna: ausencia, valores y errores reales.
+
+El dueño (``res.company``) es un modelo de Django y el comodelo
+(``res.country``) un ``BaseModel``. La regla la fija el comodelo, como
+``NonStoredMany2oneAccessor`` declara (``src/orm/fields.py:1508-1525``): sin
+valor, el recordset vacío del comodelo, que es ``Many2one.convert_to_record``
+de la fuente (``odoo19c: odoo/orm/fields_relational.py:354-358``); un id que no
+existe es un ``browse`` perezoso y la falta se descubre al leer un campo
+(``MissingError``), no al leer la relación.
+"""
 
 import pytest
 from django.db import connection
@@ -6,6 +15,8 @@ from django.test.utils import CaptureQueriesContext
 
 from addons.base.models import ResCompany, ResCountry, ResPartner
 from addons.product.models.product_product import ProductProduct
+from exceptions import MissingError
+from orm.environments import sudo
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 
@@ -20,8 +31,8 @@ def company():
 
 def test_empty_computed_relation_does_not_look_up_a_false_primary_key(company):
     with CaptureQueriesContext(connection) as queries:
-        assert company.country is None
-        assert company.country is None
+        assert company.country._name == 'res.country'
+        assert company.country.ids == []
     assert len(queries) == 0
 
 
@@ -53,7 +64,7 @@ def test_explicit_constructor_none_is_readable_without_another_field_access():
         country=None,
     )
     with CaptureQueriesContext(connection) as queries:
-        assert record.country is None
+        assert record.country.ids == []
     assert len(queries) == 0
 
 
@@ -71,8 +82,10 @@ def test_valid_computed_reference_and_related_value_are_preserved(company):
 def test_real_missing_reference_still_raises_the_target_error(company):
     company.country_id = 2147483647
 
-    with pytest.raises(ResCountry.DoesNotExist):
-        _ = company.country
+    country = company.country
+    assert country.ids == [2147483647]
+    with sudo(), pytest.raises(MissingError):
+        _ = country.name
 
 
 def test_raw_computed_id_change_invalidates_the_cached_relation(company):

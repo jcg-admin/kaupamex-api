@@ -103,7 +103,7 @@ class TestResCountry:
         ResCountryState.objects.create(
             country=mx, name='Nuevo León', code='NLE'
         )
-        assert mx.state_ids.count() == 2
+        assert len(mx.state_ids) == 2
 
 
 class TestResCountryState:

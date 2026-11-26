@@ -69,7 +69,7 @@ FLAG_MAPPING = {
 }
 
 
-class ResCountry(models.RecordLoaderMixin, models.Model):
+class ResCountry(models.BaseModel):
     """``res.country`` — país (Odoo base).
 
     Fiel a ``res_country.py`` (18:32-68 / 19 idéntico): ``name`` (requerido),
@@ -271,7 +271,7 @@ class ResCountry(models.RecordLoaderMixin, models.Model):
             ) from exc
 
 
-class ResCountryState(models.RecordLoaderMixin, models.Model):
+class ResCountryState(models.BaseModel):
     """``res.country.state`` — estado/provincia de un país (Odoo base).
 
     Fiel a ``res_country.py`` (18:162-171 / 19 idéntico): ``country`` (FK,

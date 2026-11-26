@@ -18,7 +18,7 @@ from addons.base.models.res_partner import (
     FormatAddressMixin,
     FormatVatLabelMixin,
 )
-from orm.environments import company_scope, context_scope
+from orm.environments import company_scope, context_scope, sudo
 
 pytestmark = pytest.mark.integration
 
@@ -68,7 +68,7 @@ class TestTheVatLabelReachesItsField:
         el serializer tendría que adivinarlo.
         """
         company = company_in('MX', vat_label='RFC')
-        with company_scope(company.pk):
+        with company_scope(company.pk), sudo():
             assert FormatVatLabelMixin._get_view() == {'vat': 'RFC'}
 
     def test_a_country_without_label_touches_nothing(self, company_in):
@@ -79,7 +79,7 @@ class TestTheVatLabelReachesItsField:
         defecto, que es lo que la fuente hace al no entrar en el ``if``.
         """
         company = company_in('SV', vat_label='')
-        with company_scope(company.pk):
+        with company_scope(company.pk), sudo():
             assert FormatVatLabelMixin._get_view() == {}
 
     def test_without_a_company_in_context_it_touches_nothing(self, db):

@@ -14,7 +14,7 @@ from addons.base.models.res_country import ResCountry
 from addons.base.models.res_partner import ResPartner
 from addons.base_vat.models import res_partner as vat
 from exceptions import ValidationError
-from orm.environments import context_scope, env, set_current_company
+from orm.environments import context_scope, env, set_current_company, sudo
 from tools.misc import verify_hash_signed
 
 pytestmark = pytest.mark.django_db
@@ -89,15 +89,17 @@ def test_perform_vies_validation_skips_a_number_from_the_company_country(
 
     company.country = otro
     company.save()
-    assert (
-        partner.perform_vies_validation is True
-    ), 'con la empresa en otro país, BE es intracomunitario y se pregunta'
+    with sudo():
+        assert (
+            partner.perform_vies_validation is True
+        ), 'con la empresa en otro país, BE es intracomunitario y se pregunta'
 
     company.country = belgica
     company.save()
-    assert (
-        partner.perform_vies_validation is False
-    ), 'con la empresa en BE, el número es doméstico y no se pregunta'
+    with sudo():
+        assert (
+            partner.perform_vies_validation is False
+        ), 'con la empresa en BE, el número es doméstico y no se pregunta'
 
 
 def test_perform_vies_validation_is_false_without_vat(company):

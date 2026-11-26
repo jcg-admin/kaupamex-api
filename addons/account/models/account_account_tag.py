@@ -111,10 +111,14 @@ class AccountAccountTag(models.BaseModel):
         etiqueta, restada o sumada en el reparto. Guardar el signo en el nombre
         crearía una etiqueta huérfana por cada fórmula negativa, y el reparto
         del plan dejaría de resolver la mitad de sus citas.
+
+        El país vacío es ``None``: la fuente recibe ``country_id`` —el ``id``,
+        ``False`` sin país— y aquí llega el registro, que bajo ``BaseModel``
+        es el recordset vacío. Filtrar por él no casaría la fila con país nulo.
         """
         return {
             'name': formula.lstrip('-'),
-            'country': country,
+            'country': country or None,
             'applicability': 'taxes',
         }
 
