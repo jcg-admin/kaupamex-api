@@ -67,7 +67,6 @@ import logging
 import os
 import time
 from dataclasses import dataclass
-from datetime import timedelta
 from zoneinfo import available_timezones
 
 import api
@@ -76,27 +75,31 @@ import models
 
 from django.apps import apps
 from django.conf import settings
-from django.contrib.auth import authenticate as django_authenticate
-from django.contrib.auth import hashers
+from django.contrib.auth import authenticate as django_authenticate, hashers
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.db.models import F, Q
 from django.db.models.functions import Length
 from django.db.models.lookups import Exact
-from django.db.models.signals import m2m_changed, post_delete, post_save, pre_delete
+from django.db.models.signals import (m2m_changed, post_delete, post_save,
+                                      pre_delete)
 from django.dispatch import receiver
 from django.utils import timezone
 from django.utils.crypto import salted_hmac
 from passlib.context import CryptContext as _CryptContext
 
 from addons.base.models import signals
-from addons.base.models.ir_http import get_current_request
+from addons.base.models.ir_http import (DEFAULT_LANG, best_lang,
+                                        get_current_request)
 from addons.base.models.res_device import _client_ip
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import AccessDenied, AccessError, UserError
 from orm import registry
-from orm.environments import get_current_company, get_current_user, is_su, sudo
+from orm.environments import (Environment, get_current_company,
+                              get_current_user, is_su, sudo)
 from orm.utils import SUPERUSER_ID
+from tools.cache import ormcache
+from tools.misc import frozendict
 
 #: ≙ el ``_logger`` de módulo que la referencia declara en la cabecera de
 #: ``res_users.py`` (``odoo19c: res_users.py:38``). Se llamaba
@@ -2408,6 +2411,63 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
             groups += list(default_group.implied_ids.all())
         return groups
 
+    @classmethod
+    def _context_uid(cls):
+        """El ``uid`` del entorno ambiental — la clave de :meth:`context_get`.
+
+        La fuente memoriza con ``@tools.ormcache('self.env.uid')``. Este
+        modelo es una clase de Django sin ``env``, y ``ormcache`` evalúa la
+        clave sobre los parámetros del método, así que la clave llega por este
+        acceso de clase. Es el enlace, no otra clave: la de la fuente también
+        es el ``uid`` de quien actúa.
+        """
+        return Environment().uid
+
+    @classmethod
+    @api.model
+    @ormcache('cls._context_uid()')
+    def context_get(cls):
+        """El contexto de idioma y zona del usuario — ≙ ``context_get``
+        (``odoo19c: odoo/addons/base/models/res_users.py:694-723``).
+
+        Lee ``lang`` y ``tz`` del usuario que actúa; sin usuario, el
+        contexto vacío. El ``lang`` tiene que ser un idioma instalado, y si
+        no lo es se busca en el orden de la fuente: la petición, el partner
+        de la empresa del usuario, ``DEFAULT_LANG`` y el primero instalado.
+        Se purga cuando el usuario escribe un campo de
+        :meth:`_get_invalidation_fields` (``_invalidate_on_user_save``).
+        """
+        uid = cls._context_uid()
+        user = cls.objects.filter(pk=uid).first()
+        if user is None:
+            # user not found, no context information
+            return frozendict()
+        context = {'lang': user.lang or False, 'tz': user.tz or False}
+
+        # ensure lang is set and available
+        # context > request > company > english > any lang installed
+        res_lang = Environment()['res.lang']
+        langs = [code for code, _name in res_lang.get_installed()]
+        lang = context.get('lang')
+        if lang not in langs:
+            request = get_current_request()
+            lang = best_lang(request) if request else None
+            if lang not in langs:
+                company = user.company
+                lang = (company.partner.lang
+                        if company is not None and company.partner_id
+                        else None)
+                if lang not in langs:
+                    lang = DEFAULT_LANG
+                    if lang not in langs:
+                        lang = langs[0] if langs else DEFAULT_LANG
+        context['lang'] = lang
+
+        # ensure uid is set
+        context['uid'] = uid
+
+        return frozendict(context)
+
 
 class ResUsersLog(TimeStampedModel):
     """``res.users.log`` — que hubo un acceso, no una auditoría.
@@ -2761,7 +2821,7 @@ class _ResUsersApikeysBase(TimeStampedModel):
             if group.api_key_duration
         ] if actor is not None else []
         max_duration = max(durations) if durations else 1.0
-        if date > timezone.now() + timedelta(days=max_duration):
+        if date > timezone.now() + datetime.timedelta(days=max_duration):
             raise ValidationError(
                 f'No puede exceder {max_duration} días.'
             )
@@ -3316,6 +3376,10 @@ def _invalidate_on_user_save(sender, instance, **kwargs):
     campos = kwargs.get('update_fields')
     if campos is None or set(campos) & ResUsers._get_invalidation_fields():
         _invalidate_group_ids([instance.pk])
+        # ≙ ``self.env.registry.clear_cache()`` de ``write``
+        # (``odoo19c: res_users.py:641-643``): purga lo memorizado por
+        # ``uid``, como ``context_get``.
+        registry.registry_of_row(instance, kwargs.get('using')).clear_cache()
 
 
 @receiver(m2m_changed, sender='base.ResGroups_user_ids',

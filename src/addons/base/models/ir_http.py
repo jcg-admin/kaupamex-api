@@ -118,10 +118,13 @@ import time
 import unicodedata
 from contextvars import ContextVar
 
+import babel.core
+
 from django.apps import apps
 from django.db import (DEFAULT_DB_ALIAS, IntegrityError, OperationalError,
                        transaction)
 from django.http import JsonResponse
+from django.utils.translation.trans_real import parse_accept_lang_header
 from psycopg import errors as pg_errors
 
 import models
@@ -185,6 +188,39 @@ def get_current_request():
 def set_current_request(request):
     """Fija la petición en curso (o la limpia con ``None``)."""
     _current_request.set(request)
+
+
+#: ≙ ``DEFAULT_LANG`` (``odoo19c: odoo/http.py:231``): el idioma de
+#: respaldo cuando ni el usuario, ni la petición, ni la empresa aportan uno
+#: instalado. Vive junto a la petición por la misma razón que ella.
+DEFAULT_LANG = 'en_US'
+
+
+def best_lang(request):
+    """El idioma preferido de la petición, o ``None`` — ≙ ``Request.best_lang``
+    (``odoo19c: odoo/http.py:1909-1922``).
+
+    La fuente lee ``httprequest.accept_languages.best`` de werkzeug: el valor
+    de mayor calidad de ``Accept-Language``. Aquí la petición es la de Django,
+    y su analizador devuelve los valores ordenados por calidad, así que el
+    primero es el mismo. El resto es el de la fuente: ``babel`` separa idioma
+    y territorio, y sin territorio se toma el alias del idioma.
+    """
+    header = request.META.get('HTTP_ACCEPT_LANGUAGE', '')
+    accepted = parse_accept_lang_header(header)
+    lang = accepted[0][0] if accepted else None
+    if not lang:
+        return None
+
+    try:
+        code, territory, _, _ = babel.core.parse_locale(lang, sep='-')
+        if territory:
+            lang = f'{code}_{territory}'
+        else:
+            lang = babel.core.LOCALE_ALIASES[code]
+        return lang
+    except (ValueError, KeyError):
+        return None
 
 
 #: Extensiones cuyo tipo MIME sirve la web — verbatim de la fuente. En modo
