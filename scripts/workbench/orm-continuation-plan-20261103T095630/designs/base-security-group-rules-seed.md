@@ -51,3 +51,24 @@ la fuente.
 - Sembrar dos veces no duplica ni cambia grupos.
 - Anulación: sin el `set` de grupos, la regla queda global y cae la prueba de
   grupos.
+
+## Implementación
+
+- `src/addons/base/security/base_security.py::_seed` corre bajo
+  `user_scope(SUPERUSER_ID)`: `IrRule` valida su dominio evaluándolo, y un
+  dominio con `user.id` (el de casi toda regla de grupo de la fuente) no
+  evalúa sin usuario. La fuente carga `base_security.xml` como superusuario.
+  El recorrido pasa a `_seed_rules`; una entrada en tupla se normaliza a la
+  regla multicompañía global.
+- Prueba: `tests/unit/base/test_base_security_rule_seed.py` (3 casos). La regla
+  de prueba vive sobre `ir.exports` con `[('create_uid', '=', user.id)]`: el
+  validador exige que el campo exista en el modelo.
+- Consumidores de `_seed`/`IrRule` (`base_security|ir_rules|seed_base_rules|seed_sale_rules|IrRule`
+  en `tests/`, 35 archivos, `-n 4`): 445 passed.
+
+## Anulación
+
+Sin `record.groups.set(group_ids)` caen exactamente las dos pruebas que miden
+los grupos (`test_a_group_rule_keeps_its_groups_and_permissions` y
+`test_seeding_twice_changes_nothing`); la de la tupla sobrevive. Restaurado y
+verificado con `cmp`.
