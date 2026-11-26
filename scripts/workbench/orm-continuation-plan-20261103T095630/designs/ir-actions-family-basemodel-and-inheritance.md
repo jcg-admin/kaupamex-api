@@ -133,3 +133,33 @@ Controles: un `SELECT` sobre `ir_actions` ve una fila insertada en
 `ir_act_server` (herencia); dos subtipos no reparten el mismo id
 (secuencia común); un paso de `ir.actions.todo` apunta a una acción de
 ventana (sin clave foránea), que es el caso que hoy da `IntegrityError`.
+
+## Paso 1 — lo implementado y lo medido
+
+Un control de la lista de arriba se cambió al medirlo: «dos subtipos no
+reparten el mismo id» pasaba también **antes** de la migración, porque las
+secuencias propias daban ids distintos por casualidad de estado. No
+discriminaba. Se sustituyó por el que sí: el `id` de cada subtipo toma por
+defecto el `nextval` de la secuencia de `ir_actions` (antes, `None`:
+columna de identidad sin `DEFAULT`).
+
+Piezas:
+
+- `src/addons/base/migrations/0140_ir_actions_table_inheritance.py`:
+  tres `AlterField` con `db_constraint=False` (`IrActionsTodo.action`,
+  `IrEmbeddedActions.action`, `IrFilters.action_id`) y un `RunSQL` que, por
+  cada subtipo, quita la identidad, fija `DEFAULT nextval` de la secuencia
+  de `ir_actions`, declara `INHERIT ir_actions` y adelanta la secuencia al
+  máximo de las seis tablas. Es el `base_data.sql:5-13` de la fuente
+  (`odoo19c: odoo/addons/base/data/base_data.sql:5-13`).
+- `addons/account/migrations/0059_account_report_line_action_without_fk.py`:
+  el `AlterField` de `AccountReportLine.action`, que depende de la 0140.
+- Los cuatro campos llevan `db_constraint=False` con la cita a
+  `odoo19c: odoo/orm/fields_relational.py:313-314` en un comentario.
+
+Pruebas: `tests/unit/base/test_ir_actions_table_inheritance.py`, 14
+casos. RED antes de la migración: 7 fallidos y 1 error. GREEN: 14.
+
+Anulación: con `db_constraint=True` de vuelta en un solo campo, cae la
+prueba que recorre los modelos (sección siguiente al commit, con su
+salida).
