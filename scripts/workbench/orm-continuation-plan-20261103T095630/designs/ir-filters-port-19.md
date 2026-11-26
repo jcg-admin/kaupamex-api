@@ -82,3 +82,32 @@ incorrecto heredado: 19 gobierna. Diferencias medidas contra la fuente:
   `get_default_domain` del consumidor web.
 - Las pruebas de 18 en `tests/unit/base/test_ir_filters.py` (unicidad del
   por defecto, `user` como FK) cambian de sujeto: 19 no las tiene.
+
+## Adenda: lo que apareció al implementar
+
+- **`res.users.context_get`** era prerrequisito y no estaba portado: unidad
+  propia (`designs/res-users-context-get.md`, asentada).
+- **`Many2many.read`** como lectura del campo tampoco: `search_read` con
+  `user_ids` revienta en `_fetch_query`. Unidad propia en el mismo pase
+  (`designs/orm-many2many-field-read.md`).
+- **`user.ids`** en la regla de portal: el usuario del contexto de las reglas
+  es una fila de Django sin `ids`, y la siembra de reglas fallaba al validar
+  el dominio (30 errores en el subconjunto). `ResUsers.ids` lo da como la
+  fuente lo da a un registro (`odoo19c: odoo/orm/models.py:5904-5909`).
+- `test_domain_in_required::test_the_count_over_a_fixed_population` pasa de
+  27 a 28 discrepancias: la nueva es `base.IrFilters.user_ids`, un Many2many
+  sin columna propia (medido por sonda). El caso pide re-medir y actualizar con
+  su razón; se actualizó así.
+- `tests/unit/base/test_ir_filters.py`: los seis casos de la forma de 18
+  cambian de sujeto (`user` → `user_ids`; dos por defecto del mismo modelo
+  conviven) y escriben con `sudo()`, porque ahora hay ACL.
+- `get_default_domain` del consumidor web recorre `get_filters` con la
+  identidad del modelo, como la fuente.
+
+## Medido
+
+- `tests/integration/base/test_ir_filters_port_19.py`: 7 casos en rojo antes
+  del modelo (`KeyError: 'ir.filters'`, la base no era `BaseModel`).
+- Anulación de la regla de empleado (retirada de `_RULES` y su fila): caen
+  exactamente los 2 casos que dependen de ella (visibilidad y escritura sobre
+  un filtro ajeno). Restaurada con `cmp`.
