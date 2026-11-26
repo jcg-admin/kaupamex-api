@@ -2008,6 +2008,13 @@
         "basemodel-adoption-base-ir-module-category-privilege-0397"
       ],
       "writtenAt": "2026-11-26T03:04:24Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-base-res-country-state-0397"
+      ],
+      "writtenAt": "2026-11-26T04:13:29Z"
     }
   ]
 }
