@@ -56,3 +56,62 @@ existe, que es el `except ValueError: pass` de la fuente.
 - `unlink` de `base.open_menu`, cuando existe, no lo borra.
 
 Prueba: `tests/unit/base/test_ir_actions_todo_basemodel.py`.
+
+## Medido
+
+| Símbolo | Archivo | Fuente |
+|---|---|---|
+| `IrActionsTodo` sobre `models.BaseModel` con los cinco atributos de clase | `src/addons/base/models/ir_actions.py` | `odoo19c: odoo/addons/base/models/ir_actions.py:1352-1356` |
+| `IrActionsTodo.create` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:1362-1368` |
+| `IrActionsTodo.write` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:1370-1374` |
+| `IrActionsTodo.ensure_one_open_todo` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:1376-1380` |
+| `IrActionsTodo.unlink` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:1382-1392` |
+| `IrActionsTodo.action_open` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:1420-1422` |
+| fila `ir_actions_todo group system` de `_ACCESS` | `src/addons/base/security/ir_model_access.py` | `odoo19c: odoo/addons/base/security/ir.model.access.csv:104` |
+| migración `0135_seed_ir_actions_todo_access` | `src/addons/base/migrations/0135_seed_ir_actions_todo_access.py` | ídem |
+
+Prueba: `tests/unit/base/test_ir_actions_todo_basemodel.py`.
+
+Anulaciones, restauradas con `cmp`:
+
+- `create` sin `ensure_one_open_todo`: caen exactamente los dos casos de
+  «un solo abierto» y pasa el de la ACL;
+- `write` sin `ensure_one_open_todo`: cae exactamente
+  `test_reopening_closes_the_other_open_step`;
+- sin el cambio de base: caen los tres (los dos primeros porque
+  `Environment(su=True)['ir.actions.todo']` no resuelve; el tercero por la
+  ACL).
+
+## Lo que esta unidad no cierra
+
+- **`action_launch` (`:1394-1418`) no se porta: bloqueo medido.** Lee la
+  acción con `self.env[action.type]`, y `ir.actions.actions` y sus subtipos
+  no declaran `_name` aquí: `env['ir.actions.actions']` da
+  `KeyError: 'ir.actions.actions'` (medido al escribir su prueba). Queda
+  declarado en el docstring de la clase.
+- **La rama de `base.open_menu` en `unlink` no tiene control**, por la misma
+  causa: `base.action_client_base_menu` es un `ir.actions.client`, y ninguno
+  de los dos registros se siembra.
+- **Las tablas de los subtipos de acción no heredan de `ir_actions`.** La
+  fuente las crea con `INHERITS (ir_actions)`
+  (`odoo19c: odoo/addons/base/data/base_data.sql:9-13`); aquí cada subtipo
+  tiene tabla propia, así que la FK `ir_actions_todo.action_id` sólo admite
+  filas de `ir_actions` (`IntegrityError ... Key (action_id)=(1) is not
+  present in table "ir_actions"`, medido con una acción de ventana).
+
+Sucesor, para los tres: la adopción de `ir.actions.*` sobre
+`models.BaseModel` dentro de `basemodel-adoption-0397` (TASK-API-0397). Su
+condición de cierre es que `env['ir.actions.act_window']` resuelva y que una
+acción de ventana pueda ser destino de `ir_actions_todo.action_id`; cómo
+reproducir la herencia de tablas de PostgreSQL en Django es decisión de esa
+unidad, no de ésta.
+
+## Baseline del gate de idioma
+
+`ensure_one_open_todo` entra en `scripts/identifier_language_baseline.txt`.
+`todo` es aquí la palabra inglesa del nombre público de la fuente, y el
+corpus del gate la lee como el español «todo». Renombrar el método rompería
+el contrato con la referencia (`porte-completo-no-parcial.md`); el
+precedente es la clase `IrActionsTodo`, ya listada. Las cuatro variables
+locales que el gate marcaba se tradujeron (`records`, `record`,
+`open_steps`, `open_menu_step`).
