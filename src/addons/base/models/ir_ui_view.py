@@ -932,7 +932,7 @@ class IrUiView(models.DefaultGetMixin, TimeStampedModel):
         return cls.objects.filter(pk=info['id']).first()
 
 
-class IrUiViewCustom(TimeStampedModel):
+class IrUiViewCustom(models.BaseModel, TimeStampedModel):
     """``ir.ui.view.custom`` — la personalización de una vista por un usuario.
 
     ``_order = 'create_date desc, id desc'`` en la fuente, con el comentario

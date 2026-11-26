@@ -33,7 +33,17 @@ DOMAIN_MULTICOMPANY = "[('company_id', 'in', company_ids)]"
 
 #: (nombre de la regla, label Django del modelo). ``CompanySetting`` es el
 #: único modelo de ``base`` con columna ``company_id`` scopeada por fila.
-_RULES = (('Company Setting multi-company', 'base.CompanySetting'),)
+#: Las entradas ``dict`` son reglas de ``base_security.xml`` con su dominio:
+#: ``ir_ui_view_custom_personal`` (``odoo19c: odoo/addons/base/security/
+#: base_security.xml:50-54``) deja a cada usuario sólo sus personalizaciones.
+_RULES = (
+    ('Company Setting multi-company', 'base.CompanySetting'),
+    {
+        'name': 'ir.ui.view_custom rule',
+        'model': 'base.IrUiViewCustom',
+        'domain_force': "[('user_id','=',user.id)]",
+    },
+)
 
 
 #: Los permisos de un ``ir.rule`` sin declarar, como el ``default=True`` de
