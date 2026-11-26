@@ -5,14 +5,14 @@ preparado por un subagente de sólo lectura y verificado contra la fuente.
 
 ## Fuente medida
 
-`odoo19c: odoo/addons/base/models/res_users_deletion.py:11-110`:
+`odoo19c: odoo/addons/base/models/res_users_deletion.py:11-100`:
 
 - `_name = 'res.users.deletion'`, `_description = 'Users Deletion Request'`,
   `_rec_name = 'user_id'` (`:20-22`); sin `_order`.
 - `user_id` Many2one con `ondelete='set null'`, `user_id_int` calculado y
   almacenado desde `user_id` (`:25-34`), `state` requerido con
   `todo`/`done`/`fail` (`:27-28`).
-- `_gc_portal_users(batch_size=50)` (`:36-110`), el cron
+- `_gc_portal_users(batch_size=50)` (`:36-100`), el cron
   `ir_cron_res_users_deletion` (`odoo19c: odoo/addons/base/data/ir_cron_data.xml:13-17`):
   las solicitudes `todo` sin usuario pasan a `done`; de las demás, hasta
   `batch_size`, cada una se bloquea con `try_lock_for_update`, borra el
@@ -67,7 +67,7 @@ Prueba: `tests/unit/base/test_res_users_deletion_basemodel.py`.
 | Símbolo | Archivo | Fuente |
 |---|---|---|
 | `ResUsersDeletion` sobre `models.BaseModel` con `_name`, `_description`, `_rec_name` | `src/addons/base/models/res_users_deletion.py` | `odoo19c: odoo/addons/base/models/res_users_deletion.py:20-22` |
-| `ResUsersDeletion._gc_portal_users` | ídem | `odoo19c: odoo/addons/base/models/res_users_deletion.py:36-110` |
+| `ResUsersDeletion._gc_portal_users` | ídem | `odoo19c: odoo/addons/base/models/res_users_deletion.py:36-100` |
 | `ResUsers._deactivate_portal_user` crea la solicitud elevada | `src/addons/base/models/res_users.py` | `odoo19c: addons/portal/controllers/portal.py:926` y `odoo/addons/base/models/res_users.py:987` |
 | dos filas de `_ACCESS` y migración `0136_seed_res_users_deletion_access` | `src/addons/base/security/ir_model_access.py`, `src/addons/base/migrations/0136_seed_res_users_deletion_access.py` | `odoo19c: odoo/addons/base/security/ir.model.access.csv:87-88` |
 | `CRON_RES_USERS_DELETION` y migración `0137_seed_cron_res_users_deletion` | `src/addons/base/data/__init__.py`, `src/addons/base/migrations/0137_seed_cron_res_users_deletion.py` | `odoo19c: odoo/addons/base/data/ir_cron_data.xml:13-21` |
