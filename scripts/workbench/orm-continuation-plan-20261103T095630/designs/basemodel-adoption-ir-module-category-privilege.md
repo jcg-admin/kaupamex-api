@@ -1,7 +1,8 @@
 # Adopción de BaseModel: ir.module.category + res.groups.privilege — análisis previo (basemodel-adoption-0397)
 
-Estado: **no implementado**. Primer intento revertido sin commit el
-2026-11-25; este documento guarda lo medido para que la unidad arranque de aquí.
+Estado: **implementado el 2026-11-26** (sección «Implementación», al final).
+El primer intento, del 2026-11-25, se revirtió sin commit; lo medido entonces
+queda abajo como el punto de partida.
 
 ## Referencia
 
@@ -59,3 +60,51 @@ Portar las lecturas privilegiadas de `res_groups` (full name, jerarquía de
 vista, definiciones), del refresco del catálogo y de `load`, cada una citando
 su línea de la fuente; luego cambiar las dos bases y la guarda, y exigir el
 subconjunto de los 26 archivos en verde más F2.
+
+## Implementación (2026-11-26)
+
+Cambio de base: `IrModuleCategory(models.BaseModel, TimeStampedModel)` y
+`ResGroupsPrivilege(BaseModel, TimeStampedModel)`; sin migración
+(`./kaupamex-bin makemigrations base --check --dry-run` → sin cambios).
+
+Funciones cuyo cuerpo cambia, con su referencia y su prueba:
+
+- `ResGroups._compute_full_name` lee el privilegio bajo `sudo()`, como el
+  `zip(self, self.sudo())` de `odoo19c: odoo/addons/base/models/res_groups.py:123-129`.
+  Prueba: `tests/unit/base/test_category_privilege_basemodel.py::test_full_name_reads_the_privilege_for_a_user_who_cannot`.
+- `ResGroups._get_view_group_hierarchy` construye `privilege_ids` de cada
+  categoría con `sorted`/`filtered` sobre el recordset, como
+  `category.privilege_ids.sorted(...).filtered(...).ids` de `odoo19c: res_groups.py:353-359`;
+  las tres claves de `groups` se parten en líneas de 79. Prueba:
+  `tests/integration/base/test_res_groups_port.py::TestTheViewHierarchy`.
+- `IrModuleCategory._check_parent_not_circular` recorre `while current:`: el
+  `Many2one` vacío es un recordset vacío. Referencia: `_check_parent_not_circular`
+  (`odoo19c: odoo/addons/base/models/ir_module.py:102-105`). Prueba: toda carga
+  de categorías por XML (`addons/auto_backup/security/user_groups.xml:18` rehusaba).
+
+Consumidores portados (las pruebas de la fuente corren como superusuario; la
+instalación de producción ya corre como `SUPERUSER_ID`, `src/modules/loading.py:261`):
+
+- `sudo()` en el instalador de prueba de `test_mail_groups_data.py` y
+  `test_website_security_groups.py`, en las dos de `TestTheViewHierarchy`
+  y en las dos de `test_load.py`; fixture elevado (`_elevated`, el patrón de
+  `tests/unit/analytic/`) en `test_module_catalog_database.py` y
+  `test_module_category_tree.py`.
+- Sujeto «modelo de Django sin BaseModel»: `res.partner` (FK `parent`, reverso
+  `children`, indexado) en `test_one2many.py::TestItResolvesToTheDjangoReverse`
+  y en `test_index_method.py`.
+- Deuda de estilo pagada: el gate fija cada sentencia por su posición en el
+  módulo, así que el `import` nuevo de `test_res_groups_port.py` convertía en
+  nuevas sus diez líneas largas heredadas; se partieron.
+
+Subconjunto derivado (26 archivos más `test_one2many.py` y
+`test_index_method.py`, `-n 4`): **265 passed**.
+
+## Anulaciones
+
+- Sin el `sudo()` de `_compute_full_name`: cae exactamente
+  `test_full_name_reads_the_privilege_for_a_user_who_cannot` (1 de 3).
+- `ResGroupsPrivilege` de vuelta a `TimeStampedModel`: cae exactamente
+  `test_category_and_privilege_are_basemodel[ResGroupsPrivilege]` (1 de 3).
+
+Ambas restauradas y verificadas con `cmp`.
