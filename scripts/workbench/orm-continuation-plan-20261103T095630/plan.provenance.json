@@ -2015,6 +2015,13 @@
         "basemodel-adoption-base-res-country-state-0397"
       ],
       "writtenAt": "2026-11-26T04:13:29Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-base-decimal-precision-0397"
+      ],
+      "writtenAt": "2026-11-26T05:18:26Z"
     }
   ]
 }
