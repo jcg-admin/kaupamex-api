@@ -572,10 +572,14 @@ class TestTheThirdConsumerAsksTheSameQuestion:
         assert (
             medidos > 500
         ), f'sólo {medidos} campos en base: el recorrido no la está viendo'
-        assert len(discrepan) == 27, (
-            f'{len(discrepan)} discrepancias en base, se esperaban 27. Es '
-            'evidencia fechada al portar #247; si cambia, se re-mide y se '
-            'actualiza con su razón — no se relaja la aserción'
+        # 27 al portar #247; 28 desde que ``ir.filters`` declara
+        # ``user_ids`` (``odoo19c: ir_filters.py:13``): un Many2many más, sin
+        # columna propia, de la misma familia que los otros
+        # (``designs/ir-filters-port-19.md``).
+        assert len(discrepan) == 28, (
+            f'{len(discrepan)} discrepancias en base, se esperaban 28. Es '
+            'evidencia fechada; si cambia, se re-mide y se actualiza con su '
+            'razón — no se relaja la aserción'
         )
 
     def test_a_many_to_many_keeps_the_null_branch(self, mail_server):

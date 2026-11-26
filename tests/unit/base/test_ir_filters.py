@@ -7,10 +7,11 @@ Verifica:
 - ``db_table``/``app_label`` fieles a Odoo (``ir_filters`` / ``base``),
 - campos faithful presentes + defaults de ``context``/``domain``/``sort``/
   ``active``,
-- ``user`` NULL = filtro global/compartido; set = filtro privado,
-- invariante "un solo default por (model_id, user)" — al guardar un segundo
-  filtro por defecto en el mismo alcance, el primero se desmarca (``save()``,
-  ver docstring de ``ir_filters.py`` sobre la simplificación frente a Odoo).
+- ``user_ids`` vacío = filtro compartido; con usuarios = filtro de ellos
+  (``odoo19c: odoo/addons/base/models/ir_filters.py:13``),
+- sin invariante de «un solo por defecto»: es de Odoo 18
+  (``_check_global_default``) y 19 no la tiene; dos filtros por defecto del
+  mismo modelo conviven (``designs/ir-filters-port-19.md``).
 
 Toca DB → django_db.
 """
@@ -21,6 +22,7 @@ from django.db import IntegrityError, transaction
 
 from addons.base.models import IrFilters
 from addons.base.models.ir_actions import IrActionsActions
+from orm.environments import sudo
 from tests.factories.user_factory import UserFactory
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
@@ -45,7 +47,7 @@ def test_campos_faithful_presentes():
     field_names = {f.name for f in IrFilters._meta.get_fields()}
     for expected in (
         'name',
-        'user',
+        'user_ids',
         'model_id',
         'domain',
         'context',
@@ -71,7 +73,7 @@ def test_create_minimo_aplica_defaults():
     assert filtro.sort == '[]'
     assert filtro.active is True
     assert filtro.is_default is False
-    assert filtro.user_id is None
+    assert not filtro.user_ids
     assert filtro.action_id is None
 
 
@@ -82,7 +84,7 @@ def test_user_null_es_filtro_global():
     filtro = IrFilters.objects.create(
         name='Global', model_id='catalogue.Product'
     )
-    assert filtro.user_id is None
+    assert not filtro.user_ids
 
 
 def test_user_set_es_filtro_privado():
@@ -90,16 +92,16 @@ def test_user_set_es_filtro_privado():
     filtro = IrFilters.objects.create(
         name='Mio',
         model_id='catalogue.Product',
-        user=user,
     )
-    filtro.refresh_from_db()
-    assert filtro.user_id == user.pk
+    with sudo():
+        filtro.write({'user_ids': [(6, 0, [user.pk])]})
+    assert list(filtro.user_ids.values_list('pk', flat=True)) == [user.pk]
 
 
-# --- Invariante: un solo default por (model_id, user) -----------------------
+# --- Sin invariante de un solo default (Odoo 19) -----------------------------
 
 
-def test_segundo_default_global_desmarca_al_primero():
+def test_two_defaults_of_the_same_model_coexist():
     primero = IrFilters.objects.create(
         name='Default A',
         model_id='orders.Order',
@@ -114,7 +116,7 @@ def test_segundo_default_global_desmarca_al_primero():
     primero.refresh_from_db()
     segundo.refresh_from_db()
 
-    assert primero.is_default is False
+    assert primero.is_default is True
     assert segundo.is_default is True
 
 
@@ -128,14 +130,15 @@ def test_default_personal_no_afecta_default_global():
     personal_default = IrFilters.objects.create(
         name='Default personal',
         model_id='orders.Order',
-        user=user,
         is_default=True,
     )
+    with sudo():
+        personal_default.write({'user_ids': [(6, 0, [user.pk])]})
 
     global_default.refresh_from_db()
     personal_default.refresh_from_db()
 
-    # Alcances distintos (user=None vs user=<user>): no se pisan entre sí.
+    # Alcances distintos (compartido vs de un usuario): no se pisan.
     assert global_default.is_default is True
     assert personal_default.is_default is True
 

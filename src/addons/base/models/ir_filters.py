@@ -1,97 +1,37 @@
 """``ir.filters`` — filtros de búsqueda guardados (Odoo ``base``).
 
-Portación fiel de ``IrFilters``
-(``scratchpad/odoo18/extracted/odoo/addons/base/models/ir_filters.py:9-192``,
-Odoo 18; ``scratchpad/odoo19x/odoo/addons/base/models/ir_filters.py:7-109``,
-Odoo 19) — la **estructura de control** que persiste un filtro de búsqueda
-(dominio + contexto + orden) nombrado, opcionalmente privado a un usuario o
-compartido globalmente, y opcionalmente marcado "por defecto" para un
-modelo. Parte de la iniciativa ``adaptar-familias-odoo-monolito-modular``
-(SOL-096), backlog de control núcleo ``ir.*`` (H-BASE-01 C-2).
+Porte de ``IrFilters``
+(``odoo19c: odoo/addons/base/models/ir_filters.py:7-109``) sobre
+``BaseModel``: la cabecera, los diez campos, los tres objetos de tabla y los
+siete métodos. Diseño: ``designs/ir-filters-port-19.md`` del banco
+``orm-continuation-plan-20261103T095630``.
 
-Drift 18→19 observado (ambas fuentes citadas arriba) — **se porta 18, no 19**:
+Este archivo portaba antes la forma de Odoo 18 —un único dueño ``user``, la
+etiqueta de Django en ``model_id``, la unicidad ``name_model_uid_unique`` y el
+«un solo filtro por defecto» de ``_check_global_default``— y lo declaraba como
+decisión. 19 gobierna: la migración ``0131`` lleva las filas existentes a
+``user_ids`` y a la identidad del modelo, y retira la columna y la unicidad.
 
-- **``user_id`` (18, Many2one a ``res.users``) → ``user_ids`` (19,
-  Many2many)**.
-  Odoo 19 reemplaza la propiedad de un único usuario por una lista de
-  usuarios con los que se comparte el filtro. Esta portación usa el
-  **campo 18** (``user_id`` → aquí ``user``, Many2one nullable) porque el
-  monolito modela "compartido vs privado" como propiedad binaria de un solo
-  dueño (igual patrón que ``company`` en ``ir_sequence``/``ir_attachment``);
-  extender a M2M queda fuera de este slice (candidato H-BASE futuro si se
-  necesita compartir un filtro con un subconjunto de usuarios).
-- **``_sql_constraints`` + ``_auto_init`` (18) ausentes en 19**: 18 declara
-  ``name_model_uid_unique`` (unique constraint SQL) + un índice único
-  case-insensitive vía ``_auto_init``/``tools.create_unique_index`` sobre
-  ``(model_id, user_id, action_id, embedded_action_id, embedded_parent_res_id,
-  lower(name))``. 19 los elimina — coherente con el cambio a ``user_ids``
-  M2M, que no admite una columna única a nivel SQL. Aquí se porta la
-  intención (unicidad de nombre por alcance modelo+usuario+acción) con un
-  ``UniqueConstraint`` de Django sobre ``(model_id, user, action_id, name)``;
-  la comparación case-insensitive de ``name`` es coherente sin índice
-  funcional adicional porque el proyecto usa collation ``utf8mb4_unicode_ci``
-  (comparación CI nativa en MariaDB).
-- **``sort`` es ``Char``, no ``Text``**, en ambas versiones (18 línea 20, 19
-  línea 16) — se porta como ``Char`` (no como ``Text``, que sería la
-  suposición ingenua dado que ``domain``/``context`` sí son ``Text``).
+Lo que se adapta, y por qué:
 
-Alcance de esta portación — deliberadamente NO se porta:
-
-- **``embedded_action_id`` / ``embedded_parent_res_id``** — **YA NO se
-  omiten.**
-  Esta nota decía *"candidato H-BASE cuando/si ``ir.embedded.actions`` se
-  porte"*; ese archivo se portó y los dos campos entraron con él
-  (``embedded_action`` FK + ``embedded_parent_res_id``). Se conserva el
-  registro de que estuvieron diferidos —y por qué— en vez de borrarlo: era
-  dependencia ausente, no decisión de scope, y el destino estaba fechado.
-- **``action_id`` degradado a Integer plano, sin FK** — **CERRADO** en
-  ``base/migrations/0077``. El campo es ahora ``action``, un ``Many2one`` real
-  a ``base.IrActionsActions`` con ``on_delete=CASCADE``, como la fuente
-  (``:19``). Este bullet decía que el cambio *«se deja para su propio pase
-  porque toca la migración de esta tabla»*; eso es diferir, y
-  ``hallazgo-abierto-genera-sucesor.md`` no lo admite como bloqueo. Ver
-  :ref:`h-api-982`.
-
-  Con la FK entraron los **tres objetos de tabla** que la referencia declara
-  (``:26-40``) y este porte tampoco traía: ``_get_filters_index``,
-  ``_check_res_id_only_when_embedded_action`` y ``_check_sort_json``. Los tres
-  viven en ``Meta`` con su nombre conservado.
-- **``company_id``**: NO existe en ``ir.filters`` en ninguna de las dos
-  fuentes (18 ni 19) — verificado leyendo el modelo completo. El campo
-  especulado en el brief de esta tarea se OMITE por ausencia real en Odoo,
-  no se inventa.
-- **``_list_all_models`` (Selection dinámico vía SQL sobre ``ir_model``)**:
-  UI-only (llena el picker de modelos en el form de Odoo). ``model_id`` se
-  porta como ``Char`` plano (mismo patrón que ``res_model`` en
-  ``ir_attachment`` — no es FK, es el ``_name`` técnico como string).
-- **``copy_data`` / ``check_access`` en ``write()``**: capa de permisos y
-  duplicación de UI de Odoo — fuera del modelo de control (DRF
-  ``HasCapability``, DEC-11, cuando se exponga por vista).
-- **``_get_eval_domain`` (``ast.literal_eval``/``safe_eval`` del dominio)**:
-  utilidad de evaluación en runtime de búsqueda — pertenece a la capa de
-  negocio que consume el filtro, no al modelo de control.
-
-Comportamiento SÍ portado (adaptado a ``save()``, no a los decoradores
-``@api``/``create_or_replace`` de Odoo): la invariante "un solo filtro por
-defecto por (``model_id``, ``user``)" — al guardar con ``is_default=True``,
-se desmarca cualquier otro filtro por defecto en el mismo alcance
-modelo+usuario. Simplificación deliberada frente a Odoo: la fuente
-distingue alcance global (``user_id`` NULL → ``UserError`` si ya hay un
-default global distinto) de alcance personal (``user_id`` set → sobre-
-escritura silenciosa); aquí ambos casos sobre-escriben silenciosamente por
-uniformidad de mecanismo ``save()`` sin señal de error hacia arriba.
-Candidato H-BASE si se requiere el guardrail de error en el caso global.
-
-Cross-app: ``user`` → ``settings.AUTH_USER_MODEL`` (Odoo ``user_id``,
-NULL = filtro compartido/global, igual semántica que Odoo 18 — set = filtro
-privado de ese usuario).
+- **``model_id``** guarda la identidad de :func:`orm.registry.identity_of`
+  (el ``_name``, o la etiqueta mientras la clase no declara uno), que es lo
+  que guarda ``ir_model.model`` (``designs/model-identity-contract.md``).
+- **``_list_all_models``** ordena por ``ir_model.name`` sin el ``->>`` por
+  idioma de la fuente: aquí la columna es texto plano, no ``jsonb``
+  traducible.
+- **``embedded_action``** conserva el nombre de su porte anterior; la columna
+  es ``embedded_action_id``, la de la fuente.
 """
 
-from django.conf import settings
+import ast
+
 from django.db.models.lookups import Exact
 
+import api
 import fields
 import models
+from addons.base.models.res_users import ResUsers
 
 
 class JsonbTypeOf(models.Func):
@@ -100,12 +40,7 @@ class JsonbTypeOf(models.Func):
     La referencia no necesita un ayudante: su ``models.Constraint`` recibe el
     SQL como cadena (``odoo19c: ir_filters.py:37-40``). Aquí la restricción se
     declara con el ORM, así que el ``::jsonb`` y la llamada se expresan como
-    ``Func``.
-
-    Vive aquí, junto a su **único** consumidor —medido: ``grep -rn
-    jsonb_typeof src/ addons/`` daba 0 antes de este porte—. Si aparece un
-    segundo, su hogar pasa a ser ``src/tools/sql.py``, que es donde la
-    referencia guarda los ayudantes de SQL.
+    ``Func``. Vive junto a su único consumidor.
     """
 
     function = 'jsonb_typeof'
@@ -113,96 +48,66 @@ class JsonbTypeOf(models.Func):
     output_field = models.CharField()
 
 
-class IrFilters(models.RecordLoaderMixin, models.Model):
-    """
-    ``ir.filters`` — filtro de búsqueda nombrado (dominio+contexto+orden).
+class IrFilters(models.BaseModel):
+    """``ir.filters`` — filtro de búsqueda nombrado.
+
+    Guarda dominio, contexto y orden.
     """
 
+    _name = 'ir.filters'
+    _description = 'Filters'
+    _order = 'model_id, name, id desc'
+
     name = fields.Char(
-        max_length=256,
-        help_text='Nombre del filtro (Odoo name).',
+        max_length=256, verbose_name='Filter Name',
+        help_text='Nombre del filtro (Odoo name, requerido).',
     )
-    user = fields.Many2one(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name='ir_filters',
+    #: ≙ ``user_ids`` (``:13``), con la tabla y las columnas que el ORM de la
+    #: fuente deriva para ``ir.filters`` × ``res.users``
+    #: (``odoo19c: odoo/orm/fields_relational.py:1286-1295``).
+    user_ids = fields.Many2many(
+        ResUsers, relation='ir_filters_res_users_rel',
+        column1='ir_filters_id', column2='res_users_id',
+        blank=True, related_name='+', verbose_name='Users',
         help_text=(
-            'Dueño del filtro (Odoo user_id). NULL = filtro compartido/global '
-            '(visible para todos); set = filtro privado de ese usuario.'
+            'The users the filter is shared with. If empty, the filter is '
+            'shared with all users.'
         ),
     )
-    model_id = fields.Char(
-        max_length=128,
-        help_text=(
-            'Modelo técnico referenciado, p. ej. "product.ProductProduct"'
-            ' (Odoo model_id — Selection dinámico en Odoo, aquí Char plano'
-            ' porque no es una FK real, igual criterio que res_model en'
-            ' ir_attachment).'
-        ),
-    )
-    domain = fields.Text(
-        default='[]',
-        help_text='Dominio de búsqueda serializado (Odoo domain).',
-    )
-    context = fields.Text(
-        default='{}', help_text='Contexto serializado (Odoo context).'
-    )
-    sort = fields.Char(
-        max_length=512,
-        default='[]',
-        help_text=(
-            'Orden serializado (Odoo sort — Char en la fuente, no Text).'
-        ),
+    domain = fields.Text(default='[]', help_text='Odoo domain.')
+    context = fields.Text(default='{}', help_text='Odoo context.')
+    sort = fields.Char(max_length=512, default='[]', help_text='Odoo sort.')
+    model_id = fields.Selection(
+        selection='_list_all_models', max_length=128, verbose_name='Model',
+        help_text='Identidad del modelo (Odoo model_id).',
     )
     is_default = fields.Boolean(
-        default=False,
-        help_text=(
-            'Filtro por defecto para el alcance modelo+usuario (Odoo'
-            ' is_default).'
-        ),
+        default=False, verbose_name='Default Filter',
+        help_text='Odoo is_default.',
     )
-    #: Forma **C** de ADR-029 (#141): el símbolo lleva el nombre que la
-    #: referencia declara (``action_id``) y ``db_column`` mantiene la columna
-    #: en ``action_id`` — sin él Django la llamaría ``action_id_id``.
+    #: Forma **C** de ADR-029: el símbolo lleva el nombre de la fuente y
+    #: ``db_column`` mantiene la columna ``action_id``.
     action_id = fields.Many2one(
-        'base.IrActionsActions',
-        on_delete=models.CASCADE,
-        db_column='action_id',
-        null=True,
-        blank=True,
-        db_index=True,
-        related_name='filter_ids',
-        verbose_name='Acción',
+        'base.IrActionsActions', on_delete=models.CASCADE,
+        db_column='action_id', null=True, blank=True, db_index=True,
+        related_name='filter_ids', verbose_name='Action',
         help_text=(
-            'Acción/menú al que aplica el filtro (Odoo action_id). NULL = '
-            'aplica a todos los menús del modelo. Docstring de la fuente, '
-            'verbatim: "The menu action this filter applies to. When left '
-            'empty the filter applies to all menus for this model."'
+            'The menu action this filter applies to. When left empty the '
+            'filter applies to all menus for this model.'
         ),
     )
-    # Cierra los dos campos que este archivo dejó diferidos: la referencia
-    # declara ``embedded_action_id`` + ``embedded_parent_res_id`` y ambos
-    # esperaban a ``ir.embedded.actions``, que ya está portado.
     embedded_action = fields.Many2one(
-        'base.IrEmbeddedActions',
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        db_index=True,
-        related_name='filter_ids',
-        verbose_name='Acción embebida',
-        help_text=(
-            'Odoo embedded_action_id. Filtro por defecto de una acción '
-            'embebida.'
-        ),
+        'base.IrEmbeddedActions', on_delete=models.CASCADE,
+        null=True, blank=True, db_index=True, related_name='filter_ids',
+        verbose_name='Embedded action',
+        help_text='The embedded action this filter is applied to',
     )
     embedded_parent_res_id = fields.Integer(
-        null=True,
-        blank=True,
-        verbose_name='ID del padre de la embebida',
-        help_text='Odoo embedded_parent_res_id.',
+        null=True, blank=True,
+        help_text=(
+            'id of the record the filter should be applied to. Only used in '
+            'combination with embedded actions'
+        ),
     )
     active = fields.Boolean(default=True, help_text='Odoo active.')
 
@@ -211,25 +116,15 @@ class IrFilters(models.RecordLoaderMixin, models.Model):
         ordering = ['model_id', 'name', '-id']
         verbose_name = 'Filtro'
         verbose_name_plural = 'Filtros'
-        #: ≙ ``_get_filters_index`` (``odoo19c: ir_filters.py:26-28``), con
-        #: su nombre conservado. Es la consulta que ``get_filters`` hace en
-        #: cada apertura de vista.
+        #: ≙ ``_get_filters_index`` (``:27-29``), con su nombre conservado.
         indexes = [
             models.Index(
-                fields=[
-                    'model_id',
-                    'action_id',
-                    'embedded_action',
-                    'embedded_parent_res_id',
-                ],
+                fields=['model_id', 'action_id', 'embedded_action',
+                        'embedded_parent_res_id'],
                 name='ir_filters_get_filters_index',
             ),
         ]
         constraints = [
-            models.UniqueConstraint(
-                fields=['model_id', 'user', 'action_id', 'name'],
-                name='uq_ir_filters_model_user_action_name',
-            ),
             #: ≙ ``_check_res_id_only_when_embedded_action`` (``:33-36``).
             #: Comentario de la fuente, verbatim: *"The embedded_parent_res_id
             #: can only be defined when the embedded_action_id field is set."*
@@ -240,12 +135,8 @@ class IrFilters(models.RecordLoaderMixin, models.Model):
                 ),
                 name='ir_filters_check_res_id_only_when_embedded_action',
             ),
-            #: ≙ ``_check_sort_json`` (``:37-40``) — el ``sort`` se
-            #: deserializa como lista, así que un objeto o un escalar
-            #: revientan en el lector, lejos de aquí. La condición emite el
-            #: SQL de la fuente palabra por palabra:
-            #: ``CHECK ("sort" IS NULL OR jsonb_typeof("sort"::jsonb) =
-            #: 'array')``.
+            #: ≙ ``_check_sort_json`` (``:37-40``): ``CHECK ("sort" IS NULL
+            #: OR jsonb_typeof("sort"::jsonb) = 'array')``.
             models.CheckConstraint(
                 condition=(
                     models.Q(sort__isnull=True)
@@ -260,34 +151,89 @@ class IrFilters(models.RecordLoaderMixin, models.Model):
     def __str__(self) -> str:
         return self.name
 
-    def save(self, *args, **kwargs):
-        """Al guardar con ``is_default=True``, desmarca cualquier otro filtro
-        por defecto del mismo alcance modelo+usuario — versión simplificada de
-        ``_check_global_default``/``create_or_replace`` de Odoo (ver docstring
-        del módulo: aquí sobre-escribe silenciosamente en vez de distinguir
-        error-en-alcance-global vs sobre-escritura-en-alcance-personal).
+    @api.model
+    def _list_all_models(self):
+        """≙ ``_list_all_models`` (``:42-49``): los pares ``(model, name)`` de
+        ``ir_model`` ordenados por nombre."""
+        ir_model = self.env['ir.model']
+        return [
+            (model, name) for model, name in
+            ir_model.objects.order_by('name').values_list('model', 'name')
+        ]
 
-        Y descarta el cero de ``embedded_parent_res_id`` antes de escribir,
-        que es el guardián que la fuente pone en el mismo sitio
-        (``odoo19c: odoo/addons/base/models/ir_filters.py:54-57``), con su
-        comentario apuntando a la restricción::
+    def copy_data(self, default=None):
+        """≙ ``copy_data`` (``:51-58``)."""
+        vals_list = super().copy_data(default=default)
+        # NULL Integer field value read as 0, wouldn't matter except in this
+        # case will trigger check_res_id_only_when_embedded_action
+        for vals in vals_list:
+            if vals.get('embedded_parent_res_id') == 0:
+                del vals['embedded_parent_res_id']
+        return [dict(vals, name=self.env._("%s (copy)", ir_filter.name))
+                for ir_filter, vals in zip(self, vals_list)]
 
-            # check_res_id_only_when_embedded_action
-                if vals.get('embedded_parent_res_id') == 0:
-                    del vals['embedded_parent_res_id']
+    def write(self, vals):
+        """≙ ``write`` (``:60-63``)."""
+        new_filter = super().write(vals)
+        self.check_access('write')
+        return new_filter
 
-        Hace falta porque el conversor de columna de ``Integer`` lleva la
-        ausencia al cero (``fields_numeric.py:32-33``: ``int(value or 0)``) y
-        la restricción de tabla exige ``NULL`` mientras no haya acción
-        embebida. La fuente resuelve la tensión aquí, en el modelo, y no
-        relajando el conversor.
+    def _get_eval_domain(self):
+        """≙ ``_get_eval_domain`` (``:65-69``)."""
+        try:
+            return ast.literal_eval(self.domain)
+        except ValueError as e:
+            raise ValueError("Invalid domain: {self.domain}") from e
+
+    @api.model
+    def _get_action_domain(self, action_id=None, embedded_action_id=None,
+                           embedded_parent_res_id=None):
+        """Return a domain component for matching filters that are visible
+        in the same context (menu/view) as the given action. ≙ ``:71-79``."""
+        action_condition = (
+            ('action_id', 'in', [action_id, False]) if action_id
+            else ('action_id', '=', False))
+        embedded_condition = (
+            ('embedded_action_id', '=', embedded_action_id)
+            if embedded_action_id
+            else ('embedded_action_id', '=', False))
+        embedded_parent_res_id_condition = (
+            ('embedded_parent_res_id', '=', embedded_parent_res_id)
+            if embedded_action_id and embedded_parent_res_id
+            else ('embedded_parent_res_id', 'in', [0, False]))
+
+        return [action_condition, embedded_condition,
+                embedded_parent_res_id_condition]
+
+    @api.model
+    def get_filters(self, model, action_id=None, embedded_action_id=None,
+                    embedded_parent_res_id=None):
+        """Obtain the list of filters available for the user on the given
+        model. ≙ ``get_filters`` (``:81-102``).
+
+        :return: list of :meth:`~osv.read`-like dicts containing the
+            ``name``, ``is_default``, ``domain``, ``user_ids`` (m2m),
+            ``action_id`` (m2o tuple), ``embedded_action_id`` (m2o tuple),
+            ``embedded_parent_res_id`` and ``context`` of the matching
+            ``ir.filters``.
         """
-        if self.embedded_parent_res_id == 0:
-            self.embedded_parent_res_id = None
-        super().save(*args, **kwargs)
-        if self.is_default:
-            type(self).objects.filter(
-                model_id=self.model_id,
-                user_id=self.user_id,
-                is_default=True,
-            ).exclude(pk=self.pk).update(is_default=False)
+        # available filters: private filters (user_ids=uids) and public
+        # filters (uids=NULL), and filters for the action
+        # (action_id=action_id) or global (action_id=NULL)
+        user_context = self.env['res.users'].context_get()
+        action_domain = self._get_action_domain(
+            action_id, embedded_action_id, embedded_parent_res_id)
+        return self.with_context(user_context).search_read(
+            action_domain + [('model_id', '=', model),
+                             ('user_ids', 'in', [self.env.uid, False])],
+            ['name', 'is_default', 'domain', 'context', 'user_ids', 'sort',
+             'embedded_action_id', 'embedded_parent_res_id'],
+        )
+
+    @api.model
+    def create_filter(self, vals):
+        """≙ ``create_filter`` (``:104-109``)."""
+        embedded_action_id = vals.get('embedded_action_id')
+        if not embedded_action_id and 'embedded_parent_res_id' in vals:
+            del vals['embedded_parent_res_id']
+        return self.create(vals)

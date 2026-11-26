@@ -43,6 +43,27 @@ _RULES = (
         'model': 'base.IrUiViewCustom',
         'domain_force': "[('user_id','=',user.id)]",
     },
+    # ``ir.filters`` (``odoo19c: odoo/addons/base/security/
+    # base_security.xml:74-104``): todo para el administrador, propios o
+    # compartidos para el empleado, sólo propios para portal y público.
+    {
+        'name': 'ir.filters.admin.all.rights',
+        'model': 'base.IrFilters',
+        'domain_force': "[(1, '=', 1)]",
+        'groups': ['base.group_erp_manager'],
+    },
+    {
+        'name': 'ir.filter: owner or global',
+        'model': 'base.IrFilters',
+        'domain_force': "[('user_ids','in',[False,user.id])]",
+        'groups': ['base.group_user'],
+    },
+    {
+        'name': 'ir.filter: portal/public',
+        'model': 'base.IrFilters',
+        'domain_force': "[('user_ids', 'in', user.ids)]",
+        'groups': ['base.group_portal', 'base.group_public'],
+    },
 )
 
 

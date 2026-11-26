@@ -196,7 +196,9 @@ from django.db.models import Q
 from exceptions import MissingError
 from osv.expression import TRUE_DOMAIN, to_q
 
-from addons.base.models import IrFilters, SystemParameter
+from addons.base.models import SystemParameter
+from orm.environments import Environment
+from orm.registry import identity_of
 
 
 def get_view_id_and_type(action, view_type=None):
@@ -216,44 +218,37 @@ def get_view_id_and_type(action, view_type=None):
 
     if view_type not in view_modes:
         raise ValidationError(
-            "Tipo de vista inválido '%s' para la acción id=%s" % (view_type, action.pk)
+            "Tipo de vista inválido '%s' para la acción id=%s"
+            % (view_type, action.pk)
         )
     return None, view_type
 
 
 def get_default_domain(model, action, user=None):
-    """≙ referencia ``get_default_domain`` (``json.py``, módulo) — sólo la
-    rama ``ir.filters``. La rama ``filters_from_context`` (arch-XML) no se
-    porta (ver docstring del módulo).
+    """≙ referencia ``get_default_domain`` (``odoo19c: addons/web/controllers/
+    json.py:270-277``) — sólo la rama ``ir.filters``. La rama
+    ``filters_from_context`` (arch-XML) no se porta (ver docstring del módulo).
 
-    :param model: clase de modelo Django (``model._meta.label`` ≙
-        ``IrFilters.model_id``, convención ``app_label.ModelName`` — ver
-        ``export.py``, divergencia 1).
-    :param action: la acción cuyo ``pk`` acota el filtro por defecto
+    Recorre ``ir.filters.get_filters`` del modelo y la acción, y toma el primer
+    filtro marcado por defecto, con ``uid`` sustituido por el del entorno.
+
+    :param model: clase del modelo; su identidad es la que guarda
+        ``ir.filters.model_id`` (:func:`orm.registry.identity_of`).
+    :param action: la acción cuyo ``pk`` acota los filtros
         (≙ ``action._origin.id`` de la referencia).
-    :param user: usuario cuyo filtro privado cuenta, además de los
-        compartidos (``user=None`` de la fila). Reemplaza a ``eval_context``
-        (ver divergencia 3 del docstring del módulo).
+    :param user: usuario cuyo entorno lee los filtros; sin él, el entorno
+        ambiental. Reemplaza al ``model.env`` de la fuente (ver divergencia 3
+        del docstring del módulo).
     """
-    model_label = model._meta.label
-    scope = Q(action_id=action.pk) | Q(action_id__isnull=True)
-    if user is not None:
-        scope &= Q(user=user) | Q(user__isnull=True)
-    else:
-        scope &= Q(user__isnull=True)
-
-    ir_filter = (
-        IrFilters._default_manager
-        .filter(scope, model_id=model_label, is_default=True, active=True)
-        .first()
-    )
-    if ir_filter is None:
-        return TRUE_DOMAIN
-
-    domain_str = ir_filter.domain
-    if user is not None:
-        domain_str = re.sub(r'\buid\b', str(user.pk), domain_str)
-    return to_q(ast.literal_eval(domain_str))
+    env = Environment(uid=user.pk) if user is not None else Environment()
+    for ir_filter in env['ir.filters'].get_filters(
+            identity_of(model), action.pk):
+        if ir_filter['is_default']:
+            # user filters, static parsing only
+            domain_str = ir_filter['domain']
+            domain_str = re.sub(r'\buid\b', str(env.uid), domain_str)
+            return to_q(ast.literal_eval(domain_str))
+    return TRUE_DOMAIN
 
 
 def get_date_domain(start_date, end_date, date_field):
@@ -264,7 +259,8 @@ def get_date_domain(start_date, end_date, date_field):
     leerlo del atributo ``date_start`` de la vista calendario/gantt/cohort.
     """
     if not date_field:
-        raise ValidationError('No se pudo determinar el campo de fecha de la vista.')
+        raise ValidationError(
+            'No se pudo determinar el campo de fecha de la vista.')
 
     if not start_date or not end_date:
         start_date = date.today().replace(day=1)
@@ -273,7 +269,8 @@ def get_date_domain(start_date, end_date, date_field):
         else:
             end_date = start_date.replace(month=start_date.month + 1)
 
-    return Q(**{'%s__gte' % date_field: start_date}) & Q(**{'%s__lt' % date_field: end_date})
+    return (Q(**{'%s__gte' % date_field: start_date})
+            & Q(**{'%s__lt' % date_field: end_date}))
 
 
 def get_groupby(groupby=None, fields=None):
@@ -308,4 +305,5 @@ def check_json_route_active():
     instalador que sembre demo data (``INSTALLED_APPS`` es estático).
     """
     if not SystemParameter.get_param('web.json.enabled'):
-        raise MissingError('La ruta /json está deshabilitada (web.json.enabled).')
+        raise MissingError(
+            'La ruta /json está deshabilitada (web.json.enabled).')

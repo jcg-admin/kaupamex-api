@@ -471,6 +471,10 @@ _ACCESS = (
         (1, 1, 1, 1),
     ),
     ('res_bank user', 'base.ResBank', 'group_user', (1, 0, 0, 0)),
+    ('ir_filters all', 'base.IrFilters', 'group_erp_manager', (1, 1, 1, 1)),
+    ('ir_filters all', 'base.IrFilters', 'group_user', (1, 1, 1, 1)),
+    ('ir_filters all', 'base.IrFilters', 'group_portal', (1, 1, 1, 1)),
+    ('ir_filters all', 'base.IrFilters', 'group_public', (1, 1, 1, 1)),
     (
         'ir_config_parameter_system',
         'base.SystemParameter',

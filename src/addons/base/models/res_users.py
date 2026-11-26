@@ -2468,6 +2468,20 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
 
         return frozendict(context)
 
+    @property
+    def ids(self):
+        """≙ ``BaseModel.ids`` (``odoo19c: odoo/orm/models.py:5904-5909``)
+        para el registro de un usuario: *"Return the list of actual record ids
+        corresponding to self"*.
+
+        El usuario de este árbol es una fila de Django, no un recordset, y los
+        dominios de la fuente lo leen como registro: la regla
+        ``ir.filter: portal/public`` evalúa ``[('user_ids', 'in', user.ids)]``
+        (``base_security.xml:97-101``). Una fila guardada es un registro de un
+        elemento; una sin guardar, ninguno.
+        """
+        return [self.pk] if self.pk else []
+
 
 class ResUsersLog(TimeStampedModel):
     """``res.users.log`` — que hubo un acceso, no una auditoría.
