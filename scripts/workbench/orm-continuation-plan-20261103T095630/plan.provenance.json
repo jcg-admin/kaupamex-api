@@ -2058,6 +2058,13 @@
         "basemodel-adoption-base-properties-base-definition-0397"
       ],
       "writtenAt": "2026-11-26T13:30:08Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "res-device-rules-and-inverse-0397"
+      ],
+      "writtenAt": "2026-11-26T14:53:50Z"
     }
   ]
 }
