@@ -108,3 +108,15 @@ Subconjunto derivado (26 archivos más `test_one2many.py` y
   `test_category_and_privilege_are_basemodel[ResGroupsPrivilege]` (1 de 3).
 
 Ambas restauradas y verificadas con `cmp`.
+
+## F2 sobre `2285f76a`: dos consumidores fuera del subconjunto
+
+El F2 se detuvo (`maxfail=1`) con 4664 passed, 1 failed y 1 error, los dos de
+la misma clase que ya se portó: `test_auto_backup_basemodel_acl.py` instala el
+manifiesto con `load_data` sin superusuario (la escritura de la categoría se
+rehúsa) y `test_res_users_has_group.py::TestSeededCatalog::test_both_privileges_are_wired`
+lee `group.privilege.name` sin usuario. El patrón del subconjunto derivado no
+nombraba `.privilege` ni `load_data`; se amplió a
+`\.privilege\b|res\.groups\.privilege|ResGroupsPrivilege|ir\.module\.category|IrModuleCategory|load_data\(|_security_data|security\.xml|user_groups\.xml`
+(46 archivos): 404 passed, 1 failed, 3 errors, sólo esos dos archivos. Con el
+instalador y la lectura bajo `sudo()`, los dos dan 48 passed.
