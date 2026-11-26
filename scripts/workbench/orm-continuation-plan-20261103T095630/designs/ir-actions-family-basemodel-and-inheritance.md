@@ -160,6 +160,25 @@ Piezas:
 Pruebas: `tests/unit/base/test_ir_actions_table_inheritance.py`, 14
 casos. RED antes de la migración: 7 fallidos y 1 error. GREEN: 14.
 
-Anulación: con `db_constraint=True` de vuelta en un solo campo, cae la
-prueba que recorre los modelos (sección siguiente al commit, con su
-salida).
+Anulación, restaurada con `cmp`: con `db_constraint=True` de vuelta en
+`IrFilters.action_id` cae exactamente `test_no_foreign_key_points_at_ir_actions`
+(1 fallido, 13 pasan).
+
+Subconjunto derivado (75 archivos que nombran la familia, `-n 4`): 1218
+pasan y caen dos, las dos con causa medida:
+
+- `tests/unit/orm/test_delete_policy_contract.py` afirmaba que un
+  `DELETE` en SQL de una acción con un paso de `ir.actions.todo` falla por
+  la clave foránea. Esa clave es la que la fuente no crea
+  (`odoo19c: odoo/orm/fields_relational.py:313-314`). La prueba pasa a
+  afirmar el contrato de la fuente: el `DELETE` crudo no cascada y deja el
+  paso apuntando a un id que ya no existe. La política de borrado por el
+  ORM sigue cubierta por el caso de la matriz.
+- `test_the_cron_is_seeded` de la unidad `res.users.deletion`: la
+  migración `0137` siembra el cron, pero `tests/conftest.py` no lo
+  re-siembra tras el `flush` de una prueba transaccional, y en paralelo
+  depende del orden. Era un defecto latente de esa unidad, no de ésta. Se
+  añade `CRON_RES_USERS_DELETION` a `_CRON_SPECS`.
+
+Con los dos arreglos: 121 pasan y 2 `xfail` sobre los cuatro archivos
+afectados, `-n 4`.
