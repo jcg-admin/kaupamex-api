@@ -111,3 +111,40 @@ Controles previstos: un usuario sin grupo de sistema lee sólo sus
 dispositivos (regla), `_update_device` escribe sin usuario elevado (la
 anulación del `sudo()` tiene que hacer caer exactamente ese caso), y
 `search([], order='is_current desc')` pone primero el dispositivo actual.
+
+## Segundo paso — medido (cambio de base y escritores)
+
+El paso se acota al cambio de base y a lo que ese cambio exige: `is_current`
+como campo y su gancho de orden van a un tercer paso, porque el método actual
+recibe la petición y sus consumidores no cambian por la ACL.
+
+| Símbolo | Archivo | Fuente |
+|---|---|---|
+| `ResDeviceLog` y `ResDevice` derivan de `models.BaseModel` | `src/addons/base/models/res_device.py` | `odoo19c: odoo/addons/base/models/res_device.py:17-19` |
+| `__update_revoked` escribe `revoked` elevado | ídem | `odoo19c: odoo/addons/base/models/res_device.py:143-169` |
+| `ResDeviceQuerySet._revoke` busca y escribe el log elevado | ídem | `odoo19c: odoo/addons/base/models/res_device.py:185-196` |
+| `_update_device` y `_gc_device_log`: comentario de por qué no se elevan | ídem | `odoo19c: odoo/addons/base/models/res_device.py:92-113,120-128` |
+
+Prueba: `tests/unit/base/test_res_device_basemodel.py`.
+
+**Lo que la medición corrigió del plan.** El plan elevaba los cuatro
+escritores. Con la base cambiada, sólo dos fallan sin elevar: los que
+escriben por `write` (`__update_revoked` y `_revoke`). `bulk_create` y
+`QuerySet.delete` no consultan la ACL, igual que el `INSERT` y el
+`DELETE ... USING` crudos de la fuente, así que un `sudo()` ahí no tenía
+ningún control que lo discriminara y se retiró. Las pruebas de
+`_update_device` y `_gc_device_log` bajo un usuario interno fijan esa
+conducta.
+
+Anulaciones, restauradas con `cmp`:
+
+- sin el cambio de base: caen exactamente los dos casos que dependen de la
+  ACL (escritura directa rechazada y lectura sólo de lo propio);
+- sin la elevación de `__update_revoked` y `_revoke`: caen exactamente los
+  9 casos de esos dos escritores en `test_res_device_port_closure.py` y
+  `test_res_device_revoke.py`, y pasan los otros 42;
+- sin elevar `_update_device` y `_gc_device_log`: no cae ninguno (de ahí que
+  no se eleven).
+
+Tercer paso, pendiente: `is_current` como campo calculado (`:34,46-48`) y el
+gancho `_order_field_to_sql` (`:65-68`) en lugar de `order_by_is_current`.
