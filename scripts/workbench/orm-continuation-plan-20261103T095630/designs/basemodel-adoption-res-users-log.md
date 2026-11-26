@@ -65,7 +65,7 @@ Prueba: `tests/unit/base/test_res_users_log_basemodel.py`.
 | campo `create_uid` de `ResUsersLog` (indexado, inverso `log_ids`); retirada la FK `user` | ídem | `odoo19c: odoo/addons/base/models/res_users.py:141,231` |
 | `ResUsersLog._gc_user_logs` correlaciona por `create_uid` | ídem | `odoo19c: odoo/addons/base/models/res_users.py:143-152` |
 | `ResUsers._update_last_login` crea elevado y bajo el usuario que entra | ídem | `odoo19c: odoo/addons/base/models/res_users.py:742-746` |
-| `ResUsers._login` lee `log_ids` para «nunca ha entrado» | ídem | `odoo19c: odoo/addons/base/models/res_users.py:772` |
+| `ResUsers._set_tz_from_request` lee `log_ids` para «nunca ha entrado» (el `not user.login_date` de `_login`) | ídem | `odoo19c: odoo/addons/base/models/res_users.py:772` |
 | `DigestDigest._compute_kpi_res_users_connected_value` filtra por `create_uid` | `addons/digest/models/digest.py` | `odoo19c: addons/digest/models/digest.py:71-76` |
 | usuarios con acceso de `base_setup` leen `create_uid` | `addons/base_setup/controllers/main.py` | `odoo19c: addons/base_setup/controllers/main.py:29,38` |
 | regla `res.users.log per user` y fila `res_users_log_all` | `src/addons/base/security/base_security.py`, `src/addons/base/security/ir_model_access.py` | `odoo19c: odoo/addons/base/security/base_security.xml:5-10`, `ir.model.access.csv:89` |
