@@ -2678,6 +2678,9 @@ class IrActionsTodo(models.BaseModel, TimeStampedModel):
         IrActionsActions,
         null=False, on_delete=models.PROTECT,
         db_index=True,
+        # Sin clave foránea: ``ir_actions`` se hereda (``odoo19c:
+        # odoo/orm/fields_relational.py:313-314``).
+        db_constraint=False,
         related_name='todos',
         verbose_name='Acción',
     )

@@ -90,6 +90,9 @@ class IrFilters(models.BaseModel):
     action_id = fields.Many2one(
         'base.IrActionsActions', on_delete=models.CASCADE,
         db_column='action_id', null=True, blank=True, db_index=True,
+        # Sin clave foránea: ``ir_actions`` se hereda (``odoo19c:
+        # odoo/orm/fields_relational.py:313-314``).
+        db_constraint=False,
         related_name='filter_ids', verbose_name='Action',
         help_text=(
             'The menu action this filter applies to. When left empty the '

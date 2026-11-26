@@ -16,7 +16,7 @@ import pathlib
 
 import pytest
 from django.apps import apps
-from django.db import IntegrityError, connection, models, transaction
+from django.db import connection, models, transaction
 
 from addons.base.models.ir_actions import IrActionsActions, IrActionsTodo
 from addons.base.models.res_device import ResDeviceLog
@@ -210,19 +210,20 @@ def test_deleting_a_picking_type_with_rules_is_refused(picking_type):
 # --- PostgreSQL: el DELETE crudo no cascada ---------------------------------
 
 @pytest.mark.django_db
-def test_a_raw_delete_of_the_parent_does_not_cascade():
-    """La FK física es NO ACTION y diferible (``confdeltype = 'a'``): un
-    DELETE en SQL del padre con hijo presente falla al comprobar la
-    restricción y el hijo sigue. La pérdida de las 96 es sólo del camino
-    ORM."""
+def test_a_raw_delete_of_an_action_leaves_the_step_in_place():
+    """``ir_actions`` no admite clave foránea: la heredan cinco tablas y
+    una FK hacia ella no vería sus filas, así que la fuente no la crea
+    (``odoo19c: odoo/orm/fields_relational.py:313-314``). La política de
+    borrado de ``IrActionsTodo.action`` vive sólo en el camino ORM —el
+    caso de la matriz—, y un DELETE en SQL del padre no cascada al paso:
+    lo deja apuntando a un id que ya no existe, como en la fuente."""
     action = IrActionsActions.objects.create(
         name='probe', type='ir.actions.actions')
     wizard_step = IrActionsTodo.objects.create(action=action)
     table = IrActionsActions._meta.db_table
-    with pytest.raises(IntegrityError):
-        with transaction.atomic():
-            with connection.cursor() as cr:
-                cr.execute('SET CONSTRAINTS ALL IMMEDIATE')
-                cr.execute(f'DELETE FROM {table} WHERE id = %s',
-                           [action.pk])
-    assert IrActionsTodo.objects.filter(pk=wizard_step.pk).exists()
+    with transaction.atomic():
+        with connection.cursor() as cr:
+            cr.execute('SET CONSTRAINTS ALL IMMEDIATE')
+            cr.execute(f'DELETE FROM {table} WHERE id = %s', [action.pk])
+    assert IrActionsTodo.objects.filter(
+        pk=wizard_step.pk, action_id=action.pk).exists()

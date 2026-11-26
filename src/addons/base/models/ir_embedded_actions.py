@@ -129,6 +129,9 @@ class IrEmbeddedActions(TimeStampedModel):
         null=True,
         blank=True,
         db_index=True,
+        # Sin clave foránea: ``ir_actions`` se hereda (``odoo19c:
+        # odoo/orm/fields_relational.py:313-314``).
+        db_constraint=False,
         related_name='embedded_in',
         verbose_name='Acción',
         help_text='Exclusivo con python_method (constraint de la fuente).',

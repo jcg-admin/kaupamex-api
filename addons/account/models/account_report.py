@@ -526,6 +526,9 @@ class AccountReportLine(models.BaseModel):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
+        # Sin clave foránea: ``ir_actions`` se hereda (``odoo19c:
+        # odoo/orm/fields_relational.py:313-314``).
+        db_constraint=False,
         related_name='account_report_lines',
         help_text=(
             'Acción a ejecutar al pulsar la línea; si está puesta, la '

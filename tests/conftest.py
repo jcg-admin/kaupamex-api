@@ -43,7 +43,7 @@ from addons.sale_subscription.data.res_company_data import (
 )
 from addons.mail.data import seed as mail_subtypes_seed
 from addons.auto_backup.data import CRON_BACKUP
-from addons.base.data import CRON_AUTOVACUUM
+from addons.base.data import CRON_AUTOVACUUM, CRON_RES_USERS_DELETION
 from addons.base.data.cron import sembrar_cron_vivo
 from addons.base_automation.data import CRON_BASE_AUTOMATION_CHECK
 from addons.helpdesk.data import CRON_AUTO_CLOSE_TICKETS
@@ -373,9 +373,9 @@ def _reset_system_parameter_cache():
 # envío en cada test colisiona con los tests que crean las suyas y afirman
 # conteos — el mismo choque que ya costó un CI rojo. Queda registrado como
 # hallazgo aparte en vez de arrastrarlo aquí a ciegas.
-# Las ocho siembras de ``ir.cron`` del arbol — ``base/0032`` y las siete de
-# addon. Estaban FUERA de esta red hasta 2026-08-26: cada una es una
-# data-migration sin ``seed()`` registrado aqui, asi que un solo test
+# Las nueve siembras de ``ir.cron`` del arbol — ``base/0032``, ``base/0137`` y
+# las siete de addon. Estaban FUERA de esta red hasta 2026-08-26: cada una es
+# una data-migration sin ``seed()`` registrado aqui, asi que un solo test
 # transaccional las borraba y ``django_migrations`` las seguia dando por
 # aplicadas. Medido en ``kaupamex_core_qa``: ``select count(*) from ir_cron``
 # devolvia **0** con las tres migraciones de ``auto_backup`` registradas, y los
@@ -384,6 +384,7 @@ def _reset_system_parameter_cache():
 # fixture no cubria.
 _CRON_SPECS = (
     CRON_AUTOVACUUM,                  # base/0032
+    CRON_RES_USERS_DELETION,          # base/0137
     CRON_BACKUP,                      # auto_backup/0003
     CRON_EMAIL_QUEUE,                 # mail/0004
     CRON_EXPIRE_VOUCHERS,             # loyalty/0002
@@ -426,7 +427,7 @@ def _project_plan_seed():
 
 
 def _crons_seed():
-    """Re-aplica las ocho siembras de cron. Idempotente por clave natural."""
+    """Re-aplica las nueve siembras de cron. Idempotente por clave natural."""
     for spec in _CRON_SPECS:
         sembrar_cron_vivo(spec)
 
@@ -456,7 +457,7 @@ _SEEDERS = (
     subscription_rules_seed,    # sale_subscription/security/ir_rules
     sale_report_view_seed,      # sale/0002 (plantilla del documento)
     incoterm_extension_seed,    # sale_stock/0003 — después de la primaria
-    _crons_seed,                # las ocho siembras de ir.cron
+    _crons_seed,                # las nueve siembras de ir.cron
     _install_modules,           # el ciclo de instalación (post_migrate)
 )
 
