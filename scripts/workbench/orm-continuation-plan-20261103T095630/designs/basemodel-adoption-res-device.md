@@ -158,7 +158,8 @@ gancho `_order_field_to_sql` (`:65-68`) en lugar de `order_by_is_current`.
 | `is_current_session(request, identifier)` para quien tiene la petición explícita | ídem | `odoo19c: odoo/addons/base/models/res_device.py:48` |
 | `ResDeviceQuerySet._revoke` decide el cierre con `is_current_session` | ídem | `odoo19c: odoo/addons/base/models/res_device.py:193` |
 | retirados `ResDeviceQuerySet.order_by_is_current` y el método `ResDevice.is_current(request)` | ídem | — |
-| `ResUsers.action_revoke_all_devices` usa `is_current_session` | `src/addons/base/models/res_users.py` | `odoo19c: odoo/addons/base/models/res_users.py:1023-1026` |
+| `ResUsers._action_revoke_all_devices` excluye el dispositivo actual con `is_current_session` | `src/addons/base/models/res_users.py` | `odoo19c: odoo/addons/base/models/res_users.py:1023-1026` |
+| `_session_key(request)`, la clave de la sesión de la petición, compartida por el gancho y `is_current_session` | `src/addons/base/models/res_device.py` | `odoo19c: odoo/addons/base/models/res_device.py:48,66` |
 
 Pruebas: `tests/unit/base/test_res_device.py` (el campo contra la petición del
 contexto) y `tests/unit/base/test_res_device_port_closure.py` (el orden por
