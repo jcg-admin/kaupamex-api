@@ -75,3 +75,13 @@ exactamente los casos que leen por `field.read`.
 - Anulación (sin `ManyToManyField.read = _many2many_read`): caen exactamente
   los 2 casos de este archivo y los 2 de `ir.filters` que leen `user_ids`
   (`get_filters` y el dominio web); 23 sobreviven. Restaurada con `cmp`.
+
+## `_overrides_search`
+
+≙ `type(comodel)._search is not BaseModel._search`
+(`odoo19c: odoo/orm/fields_relational.py:1376-1377`), la condición de
+`filter_access`. `orm.models` importa `fields_relational`, así que `BaseModel`
+no se nombra en este archivo: la clase que define el `_search` efectivo se
+busca en el MRO del comodelo. La ejercita la rama `BaseModel` de
+`tests/unit/orm/test_many2many_field_read.py` (`utm.tag`, sin `_search`
+propio: no se salta el acceso).
