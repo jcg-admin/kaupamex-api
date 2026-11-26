@@ -1,7 +1,7 @@
 # Adopción de BaseModel: res.country + res.country.state — análisis previo (basemodel-adoption-0397)
 
-Estado: **no implementado**. Intento revertido sin commit el 2026-11-26; este
-documento guarda lo medido para que la unidad arranque de aquí.
+Estado: **implementado el 2026-11-26** (sección «Implementación», al final).
+El primer intento se revirtió sin commit; lo medido entonces sigue abajo.
 
 ## Referencia
 
@@ -92,3 +92,40 @@ modelo. Cambiarlo toca el `Many2one` de cualquier dueño Django con comodelo
 `BaseModel`, no sólo esta unidad: se decide leyendo `Many2one.__get__` y el
 diseño que introdujo ese contrato, no por inferencia. Hasta entonces la unidad
 no se aplica.
+
+## Decisión sobre el contrato de ausencia
+
+Resuelta midiendo el código, no por inferencia. `NonStoredMany2oneAccessor`
+(`src/orm/fields.py:1508-1525`) declara que la regla la fija el **comodelo**:
+uno del ORM entrega su recordset vacío, como `Many2one.convert_to_record`
+(`odoo19c: odoo/orm/fields_relational.py:354-358`); uno de Django da `None`.
+`_forward_get_object` (`src/orm/models.py:6658-6676`) hace de un id de un
+comodelo `BaseModel` un `browse` sin consulta, sin `DoesNotExist`. Ningún
+diseño fijaba `None` para dueños de Django: `test_computed_many2one_absence.py`
+describía el comportamiento con `res.country` en Django. Sus tres casos se
+reescriben contra la regla documentada: la ausencia es `res.country()` sin
+consultas, y el id inexistente es un `browse` cuyo campo levanta `MissingError`.
+
+## Implementación (2026-11-26)
+
+`ResCountry(models.BaseModel)` y `ResCountryState(models.BaseModel)`; sin
+migración (`makemigrations --check` sin cambios). Lo de
+`designs/basemodel-adoption-res-country-state.patch` más los tres casos de
+arriba. La función de producción cuyo cuerpo cambia:
+
+- `AccountAccountTag.get_tax_tags_domain` filtra por `country or None`.
+  Referencia: `_get_tax_tags_domain` (`odoo19c: addons/account/models/account_account_tag.py:88-95`).
+  Pruebas: `tests/unit/base/test_country_state_basemodel.py::test_an_empty_country_filters_tax_tags_by_null`
+  y `tests/unit/account/test_account_report_tax_tags.py::TestExpressionSaveCreatesItsTag::test_saving_the_expression_again_does_not_duplicate_the_tag`.
+
+Subconjunto derivado (`ResCountry|res.country|country_id|state_id|\.country\b|country_code`,
+74 archivos, `-n 4`): **1210 passed, 2 xfailed**.
+
+## Anulaciones
+
+- `get_tax_tags_domain` sin `or None`: caen exactamente las dos pruebas de la
+  etiqueta nombradas arriba (2 de 13).
+- `ResCountryState` de vuelta a `RecordLoaderMixin, models.Model`: cae
+  exactamente `test_country_and_state_are_basemodel[ResCountryState]` (1 de 3).
+
+Ambas restauradas y verificadas con `cmp`.
