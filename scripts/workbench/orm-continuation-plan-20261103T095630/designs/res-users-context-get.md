@@ -88,3 +88,12 @@ Prerrequisito de `designs/ir-filters-port-19.md`: `get_filters` abre con
 - Subconjunto derivado ancho, porque la purga es transversal
   (`ResUsers|res_users|create_user|ormcache|clear_cache|ir_http|CaptureQueriesContext|assertNumQueries|django_assert_num_queries`,
   306 archivos, `-n 4`): 4150 passed, 11 skipped, 6 xfailed.
+
+## Cuerpo tocado por el plegado de `timedelta`
+
+`_ResUsersApikeysBase._check_expiration_date` pasa de `timedelta(...)` a
+`datetime.timedelta(...)`, que es la forma de la fuente
+(`odoo19c: odoo/addons/base/models/res_users.py:1577-1587`, línea `:1586`).
+Misma conducta; la ejercita `tests/integration/base/test_rpc_api_key_channel.py`
+(`_generate` con un día de margen, usuario sin `group_system`), dentro del
+subconjunto ancho de arriba.
