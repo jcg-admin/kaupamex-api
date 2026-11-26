@@ -61,3 +61,40 @@ Ningún atributo de clase; sin filas de ACL.
   elevada) y no puede leerla después (ACL nula).
 
 Prueba: `tests/unit/base/test_res_users_deletion_basemodel.py`.
+
+## Medido
+
+| Símbolo | Archivo | Fuente |
+|---|---|---|
+| `ResUsersDeletion` sobre `models.BaseModel` con `_name`, `_description`, `_rec_name` | `src/addons/base/models/res_users_deletion.py` | `odoo19c: odoo/addons/base/models/res_users_deletion.py:20-22` |
+| `ResUsersDeletion._gc_portal_users` | ídem | `odoo19c: odoo/addons/base/models/res_users_deletion.py:36-110` |
+| `ResUsers._deactivate_portal_user` crea la solicitud elevada | `src/addons/base/models/res_users.py` | `odoo19c: addons/portal/controllers/portal.py:926` y `odoo/addons/base/models/res_users.py:987` |
+| dos filas de `_ACCESS` y migración `0136_seed_res_users_deletion_access` | `src/addons/base/security/ir_model_access.py`, `src/addons/base/migrations/0136_seed_res_users_deletion_access.py` | `odoo19c: odoo/addons/base/security/ir.model.access.csv:87-88` |
+| `CRON_RES_USERS_DELETION` y migración `0137_seed_cron_res_users_deletion` | `src/addons/base/data/__init__.py`, `src/addons/base/migrations/0137_seed_cron_res_users_deletion.py` | `odoo19c: odoo/addons/base/data/ir_cron_data.xml:13-21` |
+
+Prueba: `tests/unit/base/test_res_users_deletion_basemodel.py`.
+
+**Dos divergencias de mecanismo, declaradas en el docstring.** El
+`self.env.cr.rollback()` de la fuente tras un borrado fallido es un
+`savepoint` alrededor de cada borrado: Django prohíbe el `rollback` de la
+transacción dentro de un `atomic`, y el `savepoint` deshace sólo el intento.
+Y tras borrar el usuario la solicitud se relee (`self.browse(ids)`): la
+columna quedó a `NULL` por `ondelete='set null'`, pero la instancia en
+memoria conservaba el id y el `write` siguiente lo releía
+(`ResUsers matching query does not exist`, medido); en la fuente el caché se
+invalida al borrar.
+
+El cron se siembra en `0137` y no en `0136`: la base de pruebas ya había
+aplicado `0136` antes de añadirle el cron, y una migración aplicada no se
+vuelve a ejecutar. Su prueba fallaba con `Identificador externo no
+encontrado: base.ir_cron_res_users_deletion` antes de `0137`.
+
+Anulaciones, restauradas con `cmp`:
+
+- la creación sin elevar: caen los 10 casos de
+  `test_res_users_deactivate_portal.py` que recorren la baja y
+  `TestBaja::test_baja_desactiva_y_registra_la_solicitud`; pasan los 24
+  restantes;
+- sin el cambio de base: caen los 5 casos del barrido y la ACL;
+- sin marcar `done` las solicitudes huérfanas: cae exactamente
+  `test_a_request_without_user_is_marked_done`.
