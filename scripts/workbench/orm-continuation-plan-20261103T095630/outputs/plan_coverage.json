@@ -684,7 +684,8 @@
   "res-device-rules-and-inverse-0397",
   "basemodel-adoption-base-res-device-0397",
   "res-device-is-current-field-0397",
-  "basemodel-adoption-base-ir-actions-todo-0397"
+  "basemodel-adoption-base-ir-actions-todo-0397",
+  "basemodel-adoption-base-res-users-deletion-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
