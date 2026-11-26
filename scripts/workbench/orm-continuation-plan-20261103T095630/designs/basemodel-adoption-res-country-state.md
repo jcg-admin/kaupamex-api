@@ -59,3 +59,36 @@ Portar cada consumidor contra su línea de la fuente (lecturas con `sudo` donde
 la fuente las hace, usuarios de prueba con su grupo, reversos por la API de
 recordset, ausencia como recordset vacío), cambiar luego las dos bases y
 exigir el subconjunto de los 66 archivos en verde más F2.
+
+## Avance del 2026-11-26: 14 de 17 portados, guardados en un parche
+
+`designs/basemodel-adoption-res-country-state.patch` lleva el cambio de base y
+los consumidores ya portados; se aplica con `git apply` sobre el árbol de este
+commit. Con él, los diez archivos del parche quedan en verde salvo los tres de
+abajo.
+
+- Lecturas rehusadas (8): las pruebas no fijaban usuario, y bajo `BaseModel` la
+  ACL rehúsa por defecto; las de la fuente corren como superusuario. Se
+  envuelven en `sudo()` (`test_format_address_and_vat_label.py`,
+  `test_res_partner_labels.py`, `test_sale_order_nonstored_fields.py`,
+  `test_account_report_tax_tags.py`, `test_vies_and_iap.py`,
+  `test_ir_fields_relational.py`). Los sitios de producción leen como el
+  usuario activo, igual que la fuente.
+- **Defecto real de consumidor**: `AccountAccountTag.get_tax_tags_domain`
+  filtraba `country=<recordset vacío>` y no casaba la etiqueta con país nulo,
+  así que un segundo `save()` duplicaba la etiqueta. La fuente recibe
+  `country_id` (`False` sin país, `odoo19c: addons/account/models/account_account_tag.py:88-95`);
+  el parche filtra por `country or None`.
+- Reversos (`state_ids`, `cities`): `len()` en lugar de `.count()`.
+- Ausencia de `state_id`: `not c.state_id` en lugar de `is None`.
+
+## Lo que queda abierto: el contrato de `test_computed_many2one_absence.py`
+
+Tres pruebas fijan, para un `Many2one` calculado en un modelo de Django
+(`ResCompany.country`), que la ausencia se lee `None` y que un id inexistente
+levanta `ResCountry.DoesNotExist`. Con `res.country` en `BaseModel` la lectura
+da `res.country()` y no levanta, que es la forma de la fuente para todo
+modelo. Cambiarlo toca el `Many2one` de cualquier dueño Django con comodelo
+`BaseModel`, no sólo esta unidad: se decide leyendo `Many2one.__get__` y el
+diseño que introdujo ese contrato, no por inferencia. Hasta entonces la unidad
+no se aplica.

@@ -1,0 +1,303 @@
+diff --git a/addons/account/models/account_account_tag.py b/addons/account/models/account_account_tag.py
+index 4cf5c9cb..eb07984b 100644
+--- a/addons/account/models/account_account_tag.py
++++ b/addons/account/models/account_account_tag.py
+@@ -111,10 +111,14 @@ class AccountAccountTag(models.BaseModel):
+         etiqueta, restada o sumada en el reparto. Guardar el signo en el nombre
+         crearía una etiqueta huérfana por cada fórmula negativa, y el reparto
+         del plan dejaría de resolver la mitad de sus citas.
++
++        El país vacío es ``None``: la fuente recibe ``country_id`` —el ``id``,
++        ``False`` sin país— y aquí llega el registro, que bajo ``BaseModel``
++        es el recordset vacío. Filtrar por él no casaría la fila con país nulo.
+         """
+         return {
+             'name': formula.lstrip('-'),
+-            'country': country,
++            'country': country or None,
+             'applicability': 'taxes',
+         }
+ 
+diff --git a/src/addons/base/models/res_country.py b/src/addons/base/models/res_country.py
+index 479f5a3e..0ae63366 100644
+--- a/src/addons/base/models/res_country.py
++++ b/src/addons/base/models/res_country.py
+@@ -69,7 +69,7 @@ FLAG_MAPPING = {
+ }
+ 
+ 
+-class ResCountry(models.RecordLoaderMixin, models.Model):
++class ResCountry(models.BaseModel):
+     """``res.country`` — país (Odoo base).
+ 
+     Fiel a ``res_country.py`` (18:32-68 / 19 idéntico): ``name`` (requerido),
+@@ -271,7 +271,7 @@ class ResCountry(models.RecordLoaderMixin, models.Model):
+             ) from exc
+ 
+ 
+-class ResCountryState(models.RecordLoaderMixin, models.Model):
++class ResCountryState(models.BaseModel):
+     """``res.country.state`` — estado/provincia de un país (Odoo base).
+ 
+     Fiel a ``res_country.py`` (18:162-171 / 19 idéntico): ``country`` (FK,
+diff --git a/tests/integration/base/test_format_address_and_vat_label.py b/tests/integration/base/test_format_address_and_vat_label.py
+index 3f932cf9..426a3e6f 100644
+--- a/tests/integration/base/test_format_address_and_vat_label.py
++++ b/tests/integration/base/test_format_address_and_vat_label.py
+@@ -18,7 +18,7 @@ from addons.base.models.res_partner import (
+     FormatAddressMixin,
+     FormatVatLabelMixin,
+ )
+-from orm.environments import company_scope, context_scope
++from orm.environments import company_scope, context_scope, sudo
+ 
+ pytestmark = pytest.mark.integration
+ 
+@@ -68,7 +68,7 @@ class TestTheVatLabelReachesItsField:
+         el serializer tendría que adivinarlo.
+         """
+         company = company_in('MX', vat_label='RFC')
+-        with company_scope(company.pk):
++        with company_scope(company.pk), sudo():
+             assert FormatVatLabelMixin._get_view() == {'vat': 'RFC'}
+ 
+     def test_a_country_without_label_touches_nothing(self, company_in):
+@@ -79,7 +79,7 @@ class TestTheVatLabelReachesItsField:
+         defecto, que es lo que la fuente hace al no entrar en el ``if``.
+         """
+         company = company_in('SV', vat_label='')
+-        with company_scope(company.pk):
++        with company_scope(company.pk), sudo():
+             assert FormatVatLabelMixin._get_view() == {}
+ 
+     def test_without_a_company_in_context_it_touches_nothing(self, db):
+diff --git a/tests/integration/base/test_res_partner_labels.py b/tests/integration/base/test_res_partner_labels.py
+index b4825172..1c94e0a4 100644
+--- a/tests/integration/base/test_res_partner_labels.py
++++ b/tests/integration/base/test_res_partner_labels.py
+@@ -58,7 +58,7 @@ from addons.base.models.res_company import ResCompany
+ from addons.base.models.res_country import ResCountry
+ from addons.base.models.res_lang import ResLang
+ from addons.base.models.res_partner import ResPartner
+-from orm.environments import set_current_company
++from orm.environments import set_current_company, sudo
+ 
+ pytestmark = pytest.mark.integration
+ 
+@@ -261,7 +261,9 @@ class TestVatLabel:
+         company.save()
+         set_current_company(company.pk)
+         try:
+-            assert ResPartner.objects.create(name='Ana').vat_label == 'RFC'
++            with sudo():
++                partner = ResPartner.objects.create(name='Ana')
++                assert partner.vat_label == 'RFC'
+         finally:
+             set_current_company(None)
+ 
+@@ -277,7 +279,9 @@ class TestVatLabel:
+         company.save()
+         set_current_company(company.pk)
+         try:
+-            assert ResPartner.objects.create(name='Ana').vat_label == 'Tax ID'
++            with sudo():
++                partner = ResPartner.objects.create(name='Ana')
++                assert partner.vat_label == 'Tax ID'
+         finally:
+             set_current_company(None)
+ 
+diff --git a/tests/integration/sale/test_sale_order_nonstored_fields.py b/tests/integration/sale/test_sale_order_nonstored_fields.py
+index c8616308..bfbb7402 100644
+--- a/tests/integration/sale/test_sale_order_nonstored_fields.py
++++ b/tests/integration/sale/test_sale_order_nonstored_fields.py
+@@ -30,6 +30,7 @@ from addons.sale.models import SaleOrder, SaleOrderLine
+ from tests.factories.product_factory import make_category, make_product
+ from tests.factories.user_factory import UserFactory
+ from addons.base.models.res_currency import ResCurrency
++from orm.environments import sudo
+ 
+ 
+ def _pricelist_currency():
+@@ -239,7 +240,9 @@ class TestTheFiveComputesCalculateWhatTheSourceCalculates:
+     def test_tax_country_falls_back_to_the_company(self, company):
+         """Sin posición fiscal, el país fiscal es el de la empresa."""
+         order = SaleOrder.objects.create(company=company)
+-        assert order.tax_country_id == company.account_fiscal_country
++        with sudo():
++            fallback = company.account_fiscal_country_id or False
++            assert order.tax_country_id.id == fallback
+ 
+     def test_has_active_pricelist_is_false_without_any(self, company):
+         order = SaleOrder.objects.create(company=company)
+diff --git a/tests/unit/account/test_account_report_tax_tags.py b/tests/unit/account/test_account_report_tax_tags.py
+index a5f83c90..eaa2a0a2 100644
+--- a/tests/unit/account/test_account_report_tax_tags.py
++++ b/tests/unit/account/test_account_report_tax_tags.py
+@@ -18,6 +18,7 @@ from addons.account.models import (
+     AccountReportExpression,
+     AccountReportLine,
+ )
++from orm.environments import sudo
+ 
+ pytestmark = pytest.mark.django_db
+ 
+@@ -130,14 +131,15 @@ class TestExpressionSaveCreatesItsTag:
+         ).exists()
+ 
+     def test_saving_the_expression_again_does_not_duplicate_the_tag(self):
+-        expression = AccountReportExpression.objects.create(
+-            report_line=_report_line(),
+-            label='balance',
+-            engine='tax_tags',
+-            formula='DIOT: Refunds',
+-        )
+-        expression.blank_if_zero = True
+-        expression.save()
++        with sudo():
++            expression = AccountReportExpression.objects.create(
++                report_line=_report_line(),
++                label='balance',
++                engine='tax_tags',
++                formula='DIOT: Refunds',
++            )
++            expression.blank_if_zero = True
++            expression.save()
+         assert (
+             AccountAccountTag.objects.filter(name='DIOT: Refunds').count() == 1
+         )
+diff --git a/tests/unit/base/test_base_geo.py b/tests/unit/base/test_base_geo.py
+index 7c6d8ff7..4f94488d 100644
+--- a/tests/unit/base/test_base_geo.py
++++ b/tests/unit/base/test_base_geo.py
+@@ -103,7 +103,7 @@ class TestResCountry:
+         ResCountryState.objects.create(
+             country=mx, name='Nuevo León', code='NLE'
+         )
+-        assert mx.state_ids.count() == 2
++        assert len(mx.state_ids) == 2
+ 
+ 
+ class TestResCountryState:
+diff --git a/tests/unit/base/test_ir_fields_relational.py b/tests/unit/base/test_ir_fields_relational.py
+index ba756594..124bacc4 100644
+--- a/tests/unit/base/test_ir_fields_relational.py
++++ b/tests/unit/base/test_ir_fields_relational.py
+@@ -22,7 +22,7 @@ from addons.base.models.ir_fields import IrFieldsConverter, ImportWarning
+ from addons.base.models.ir_model import IrModelData
+ from addons.base.models.res_country import ResCountry
+ from addons.base.models.res_partner import ResPartner
+-from orm.environments import context_scope
++from orm.environments import context_scope, sudo
+ from service.db import Savepoint
+ from django.db import DEFAULT_DB_ALIAS, connections
+ 
+@@ -164,9 +164,10 @@ class TestTheNameSubfield:
+     def test_a_visible_name_resolves(self, country, savepoint):
+         field = ResPartner._meta.get_field('country')
+ 
+-        resolved, _warnings = IrFieldsConverter.db_id_for(
+-            ResPartner, field, None, 'Sinelandia', savepoint
+-        )
++        with sudo():
++            resolved, _warnings = IrFieldsConverter.db_id_for(
++                ResPartner, field, None, 'Sinelandia', savepoint
++            )
+ 
+         assert resolved == country.pk
+ 
+@@ -174,9 +175,10 @@ class TestTheNameSubfield:
+         ResCountry.objects.create(name='Sinelandia', code='ZX')
+         field = ResPartner._meta.get_field('country')
+ 
+-        _resolved, warnings = IrFieldsConverter.db_id_for(
+-            ResPartner, field, None, 'Sinelandia', savepoint
+-        )
++        with sudo():
++            _resolved, warnings = IrFieldsConverter.db_id_for(
++                ResPartner, field, None, 'Sinelandia', savepoint
++            )
+ 
+         assert any(isinstance(w, ImportWarning) for w in warnings)
+ 
+@@ -195,9 +197,10 @@ class TestTheManyToOneConverter:
+     def test_it_resolves_through_the_subfield(self, country, savepoint):
+         field = ResPartner._meta.get_field('country')
+ 
+-        resolved, _warnings = IrFieldsConverter._str_to_many2one(
+-            ResPartner, field, [{None: 'Sinelandia'}], savepoint
+-        )
++        with sudo():
++            resolved, _warnings = IrFieldsConverter._str_to_many2one(
++                ResPartner, field, [{None: 'Sinelandia'}], savepoint
++            )
+ 
+         assert resolved == country.pk
+ 
+diff --git a/tests/unit/base_address_extended/test_base_address_extended.py b/tests/unit/base_address_extended/test_base_address_extended.py
+index 6e8d5ac8..40094fb3 100644
+--- a/tests/unit/base_address_extended/test_base_address_extended.py
++++ b/tests/unit/base_address_extended/test_base_address_extended.py
+@@ -102,7 +102,7 @@ class TestResCity:
+         c = ResCity.objects.create(name='Zapopan', country_id=mx, state_id=jal)
+         assert c.state_id == jal
+         c2 = ResCity.objects.create(name='Tlaquepaque', country_id=mx)
+-        assert c2.state_id is None
++        assert not c2.state_id
+ 
+     def test_state_set_null_on_delete(self):
+         mx = ResCountry.objects.get_or_create(
+@@ -114,7 +114,7 @@ class TestResCity:
+         c = ResCity.objects.create(name='Zapopan', country_id=mx, state_id=jal)
+         jal.delete()
+         c.refresh_from_db()
+-        assert c.state_id is None
++        assert not c.state_id
+         assert ResCity.objects.filter(pk=c.pk).exists()
+ 
+     def test_cities_reverse_on_country(self):
+@@ -123,7 +123,7 @@ class TestResCity:
+         )[0]
+         ResCity.objects.create(name='Guadalajara', country_id=mx)
+         ResCity.objects.create(name='Monterrey', country_id=mx)
+-        assert mx.cities.count() == 2
++        assert len(mx.cities) == 2
+ 
+ 
+ class TestCountryAddressPolicy:
+diff --git a/tests/unit/base_vat/test_vies_and_iap.py b/tests/unit/base_vat/test_vies_and_iap.py
+index a67053ed..2d275fb3 100644
+--- a/tests/unit/base_vat/test_vies_and_iap.py
++++ b/tests/unit/base_vat/test_vies_and_iap.py
+@@ -14,7 +14,7 @@ from addons.base.models.res_country import ResCountry
+ from addons.base.models.res_partner import ResPartner
+ from addons.base_vat.models import res_partner as vat
+ from exceptions import ValidationError
+-from orm.environments import context_scope, env, set_current_company
++from orm.environments import context_scope, env, set_current_company, sudo
+ from tools.misc import verify_hash_signed
+ 
+ pytestmark = pytest.mark.django_db
+@@ -89,15 +89,17 @@ def test_perform_vies_validation_skips_a_number_from_the_company_country(
+ 
+     company.country = otro
+     company.save()
+-    assert (
+-        partner.perform_vies_validation is True
+-    ), 'con la empresa en otro país, BE es intracomunitario y se pregunta'
++    with sudo():
++        assert (
++            partner.perform_vies_validation is True
++        ), 'con la empresa en otro país, BE es intracomunitario y se pregunta'
+ 
+     company.country = belgica
+     company.save()
+-    assert (
+-        partner.perform_vies_validation is False
+-    ), 'con la empresa en BE, el número es doméstico y no se pregunta'
++    with sudo():
++        assert (
++            partner.perform_vies_validation is False
++        ), 'con la empresa en BE, el número es doméstico y no se pregunta'
+ 
+ 
+ def test_perform_vies_validation_is_false_without_vat(company):
