@@ -69,7 +69,11 @@ incorrecto heredado: 19 gobierna. Diferencias medidas contra la fuente:
   (`odoo19c: odoo/addons/base/models/ir_ui_view.py:2970-2973`, opción
   `load_filters`). `get_views` no está portado (0 coincidencias de
   `load_filters`/`def get_views` en `src/`); ese llamador entra con su unidad.
-  El plan no la registra hoy: se añade una fila pendiente al incorporar esta.
+  El plan no la registra hoy, y no puede hacerlo antes de que su unidad abra:
+  `local_plan incorporate` rehúsa una fila cuya prueba no existe
+  (`owned nombra rutas que no existen`, medido al asentar esta unidad). Queda
+  como candidata `base-get-views-0397`, con su obligación
+  `odoo19c: odoo/addons/base/models/ir_ui_view.py:2903-2975`.
 
 ## Pruebas (por escribir antes del código)
 
