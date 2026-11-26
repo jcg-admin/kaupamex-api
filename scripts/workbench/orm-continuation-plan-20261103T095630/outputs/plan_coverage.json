@@ -679,7 +679,8 @@
   "basemodel-adoption-base-ir-ui-view-custom-0397",
   "res-users-context-get-0397",
   "orm-many2many-field-read-0485",
-  "ir-filters-port-19-0397"
+  "ir-filters-port-19-0397",
+  "basemodel-adoption-base-properties-base-definition-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
