@@ -2043,6 +2043,14 @@
         "res-users-context-get-0397"
       ],
       "writtenAt": "2026-11-26T09:42:46Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "orm-many2many-field-read-0485",
+        "ir-filters-port-19-0397"
+      ],
+      "writtenAt": "2026-11-26T11:56:10Z"
     }
   ]
 }
