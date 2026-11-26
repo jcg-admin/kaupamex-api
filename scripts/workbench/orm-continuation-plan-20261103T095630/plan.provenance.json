@@ -2072,6 +2072,13 @@
         "basemodel-adoption-base-res-device-0397"
       ],
       "writtenAt": "2026-11-26T16:09:12Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "res-device-is-current-field-0397"
+      ],
+      "writtenAt": "2026-11-26T17:24:42Z"
     }
   ]
 }
