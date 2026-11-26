@@ -148,3 +148,40 @@ Anulaciones, restauradas con `cmp`:
 
 Tercer paso, pendiente: `is_current` como campo calculado (`:34,46-48`) y el
 gancho `_order_field_to_sql` (`:65-68`) en lugar de `order_by_is_current`.
+
+## Tercer paso — medido (`is_current` y su orden)
+
+| Símbolo | Archivo | Fuente |
+|---|---|---|
+| campo `is_current` y `_compute_is_current` (lee la petición del contexto) | `src/addons/base/models/res_device.py` | `odoo19c: odoo/addons/base/models/res_device.py:34,46-48` |
+| `_IsCurrentOrder._order_field_to_sql` | ídem | `odoo19c: odoo/addons/base/models/res_device.py:65-68` |
+| `is_current_session(request, identifier)` para quien tiene la petición explícita | ídem | `odoo19c: odoo/addons/base/models/res_device.py:48` |
+| `ResDeviceQuerySet._revoke` decide el cierre con `is_current_session` | ídem | `odoo19c: odoo/addons/base/models/res_device.py:193` |
+| retirados `ResDeviceQuerySet.order_by_is_current` y el método `ResDevice.is_current(request)` | ídem | — |
+| `ResUsers.action_revoke_all_devices` usa `is_current_session` | `src/addons/base/models/res_users.py` | `odoo19c: odoo/addons/base/models/res_users.py:1023-1026` |
+
+Pruebas: `tests/unit/base/test_res_device.py` (el campo contra la petición del
+contexto) y `tests/unit/base/test_res_device_port_closure.py` (el orden por
+`search(order='is_current, last_activity desc')`).
+
+El gancho vive en una clase propia (`_IsCurrentOrder`) delante de
+`models.BaseModel` en las bases: sobre `_ResDeviceFields`, que va detrás, el
+`_order_field_to_sql` del ORM lo taparía.
+
+Sin sesión en curso, la fuente pasa `is_current` al `_order_field_to_sql` del
+ORM, que rehúsa un campo sin columna; aquí también (`ValueError: Cannot
+convert base.ResDevice.is_current to SQL because it is not stored`). La
+prueba sin sesión mide por eso el orden por defecto (`_order = 'last_activity
+desc'`), no un orden por `is_current`.
+
+Anulaciones, restauradas con `cmp`:
+
+- el gancho sin efecto: cae exactamente
+  `test_the_current_device_is_ordered_first`, y pasan los otros 49;
+- el cálculo a `False`: cae exactamente
+  `test_is_current_compara_contra_la_sesion_de_la_peticion`, y pasan los
+  otros 49.
+
+Con el tercer paso, los 15 métodos de la fuente tienen contraparte y las dos
+divergencias de forma que quedaban (`is_current` como método,
+`order_by_is_current`) se retiran.
