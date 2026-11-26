@@ -2,7 +2,7 @@
 
 ## Referencia
 
-- `odoo19c: odoo/addons/base/models/ir_ui_view.py` — `class IrUiViewCustom(models.Model)`,
+- `odoo19c: odoo/addons/base/models/ir_ui_view.py:66-67` — `class IrUiViewCustom(models.Model)`,
   `_name = 'ir.ui.view.custom'`.
 - Regla global `ir_ui_view_custom_personal`
   (`odoo19c: odoo/addons/base/security/base_security.xml:50-54`):
