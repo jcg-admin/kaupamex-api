@@ -56,3 +56,56 @@ pendiente se retiran al cerrar esta unidad.
 
 El mapa de consumidores lo prepara un subagente de sólo lectura y se anexa
 aquí antes del paso 2.
+
+## Mapa de consumidores (subagente de sólo lectura, 2026-11-26)
+
+**ACL de la fuente** (`odoo19c: odoo/addons/base/security/ir.model.access.csv:100-110`):
+`group_system` 1,1,1,1 para `actions`, `act_window`, `act_window_close`,
+`report`, `todo`, `act_window_view`, `act_url`, `server` y `client`;
+`server_history` 1,1,1,0. Sin reglas para `ir.actions.*`. En `_ACCESS`
+faltan `IrActionsActions`, `IrActionsActWindow`, `IrActionsActWindowClose`,
+`IrActionsActWindowView`, `IrActionsActUrl` e `IrActionsClient`.
+
+**Métodos de la fuente sin contraparte** (a portar, no a declarar):
+
+| Clase | Métodos |
+|---|---|
+| `ir.actions.actions` | `_check_path`, `_compute_xml_id`, `create`, `write`, `unlink`, `_unlink_check_home_action`, `get_bindings`, `_get_bindings` |
+| `ir.actions.act_window` | `_check_model`, `_compute_views`, `_check_view_mode`, `_compute_embedded_actions`, `read`, `create`, `unlink`, `exists`, `_existing`, `_get_action_dict` |
+| `ir.actions.act_window_close`, `ir.actions.act_url` | `_get_readable_fields` |
+| `ir.actions.client` | `_compute_params`, `_inverse_params` |
+| `ir.actions.server` | `create`, `write`, `create_action`, `unlink_action` |
+| `ir.actions.report` | `_render_qweb_text` |
+
+Cada fila se verifica contra la fuente antes de su paso; el subagente
+comparó listas de nombres, no cuerpos.
+
+**Consumidores que tocan la ACL.** Producción: `ir_cron.py`,
+`data/cron.py`, `wizard/wizard_ir_model_menu_create.py`,
+`addons/base_automation/models/base_automation.py`, lecturas de
+`IrActionsActWindow` en `stock_picking.py:920` y `stock_quant.py:1016`, y
+`env['ir.actions.*']` en `ir_cron.py`, `ir_field_converters.py`,
+`account/models/res_partner_bank.py` y `account_fleet/models/fleet_vehicle.py`.
+Pruebas: `tests/unit/base_automation/test_crud_and_actions_server.py` y las
+de `ir_actions_server_*`, `ir_actions_constraints`, `ir_model_ondelete`,
+`cron_xml_id_identity`, más unas 30 con 1-3 usos. Las migraciones escriben
+por `objects` y no tocan la ACL.
+
+**Extensores:** `_inherit = 'ir.actions.report'` en `stock` y `sale`
+(y menciones en `account` y `account_edi_ubl_cii`);
+`IrActionsActWindowClose` hereda de `IrActionsActions`.
+
+**Riesgos:** el cron y `base_automation` ejecutan acciones de servidor sin
+usuario; una fila de `_ACCESS` ausente niega a todos.
+
+## Orden de pasos, revisado con el mapa
+
+1. Herencia de tablas y claves foráneas (sin cambio de base): no toca la
+   ACL y se mide sola.
+2. `ir.actions.server` (+ `server.history`) e `ir.actions.report`, con sus
+   métodos faltantes y la elevación del cron y de `base_automation`.
+3. `act_window`, `act_window_view`, `act_window_close`, `act_url`,
+   `client`, con sus filas de `_ACCESS` y sus métodos.
+4. `ir.actions.actions`, con `get_bindings` y los demás.
+5. `IrActionsTodo.action_launch` y la rama de `base.open_menu`,
+   `IrModuleModule.next`, `IrDemoFailureWizard.done`.
