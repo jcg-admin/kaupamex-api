@@ -2093,6 +2093,13 @@
         "basemodel-adoption-base-res-users-deletion-0397"
       ],
       "writtenAt": "2026-11-26T20:16:27Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-base-res-users-log-0397"
+      ],
+      "writtenAt": "2026-11-26T21:42:07Z"
     }
   ]
 }
