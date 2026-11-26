@@ -1994,6 +1994,13 @@
         "basemodel-adoption-base-ir-actions-server-history-0397"
       ],
       "writtenAt": "2026-11-25T23:32:44Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-base-ir-model-inherit-0397"
+      ],
+      "writtenAt": "2026-11-26T00:47:57Z"
     }
   ]
 }
