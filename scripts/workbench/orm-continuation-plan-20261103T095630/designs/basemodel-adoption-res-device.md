@@ -51,3 +51,29 @@
 Por el radio (6 archivos de consumo directo, 31 pruebas), la unidad se parte:
 primero los escritores elevados y las reglas sobre el modelo actual (no cambia
 la base); después el cambio de base con `_revoke` y el orden en el modelo.
+
+## Primer paso — medido (reglas e inversa)
+
+Los escritores elevados se mueven al segundo paso: elevar sólo tiene efecto
+cuando la ACL aplica, y la ACL aplica sólo con `models.BaseModel`. Sobre el
+modelo de Django actual el `sudo()` no cambiaría ninguna consulta, así que
+escribirlo ahora sería código sin control que lo discrimine.
+
+| Símbolo | Archivo | Fuente |
+|---|---|---|
+| cuatro reglas de dispositivo en `_RULES` | `src/addons/base/security/base_security.py` | `odoo19c: odoo/addons/base/security/base_security.xml:229-252` |
+| migración `0134_seed_device_rules` (siembra con `seed_base_rules`) | `src/addons/base/migrations/0134_seed_device_rules.py` | ídem |
+| campo `user` de `ResDevice`, inversa `device_ids` | `src/addons/base/models/res_device.py` | `odoo19c: odoo/addons/base/models/res_users.py:232` |
+
+Prueba: `tests/unit/base/test_res_device_rules.py` (dominio y grupo de cada
+regla, y el nombre de la inversa).
+
+Anulaciones, restauradas con `cmp`:
+
+- reglas retiradas de `_RULES` y sus filas borradas (`rule_group_rel`, luego
+  `ir_rule`): caen exactamente los 4 casos de regla y pasa el de la inversa;
+- inversa devuelta a `devices`: cae exactamente
+  `test_the_user_inverse_is_device_ids` y pasan los 4 de regla.
+
+Consumidores del nombre anterior `devices`: 0 en `src/`, `addons/` y `tests/`
+(la única coincidencia es un comentario de `html_editor`).
