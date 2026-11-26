@@ -71,6 +71,31 @@ _RULES = (
         'domain_force': "[(1, '=', 1)]",
         'groups': ['base.group_system'],
     },
+    # ``odoo19c: odoo/addons/base/security/base_security.xml:229-252``.
+    {
+        'name': 'Users can read only their own devices',
+        'model': 'base.ResDevice',
+        'domain_force': "[('user_id', '=', user.id)]",
+        'groups': ['base.group_user'],
+    },
+    {
+        'name': 'Administrators can read all devices',
+        'model': 'base.ResDevice',
+        'domain_force': "[(1, '=', 1)]",
+        'groups': ['base.group_system'],
+    },
+    {
+        'name': 'Users can read only their own device logs',
+        'model': 'base.ResDeviceLog',
+        'domain_force': "[('user_id', '=', user.id)]",
+        'groups': ['base.group_user'],
+    },
+    {
+        'name': 'Administrators can read all device logs',
+        'model': 'base.ResDeviceLog',
+        'domain_force': "[(1, '=', 1)]",
+        'groups': ['base.group_system'],
+    },
 )
 
 

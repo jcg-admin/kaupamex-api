@@ -604,7 +604,8 @@ class ResDevice(_ResDeviceFields):
         'base.ResUsers',
         null=False, on_delete=models.DO_NOTHING,
         db_index=True,
-        related_name='devices',
+        # ≙ ``res.users.device_ids`` (``odoo19c: res_users.py:232``).
+        related_name='device_ids',
         help_text='Usuario de la sesión (Odoo user_id).',
     )
 
