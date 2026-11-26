@@ -9,18 +9,20 @@ previsualización.
 
 Procedencia: ``name`` · ``sequence`` (default 50) · ``image`` · ``pdf``
 idénticos. ``view_id`` (Many2one a ``ir.ui.view``, obligatorio) → ``view``,
-**FK diferida por string** a ``base.IrUiView``, que aún no está portado: el
-modelo se declara ahora y la referencia se resuelve cuando exista, sin
-inventar un destino intermedio.
+obligatorio también (``odoo19c: odoo/addons/base/models/report_layout.py:12``).
 """
 
-from django.db import models
+import models
 
 from addons.base.models.timestamped_mixin import TimeStampedModel
 
 
-class ReportLayout(TimeStampedModel):
+class ReportLayout(models.BaseModel, TimeStampedModel):
     """Diseño de documento seleccionable (``report.layout``)."""
+
+    _name = 'report.layout'
+    _description = 'Report Layout'
+    _order = 'sequence, id'
 
     name = models.CharField(
         max_length=120,
@@ -33,12 +35,7 @@ class ReportLayout(TimeStampedModel):
         on_delete=models.PROTECT,
         related_name='report_layouts',
         verbose_name='Plantilla del documento',
-        null=True,
-        blank=True,
-        help_text=(
-            'Odoo view_id. Obligatorio en la referencia; aquí queda '
-            'nullable hasta que ir.ui.view esté portado.'
-        ),
+        help_text='Odoo view_id (required).',
     )
     image = models.CharField(
         max_length=255,

@@ -470,6 +470,12 @@ _ACCESS = (
         (1, 1, 1, 1),
     ),
     (
+        'access_report_layout',
+        'base.ReportLayout',
+        'group_user',
+        (1, 1, 1, 1),
+    ),
+    (
         'res_users_log_all',
         'base.ResUsersLog',
         'group_system',
