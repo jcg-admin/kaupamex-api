@@ -64,6 +64,13 @@ _RULES = (
         'domain_force': "[('user_ids', 'in', user.ids)]",
         'groups': ['base.group_portal', 'base.group_public'],
     },
+    # ``odoo19c: odoo/addons/base/security/base_security.xml:256-261``.
+    {
+        'name': 'properties.base.definition: system all access',
+        'model': 'base.PropertiesBaseDefinition',
+        'domain_force': "[(1, '=', 1)]",
+        'groups': ['base.group_system'],
+    },
 )
 
 

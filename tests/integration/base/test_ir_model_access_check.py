@@ -52,15 +52,18 @@ pytestmark = pytest.mark.integration
 #: Un modelo de ``base`` **que el sembrador NO cubre**, para que estos casos
 #: midan la mecánica de ``check`` y no el contenido de la semilla. Si algún día
 #: entra en la ACL de ``base``, estos casos empiezan a medir dos cosas y hay
-#: que mover el ancla — que es justo lo que pasó con ``ir.ui.view.custom``.
-MODEL_LABEL = 'res.device.log'
-DJANGO_LABEL = 'base.ResDeviceLog'
+#: que mover el ancla — que es justo lo que pasó con ``ir.ui.view.custom``
+#: y después con ``res.device.log``, cuya fila del CSV el derivador no veía
+#: (``:146``). ``ir.autovacuum`` es ``AbstractModel`` en la fuente y no
+#: tiene fila: el sembrador no la cubrirá.
+MODEL_LABEL = 'ir.autovacuum'
+DJANGO_LABEL = 'base.IrAutovacuum'
 
 
 def _acl(mode='read', group=None, active=True, name='acl de prueba'):
     """Declara una fila de ACL para ``MODEL_LABEL`` con un solo permiso."""
     row, _ = IrModel.objects.get_or_create(
-        model=MODEL_LABEL, defaults={'name': 'Registro de dispositivo'}
+        model=MODEL_LABEL, defaults={'name': 'Automatic Vacuum'}
     )
     return IrModelAccess.objects.create(
         name=name,
@@ -206,7 +209,7 @@ class TestCheck:
         """El llamador puede nombrar el modelo por su etiqueta de Django.
 
         ``ir_model.model`` guarda la identidad contractual, el ``_name`` de la
-        fuente (``res.device.log``). ``check`` normaliza en la puerta con
+        fuente (``ir.autovacuum``). ``check`` normaliza en la puerta con
         ``orm.registry``, así que la etiqueta de la clase lee la misma fila.
         """
         _acl('read', group=None)

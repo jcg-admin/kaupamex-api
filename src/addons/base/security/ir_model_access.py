@@ -512,6 +512,22 @@ _ACCESS = (
         'group_system',
         (1, 1, 1, 0),
     ),
+    # Las tres filas que el CSV califica con su módulo (``:145-147``); el
+    # derivador las descartaba hasta corregirse
+    # (``designs/basemodel-adoption-properties-base-definition.md``).
+    ('access_res_device', 'base.ResDevice', 'group_user', (1, 0, 0, 0)),
+    (
+        'access_res_device_log',
+        'base.ResDeviceLog',
+        'group_user',
+        (1, 0, 0, 0),
+    ),
+    (
+        'access_properties_base_definition',
+        'base.PropertiesBaseDefinition',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
 )
 
 

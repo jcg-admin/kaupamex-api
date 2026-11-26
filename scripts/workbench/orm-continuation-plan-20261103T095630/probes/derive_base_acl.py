@@ -36,7 +36,9 @@ def derive(csv_path):
     derived, missing = [], 0
     with open(csv_path, newline='') as handle:
         for row in csv.DictReader(handle):
-            labels = by_xmlid.get(row['model_id:id'])
+            # Las últimas filas del CSV califican el identificador con su
+            # módulo (``base.model_res_device``, ``:145-147``); el resto no.
+            labels = by_xmlid.get(row['model_id:id'].removeprefix('base.'))
             if not labels:
                 missing += 1
                 continue

@@ -78,13 +78,13 @@ pytestmark = pytest.mark.integration
 
 #: El mismo ancla que ``test_ir_model_access_check``: un modelo de ``base`` que
 #: el sembrador de ACL no cubre, para medir el mecanismo y no la semilla.
-MODEL_LABEL = 'res.device.log'
+MODEL_LABEL = 'ir.autovacuum'
 
 
 def _acl(mode='read', group=None, active=True, name='acl de prueba'):
     """Declara una fila de ACL para ``MODEL_LABEL`` con un solo permiso."""
     row, _ = IrModel.objects.get_or_create(
-        model=MODEL_LABEL, defaults={'name': 'Registro de dispositivo'}
+        model=MODEL_LABEL, defaults={'name': 'Automatic Vacuum'}
     )
     return IrModelAccess.objects.create(
         name=name,

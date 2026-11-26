@@ -115,6 +115,7 @@ from django.db import DEFAULT_DB_ALIAS
 
 from addons.base.models.ir_model import IrModelFields
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from exceptions import AccessError
 from orm import registry
 from tools.cache import ormcache
 
@@ -124,7 +125,7 @@ _logger = logging.getLogger(__name__)
 PROPERTIES_TTYPE = 'properties'
 
 
-class PropertiesBaseDefinition(TimeStampedModel):
+class PropertiesBaseDefinition(models.BaseModel, TimeStampedModel):
     """
     ``properties.base.definition`` — la definición de un campo ``Properties``.
     """
@@ -143,7 +144,8 @@ class PropertiesBaseDefinition(TimeStampedModel):
             'una definición.'
         ),
     )
-    properties_definition = fields.Json(
+    #: ≙ ``fields.PropertiesDefinition("Properties Definition")`` (``:17``).
+    properties_definition = fields.PropertiesDefinition(
         default=list,
         blank=True,
         verbose_name='Definición de las propiedades',
@@ -177,16 +179,17 @@ class PropertiesBaseDefinition(TimeStampedModel):
         propio nombre técnico. Sin modelo apuntado devuelve ``False``, igual
         que la fuente.
         """
-        if not self.properties_field_id:
-            self.display_name = label = False
-            return label
-        model_name = getattr(self.properties_field, 'model', '')
-        if not model_name:
-            self.display_name = label = False
-            return label
-        model_cls = registry.MODELS_BY_NAME.get(model_name)
-        description = getattr(model_cls, '_description', None) or model_name
-        self.display_name = label = f'{description} Properties'
+        label = False
+        for definition in self:
+            model_name = (getattr(definition.properties_field, 'model', '')
+                          if definition.properties_field_id else '')
+            if not model_name:
+                definition.display_name = label = False
+                continue
+            model_cls = registry.MODELS_BY_NAME.get(model_name)
+            description = (getattr(model_cls, '_description', None)
+                           or model_name)
+            definition.display_name = label = f'{description} Properties'
         return label
 
     def __str__(self):
@@ -215,25 +218,18 @@ class PropertiesBaseDefinition(TimeStampedModel):
 
     # -- Escritura -----------------------------------------------------------
 
-    def write(self, vals, using=None):
+    def write(self, vals):
         """``write`` — el campo apuntado no se cambia después de crear.
 
         ≙ ``odoo19c: properties_base_definition.py:43-46``. Reapuntar la fila
         dejaría a todos los registros que usan la definición vieja
-        describiendo otra cosa. La fuente levanta ``AccessError``; aquí el
-        equivalente del stack es ``PermissionDenied`` — no es una violación de
-        forma del dato sino de permiso sobre el campo.
+        describiendo otra cosa. ``properties_field`` es el nombre de Django
+        del mismo campo, así que se rehúsa igual.
         """
-        using = using or self._state.db or DEFAULT_DB_ALIAS
-        if 'properties_field' in vals or 'properties_field_id' in vals:
-            raise PermissionDenied(
-                'No se puede cambiar el campo de una definición base.'
-            )
-        for field_name, value in vals.items():
-            setattr(self, field_name, value)
-        # ``save`` es quien vacía la familia; no se duplica aquí ni se bypassa
-        # el enganche, para que un mixin futuro siga entrando en la cadena.
-        return self.save(using=using)
+        if 'properties_field_id' in vals or 'properties_field' in vals:
+            raise AccessError(
+                'You can not change the field of a base definition')
+        return super().write(vals)
 
     def save(self, *args, **kwargs):
         """

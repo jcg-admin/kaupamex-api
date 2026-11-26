@@ -32,6 +32,7 @@ from addons.base.models.properties_base_definition_mixin import (
     PropertiesBaseDefinitionMixin,
 )
 from orm import registry
+from orm.environments import sudo
 from orm.domains import Domain
 from tools.cache import ormcache
 from tools.sql import SQL
@@ -182,7 +183,9 @@ class TestDefinitionBehaviour:
         registry.clear_cache('stable')
         field = self._properties_field()
         row = PropertiesBaseDefinition.objects.create(properties_field=field)
-        row.write({'properties_definition': [{'name': 'a', 'type': 'char'}]})
+        with sudo():
+            row.write(
+                {'properties_definition': [{'name': 'a', 'type': 'char'}]})
         row.refresh_from_db()
         assert row.properties_definition == [{'name': 'a', 'type': 'char'}]
 
