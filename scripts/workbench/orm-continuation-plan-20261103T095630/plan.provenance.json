@@ -2065,6 +2065,13 @@
         "res-device-rules-and-inverse-0397"
       ],
       "writtenAt": "2026-11-26T14:53:50Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-base-res-device-0397"
+      ],
+      "writtenAt": "2026-11-26T16:09:12Z"
     }
   ]
 }
