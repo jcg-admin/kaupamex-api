@@ -672,7 +672,8 @@
   "basemodel-adoption-base-report-paperformat-ir-asset-0397",
   "basemodel-adoption-base-ir-actions-server-history-0397",
   "basemodel-adoption-base-ir-model-inherit-0397",
-  "basemodel-adoption-base-ir-module-category-privilege-0397"
+  "basemodel-adoption-base-ir-module-category-privilege-0397",
+  "basemodel-adoption-base-res-country-state-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
