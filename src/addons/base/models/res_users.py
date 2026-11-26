@@ -91,7 +91,7 @@ from passlib.context import CryptContext as _CryptContext
 from addons.base.models import signals
 from addons.base.models.ir_http import (DEFAULT_LANG, best_lang,
                                         get_current_request)
-from addons.base.models.res_device import _client_ip
+from addons.base.models.res_device import _client_ip, is_current_session
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from exceptions import AccessDenied, AccessError, UserError
 from orm import registry
@@ -1135,8 +1135,9 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
         device = apps.get_model('base', 'ResDevice')
         devices = device.objects.filter(user_id=self.pk)
         if request is not None:
-            devices = devices.exclude(
-                pk__in=[d.pk for d in devices if d.is_current(request)])
+            devices = devices.exclude(pk__in=[
+                d.pk for d in devices
+                if is_current_session(request, d.session_identifier)])
         return devices._revoke(request)
 
     @classmethod

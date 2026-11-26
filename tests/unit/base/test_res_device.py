@@ -28,6 +28,7 @@ from addons.base.models.res_device import (
     ResDeviceLog,
     update_trace,
 )
+from addons.base.models.ir_http import set_current_request
 from addons.base.models.res_users import ResUsers
 
 UA_CHROME_LINUX = (
@@ -249,10 +250,15 @@ def test_is_current_compara_contra_la_sesion_de_la_peticion(usuario):
     _log(usuario, last_activity=timezone.now(), session_identifier='abc')
     device = ResDevice.objects.get(user_id=usuario.pk)
     request = _request()
-    request.session.session_key = 'abcdef' + 'x' * 26
-    assert device.is_current(request) is True
-    request.session.session_key = 'zzz' + 'x' * 29
-    assert device.is_current(request) is False
+    set_current_request(request)
+    try:
+        request.session.session_key = 'abcdef' + 'x' * 26
+        assert device.is_current is True
+        device.invalidate_recordset(['is_current'])
+        request.session.session_key = 'zzz' + 'x' * 29
+        assert device.is_current is False
+    finally:
+        set_current_request(None)
 
 
 def test_la_vista_no_la_gestiona_django():

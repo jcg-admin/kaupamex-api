@@ -46,31 +46,28 @@ un porte parcial presentado como porte sale de la lista de pendientes.
 La frase se corrige aquí porque el porte ya está cerrado: los 15 tienen
 contraparte, y los que cambian de forma la declaran (tarea #71).
 
-*Portados aquí — 8:* ``_is_mobile``, ``_update_device``,
+*Portados aquí — 10:* ``_is_mobile``, ``_update_device``,
+``_compute_is_current``, ``_order_field_to_sql``,
 ``_compute_display_name`` (como ``__str__``, que es el ``display_name`` de
 Django), ``_revoke`` (tarea #69), ``_compute_linked_ip_addresses``,
 ``_gc_device_log`` y ``__update_revoked`` (tarea #71 — los dos últimos con su
 ``@api.autovacuum``, que el colector ``ir.autovacuum`` ya recorre).
 
-*Portados con su forma cambiada, declarada — 7:*
+*Portados con su forma cambiada, declarada — 5:*
 
 - ``revoke`` (``:182-184``) y ``action_revoke_all_devices``: el par
   público-con-``@check_identity`` / interno-sin-él colapsa en **un** cuerpo,
   porque aquí la identidad fresca la exige ``authz_reauth
   .assert_session_fresh`` desde la vista (DEC-12). Misma resolución que
   ``authz_totp.revoke_all_devices``.
-- ``_compute_is_current`` → :meth:`ResDevice.is_current`, con la petición
-  explícita en vez de leída de un global.
 - ``_select``, ``_from``, ``_where``, ``_query`` e ``init`` (``:198-256``) →
   la migración ``base.0004_resdevice``, que es donde vive el ``CREATE OR
   REPLACE VIEW``. Divergencia de **ubicación**: en la referencia el modelo
   crea su propia vista al cargar; en Django el DDL es de la migración.
-- ``_order_field_to_sql`` (``:65-68``) →
-  :meth:`ResDeviceQuerySet.order_by_is_current`. La fuente engancha el ORM y
-  con eso cualquier consulta que pida ``order='is_current'`` obtiene ese SQL;
-  Django no tiene
-  punto de extensión de campo-a-SQL en el orden, así que la misma capacidad se
-  expone como método explícito del recordset.
+
+Los dos que antes cambiaban de forma —``_compute_is_current`` y
+``_order_field_to_sql`` (``:46-48,65-68``)— ya no: un campo calculado que lee
+la petición del contexto y el gancho de orden del ORM (``_IsCurrentOrder``).
 
 *Trabajo pendiente — 0.*
 
@@ -98,6 +95,7 @@ from django.contrib.auth import logout as django_logout
 from django.contrib.postgres.aggregates import ArrayAgg
 from orm.environments import get_context, sudo
 from tools._vendor.useragents import parse_user_agent
+from tools.sql import SQL
 
 _logger = logging.getLogger(__name__)
 
@@ -251,8 +249,41 @@ class _ResDeviceFields(TimeStampedModel):
         key = (self.session_identifier, self.platform, self.browser)
         return '\n'.join(dict.fromkeys(ip_map.get(key, [])))
 
+    #: ≙ ``is_current`` (``odoo19c: res_device.py:34``): calculado y sin
+    #: columna; lo leen ``_revoke`` y el orden por ``is_current``.
+    is_current = fields.Boolean(
+        'Current Device', compute='_compute_is_current')
 
-class ResDeviceLog(models.BaseModel, _ResDeviceFields):
+    def _compute_is_current(self):
+        """≙ ``_compute_is_current`` (``odoo19c: res_device.py:46-48``): la
+        sesión en curso empieza por el prefijo que guarda el log."""
+        request = get_current_request()
+        for device in self:
+            device.is_current = is_current_session(
+                request, device.session_identifier)
+
+
+class _IsCurrentOrder:
+    """El gancho de orden de ``is_current``, compartido por el log y su vista.
+
+    Va en una clase propia, delante de ``models.BaseModel`` en las bases, para
+    que el ``super()`` llegue al ``_order_field_to_sql`` del ORM.
+    """
+
+    def _order_field_to_sql(self, alias, field_name, direction, nulls, query):
+        """≙ ``_order_field_to_sql`` (``odoo19c: res_device.py:65-68``): el
+        dispositivo de la sesión en curso, primero."""
+        session_key = _session_key(get_current_request())
+        if field_name == 'is_current' and session_key:
+            return SQL(
+                'session_identifier = %s DESC',
+                session_key[:STORED_SESSION_BYTES],
+            )
+        return super()._order_field_to_sql(
+            alias, field_name, direction, nulls, query)
+
+
+class ResDeviceLog(_IsCurrentOrder, models.BaseModel, _ResDeviceFields):
     """``res.device.log`` — una fila por actividad de sesión en un dispositivo.
 
     Fiel a ``odoo19c: odoo/addons/base/models/res_device.py:17-35``.
@@ -526,8 +557,9 @@ class ResDeviceQuerySet(models.AccessQuerySet):
 
         # La fuente marca ``is_current`` ANTES de borrar, porque después la
         # sesión ya no existe para comparar.
-        must_logout = request is not None and any(
-            device.is_current(request) for device in self
+        must_logout = any(
+            is_current_session(request, device.session_identifier)
+            for device in self
         )
 
         delete_sessions_from_identifiers(identifiers)
@@ -553,41 +585,8 @@ class ResDeviceQuerySet(models.AccessQuerySet):
             django_logout(request)
         return revoked
 
-    def order_by_is_current(self, request=None):
-        """≙ ``_order_field_to_sql`` para ``is_current`` (``odoo19c:
-        res_device.py:65-68``).
 
-        Empuja arriba el dispositivo de la sesión en curso, comparando el
-        **prefijo** que el log guarda con el de la sesión actual, y sólo
-        después ordena por actividad. La fuente lo emite como
-        ``session_identifier = %s DESC``; aquí es una anotación booleana en
-        ``ORDER BY``, que es el mismo SQL.
-
-        **Divergencia de mecanismo, declarada.** La fuente engancha el ORM:
-        sobreescribe ``_order_field_to_sql`` y con eso cualquier consulta que
-        pida ``order='is_current'`` obtiene ese SQL. Django no tiene punto de
-        extensión de campo-a-SQL en el orden —``Meta.ordering`` fija el orden
-        y no se consulta por nombre de campo calculado—, así que la misma
-        capacidad se expone como método explícito del recordset. Lo que se
-        pierde es la implicitud; lo que se gana es que la petición viaja como
-        argumento en vez de leerse de un global.
-        """
-        request = request if request is not None else get_current_request()
-        session_key = getattr(
-            getattr(request, 'session', None), 'session_key', None
-        )
-        if not session_key:
-            return self.order_by('-last_activity')
-        prefix = session_key[:STORED_SESSION_BYTES]
-        return self.annotate(
-            _current=models.ExpressionWrapper(
-                models.Q(session_identifier=prefix),
-                output_field=models.BooleanField(),
-            ),
-        ).order_by('-_current', '-last_activity')
-
-
-class ResDevice(models.BaseModel, _ResDeviceFields):
+class ResDevice(_IsCurrentOrder, models.BaseModel, _ResDeviceFields):
     """``res.device`` — la última actividad viva por dispositivo (vista SQL).
 
     Fiel a ``odoo19c: res_device.py:175-256``: ``_auto = False`` + ``init()``
@@ -627,20 +626,6 @@ class ResDevice(models.BaseModel, _ResDeviceFields):
         verbose_name_plural = 'Dispositivos'
 
     objects = ResDeviceQuerySet.as_manager()
-
-    def is_current(self, request):
-        """``is_current`` de la fuente (``res_device.py:59-61``), como método.
-
-        La fuente lo declara ``compute=`` porque su ORM resuelve ``request``
-        desde un global; aquí la petición se pasa explícita, que es la forma
-        Django de la misma pregunta.
-        """
-        session_key = getattr(
-            getattr(request, 'session', None), 'session_key', None
-        )
-        if not session_key or not self.session_identifier:
-            return False
-        return session_key.startswith(self.session_identifier)
 
 
 def delete_sessions_from_identifiers(identifiers):
@@ -878,3 +863,22 @@ class DeviceLogMiddleware:
             except Exception:  # pragma: no cover - defensa, no contrato
                 _logger.exception('No se pudo registrar el dispositivo')
         return self.get_response(request)
+
+
+def _session_key(request):
+    """La clave de la sesión de la petición, o ``None`` fuera de una."""
+    return getattr(getattr(request, 'session', None), 'session_key', None)
+
+
+def is_current_session(request, identifier):
+    """¿Es ``identifier`` el prefijo de la sesión de ``request``?
+
+    ≙ ``request.session.sid.startswith(device.session_identifier)``
+    (``odoo19c: res_device.py:48``). Recibe la petición para quien la tenga
+    explícita (``_revoke``, ``action_revoke_all_devices``); el campo
+    ``is_current`` la lee del contexto, como la fuente.
+    """
+    session_key = _session_key(request)
+    return bool(
+        session_key and identifier and session_key.startswith(identifier)
+    )

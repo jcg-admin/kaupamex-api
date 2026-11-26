@@ -44,10 +44,12 @@ from addons.base.models.res_device import (
     ResDeviceLog,
     get_missing_session_identifiers,
 )
+from addons.base.models.ir_http import set_current_request
 from addons.base.models.res_partner import ResPartner
 from addons.base.models.res_users import ResUsers
 from django.contrib.sessions.backends.db import SessionStore
 from django.utils import timezone
+from orm.environments import Environment
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
@@ -87,6 +89,17 @@ def _make_log(
 class _Request:
     def __init__(self, session_key=None):
         self.session = SessionStore(session_key) if session_key else None
+
+
+def _search_ordered(user, request, order=None):
+    """``search`` sobre ``res.device`` con la petición en el contexto, que es
+    como la fuente lee ``request``."""
+    set_current_request(request)
+    try:
+        return list(Environment(su=True)['res.device'].search(
+            [('user_id', '=', user.pk)], order=order))
+    finally:
+        set_current_request(None)
 
 
 # ----------------------------------------------------------------------
@@ -154,11 +167,8 @@ def test_the_current_device_is_ordered_first(db):
     _make_log(user, other, ip='10.0.0.9')
     _make_log(user, current, ip='10.0.0.1', last_activity=yesterday)
 
-    ordered = list(
-        ResDevice.objects.filter(user_id=user.pk).order_by_is_current(
-            _Request(current)
-        )
-    )
+    ordered = _search_ordered(
+        user, _Request(current), order='is_current, last_activity desc')
     assert ordered[0].session_identifier == current[:42]
 
 
@@ -171,11 +181,7 @@ def test_without_a_session_the_default_order_stands(db):
     _make_log(user, older, ip='10.0.0.1', last_activity=yesterday)
     _make_log(user, newer, ip='10.0.0.9')
 
-    ordered = list(
-        ResDevice.objects.filter(user_id=user.pk).order_by_is_current(
-            _Request()
-        )
-    )
+    ordered = _search_ordered(user, _Request())
     assert ordered[0].session_identifier == newer[:42]
 
 

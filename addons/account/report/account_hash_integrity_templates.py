@@ -101,11 +101,8 @@ class ReportAccountReportHashIntegrity:
         account_hash_integrity_templates.py:11-19``).
 
         La fuente resuelve la empresa via ``self.env.company``; aqui se
-        recibe explicita (mismo criterio que
-        ``ResDevice.is_current(self, request)`` en
-        ``src/addons/base/models/res_device.py`` -- "formulario, no
-        tabla" pasa el contexto por parametro en vez de un global
-        implicito).
+        recibe explicita ("formulario, no tabla" pasa el contexto por
+        parametro en vez de un global implicito).
 
         :param company: la instancia de ``ResCompany`` cuya cadena de
             hashes se verifica.
