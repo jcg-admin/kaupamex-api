@@ -2641,8 +2641,29 @@ class IrActionsServer(IrActionsBase):
         return True
 
 
-class IrActionsTodo(TimeStampedModel):
-    """Paso pendiente de configuración (``ir.actions.todo``)."""
+class IrActionsTodo(models.BaseModel, TimeStampedModel):
+    """Paso pendiente de configuración (``ir.actions.todo``).
+
+    ≙ ``odoo19c: odoo/addons/base/models/ir_actions.py:1347-1422``. El campo
+    se llama ``action`` (columna ``action_id``), así que ``_rec_name`` lo
+    nombra por el campo.
+
+    // pendiente: ``action_launch`` (``:1394-1418``). Lee la acción con
+    ``self.env[action.type]``, y ``ir.actions.actions`` y sus subtipos no
+    declaran ``_name`` aquí, así que el entorno no los resuelve
+    (``KeyError: 'ir.actions.actions'``, medido). Además la fuente crea las
+    tablas de los subtipos con ``INHERITS (ir_actions)``
+    (``odoo19c: odoo/addons/base/data/base_data.sql:9-13``) y este puerto
+    les da tablas propias, así que un paso no puede apuntar a una acción de
+    ventana. Se completa con la adopción de ``ir.actions.*`` sobre
+    ``models.BaseModel`` (``designs/basemodel-adoption-ir-actions-todo.md``).
+    """
+
+    _name = 'ir.actions.todo'
+    _description = 'Configuration Wizards'
+    _rec_name = 'action'
+    _order = 'sequence, id'
+    _allow_sudo_commands = False
 
     STATE_OPEN = 'open'
     STATE_DONE = 'done'
@@ -2679,3 +2700,53 @@ class IrActionsTodo(TimeStampedModel):
 
     def __str__(self):
         return self.name or f'todo #{self.pk}'
+
+    @api.model_create_multi
+    @classmethod
+    def create(cls, vals_list):
+        """≙ ``create`` (``:1362-1368``): con un paso nuevo abierto, queda
+        abierto uno solo."""
+        records = super().create(vals_list)
+        for record in records:
+            if record.state == cls.STATE_OPEN:
+                records.ensure_one_open_todo()
+        return records
+
+    def write(self, vals):
+        """≙ ``write`` (``:1370-1374``)."""
+        res = super().write(vals)
+        if vals.get('state', '') == self.STATE_OPEN:
+            self.ensure_one_open_todo()
+        return res
+
+    @api.model
+    def ensure_one_open_todo(self):
+        """≙ ``ensure_one_open_todo`` (``:1376-1380``): todos los abiertos
+        salvo el de menor secuencia y mayor id pasan a ``done``."""
+        open_steps = self.search(
+            [('state', '=', self.STATE_OPEN)],
+            order='sequence asc, id desc', offset=1)
+        if open_steps:
+            open_steps.write({'state': self.STATE_DONE})
+
+    def unlink(self):
+        """≙ ``unlink`` (``:1382-1392``): ``base.open_menu`` no se borra;
+        recupera la acción ``base.action_client_base_menu``. Sin el registro
+        sembrado se sigue, como el ``except ValueError: pass`` de la fuente.
+
+        // pendiente: la rama de ``base.open_menu`` no tiene control. Ninguno
+        de los dos registros se siembra aquí, y
+        ``base.action_client_base_menu`` es un ``ir.actions.client``, que no
+        declara ``_name`` (la misma causa que ``action_launch``)."""
+        if self:
+            open_menu_step = self.env.ref(
+                'base.open_menu', raise_if_not_found=False)
+            if open_menu_step and open_menu_step in self:
+                base_menu = self.env.ref('base.action_client_base_menu')
+                open_menu_step.write({'action': base_menu.id})
+                self -= open_menu_step
+        return super(IrActionsTodo, self).unlink()
+
+    def action_open(self):
+        """≙ ``action_open`` (``:1420-1422``)."""
+        return self.write({'state': self.STATE_OPEN})

@@ -463,6 +463,12 @@ _ACCESS = (
         'group_system',
         (1, 1, 1, 0),
     ),
+    (
+        'ir_actions_todo group system',
+        'base.IrActionsTodo',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
     ('res_bank_group_system', 'base.ResBank', 'group_system', (1, 1, 1, 1)),
     (
         'res_bank_group_partner_manager',

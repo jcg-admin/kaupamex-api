@@ -1251,6 +1251,7 @@ src/addons/base/management/commands/purge_logs.py::prefijo
 src/addons/base/management/commands/update_module_list.py::alcance
 src/addons/base/models/decimal_precision.py::fila
 src/addons/base/models/ir_actions.py::IrActionsTodo
+src/addons/base/models/ir_actions.py::ensure_one_open_todo
 src/addons/base/models/ir_actions_report.py::faltantes
 src/addons/base/models/ir_binary.py::obtener
 src/addons/base/models/ir_cron.py::activo
