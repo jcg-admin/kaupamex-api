@@ -20,4 +20,19 @@ CRON_AUTOVACUUM = {
     'priority': 3,
 }
 
-__all__ = ['sembrar_cron', 'CRON_AUTOVACUUM']
+# El barrido de bajas de portal, verbatim de
+# ``odoo19c: odoo/addons/base/data/ir_cron_data.xml:13-21``
+# (``ir_cron_res_users_deletion``): un día, prioridad 8, y
+# ``model._gc_portal_users(batch_size=50)`` sobre ``res.users.deletion``.
+CRON_RES_USERS_DELETION = {
+    'name': 'Base: Portal Users Deletion',
+    'model_name': 'res.users.deletion',
+    'method_name': '_gc_portal_users',
+    'code': 'model._gc_portal_users(batch_size=50)',
+    'xml_id': 'base.ir_cron_res_users_deletion',
+    'interval_number': 1,
+    'interval_type': 'days',
+    'priority': 8,
+}
+
+__all__ = ['sembrar_cron', 'CRON_AUTOVACUUM', 'CRON_RES_USERS_DELETION']

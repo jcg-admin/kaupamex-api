@@ -469,6 +469,18 @@ _ACCESS = (
         'group_system',
         (1, 1, 1, 1),
     ),
+    (
+        'res_users_deletion all',
+        'base.ResUsersDeletion',
+        None,
+        (0, 0, 0, 0),
+    ),
+    (
+        'res_users_deletion group_erp_manager',
+        'base.ResUsersDeletion',
+        'group_erp_manager',
+        (1, 1, 1, 1),
+    ),
     ('res_bank_group_system', 'base.ResBank', 'group_system', (1, 1, 1, 1)),
     (
         'res_bank_group_partner_manager',

@@ -369,8 +369,14 @@ class ResUsersQuerySet(models.AccessQuerySet):
                 user.partner.active = False
                 user.partner.save(update_fields=['active'])
 
-            deletion.objects.create(
-                user=user, user_int=user.pk, state=deletion.STATE_TODO)
+            # Elevado: la fuente llega aquí bajo ``sudo()`` desde el
+            # controlador de portal (``odoo19c: addons/portal/controllers/
+            # portal.py:926``) y la ACL de «todos» sobre la solicitud es nula.
+            with sudo():
+                deletion.create({
+                    'user': user.pk, 'user_int': user.pk,
+                    'state': deletion.STATE_TODO,
+                })
 
 
 class ResUsersManager(models.AccessManager):
