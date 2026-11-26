@@ -37,12 +37,20 @@ Consumidores: `src/modules/loading.py:189-191` escribe con
 1. Los dos derivan de `TransientModel`, con `_name` y `_description`.
 2. `failures_count` como campo calculado sin almacenar.
 3. Las dos filas de ACL y su siembra.
-4. `done()` sigue sin portarse: `ir.module.module.next()`
-   (`odoo19c: odoo/addons/base/models/ir_module.py:582-597`) no está
-   portado y devuelve `action_launch()` del paso abierto, que es el bloqueo
-   de `ir.actions.*` ya registrado en
-   `designs/basemodel-adoption-ir-actions-todo.md`. Se declara pendiente con
-   esa misma condición de cierre.
+4. `done()` se porta, verbatim: devuelve
+   `self.env['ir.module.module'].next()`. Para eso se porta antes
+   `IrModuleModule.next` en `src/addons/base/models/ir_module.py`
+   (`odoo19c: odoo/addons/base/models/ir_module.py:582-597`), que lanza la
+   acción del paso abierto con `action_launch`. Las dos dependen de que
+   `ir.actions.*` resuelva en el entorno, que es la unidad
+   `designs/ir-actions-family-basemodel-and-inheritance.md`; esta unidad va
+   **después** de aquélla, no en su lugar.
+
+**Corregido por directiva del ejecutor (2026-11-26).** La versión anterior
+declaraba `done()` pendiente porque `next()` no estaba portado. Eso
+incumple `porte-completo-no-parcial.md`: la ausencia de una pieza de la
+referencia no es un desenlace para el símbolo que la usa; se porta la
+pieza.
 
 ## Controles previstos
 
