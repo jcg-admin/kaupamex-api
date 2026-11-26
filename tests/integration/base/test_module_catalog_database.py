@@ -11,8 +11,17 @@ from django.core.management.base import CommandError
 
 from addons.base.models import IrModule, IrModuleCategory, IrModuleDependency
 from addons.base.management.commands import update_module_list as catalog
+from orm.environments import sudo
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def _elevated():
+    """Las pruebas de la fuente corren como superusuario; bajo ``BaseModel``
+    la ACL de ``ir.module.category`` rehúsa una lectura sin usuario."""
+    with sudo():
+        yield
 
 
 @pytest.fixture

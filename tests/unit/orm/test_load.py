@@ -22,7 +22,7 @@ import pytest
 
 from addons.base.models.ir_model import IrModelAccess, IrModelData
 from addons.base.models.ir_module import IrModuleCategory
-from orm.environments import context_scope
+from orm.environments import context_scope, sudo
 
 #: El modelo de prueba: adopta ``RecordLoaderMixin`` —como los 285 que lo
 #: hacen vía ``TimeStampedModel``— y sus columnas son escalares, así que el
@@ -66,9 +66,10 @@ class TestTheHappyPath:
         ).exists()
 
     def test_a_second_load_of_the_same_external_id_updates(self):
-        IrModuleCategory.load(['id', 'name'], [['cat_zy', 'Contabilidad']])
+        with sudo():
+            IrModuleCategory.load(['id', 'name'], [['cat_zy', 'Contabilidad']])
 
-        with context_scope(mode='update'):
+        with context_scope(mode='update'), sudo():
             IrModuleCategory.load(
                 ['id', 'name'], [['cat_zy', 'Contabilidad Nueva']]
             )
@@ -165,9 +166,10 @@ class TestTheReferencingColumns:
     def test_a_database_id_column_updates_that_record(self):
         category = IrModuleCategory.objects.create(name='Contabilidad')
 
-        result = IrModuleCategory.load(
-            ['.id', 'name'], [[str(category.pk), 'Contabilidad Nueva']]
-        )
+        with sudo():
+            result = IrModuleCategory.load(
+                ['.id', 'name'], [[str(category.pk), 'Contabilidad Nueva']]
+            )
 
         assert result['messages'] == []
         category.refresh_from_db()

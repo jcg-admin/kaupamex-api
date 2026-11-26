@@ -65,11 +65,11 @@ import pytest
 from django.apps import apps
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
-
 from addons.base.models.res_groups import ResGroups
 from tests.conftest import matching_by_search_method
 from addons.base.models.res_groups_privilege import ResGroupsPrivilege
 from exceptions import UserError
+from orm.environments import sudo
 
 pytestmark = pytest.mark.integration
 
@@ -99,7 +99,8 @@ class TestSearchFullName:
 
     def test_the_privilege_slash_name_form_matches(self, db):
         privilege = ResGroupsPrivilege.objects.create(name='Ventas 204')
-        group = ResGroups.objects.create(name='Responsable 204', privilege=privilege)
+        group = ResGroups.objects.create(
+            name='Responsable 204', privilege=privilege)
         found = self._matching('=', 'Ventas 204 / Responsable 204')
         assert group in found, (
             'el operando compuesto tiene que descomponerse — un filtro por '
@@ -107,7 +108,8 @@ class TestSearchFullName:
 
     def test_the_privilege_alone_matches_its_groups(self, db):
         privilege = ResGroupsPrivilege.objects.create(name='Almacén 204')
-        group = ResGroups.objects.create(name='Operario 204', privilege=privilege)
+        group = ResGroups.objects.create(
+            name='Operario 204', privilege=privilege)
         assert group in self._matching('=', 'Almacén 204')
 
     def test_a_list_of_operands_is_a_disjunction(self, db):
@@ -135,7 +137,8 @@ class TestOrderByFullName:
 
     def test_desc_reverses_it(self, db):
         ResGroups.objects.create(name='AAA 204')
-        nombres = [g.full_name for g in ResGroups._search(order='full_name DESC')]
+        found = ResGroups._search(order='full_name DESC')
+        nombres = [g.full_name for g in found]
         assert nombres == sorted(nombres, reverse=True)
 
     def test_any_other_order_stays_a_queryset(self, db):
@@ -149,10 +152,12 @@ class TestCopyData:
 
     def test_the_copy_gets_a_suffix_and_can_be_saved(self, db):
         privilege = ResGroupsPrivilege.objects.create(name='Compras 204')
-        group = ResGroups.objects.create(name='Aprobador 204', privilege=privilege)
+        group = ResGroups.objects.create(
+            name='Aprobador 204', privilege=privilege)
         values = group.copy_data()
         assert values['name'] == 'Aprobador 204 (copia)'
-        # Guardarla es el control: sin sufijo choca con UNIQUE(privilege, name).
+        # Guardarla es el control: sin sufijo choca con
+        # UNIQUE(privilege, name).
         copia = ResGroups.objects.create(
             name=values['name'], privilege=privilege)
         assert copia.pk != group.pk
@@ -271,14 +276,15 @@ class TestInverseAllUserIds:
 
 
 class TestTheSettingsGuard:
-    """≙ ``_unlink_except_settings_group`` (``odoo19c: res_groups.py:114-119``).
+    """≙ ``_unlink_except_settings_group`` (``res_groups.py:114-119``).
 
     El guard recorre los modelos concretos que declaran ``classify_fields`` y
     compara el ``implied_group`` de cada campo ``group_*`` contra el nombre del
     grupo que se está borrando.
 
     *Métrica:* modelos concretos con ``classify_fields`` en el registro de
-    apps — **2** (``base_setup.SiteConfigSettings`` y ``web.WebConfigSettings``),
+    apps — **2** (``base_setup.SiteConfigSettings`` y
+    ``web.WebConfigSettings``),
     y **ninguno** declara hoy un campo ``group_*``, así que en el árbol tal
     cual el guard nunca dispara. Por eso el caso positivo **fabrica** el campo
     parcheando ``settings_field_names`` y ``field_attrs``: sin eso el test
@@ -300,7 +306,8 @@ class TestTheSettingsGuard:
         group.delete()
         assert not ResGroups.objects.filter(pk=pk).exists()
 
-    def test_a_group_linked_to_a_settings_field_is_refused(self, db, monkeypatch):
+    def test_a_group_linked_to_a_settings_field_is_refused(
+            self, db, monkeypatch):
         group = ResGroups.objects.create(name='Con ajuste 204')
         settings_model = self._settings_model()
         monkeypatch.setattr(
@@ -313,7 +320,8 @@ class TestTheSettingsGuard:
             group.delete()
         assert ResGroups.objects.filter(pk=group.pk).exists()
 
-    def test_another_group_with_the_same_field_still_deletes(self, db, monkeypatch):
+    def test_another_group_with_the_same_field_still_deletes(
+            self, db, monkeypatch):
         """El control que discrimina: el campo existe y apunta a OTRO grupo.
 
         Sin él, el caso de arriba pasaría igual con un guard que levantara
@@ -338,8 +346,10 @@ class TestTheViewHierarchy:
 
     def test_the_three_keys_and_the_group_payload(self, db):
         privilege = ResGroupsPrivilege.objects.create(name='Panel 204')
-        group = ResGroups.objects.create(name='Del panel 204', privilege=privilege)
-        arbol = ResGroups._get_view_group_hierarchy()
+        group = ResGroups.objects.create(
+            name='Del panel 204', privilege=privilege)
+        with sudo():
+            arbol = ResGroups._get_view_group_hierarchy()
         assert sorted(arbol) == ['categories', 'groups', 'privileges']
         assert arbol['groups'][group.pk]['name'] == 'Del panel 204'
         assert arbol['groups'][group.pk]['privilege_id'] == privilege.pk
@@ -347,7 +357,9 @@ class TestTheViewHierarchy:
 
     def test_the_property_reads_the_same_tree(self, db):
         group = ResGroups.objects.create(name='Lectura del panel 204')
-        assert group.view_group_hierarchy == ResGroups._get_view_group_hierarchy()
+        with sudo():
+            arbol = ResGroups._get_view_group_hierarchy()
+            assert group.view_group_hierarchy == arbol
 
 
 class TestTheAction:

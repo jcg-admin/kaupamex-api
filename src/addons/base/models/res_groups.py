@@ -108,7 +108,7 @@ import api
 import fields
 import models
 from orm.domains import NEGATIVE_CONDITION_OPERATORS, Domain, to_q
-from orm.environments import get_context
+from orm.environments import get_context, sudo
 from django.apps import apps
 from django.core.exceptions import ValidationError
 
@@ -265,9 +265,16 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
     @api.depends('privilege.name', 'name')
     @api.depends_context('short_display_name')
     def _compute_full_name(self):
-        """Asigna ``privilegio / nombre`` o nombre — ≙ ``:123-129``."""
+        """Asigna ``privilegio / nombre`` o nombre — ≙ ``:123-129``.
+
+        El privilegio se lee con privilegio, como el ``zip(self, self.sudo())``
+        de la fuente: el valor queda en el registro del usuario, pero leer el
+        privilegio no exige que ese usuario pueda leerlo.
+        """
         if self.privilege_id and not get_context().get('short_display_name'):
-            self.full_name = '%s / %s' % (self.privilege.name, self.name)
+            with sudo():
+                privilege_name = self.privilege.name
+            self.full_name = '%s / %s' % (privilege_name, self.name)
         else:
             self.full_name = self.name
 
@@ -660,10 +667,13 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
                     'name': group.name,
                     'comment': group.comment,
                     'privilege_id': group.privilege_id,
-                    'disjoint_ids': list(group.disjoint_ids.values_list('pk', flat=True)),
-                    'implied_ids': list(group.implied_ids.values_list('pk', flat=True)),
+                    'disjoint_ids': list(
+                        group.disjoint_ids.values_list('pk', flat=True)),
+                    'implied_ids': list(
+                        group.implied_ids.values_list('pk', flat=True)),
                     'all_implied_ids': [g.pk for g in group.all_implied_ids],
-                    'all_implied_by_ids': [g.pk for g in group.all_implied_by_ids],
+                    'all_implied_by_ids': [
+                        g.pk for g in group.all_implied_by_ids],
                 }
                 for group in cls.objects.all()
             },
@@ -672,11 +682,9 @@ class ResGroups(models.CopyMixin, TimeStampedModel):
                 {
                     'id': category.pk,
                     'name': category.name,
-                    'privilege_ids': [
-                        privilege.pk
-                        for privilege in category.privileges.order_by('sequence', 'pk')
-                        if privilege.group_ids.exists()
-                    ],
+                    'privilege_ids': category.privileges.sorted(
+                        lambda p: (p.sequence, p.pk)).filtered(
+                        lambda p: p.group_ids.exists()).ids,
                 }
                 for category in category_model.objects.filter(
                     privileges__group_ids__isnull=False).distinct()

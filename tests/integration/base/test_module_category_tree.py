@@ -7,9 +7,18 @@ from django.db import connection, transaction
 from addons.base.models.ir_model import IrModelData
 from addons.base.models.ir_module import IrModuleCategory
 from modules import db as module_db
+from orm.environments import sudo
 
 pytestmark = [pytest.mark.integration, pytest.mark.django_db]
 ROOT = 'ContractTree'
+
+
+@pytest.fixture(autouse=True)
+def _elevated():
+    """Las pruebas de la fuente corren como superusuario; bajo ``BaseModel``
+    la ACL de ``ir.module.category`` rehúsa una lectura sin usuario."""
+    with sudo():
+        yield
 
 
 def _create(segments):

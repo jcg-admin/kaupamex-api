@@ -24,9 +24,10 @@ nombre se lee de la referencia cuando llega, no se anticipa.
 from django.db import models
 
 from addons.base.models.timestamped_mixin import TimeStampedModel
+from orm.models import BaseModel
 
 
-class ResGroupsPrivilege(TimeStampedModel):
+class ResGroupsPrivilege(BaseModel, TimeStampedModel):
     """
     Etiqueta que agrupa grupos en el formulario (``res.groups.privilege``).
     """

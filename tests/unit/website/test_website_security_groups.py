@@ -56,7 +56,8 @@ def installed_data():
     """
     package = SimpleNamespace(name='website',
                               manifest=get_manifest('website'))
-    load_data({}, 'init', 'data', package, using=DEFAULT_DB_ALIAS)
+    with sudo():
+        load_data({}, 'init', 'data', package, using=DEFAULT_DB_ALIAS)
 
 
 def _group(xml_id):

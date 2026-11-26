@@ -82,14 +82,15 @@ class TestItResolvesToTheDjangoReverse:
     Es la mitad que el ``related_name`` SI da, y el porte no la reimplementa:
     la reusa. El control positivo compara las dos vias sobre los mismos datos.
 
-    El modelo de prueba es ``ir.module.category``, un modelo de Django con FK
-    a sí mismo: ``res.partner.category`` ya es un ``BaseModel`` y su inverso
-    devuelve un recordset, no el manager de Django que esta clase mide.
+    El modelo de prueba es ``res.partner``, un modelo de Django con FK a sí
+    mismo (``parent``, reverso ``children``): ``res.partner.category`` e
+    ``ir.module.category`` ya son ``BaseModel`` y su inverso devuelve un
+    recordset, no el manager de Django que esta clase mide.
     """
 
     @pytest.fixture
     def category_class(self):
-        return apps.get_model('base', 'IrModuleCategory')
+        return apps.get_model('base', 'ResPartner')
 
     @pytest.fixture
     def tree(self, db, category_class):
@@ -101,7 +102,7 @@ class TestItResolvesToTheDjangoReverse:
 
     def test_reading_it_gives_the_children(self, tree, category_class):
         root, child_a, child_b = tree
-        field = One2many('base.IrModuleCategory', 'parent')
+        field = One2many('base.ResPartner', 'parent')
         field.contribute_to_class(category_class, 'o2m_test_children')
         try:
             assert set(
@@ -116,12 +117,12 @@ class TestItResolvesToTheDjangoReverse:
         exactamente lo mismo. Si divergen, el porte construyo otra cosa.
         """
         root, _, _ = tree
-        field = One2many('base.IrModuleCategory', 'parent')
+        field = One2many('base.ResPartner', 'parent')
         field.contribute_to_class(category_class, 'o2m_test_agree')
         try:
             assert set(
                 root.o2m_test_agree.values_list('pk', flat=True)
-            ) == set(root.child.values_list('pk', flat=True))
+            ) == set(root.children.values_list('pk', flat=True))
         finally:
             delattr(category_class, 'o2m_test_agree')
 

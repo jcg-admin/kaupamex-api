@@ -19,7 +19,7 @@ from modules.module_graph import ModuleGraph
 from orm.environments import is_system
 
 
-class IrModuleCategory(TimeStampedModel):
+class IrModuleCategory(models.BaseModel, TimeStampedModel):
     """Aplicación: la categoría bajo la que se agrupan los addons.
 
     Adaptación de ``ir.module.category`` (``ir_module.py:76-91`` de la
@@ -45,16 +45,16 @@ class IrModuleCategory(TimeStampedModel):
     _order = 'sequence, name, id'
     _allow_sudo_commands = False
 
-    name        = fields.Char()
-    parent      = fields.Many2one(
+    name = fields.Char()
+    parent = fields.Many2one(
         'self', on_delete=models.PROTECT, null=True, blank=True,
         db_index=True, related_name='child',
         help_text='Odoo parent_id. Null = aplicación de nivel 0.',
     )
     description = fields.Text(blank=True, default='')
-    sequence    = fields.Integer(null=True, blank=True)
-    visible     = fields.Boolean(default=True)
-    exclusive   = fields.Boolean(default=False)
+    sequence = fields.Integer(null=True, blank=True)
+    visible = fields.Boolean(default=True)
+    exclusive = fields.Boolean(default=False)
 
     #: ≙ ``xml_id`` (``odoo19c: ir_module.py:91``):
     #: ``fields.Char(string='External ID', compute='_compute_xml_id')``.
@@ -102,7 +102,7 @@ class IrModuleCategory(TimeStampedModel):
         return value
 
     def _check_parent_not_circular(self):
-        """≙ ``_check_parent_not_circular`` (``odoo19c: ir_module.py:102-105``).
+        """≙ ``_check_parent_not_circular`` (``ir_module.py:102-105``).
 
         Mensaje de la fuente, verbatim: *"You cannot create recursive
         categories."* Las categorias anidan —una aplicacion tiene
@@ -114,7 +114,7 @@ class IrModuleCategory(TimeStampedModel):
         """
         seen = set()
         current = self.parent
-        while current is not None:
+        while current:
             if current.pk == self.pk or current.pk in seen:
                 raise ValidationError(
                     'No se pueden crear categorías recursivas.')

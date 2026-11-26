@@ -26,7 +26,8 @@ def _install(module):
     reutilizada no los reescribiría.
     """
     package = SimpleNamespace(name=module, manifest=get_manifest(module))
-    load_data({}, 'init', 'data', package, using=DEFAULT_DB_ALIAS)
+    with sudo():
+        load_data({}, 'init', 'data', package, using=DEFAULT_DB_ALIAS)
 
 
 def _record(model, module, name):
