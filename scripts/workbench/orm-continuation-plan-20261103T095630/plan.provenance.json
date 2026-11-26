@@ -2079,6 +2079,13 @@
         "res-device-is-current-field-0397"
       ],
       "writtenAt": "2026-11-26T17:24:42Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-base-ir-actions-todo-0397"
+      ],
+      "writtenAt": "2026-11-26T18:47:06Z"
     }
   ]
 }
