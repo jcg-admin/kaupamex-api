@@ -111,3 +111,18 @@ incorrecto heredado: 19 gobierna. Diferencias medidas contra la fuente:
 - Anulación de la regla de empleado (retirada de `_RULES` y su fila): caen
   exactamente los 2 casos que dependen de ella (visibilidad y escritura sobre
   un filtro ajeno). Restaurada con `cmp`.
+
+## Símbolos del cambio, con su cita y su prueba
+
+| Símbolo | Referencia | Prueba |
+|---|---|---|
+| `IrFilters` (cabecera, campos, `embedded_action`) | `odoo19c: odoo/addons/base/models/ir_filters.py:7-40` (`embedded_action_id`, `:23`) | `tests/integration/base/test_ir_filters_port_19.py`, `tests/unit/base/test_ir_filters.py` |
+| `_list_all_models`, `copy_data`, `write`, `_get_eval_domain`, `_get_action_domain`, `get_filters`, `create_filter` | `odoo19c: odoo/addons/base/models/ir_filters.py:42-109` | `tests/integration/base/test_ir_filters_port_19.py` |
+| `0131_ir_filters_port_19` (esquema y paso de datos: dueño → `user_ids`, etiqueta → identidad) | `odoo19c: odoo/addons/base/models/ir_filters.py:13` | `tests/unit/base/test_ir_filters.py` |
+| `0132_seed_ir_filters_security` (ACL y reglas en bases ya migradas) | `odoo19c: odoo/addons/base/models/ir_filters.py:7-10` y `base_security.xml:74-104` | `tests/integration/base/test_ir_filters_port_19.py` |
+| `ResUsers.ids` | `odoo19c: odoo/orm/models.py:5904-5909` | `tests/integration/base/test_ir_filters_port_19.py` (portal) |
+| `get_default_domain` | `odoo19c: addons/web/controllers/json.py:270-277` | `tests/integration/base/test_ir_filters_port_19.py` |
+
+`embedded_action` conserva el nombre de su porte anterior (forma B, columna
+`embedded_action_id`); sólo cambian su `verbose_name` y su `help_text`, que
+pasan al texto de la fuente (`:23`).
