@@ -43,9 +43,37 @@ Unidad: `ir-actions-server-constraints-name-0391` (TASK-GEN-0391; depende de
   `test_ir_actions_constraints.py` y todo creador por `objects.create`
   (el `save()` directo de Django deja de validar, como en 4d).
 
-## Pendiente de medir antes de implementar
+## Medido
 
-- Si `fields.Char(compute=..., store=True)` en una subclase de un abstracto
-  que ya declara `name` genera migración (no debe).
-- Si el recómputo almacenado del ORM dispara en `create` y `write` con
-  `depends` por lambda (precedente: `_compute_warning` en 5b, no almacenado).
+| Símbolo | Archivo | Fuente |
+|---|---|---|
+| `IrActionsServer.name` (`compute='_compute_name'`, `store=True`, `readonly=False`) y `IrActionsServer.automated_name` (`compute='_compute_name'`, `store=True`) | `src/addons/base/models/ir_actions.py` | `odoo19c: odoo/addons/base/models/ir_actions.py:605-606` |
+| `IrActionsServer._compute_name` con `@api.depends(lambda self: self._name_depends())` y bucle sobre `self` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:843-849` |
+| `IrActionsServer._check_python_code` con `@api.constrains('code')` sobre `self.sudo().filtered('code')` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:960-965` |
+| `IrActionsServer._check_children` con `@api.constrains('parent_id', 'child_ids')`, `self._has_cycle()` y los mensajes de la fuente | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:967-973` |
+| se retira `IrActionsServer.save`: el ORM dispara el cómputo y las restricciones | ídem | `odoo19c: odoo/orm/models.py:4683-4685` |
+| migración `0152_alter_iractionsserver_automated_name`: `automated_name` pasa a `editable=False` (sólo estado) | `src/addons/base/migrations/0152_alter_iractionsserver_automated_name.py` | `odoo19c: odoo/addons/base/models/ir_actions.py:606` |
+
+Medido al implementar: `_name_depends` sigue siendo `classmethod`, porque el
+`depends` invocable del puerto se llama con la clase del modelo (la misma
+convención que `_warning_depends`); como método de instancia, la carga de
+módulos murió con `TypeError` (616 errores de montaje en el primer
+subconjunto).
+
+Dar `name` en `create` protege todo su grupo calculado, `automated_name`
+incluido (`odoo19c: odoo/orm/models.py:4683-4685`, `field_computed`): en la
+fuente `automated_name` no se calcula en ese caso. La prueba heredada que lo
+esperaba calculado se corrigió a la conducta de la fuente.
+
+Prueba: `tests/unit/base/test_ir_actions_server_constraints_name.py`, 7 casos
+(RED: 4 de 7; los otros 3 pasaban por el `save()` que se retira). Los
+consumidores que validaban por `objects.create`/`save()` pasan a
+`create`/`write` del ORM.
+
+Anulación (copia restaurada y comparada con `cmp`): sin el `@api.depends` y
+sin los dos `@api.constrains` caen exactamente 14 casos, todos de las cuatro
+pruebas que miden el nombre y las dos restricciones.
+
+Subconjunto derivado (45 archivos): `612 passed, 2 xfailed`; el único rojo es
+`test_default_get::test_a_model_with_name_resolves_to_name`, preexistente y
+dependiente del orden.
