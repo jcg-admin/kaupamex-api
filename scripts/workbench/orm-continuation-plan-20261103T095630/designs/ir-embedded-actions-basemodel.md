@@ -77,3 +77,34 @@ No hay ACL ni regla de `ir.embedded.actions` en `ir_model_access.py` ni en
 árbol arma el diccionario recorriendo `_meta.fields`, que no contiene un
 calculado no almacenado. `IrActionsActions` todavía no es `BaseModel`, así
 que no tiene `read`. Se porta en el paso 4, junto con `ir.actions.actions`.
+
+## Medido
+
+| Símbolo | Archivo | Fuente |
+|---|---|---|
+| `IrEmbeddedActions` sobre `models.BaseModel` con `_name`, `_description` y `_order`; campos `name`, `sequence`, `parent_action_id`, `parent_res_id`, `parent_res_model`, `action_id`, `python_method`, `user_id`, `is_deletable`, `default_view_mode`, `is_visible`, `domain`, `context`, `groups_ids`; restricciones `ir_embedded_actions_check_only_one_action_defined` e `ir_embedded_actions_check_python_method_requires_name` | `src/addons/base/models/ir_embedded_actions.py` | `odoo19c: odoo/addons/base/models/ir_embedded_actions.py:8-41` |
+| `IrEmbeddedActions.create`, `IrEmbeddedActions._compute_display_name`, `IrEmbeddedActions._compute_is_deletable`, `IrEmbeddedActions._compute_is_visible`, `IrEmbeddedActions._unlink_if_action_deletable`, `IrEmbeddedActions._get_readable_fields` | ídem | `odoo19c: odoo/addons/base/models/ir_embedded_actions.py:43-111` |
+| `IrActionsActWindow.embedded_action_ids` calculado e `IrActionsActWindow._compute_embedded_actions` | `src/addons/base/models/ir_actions.py` | `odoo19c: odoo/addons/base/models/ir_actions.py:332,336-339` |
+| `IrFilters.embedded_action_id`, su índice `ir_filters_get_filters_index` y su restricción `ir_filters_check_res_id_only_when_embedded_action` | `src/addons/base/models/ir_filters.py` | `odoo19c: odoo/addons/base/models/ir_filters.py:23-36` |
+| fila `ir_embedded_actions_group_user` de `_ACCESS` | `src/addons/base/security/ir_model_access.py` | `odoo19c: odoo/addons/base/security/ir.model.access.csv:109` |
+| las dos reglas de `ir.embedded.actions` de `_RULES` | `src/addons/base/security/base_security.py` | `odoo19c: odoo/addons/base/security/base_security.xml:207-227` |
+| migración `0144_ir_embedded_actions_basemodel` con `empty_python_method_as_null` y `context_as_python_literal` | `src/addons/base/migrations/0144_ir_embedded_actions_basemodel.py` | ídem y `odoo19c: odoo/orm/fields_relational.py:1291-1295` |
+
+Prueba: `tests/unit/base/test_ir_embedded_actions_basemodel.py`, 13 casos.
+RED antes del cambio: 10 fallidos de 12; el caso de `ir.filters` pasaba
+porque `get_field` resuelve también el `attname`, y se le añadió la
+aserción sobre el nombre y la columna.
+
+- `is_visible` no declara `depends_context` en la fuente: su valor queda en
+  la caché del registro. La prueba lee la visibilidad con `active_id` y
+  sólo después la invalida antes de leerla con otro registro activo; el
+  caso sin `active_id` usa un registro propio.
+- `res.partner` no está sobre `models.BaseModel` en este árbol y
+  `self.env['res.partner']` no tiene `search`; el modelo padre de las
+  pruebas de visibilidad es `ir.filters`, que sí lo está.
+- Anulación: sin el filtro por `is_visible` de `_compute_embedded_actions`
+  y sin la excepción de `_unlink_if_action_deletable` caen exactamente sus
+  dos casos.
+- Subconjunto derivado (`grep` de `IrEmbeddedActions`, `embedded_action`,
+  `IrFilters`, `act_window`, `base_security`, `seed_base_acl`,
+  `ir_model_access` sobre `tests/`, 44 archivos): 674 pasados, 0 fallidos.
