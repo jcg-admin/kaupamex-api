@@ -73,8 +73,11 @@ RED antes del cambio: 5 fallidos de 6; el caso de la acción de ventana sin
   contaban como nuevos. Van al final de la clase, y los mensajes usan
   `Environment._`, que es el `Environment._` de la fuente.
 - **`res.users` no es `BaseModel`**: `_check_action_id` corre en `clean()`
-  como sus dos hermanas, y `_unlink_check_home_action` vacía la columna con
-  el gestor de Django bajo `sudo()`, que no filtra por `active`.
+  como sus dos hermanas, y `_unlink_check_home_action` busca con el gestor
+  de Django, que no filtra por `active`, y escribe con el `write` de cada
+  usuario bajo `sudo()`: el queryset no declara `write`. Un primer `update`
+  pasaba las pruebas y lo rechazó `check_write_path` («se salta un enganche
+  que la fuente usa»): la fuente escribe con `sudo().write(...)`.
 - Anulación: sin la rama `reload`, sin la de `active_id`, sin el `update`
   del gancho y sin el `type` por defecto de `client` caen exactamente sus
   cuatro casos.
