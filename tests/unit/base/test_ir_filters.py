@@ -74,7 +74,7 @@ def test_create_minimo_aplica_defaults():
     assert filtro.active is True
     assert filtro.is_default is False
     assert not filtro.user_ids
-    assert filtro.action_id is None
+    assert not filtro.action_id
 
 
 # --- user NULL = global; set = privado --------------------------------------

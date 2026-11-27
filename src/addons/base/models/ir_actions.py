@@ -257,12 +257,7 @@ BINDING_TYPE_CHOICES = [
 ]
 
 
-class IrActionsBase(
-    models.DefaultGetMixin,
-    models.CopyMixin,
-    models.OriginMixin,
-    TimeStampedModel,
-):
+class IrActionsBase(models.Model):
     """Los campos y métodos de ``ir.actions.actions``
     (``odoo19c: odoo/addons/base/models/ir_actions.py:55-259``).
 
@@ -274,10 +269,12 @@ class IrActionsBase(
     desde una base abstracta (``src/orm/model_classes.py:20``); esta es esa
     base, y ``IrActionsActions`` es la clase de la tabla ``ir_actions``.
 
-    ``models.CopyMixin`` y ``models.OriginMixin`` portan ``copy``,
-    ``copy_data`` y ``_origin`` del ``BaseModel`` de la fuente
-    (``odoo/orm/models.py``) para los subtipos que aún no son
-    ``models.BaseModel``. No declaran campos.
+    Cada subtipo la declara **antes** de ``models.BaseModel``: así su MRO
+    pone ``create``, ``write`` y ``unlink`` de ``ir.actions.actions`` entre
+    los del subtipo y los de ``BaseModel``, que es el orden en que la fuente
+    los llama. Con ``models.BaseModel`` delante, ``BaseModel.unlink`` y
+    ``BaseModel.create`` los tapaban (medido sobre
+    ``IrActionsServer.__mro__``).
     """
 
     name = fields.Char(max_length=255, verbose_name='Nombre de la acción')
@@ -325,9 +322,53 @@ class IrActionsBase(
     binding_view_types = fields.Char(
         max_length=64, default='list,form', verbose_name='Vistas de anclaje'
     )
+    #: ≙ ``xml_id`` (``odoo19c: odoo/addons/base/models/ir_actions.py:69``).
+    xml_id = fields.Char(compute='_compute_xml_id', string='External ID')
 
     class Meta:
         abstract = True
+
+    def _compute_xml_id(self):
+        """≙ ``_compute_xml_id``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:105-108``)."""
+        res = self.get_external_id()
+        for record in self:
+            record.xml_id = res.get(record.id)
+
+    @api.model_create_multi
+    @classmethod
+    def create(cls, vals_list):
+        """≙ ``create``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:110-115``)."""
+        res = super().create(vals_list)
+        # self.get_bindings() depends on action records
+        registry_of(cls).clear_cache()
+        return res
+
+    def write(self, vals):
+        """≙ ``write``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:117-121``)."""
+        res = super().write(vals)
+        # self.get_bindings() depends on action records
+        registry_of(self).clear_cache()
+        return res
+
+    def unlink(self):
+        """unlink ir.action.todo/ir.filters which are related to actions which
+        will be deleted. NOTE: ondelete cascade will not work on
+        ir.actions.actions so we will need to do it manually.
+
+        ≙ ``unlink``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:123-133``)."""
+        self.env['ir.actions.todo'].search(
+            [('action_id', 'in', self.ids)]).unlink()
+        filters = self.env['ir.filters'].with_context(
+            active_test=False).search([('action_id', 'in', self.ids)])
+        filters.unlink()
+        res = super().unlink()
+        # self.get_bindings() depends on action records
+        registry_of(self).clear_cache()
+        return res
 
     def _get_eval_context(self, action=None):
         """≙ ``_get_eval_context`` de ``ir.actions.actions``
@@ -378,20 +419,18 @@ class IrActionsBase(
 
         ≙ ``_get_action_dict`` (``odoo19c: ir_actions.py:236-245``).
 
-        La fuente arma el diccionario con ``self.sudo().read()[0]`` y filtra
-        por :meth:`_get_readable_fields`. Aquí el ``read()`` de Odoo —que
-        devuelve los valores de los campos de un registro— es el recorrido de
-        ``_meta.fields`` del ORM, que es lo mismo con el constructor de este
-        stack. El ``sudo()`` de la fuente es el contexto homónimo de
-        ``orm.environments``, ya usado en este archivo.
+        El ``sudo()`` de la fuente es el contexto homónimo de
+        ``orm.environments``.
         """
+        self.ensure_one()
         readable_fields = self._get_readable_fields()
         with sudo():
-            return {
-                field.name: getattr(self, field.name)
-                for field in self._meta.fields
-                if field.name in readable_fields
-            }
+            values = self.read()[0]
+        return {
+            field: value
+            for field, value in values.items()
+            if field in readable_fields
+        }
 
     def _get_readable_fields(self):
         """Los campos que es seguro leer desde el cliente.
@@ -458,8 +497,15 @@ class IrActionsBase(
             )
 
 
-class IrActionsActions(IrActionsBase):
-    """La acción genérica (``ir.actions.actions``, tabla ``ir_actions``)."""
+class IrActionsActions(IrActionsBase, models.BaseModel, TimeStampedModel):
+    """La acción genérica (``ir.actions.actions``, tabla ``ir_actions``,
+    ``odoo19c: odoo/addons/base/models/ir_actions.py:55-60``)."""
+
+    _name = 'ir.actions.actions'
+    _description = 'Actions'
+    _table = 'ir_actions'
+    _order = 'name, id'
+    _allow_sudo_commands = False
 
     class Meta:
         db_table = 'ir_actions'
@@ -468,28 +514,46 @@ class IrActionsActions(IrActionsBase):
         verbose_name_plural = 'Acciones'
 
 
-class IrActionsActWindowClose(IrActionsActions):
-    """Cierra el diálogo actual (``ir.actions.act_window_close``).
+class IrActionsActWindowClose(IrActionsBase, models.BaseModel,
+                              TimeStampedModel):
+    """Cierra el diálogo actual (``ir.actions.act_window_close``,
+    ``odoo19c: odoo/addons/base/models/ir_actions.py:428-443``).
 
-    **Proxy**: la referencia le da ``_table = 'ir_actions'``, la misma tabla
-    que el padre, y sólo fija el ``type``. Darle tabla propia habría inventado
-    una que la fuente no tiene.
+    La fuente le da ``_table = 'ir_actions'``, la tabla de
+    ``ir.actions.actions``, y redeclara ``type`` con su valor por defecto.
+    Aquí es un modelo concreto sobre esa misma tabla con ``managed = False``:
+    Django no crea ni migra una tabla que ya pertenece a
+    :class:`IrActionsActions`, y la clase puede redeclarar ``type``, cosa que
+    un ``proxy`` de Django no admite.
     """
 
-    TYPE = 'ir.actions.act_window_close'
+    _name = 'ir.actions.act_window_close'
+    _description = 'Action Window Close'
+    _inherit = ['ir.actions.actions']
+    _table = 'ir_actions'
+    _allow_sudo_commands = False
+
+    type = fields.Char(
+        max_length=64, default='ir.actions.act_window_close',
+        verbose_name='Tipo de acción')
 
     class Meta:
-        proxy = True
+        db_table = 'ir_actions'
+        managed = False
         verbose_name = 'Acción de cierre de ventana'
         verbose_name_plural = 'Acciones de cierre de ventana'
 
-    def save(self, *args, **kwargs):
-        if not self.type:
-            self.type = self.TYPE
-        return super().save(*args, **kwargs)
+    def _get_readable_fields(self):
+        """≙ ``_get_readable_fields`` (``:437-443``)."""
+        return super()._get_readable_fields() | {
+            # 'effect' and 'infos' are not real fields of
+            # `ir.actions.act_window_close` but they are used to display the
+            # rainbowman ('effect') and waited by the action_service ('infos').
+            "effect", "infos"
+        }
 
 
-class IrActionsActWindow(models.BaseModel, IrActionsBase):
+class IrActionsActWindow(IrActionsBase, models.BaseModel, TimeStampedModel):
     """Abre una ventana sobre un modelo (``ir.actions.act_window``)."""
 
     _name = 'ir.actions.act_window'
@@ -782,6 +846,24 @@ class IrActionsActWindow(models.BaseModel, IrActionsBase):
             'close_on_report_download',
         }
 
+    def _get_action_dict(self):
+        """Override to return action content with detailed embedded actions
+        data if available.
+
+        :return: A dict with updated action dictionary including embedded
+            actions information.
+
+        ≙ ``_get_action_dict``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:388-397``).
+        """
+        result = super()._get_action_dict()
+        if embedded_action_ids := result["embedded_action_ids"]:
+            EmbeddedActions = self.env["ir.embedded.actions"]
+            embedded_fields = EmbeddedActions._get_readable_fields()
+            result["embedded_action_ids"] = EmbeddedActions.browse(
+                embedded_action_ids).read(embedded_fields)
+        return result
+
 
 class IrActionsActWindowView(models.BaseModel, TimeStampedModel):
     """
@@ -847,7 +929,7 @@ class IrActionsActWindowView(models.BaseModel, TimeStampedModel):
         return f'{self.act_window_id}: {self.view_mode}'
 
 
-class IrActionsActUrl(models.BaseModel, IrActionsBase):
+class IrActionsActUrl(IrActionsBase, models.BaseModel, TimeStampedModel):
     """Navega a una URL (``ir.actions.act_url``,
     ``odoo19c: odoo/addons/base/models/ir_actions.py:445-460``)."""
 
@@ -890,7 +972,7 @@ class IrActionsActUrl(models.BaseModel, IrActionsBase):
         }
 
 
-class IrActionsClient(models.BaseModel, IrActionsBase):
+class IrActionsClient(IrActionsBase, models.BaseModel, TimeStampedModel):
     """Acción resuelta por el cliente (``ir.actions.client``,
     ``odoo19c: odoo/addons/base/models/ir_actions.py:1426-1462``)."""
 
@@ -1228,7 +1310,7 @@ class ServerActionWithWarningsError(UserError):
     """
 
 
-class IrActionsServer(models.BaseModel, IrActionsBase):
+class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
     """Acción ejecutada en el servidor (``ir.actions.server``).
 
     Los seis modos se portan como **vocabulario** —clasifican la acción— pero

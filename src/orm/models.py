@@ -1572,6 +1572,35 @@ def active_field_name(cls):
     return None
 
 
+class EmptyListHelpMixin:
+    """El mensaje de las vistas de lista y kanban vacías.
+
+    ≙ ``get_empty_list_help`` del modelo ``base``
+    (``odoo19c: odoo/addons/base/models/ir_ui_view.py:2747-2758``), que todo
+    modelo recibe. ``Base`` de ``src/addons/base/models/ir_model.py`` es
+    abstracto y ningún modelo hereda de él, así que el método viaja como
+    :class:`BaseUrlMixin`: por ``BaseModel`` y por ``TimeStampedModel``.
+
+    La fuente lo declara con ``@api.model``; este árbol porta un método de
+    modelo como ``classmethod`` (así ``create``), de modo que responde igual
+    sobre la clase que ``env['res.partner']`` devuelve para un modelo aún
+    fuera de ``BaseModel`` que sobre un recordset.
+    """
+
+    @classmethod
+    def get_empty_list_help(cls, help_message):
+        """Hook method to customize the help message in empty list/kanban
+        views.
+
+        By default, it returns the help received as parameter.
+
+        :param help_message: ir.actions.act_window help content
+        :return: help message displayed when there is no result to display
+          in a list/kanban view (by default, it returns the action help)
+        """
+        return help_message
+
+
 class BaseUrlMixin:
     """La URL raíz desde la que se sirve un registro.
 
@@ -6974,7 +7003,7 @@ def _copy_data_blacklist(records, default):
 
 
 class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin,
-                CheckCompanyMixin, Model):
+                CheckCompanyMixin, EmptyListHelpMixin, Model):
     """El recordset — ≙ ``BaseModel`` (``odoo19c:
     odoo/orm/models.py:334-7004``).
 
@@ -11389,18 +11418,6 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin,
         if recordsets:
             return recordsets[0].browse(ids)
         return field.related_model._default_manager.filter(pk__in=ids)
-
-    def get_empty_list_help(self, help_message):
-        """Hook method to customize the help message in empty list/kanban
-        views. — ≙ ``get_empty_list_help`` del modelo ``base``
-        (``odoo19c: odoo/addons/base/models/ir_ui_view.py:2747-2758``).
-
-        Docstring de la fuente: *"By default, it returns the help received as
-        parameter."* Todo modelo lo recibe; ``Base`` de
-        ``src/addons/base/models/ir_model.py`` es abstracto y ningún modelo
-        hereda de él, así que el método vive aquí.
-        """
-        return help_message
 
 
 class IdFromIds:

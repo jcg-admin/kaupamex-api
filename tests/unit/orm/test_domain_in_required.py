@@ -575,9 +575,14 @@ class TestTheThirdConsumerAsksTheSameQuestion:
         # 27 al portar #247; 28 desde que ``ir.filters`` declara
         # ``user_ids`` (``odoo19c: ir_filters.py:13``): un Many2many más, sin
         # columna propia, de la misma familia que los otros
-        # (``designs/ir-filters-port-19.md``).
-        assert len(discrepan) == 28, (
-            f'{len(discrepan)} discrepancias en base, se esperaban 28. Es '
+        # (``designs/ir-filters-port-19.md``). 37 desde que
+        # ``ir.actions.act_window_close`` es un modelo no gestionado sobre
+        # ``ir_actions`` (``designs/ir-actions-actions-basemodel.md``): sus
+        # nueve campos con columna dan ``is_not_null`` falso porque
+        # ``registry.is_not_null`` descarta todo modelo con
+        # ``managed = False`` (``src/orm/registry.py:1742``).
+        assert len(discrepan) == 37, (
+            f'{len(discrepan)} discrepancias en base, se esperaban 37. Es '
             'evidencia fechada; si cambia, se re-mide y se actualiza con su '
             'razón — no se relaja la aserción'
         )

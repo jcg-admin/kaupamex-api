@@ -204,6 +204,7 @@ import models
 
 from addons.base import report_catalog, report_template
 from addons.base.models.ir_actions import IrActionsBase
+from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.base.models.ir_ui_view import VIEW_TYPE_TEMPLATE, IrUiView
 from addons.base.models.ir_attachment import IrAttachment
 from addons.base.models.ir_model import IrModel
@@ -424,7 +425,7 @@ def run_helper(helper, descriptor):
     return completed.stdout
 
 
-class IrActionsReport(models.BaseModel, IrActionsBase):
+class IrActionsReport(IrActionsBase, models.BaseModel, TimeStampedModel):
     """``ir.actions.report`` — declaración de un reporte imprimible.
 
     Hereda ``IrActionsBase`` (abstracto) porque la referencia declara

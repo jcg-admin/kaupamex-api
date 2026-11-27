@@ -77,8 +77,7 @@ def test_read_asks_the_target_model_for_its_empty_list_help(monkeypatch):
 def test_the_base_empty_list_help_returns_the_message():
     """``get_empty_list_help`` del modelo ``base``
     (``ir_ui_view.py:2747-2758``)."""
-    assert models.BaseModel.get_empty_list_help(
-        IrActionsActWindow(), '<p>x</p>') == '<p>x</p>'
+    assert models.BaseModel.get_empty_list_help('<p>x</p>') == '<p>x</p>'
 
 
 def test_a_json_context_becomes_a_python_literal():

@@ -3477,6 +3477,13 @@ for _relational_multi_owner in (One2many, models.ManyToManyField):
                     _relational_multi_member)
 models.ManyToManyField.write_real = _many2many_write_real
 models.ManyToManyField.write_new = _many2many_write_new
+#: El uno-a-muchos implícito de Django (``ManyToOneRel``) es el ``One2many``
+#: de la fuente, que hereda ``convert_to_read`` de ``_RelationalMulti``
+#: (``odoo19c: odoo/orm/fields_relational.py:668-669``). Sin él, ``read()``
+#: sin campos —que recorre ``fields_get``, y ``fields_get`` lista las
+#: relaciones inversas— fallaba sobre la primera.
+models.ManyToOneRel.convert_to_read = _reverse_one2many_only(
+    vars(_RelationalMulti)['convert_to_read'])
 
 
 def _overrides_search(comodel_cls):

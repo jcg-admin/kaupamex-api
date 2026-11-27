@@ -451,6 +451,19 @@ _ACCESS = (
         'group_system',
         (1, 1, 1, 1),
     ),
+    # ``odoo19c: odoo/addons/base/security/ir.model.access.csv:100,102``.
+    (
+        'ir_actions_group_system',
+        'base.IrActionsActions',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
+    (
+        'ir_actions_act_window_close_group_system',
+        'base.IrActionsActWindowClose',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
     (
         'ir_actions_act_window_view_group_system',
         'base.IrActionsActWindowView',

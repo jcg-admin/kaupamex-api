@@ -69,6 +69,7 @@ from orm.models import (
     BaseUrlMixin,
     CheckCompanyMixin,
     DisplayNameMixin,
+    EmptyListHelpMixin,
     OrderMixin,
     RecordLoaderMixin,
 )
@@ -89,6 +90,7 @@ class TimeStampedModel(
     OrderMixin,
     CheckCompanyMixin,
     BaseUrlMixin,
+    EmptyListHelpMixin,
     ArchiveMixin,
     models.Model,
 ):
