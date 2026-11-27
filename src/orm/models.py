@@ -11894,3 +11894,40 @@ def _invalidate_after_django_delete(sender, **kwargs):
     if isinstance(sender, type) and issubclass(sender, BaseModel):
         return
     env().invalidate_all(flush=False)
+
+
+class ClassCheckShadow:
+    """Un método de registro de la fuente cuyo nombre ya usa Django para un
+    *check* de clase.
+
+    ``django.db.models.Model.check`` llama a ``cls._check_model()``,
+    ``cls._check_fields()``…, todos ``classmethod``. Cuando la fuente declara
+    con ese mismo nombre un ``@api.constrains`` de registro
+    (``IrActionsActWindow._check_model``, ``odoo19c:
+    odoo/addons/base/models/ir_actions.py:270-276``), el método de registro
+    sombrea al de Django y el arranque muere en el sistema de checks:
+    ``_check_model() missing 1 required positional argument: 'self'``.
+
+    El descriptor conserva el nombre de la fuente para los dos lectores: sobre
+    un registro devuelve el método ligado a él, y sobre la clase devuelve el
+    ``classmethod`` homónimo de la base que lo declara (el de Django), que es
+    lo que el sistema de checks invoca. El recolector de restricciones lee
+    ``__func__`` (``orm.registry._MarkedMethodCollector._marked``), así que la
+    marca ``_constrains`` de la función original sigue visible.
+    """
+
+    def __init__(self, func):
+        self.__func__ = func
+        functools.update_wrapper(self, func)
+
+    def __set_name__(self, owner, name):
+        self.name = name
+
+    def __get__(self, record, owner=None):
+        if record is not None:
+            return self.__func__.__get__(record, owner)
+        for klass in owner.__mro__:
+            attr = klass.__dict__.get(self.name)
+            if attr is not None and not isinstance(attr, ClassCheckShadow):
+                return attr.__get__(None, owner)
+        raise AttributeError(self.name)

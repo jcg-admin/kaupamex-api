@@ -241,17 +241,6 @@ VIEW_TYPES = [
     ('kanban', 'Kanban'),
 ]
 
-#: Patrón admitido para ``path`` — verbatim de la fuente.
-PATH_PATTERN = re.compile(r'[a-z][a-z0-9_-]*')
-
-#: Prefijos que la referencia reserva para el cliente.
-RESERVED_PATH_PREFIXES = ('m-', 'action-')
-
-#: Palabra que la referencia reserva **entera**, no como prefijo
-#: (``odoo19c: ir_actions.py:93-94``). Va aparte de los prefijos porque el
-#: chequeo es por igualdad: ``newsletter`` es una ruta valida.
-RESERVED_PATH_WORD = 'new'
-
 BINDING_TYPE_CHOICES = [
     ('action', 'Acción'),
     ('report', 'Reporte'),
@@ -570,36 +559,36 @@ class IrActionsBase(models.Model):
     def __str__(self):
         return self.name
 
-    def clean(self):
-        """≙ ``_check_path`` (``odoo19c: ir_actions.py:82-96``) — sus CUATRO
-        chequeos.
+    @api.constrains('path')
+    def _check_path(self):
+        """≙ ``_check_path`` (``odoo19c: ir_actions.py:81-103``).
 
-        Son cuatro y no tres, que es lo que este puerto tenia. El cuarto —
-        ``path == "new"``— **no lo cubre ninguno de los otros**: ``new`` cumple
-        el patron y no empieza por ninguno de los dos prefijos reservados, asi
-        que pasaba entero. La fuente lo separa a proposito y su mensaje lo
-        dice: *"'new' is reserved, and can not be used as path."*
-
-        Y compara por **igualdad**, no por prefijo: ``newsletter`` es una ruta
-        legitima. Escribirlo con ``startswith`` prohibiria rutas que la fuente
-        admite.
+        Las tablas de los subtipos heredan de ``ir_actions`` (migración
+        ``0140``) y un índice único sólo vale dentro de su tabla, así que el
+        ``unique`` de ``path`` cubre una tabla y el ``search_count`` sobre
+        ``ir.actions.actions`` cubre la familia, como en la fuente.
         """
-        super().clean()
-        if not self.path:
-            return
-        if not PATH_PATTERN.fullmatch(self.path):
-            raise ValidationError(
-                'La ruta sólo admite minúsculas alfanuméricas, guion bajo y '
-                'guion, y debe empezar por letra.'
-            )
-        for prefix in RESERVED_PATH_PREFIXES:
-            if self.path.startswith(prefix):
-                raise ValidationError("'%s' es un prefijo reservado." % prefix)
-        if self.path == RESERVED_PATH_WORD:
-            raise ValidationError(
-                "'%s' está reservada y no se puede usar como ruta."
-                % RESERVED_PATH_WORD
-            )
+        for action in self:
+            if action.path:
+                if not re.fullmatch(r'[a-z][a-z0-9_-]*', action.path):
+                    raise ValidationError(self.env._(
+                        'The path should contain only lowercase alphanumeric '
+                        'characters, underscore, and dash, and it should '
+                        'start with a letter.'))
+                if action.path.startswith("m-"):
+                    raise ValidationError(
+                        self.env._("'m-' is a reserved prefix."))
+                if action.path.startswith("action-"):
+                    raise ValidationError(
+                        self.env._("'action-' is a reserved prefix."))
+                if action.path == "new":
+                    raise ValidationError(self.env._(
+                        "'new' is reserved, and can not be used as path."))
+                if (self.env['ir.actions.actions'].search_count(
+                        [('path', '=', action.path)]) > 1):
+                    raise ValidationError(self.env._(
+                        "Path to show in the URL must be unique! Please "
+                        "choose another one."))
 
 
 class IrActionsActions(IrActionsBase, models.BaseModel, TimeStampedModel):
@@ -822,51 +811,26 @@ class IrActionsActWindow(IrActionsBase, models.BaseModel, TimeStampedModel):
         result.extend((None, mode) for mode in missing)
         return result
 
-    def clean(self):
-        """≙ ``_check_model`` (``:270-276``) y ``_check_view_mode``
-        (``:300-307``), ademas del ``_check_path`` que hereda.
+    @models.ClassCheckShadow
+    @api.constrains('res_model', 'binding_model_id')
+    def _check_model(self):
+        """≙ ``_check_model`` (``odoo19c: ir_actions.py:270-276``).
 
-        **El modelo.** La fuente comprueba ``res_model`` **y**
-        ``binding_model_id`` contra su ``env``, que es el registro de modelos
-        cargados. El equivalente aqui es ``orm.registry.MODELS_BY_NAME``, que
-        indexa por el nombre punteado que declara ``_name`` — el mismo espacio
-        de nombres que la fuente consulta.
-
-        Sin esta guarda el error sale **al abrir la accion**, lejos de donde se
-        escribio, y quien la escribio ya no esta mirando.
-
-        **El modo de vista.** Dos comprobaciones, y la segunda sorprende:
-        ``'list, form'`` parece correcto y no lo es. La fuente parte por coma
-        **sin recortar**, asi que el segundo modo queda como ``' form'`` y no
-        resuelve contra ningun tipo de vista. Rechazar el espacio es mas util
-        que aceptarlo y fallar despues.
-
-        ``binding_model_id`` es el Many2one de la fuente: se comprueba el
-        ``model`` de su fila de ``ir.model``.
+        ``not in self.env`` delega en ``Environment.__getitem__``, que admite
+        el ``_name`` punteado y la etiqueta de Django. Django usa el mismo
+        nombre para un *check* de clase; :class:`~orm.models.ClassCheckShadow`
+        sirve a los dos.
         """
-        super().clean()
-        binding = self.binding_model_id
-        for model_name in (self.res_model,
-                           binding.model if binding else ''):
-            # Se admiten las DOS formas de nombrar un modelo, por la misma
-            # razón que en los otros tres sitios: la columna guarda el label
-            # de Django y ``MODELS_BY_NAME`` indexa por ``_name``. Con la
-            # pertenencia cruda, ``'base.ResPartner'`` —un nombre válido— se
-            # rechazaba como inválido.
-            if model_name and model_by_key(model_name) is None:
-                raise ValidationError(
-                    'Nombre de modelo inválido “%s” en la definición de la '
-                    'acción.' % model_name
-                )
-        modes = (self.view_mode or '').split(',')
-        if len(modes) != len(set(modes)):
-            raise ValidationError(
-                'Los modos de view_mode no se pueden repetir: %s' % modes
-            )
-        if any(' ' in mode for mode in modes):
-            raise ValidationError(
-                'No se admiten espacios en view_mode: “%s”' % self.view_mode
-            )
+        for action in self:
+            if action.res_model not in self.env:
+                raise ValidationError(self.env._(
+                    'Invalid model name “%s” in action definition.',
+                    action.res_model))
+            if (action.binding_model_id
+                    and action.binding_model_id.model not in self.env):
+                raise ValidationError(self.env._(
+                    'Invalid model name “%s” in action definition.',
+                    action.binding_model_id.model))
 
     def resolve_mobile_view_mode(self):
         """``mobile_view_mode`` con su respaldo al modo de pantalla ancha."""
@@ -973,6 +937,23 @@ class IrActionsActWindow(IrActionsBase, models.BaseModel, TimeStampedModel):
             result["embedded_action_ids"] = EmbeddedActions.browse(
                 embedded_action_ids).read(embedded_fields)
         return result
+
+    @api.constrains('view_mode')
+    def _check_view_mode(self):
+        """≙ ``_check_view_mode`` (``odoo19c: ir_actions.py:300-307``).
+
+        ``' ' in modes`` es pertenencia en la lista: rechaza un modo que es
+        exactamente un espacio; ``'list, form'`` pasa, como en la fuente.
+        """
+        for rec in self:
+            modes = rec.view_mode.split(',')
+            if len(modes) != len(set(modes)):
+                raise ValidationError(rec.env._(
+                    'The modes in view_mode must not be duplicated: %s',
+                    modes))
+            if ' ' in modes:
+                raise ValidationError(rec.env._(
+                    'No spaces allowed in view_mode: “%s”', modes))
 
 
 class IrActionsActWindowView(models.BaseModel, TimeStampedModel):
