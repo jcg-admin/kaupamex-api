@@ -169,6 +169,7 @@ class TestCheckViewMode:
             'list,form,kanban')
 
 
+@pytest.mark.usefixtures('superuser')
 class TestCheckChildren:
     """≙ ``_check_children`` (``odoo19c: ir_actions.py:968-973``), su mitad
     portable."""
@@ -180,9 +181,8 @@ class TestCheckChildren:
             name='Ciclo', type='ir.actions.server', state='multi',
             model_id=IrModel._get('res.partner')
         )
-        action.parent_id = action
         with pytest.raises(ValidationError):
-            action.save()
+            action.write({'parent_id': action.id})
 
     def test_a_cycle_of_three_is_refused(self, db):
         """CONTROL de la profundidad del recorrido."""
@@ -198,9 +198,8 @@ class TestCheckChildren:
             name='C', type='ir.actions.server', state='multi', parent_id=b,
             model_id=IrModel._get('res.partner')
         )
-        a.parent_id = c
         with pytest.raises(ValidationError):
-            a.save()
+            a.write({'parent_id': c.id})
 
     def test_a_legitimate_chain_is_accepted(self, db):
         """CONTROL de la dirección contraria — encadenar no es un ciclo.

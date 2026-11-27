@@ -117,10 +117,11 @@ class TestCheckChildrenRefusesTheSave:
         grandparent = _action(name='Abuela')
         IrActionsServer.objects.filter(pk=parent.pk).update(
             parent_id=grandparent)
-        grandparent.name = 'Abuela editada'
 
-        with pytest.raises(ValidationError, match='avisos'):
-            grandparent.save()
+        # La restricción corre sobre lo que se escribe: ``parent_id`` es uno
+        # de sus dos campos (``@api.constrains('parent_id', 'child_ids')``).
+        with pytest.raises(ValidationError, match='have warnings'):
+            grandparent.write({'parent_id': False})
 
     def test_saving_without_warning_children_is_allowed(self):
         parent = _action(name='Madre', model_id=IrModel._get('res.partner'))
@@ -138,11 +139,8 @@ class TestCheckChildrenRefusesTheSave:
         """La mitad que ya existía no se pierde al añadir la segunda."""
         first = _action(name='Primera')
         second = _action(name='Segunda', parent_id=first)
-        IrActionsServer.objects.filter(pk=first.pk).update(parent_id=second)
-
-        reloaded = IrActionsServer.objects.get(pk=first.pk)
-        with pytest.raises(ValidationError, match='Recursión'):
-            reloaded.save()
+        with pytest.raises(ValidationError, match='Recursion found'):
+            first.write({'parent_id': second.id})
 
 
 @pytest.mark.django_db

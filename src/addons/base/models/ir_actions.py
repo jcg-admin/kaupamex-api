@@ -1470,6 +1470,17 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
         ('equation', 'Calcular'),
     ]
 
+    #: ≙ ``name`` (``odoo19c: ir_actions.py:605``) —
+    #: ``fields.Char(compute='_compute_name', store=True, readonly=False)``:
+    #: la acción se nombra sola mientras nadie haya escrito otro nombre.
+    name = fields.Char(
+        max_length=255,
+        compute='_compute_name',
+        store=True,
+        readonly=False,
+        verbose_name='Nombre de la acción',
+    )
+
     #: ≙ ``automated_name`` (``odoo19c: ir_actions.py:606``) —
     #: ``fields.Char(compute='_compute_name', store=True)``. Guarda el nombre
     #: que la acción **se generaría** a sí misma, para poder distinguir un
@@ -1480,6 +1491,8 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
         max_length=255,
         blank=True,
         default='',
+        compute='_compute_name',
+        store=True,
         verbose_name='Nombre automático',
         help_text=(
             'Odoo automated_name. El nombre que la acción se pondría '
@@ -2054,18 +2067,20 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
         """
         return ['state', 'crud_model_id', 'resource_ref']
 
+    @api.depends(lambda self: self._name_depends())
     def _compute_name(self):
-        """≙ ``_compute_name`` (``:840-845``).
+        """≙ ``_compute_name`` (``:843-849``).
 
         ``was_automated`` es el pivote: sólo se pisa ``name`` si el que había
         era el que la acción se había puesto sola. Sin ``automated_name`` no
         habría con qué compararlo y el cómputo borraría el nombre del usuario
         en cada guardado.
         """
-        was_automated = (self.name or '') == (self.automated_name or '')
-        self.automated_name = self._generate_action_name()
-        if was_automated:
-            self.name = self.automated_name
+        for action in self:
+            was_automated = action.name == action.automated_name
+            action.automated_name = action._generate_action_name()
+            if was_automated:
+                action.name = action.automated_name
 
     @api.onchange('name')
     def _onchange_name(self):
@@ -2175,6 +2190,7 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
             ]
         )
 
+    @api.constrains('code')
     def _check_python_code(self):
         """≙ ``_check_python_code`` (``:960-965``) — valida, **nunca ejecuta**.
 
@@ -2199,11 +2215,10 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
         cuando todo está bien. Un ``if msg`` sobre esa salida es lo que separa
         el rechazo del silencio.
         """
-        if not self.code:
-            return
-        msg = test_python_expr(expr=self.code.strip(), mode='exec')
-        if msg:
-            raise ValidationError(msg)
+        for action in self.sudo().filtered('code'):
+            msg = test_python_expr(expr=action.code.strip(), mode="exec")
+            if msg:
+                raise ValidationError(msg)
 
     def _get_readable_fields(self):
         """≙ ``_get_readable_fields`` (``:1225-1228``).
@@ -2434,6 +2449,7 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
             return field_name
         return ''
 
+    @api.constrains('parent_id', 'child_ids')
     def _check_children(self):
         """≙ ``_check_children`` (``odoo19c: ir_actions.py:967-973``), entero.
 
@@ -2441,55 +2457,22 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
 
         - *"Recursion found in child server actions"* — el modo ``multi``
           existe **para** encadenar, así que la guarda tiene que distinguir una
-          cadena legítima de un ciclo: recorre hacia arriba y para cuando se
-          repite. Sin ella, ``_run_action_multi`` —que itera ``child_ids`` y
-          llama ``run()`` en cada hija— no tendría condición de parada.
+          cadena legítima de un ciclo: ``_has_cycle()`` sigue ``parent_id``
+          por la consulta recursiva del ORM. Sin ella, ``_run_action_multi``
+          —que itera ``child_ids`` y llama ``run()`` en cada hija— no tendría
+          condición de parada.
         - *"Following child actions have warnings"* — una acción no se guarda
           si alguna de sus hijas está mal configurada. Estuvo declarada
           bloqueada por ``warning``, que ahora existe (tarea **#116**).
         """
-        seen = set()
-        current = self.parent_id
-        while current:
-            if current.pk == self.pk or current.pk in seen:
-                raise ValidationError(
-                    'Recursión encontrada en las acciones de servidor hijas.'
-                )
-            seen.add(current.pk)
-            current = current.parent_id
-
-        children_with_warnings = (
-            self.child_ids.filtered('warning') if self.pk else ())
-        if children_with_warnings:
+        if self._has_cycle():
             raise ValidationError(
-                'Las siguientes acciones hijas tienen avisos: %s'
-                % ', '.join(children_with_warnings.mapped('name'))
-            )
+                self.env._('Recursion found in child server actions'))
 
-    def save(self, *args, **kwargs):
-        """``@api.constrains('parent_id', 'child_ids')`` de la fuente.
-
-        Aquí también se dispara ``_compute_name``. En la fuente lo dispara el
-        ORM: ``automated_name`` es ``Char(compute='_compute_name',
-        store=True)``
-        con ``@api.depends(lambda self: self._name_depends())`` (``:843``), así
-        que el motor lo recalcula cada vez que cambia una de sus tres
-        dependencias. Aquí el cómputo con columna se invoca explícitamente
-        antes del ``super().save()`` —misma forma que ``complete_name`` en
-        ``res_partner``—: ``store=True`` significa que el valor se persiste, no
-        que se derive en cada lectura.
-
-        Va **antes** del ``super()`` por eso mismo: después, la fila ya se
-        escribió y las dos columnas irían a disco en un segundo ``UPDATE``.
-
-        La revisión del código no se anota aquí: la anotan :meth:`create` y
-        :meth:`write`, como en la fuente (``:711-734``). Un ``save`` directo
-        de Django no es la API del modelo y no la anota.
-        """
-        self._check_children()
-        self._check_python_code()
-        self._compute_name()
-        return super().save(*args, **kwargs)
+        if (children_with_warnings := self.child_ids.filtered('warning')):
+            raise ValidationError(self.env._(
+                "Following child actions have warnings: %(children)s",
+                children=', '.join(children_with_warnings.mapped('name'))))
 
     # ---- El motor de ejecución (#117) -------------------------------------
     #

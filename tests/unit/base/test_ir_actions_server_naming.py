@@ -122,24 +122,24 @@ class TestTheAutomaticNameSurvivesOnlyWhileNobodyRenamesIt:
     """≙ ``_compute_name``: ``was_automated`` decide si ``name`` se pisa."""
 
     def test_an_action_without_a_name_gets_the_generated_one(self):
-        action = _action(
-            name='', state='object_create', crud_model_id=_partner_model()
+        action = _created(
+            state='object_create', crud_model_id=_partner_model()
         )
 
         assert action.name == 'Crear Contacto'
         assert action.automated_name == 'Crear Contacto'
 
     def test_a_name_the_user_wrote_is_not_overwritten(self):
-        action = _action(
+        action = _created(
             name='La mia',
             state='object_create',
             crud_model_id=_partner_model(),
         )
 
         assert action.name == 'La mia'
-        assert (
-            action.automated_name == 'Crear Contacto'
-        ), 'el automatico se calcula igual, aunque no gane'
+        # Dar ``name`` protege todo su grupo calculado, ``automated_name``
+        # incluido (``odoo19c: odoo/orm/models.py:4683-4685``): no se calcula.
+        assert not action.automated_name
 
     def test_changing_the_state_regenerates_a_name_that_was_automatic(self):
         action = _action(
@@ -289,7 +289,7 @@ class TestThePythonCodeIsCheckedWithoutRunningIt:
 
     def test_broken_syntax_is_refused(self):
         with pytest.raises(ValidationError):
-            _action(state='code', code='if True\n    pass\n')
+            _created(state='code', code='if True\n    pass\n')
 
     def test_the_check_does_not_execute_what_it_validates(self):
         """El control que discrimina validar de ejecutar.
@@ -428,3 +428,12 @@ class TestTheTargetModelSelection:
         pairs = dict(IrActionsServer._selection_target_model())
 
         assert pairs[PARTNER] == 'Contacto'
+
+
+def _created(**kwargs):
+    """Crea por el ORM: el cómputo almacenado y las restricciones corren en
+    ``create``, no en el ``save()`` de Django (``@api.constrains``)."""
+    kwargs.setdefault('model_id', IrModel._get('res.partner'))
+    kwargs.setdefault('state', 'multi')
+    return IrActionsServer.create({
+        key: getattr(value, 'pk', value) for key, value in kwargs.items()})
