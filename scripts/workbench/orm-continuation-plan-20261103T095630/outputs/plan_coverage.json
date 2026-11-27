@@ -694,7 +694,8 @@
   "ir-actions-act-window-groups-context-read-0397",
   "ir-actions-view-url-client-basemodel-0397",
   "ir-embedded-actions-basemodel-0397",
-  "ir-actions-actions-basemodel-0397"
+  "ir-actions-actions-basemodel-0397",
+  "res-users-home-action-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
