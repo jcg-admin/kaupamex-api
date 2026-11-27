@@ -42,6 +42,13 @@ siete métodos. Sin fila de ACL.
 Fuera de 3a, en 3b: `group_ids` con el nombre de la fuente, `context` como
 `Char` con migración de datos y `read` con `get_empty_list_help`.
 
+En 3d, después de 3c: `_compute_embedded_actions` y el `_get_action_dict`
+de la acción de ventana. Los dos leen `ir.embedded.actions.is_visible`, que
+en la fuente es un campo calculado (`_compute_is_visible`,
+`odoo19c: odoo/addons/base/models/ir_embedded_actions.py:77-96`) y en el
+puerto es un método con otra firma sobre un modelo que no es `BaseModel`.
+Portarlos exige primero esa conversión; 3d la hace.
+
 ## Controles previstos
 
 - un administrador del sistema crea una acción de ventana;
@@ -55,3 +62,38 @@ Fuera de 3a, en 3b: `group_ids` con el nombre de la fuente, `context` como
   `embedded_action_ids`.
 
 Prueba: `tests/unit/base/test_ir_actions_act_window_basemodel.py`.
+
+## Directiva del ejecutor (2026-11-27), durante 3a
+
+*«es un error se te olvida que tienes tienes PROHIBIDO realizar deducciones
+… debes de implementarlo en kaupamex-api, como lo hace la referencia»*,
+sobre el docstring de `IrActionsBase._get_readable_fields`, que explicaba
+por qué el método vive en `IrActionsBase` con un razonamiento propio («el
+método vive en el portador, porque es de quien heredan los subtipos»).
+
+Corregido con hechos medidos: la fuente declara el método en
+`ir.actions.actions`
+(`odoo19c: odoo/addons/base/models/ir_actions.py:55-60`) y cada subtipo lo
+recibe por `_inherit = ['ir.actions.actions']`; el árbol traduce un
+`_inherit` dentro de la misma app a herencia de Python desde una base
+abstracta (`src/orm/model_classes.py:20`), y esa base es `IrActionsBase`.
+El docstring de `IrActionsBase` se reescribió igual.
+
+## Medido
+
+| Símbolo | Archivo | Fuente |
+|---|---|---|
+| `IrActionsActWindow` sobre `models.BaseModel` con sus seis atributos | `src/addons/base/models/ir_actions.py` | `odoo19c: odoo/addons/base/models/ir_actions.py:262-267` |
+| campos `view_id` y `search_view_id` de `IrActionsActWindow`, en forma C | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:309-331` |
+| `IrActionsActWindow.create`, `unlink`, `exists`, `_existing`, `_get_readable_fields` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:357-386` |
+| `IrActionsActWindow.views` lee `view_id` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:282-296` |
+| docstrings de `IrActionsBase` y `IrActionsBase._get_readable_fields` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:55-60` |
+| fila `ir_actions_act_window_system` de `_ACCESS` | `src/addons/base/security/ir_model_access.py` | `odoo19c: odoo/addons/base/security/ir.model.access.csv:101` |
+| migración `0141_ir_actions_act_window_views` | `src/addons/base/migrations/0141_ir_actions_act_window_views.py` | `odoo19c: odoo/addons/base/models/ir_actions.py:309-331` |
+| `XmlImport._tag_menuitem` lee la acción dentro del `sudo()` | `src/tools/convert.py` | `odoo19c: odoo/tools/convert.py:305-309` |
+
+Prueba: `tests/unit/base/test_ir_actions_act_window_basemodel.py`, 7 casos.
+RED antes del cambio: 7 fallidos. GREEN: 7.
+
+`view_ids` sigue leyéndose con `.all()`: `IrActionsActWindowView` no es
+`BaseModel` hasta 3c, y su acceso inverso es todavía el gestor de Django.
