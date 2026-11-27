@@ -53,6 +53,7 @@ Unidad: `ir-actions-server-constraints-name-0391` (TASK-GEN-0391; depende de
 | `IrActionsServer._check_children` con `@api.constrains('parent_id', 'child_ids')`, `self._has_cycle()` y los mensajes de la fuente | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:967-973` |
 | se retira `IrActionsServer.save`: el ORM dispara el cómputo y las restricciones | ídem | `odoo19c: odoo/orm/models.py:4683-4685` |
 | migración `0152_alter_iractionsserver_automated_name`: `automated_name` pasa a `editable=False` (sólo estado) | `src/addons/base/migrations/0152_alter_iractionsserver_automated_name.py` | `odoo19c: odoo/addons/base/models/ir_actions.py:606` |
+| migración `0153_compute_ir_actions_server_automated_name`: calcula `automated_name` sobre las filas existentes con `ComputeStoredFields`, como toda columna calculada que entró por `AddField` (lo exige `tests/unit/orm/test_new_computed_columns_are_computed.py`) | `src/addons/base/migrations/0153_compute_ir_actions_server_automated_name.py` | `odoo19c: odoo/orm/models.py:3220-3238` |
 
 Medido al implementar: `_name_depends` sigue siendo `classmethod`, porque el
 `depends` invocable del puerto se llama con la clase del modelo (la misma
