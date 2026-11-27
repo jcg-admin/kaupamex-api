@@ -20,8 +20,6 @@ Lo que se adapta, y por qué:
 - **``_list_all_models``** ordena por ``ir_model.name`` sin el ``->>`` por
   idioma de la fuente: aquí la columna es texto plano, no ``jsonb``
   traducible.
-- **``embedded_action``** conserva el nombre de su porte anterior; la columna
-  es ``embedded_action_id``, la de la fuente.
 """
 
 import ast
@@ -99,9 +97,12 @@ class IrFilters(models.BaseModel):
             'filter applies to all menus for this model.'
         ),
     )
-    embedded_action = fields.Many2one(
+    #: ≙ ``embedded_action_id`` (``odoo19c: odoo/addons/base/models/
+    #: ir_filters.py:23``).
+    embedded_action_id = fields.Many2one(
         'base.IrEmbeddedActions', on_delete=models.CASCADE,
         null=True, blank=True, db_index=True, related_name='filter_ids',
+        db_column='embedded_action_id',
         verbose_name='Embedded action',
         help_text='The embedded action this filter is applied to',
     )
@@ -122,7 +123,7 @@ class IrFilters(models.BaseModel):
         #: ≙ ``_get_filters_index`` (``:27-29``), con su nombre conservado.
         indexes = [
             models.Index(
-                fields=['model_id', 'action_id', 'embedded_action',
+                fields=['model_id', 'action_id', 'embedded_action_id',
                         'embedded_parent_res_id'],
                 name='ir_filters_get_filters_index',
             ),
@@ -134,7 +135,7 @@ class IrFilters(models.BaseModel):
             models.CheckConstraint(
                 condition=~models.Q(
                     embedded_parent_res_id__isnull=False,
-                    embedded_action__isnull=True,
+                    embedded_action_id__isnull=True,
                 ),
                 name='ir_filters_check_res_id_only_when_embedded_action',
             ),

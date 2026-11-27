@@ -71,6 +71,24 @@ _RULES = (
         'domain_force': "[('user_ids', 'in', user.ids)]",
         'groups': ['base.group_portal', 'base.group_public'],
     },
+    # ``odoo19c: odoo/addons/base/security/base_security.xml:207-227``.
+    {
+        'name': 'Users can modify or delete embedded actions that they have '
+                'created or that are shared',
+        'model': 'base.IrEmbeddedActions',
+        'domain_force': "[('user_id', 'in', [user.id, False])]",
+        'groups': ['base.group_user'],
+        'perm_read': False,
+        'perm_create': False,
+    },
+    {
+        'name': 'Admins have all the rights on embedded actions',
+        'model': 'base.IrEmbeddedActions',
+        'domain_force': "[(1, '=', 1)]",
+        'groups': ['base.group_system'],
+        'perm_read': False,
+        'perm_create': False,
+    },
     # ``odoo19c: odoo/addons/base/security/base_security.xml:256-261``.
     {
         'name': 'properties.base.definition: system all access',

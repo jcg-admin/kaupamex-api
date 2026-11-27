@@ -600,6 +600,10 @@ class IrActionsActWindow(models.BaseModel, IrActionsBase):
         db_column='search_view_id',
         verbose_name='Vista de búsqueda',
     )
+    #: ≙ ``embedded_action_ids`` (``odoo19c: odoo/addons/base/models/
+    #: ir_actions.py:332``): calculado, no el inverso de ``parent_action_id``.
+    embedded_action_ids = fields.One2many(
+        'base.IrEmbeddedActions', compute='_compute_embedded_actions')
     filter = fields.Boolean(default=False, verbose_name='Filtro')
     cache = fields.Boolean(
         default=True,
@@ -734,6 +738,16 @@ class IrActionsActWindow(models.BaseModel, IrActionsBase):
         with connections[env().db_alias].cursor() as cr:
             cr.execute('SELECT id FROM %s' % cls._table)
             return {row[0] for row in cr.fetchall()}
+
+    def _compute_embedded_actions(self):
+        """≙ ``_compute_embedded_actions``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:336-339``)."""
+        embedded_actions = self.env["ir.embedded.actions"].search(
+            [('parent_action_id', 'in', self.ids)]).filtered(
+                lambda x: x.is_visible)
+        for action in self:
+            action.embedded_action_ids = embedded_actions.filtered(
+                lambda rec: rec.parent_action_id == action)
 
     def read(self, fields=None, load='_classic_read'):
         """≙ ``read``

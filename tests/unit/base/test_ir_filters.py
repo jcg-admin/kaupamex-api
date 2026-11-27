@@ -279,6 +279,6 @@ def test_the_lookup_index_of_the_source_is_declared():
     assert indexes['ir_filters_get_filters_index'] == [
         'model_id',
         'action_id',
-        'embedded_action',
+        'embedded_action_id',
         'embedded_parent_res_id',
     ]
