@@ -2170,6 +2170,13 @@
         "ir-actions-bindings-0397"
       ],
       "writtenAt": "2026-11-27T13:16:08Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "ir-actions-constraints-0397"
+      ],
+      "writtenAt": "2026-11-27T15:06:17Z"
     }
   ]
 }
