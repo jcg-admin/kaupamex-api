@@ -46,3 +46,37 @@ TASK-API-0397. Unidad: `ir-actions-bindings-0397`
 2. `IrActionsActions.get_bindings` y `_get_bindings` con su `ormcache`.
 3. `_check_model`, `create_action` y `unlink_action` de servidor y reporte
    sobre el Many2one.
+
+## Medido
+
+| Símbolo | Archivo | Fuente |
+|---|---|---|
+| `IrActionsBase.binding_model_id` (forma C) en lugar de `binding_model_name` | `src/addons/base/models/ir_actions.py` | `odoo19c: odoo/addons/base/models/ir_actions.py:74-75` |
+| `IrActionsBase.get_bindings` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:155-182` |
+| `IrActionsBase._get_bindings` con `ormcache('model_name', 'self.env.lang')` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:184-223` |
+| `IrActionsActWindow.clean` (`_check_model`) sobre `binding_model_id.model` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:269-276` |
+| `IrActionsServer.create_action` y `unlink_action` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:989-1000` |
+| `IrActionsReport.create_action` y `unlink_action` | `src/addons/base/models/ir_actions_report.py` | `odoo19c: odoo/addons/base/models/ir_actions_report.py:244-254` |
+| migración `0147_ir_actions_bindings` | `src/addons/base/migrations/0147_ir_actions_bindings.py` | ídem |
+
+Prueba: `tests/unit/base/test_ir_actions_bindings.py`, 5 casos.
+
+Anulación (sobre una copia, restaurada y comparada con `cmp`): con el filtro
+de grupos de `get_bindings` retirado, el orden por `sequence` invertido y la
+escritura de `IrActionsServer.create_action` retirada caen exactamente los
+tres casos que dependen de ellos (`3 failed, 2 passed`); los dos que
+sobreviven miden la columna y el retiro del anclaje, que no dependen de esas
+tres piezas.
+
+- **La lectura de `_get_bindings` corre con `sudo()` del recordset**, como
+  `self.env[action_model].sudo().browse(...)` de la fuente: el primer intento
+  elevaba el entorno y no la lectura, y el caso del usuario sin el grupo
+  terminaba en `PermissionDenied` en vez de filtrarse por `groups_id`.
+- **El conteo de `test_domain_in_required` baja de 37 a 36.**
+  `binding_model_name` era texto `NOT NULL` con dominio `in` requerido; el
+  Many2one `binding_model_id` es anulable. Es evidencia fechada y se
+  actualiza con su razón.
+- **Las claves foráneas y los índices no se heredan** entre tablas
+  (`0140`): la migración añade la columna una vez en `ir_actions` y la clave
+  foránea `DEFERRABLE INITIALLY DEFERRED` y el índice por cada una de las
+  seis tablas hijas.
