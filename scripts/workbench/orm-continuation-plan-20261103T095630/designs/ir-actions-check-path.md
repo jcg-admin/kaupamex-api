@@ -71,3 +71,46 @@ la fuente.
 objetos de tabla en `Meta`; aquí se conserva el `unique=True` del campo.
 `_check_children` y `_check_python_code` de la acción de servidor siguen en
 su `save`: son la unidad siguiente.
+
+## Medido
+
+| Símbolo | Archivo | Fuente |
+|---|---|---|
+| `IrActionsBase._check_path` con `@api.constrains('path')`; se retiran `IrActionsBase.clean`, `PATH_PATTERN`, `RESERVED_PATH_PREFIXES` y `RESERVED_PATH_WORD` | `src/addons/base/models/ir_actions.py` | `odoo19c: odoo/addons/base/models/ir_actions.py:81-103` |
+| `IrActionsActWindow._check_model` con `@api.constrains('res_model', 'binding_model_id')`; se retira `IrActionsActWindow.clean` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:270-276` |
+| `IrActionsActWindow._check_view_mode` con `@api.constrains('view_mode')` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:300-307` |
+| `ClassCheckShadow` | `src/orm/models.py` | — (mecanismo del stack: Django declara `Model._check_model` como `classmethod`) |
+
+Prueba: `tests/integration/base/test_ir_actions_constraints.py`, las clases
+`TestCheckPath`, `TestCheckModel` y `TestCheckViewMode` reescritas para crear
+y escribir por el ORM, más el caso de unicidad entre tablas, el de escritura,
+el de un modo que es un espacio y el del *check* de clase de Django. RED
+antes del cambio: 13 fallidos de 19.
+
+Anulación (sobre una copia, restaurada y comparada con `cmp`):
+
+- sin el `search_count` y con la regla de espacios del puerto anterior
+  (`any(' ' in mode ...)`) caen exactamente los dos casos que dependen de
+  ellos: la unicidad entre tablas y `'list, form'` admitido;
+- sin `ClassCheckShadow` cae sólo el caso del *check* de clase, con el
+  `TypeError` de `django/db/models/base.py:1746`.
+
+- **Cada tabla de acción tiene su propio índice único sobre `path`**
+  (medido en `pg_indexes`: `ir_actions_path_key` y uno por cada una de las
+  cinco tablas hijas). Ninguno ve una ruta repetida en otra tabla; sólo el
+  `search_count` sobre `ir.actions.actions`, que lee `ir_actions` con sus
+  hijas, cubre la familia.
+- **`_check_model` choca con Django.** `Model.check` llama a
+  `cls._check_model()`; con el método de registro de la fuente en su lugar
+  el sistema de checks muere y con él todo comando de `manage.py` (lo
+  destaparon las dos pruebas de `test_ir_cron_runner.py`, que arrancan
+  `cron` en un subproceso). `ClassCheckShadow` conserva el nombre de la
+  fuente: sobre un registro es la restricción y sobre la clase es el
+  `classmethod` de Django. Búsqueda previa: `src/orm` no tenía descriptor
+  para este caso (los dos `__get__` existentes son `IdFromIds` y el mapa de
+  `_inherits`).
+- **Rojo heredado, no de esta unidad:**
+  `tests/unit/orm/test_default_get.py::TestRecNameResolution::test_a_model_with_name_resolves_to_name`
+  falla en el subconjunto derivado con `-n 4` también sobre `adcd506c`
+  (worktree en HEAD: `1 failed, 1265 passed`) y pasa suelto. Depende del
+  orden de ejecución; F2 sobre `73966e6a` lo dio verde.
