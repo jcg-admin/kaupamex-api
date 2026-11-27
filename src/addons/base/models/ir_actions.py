@@ -370,6 +370,22 @@ class IrActionsBase(models.Model):
         registry_of(self).clear_cache()
         return res
 
+    @api.ondelete(at_uninstall=True)
+    def _unlink_check_home_action(self):
+        """≙ ``_unlink_check_home_action``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:134-136``).
+
+        ``res.users`` no es ``models.BaseModel`` en este árbol: el
+        ``search`` con ``active_test=False`` de la fuente es aquí su gestor de
+        Django, que no filtra por ``active``, y el ``sudo().write`` es el
+        ``write`` de cada usuario bajo ``sudo()``: su queryset no declara
+        ``write``.
+        """
+        with sudo():
+            for user in apps.get_model('base', 'ResUsers').objects.filter(
+                    action_id__in=self.ids):
+                user.write({'action_id': None})
+
     def _get_eval_context(self, action=None):
         """≙ ``_get_eval_context`` de ``ir.actions.actions``
         (``odoo19c: odoo/addons/base/models/ir_actions.py:140-153``): el
@@ -562,6 +578,11 @@ class IrActionsActWindow(IrActionsBase, models.BaseModel, TimeStampedModel):
     _inherit = ['ir.actions.actions']
     _order = 'name, id'
     _allow_sudo_commands = False
+
+    #: ≙ ``type`` (``odoo19c: odoo/addons/base/models/ir_actions.py:308``).
+    type = fields.Char(
+        max_length=64, default='ir.actions.act_window',
+        verbose_name='Tipo de acción')
 
     TARGET_CHOICES = [
         ('current', 'Ventana actual'),
@@ -940,7 +961,10 @@ class IrActionsActUrl(IrActionsBase, models.BaseModel, TimeStampedModel):
     _order = 'name, id'
     _allow_sudo_commands = False
 
-    TYPE = 'ir.actions.act_url'
+    #: ≙ ``type`` (``odoo19c: odoo/addons/base/models/ir_actions.py:453``).
+    type = fields.Char(
+        max_length=64, default='ir.actions.act_url',
+        verbose_name='Tipo de acción')
 
     #: Vocabulario **distinto** al de ``act_window``: aquí no hay
     #: ``current``/``fullscreen``/``main``, y sí ``self`` y ``download``.
@@ -983,7 +1007,10 @@ class IrActionsClient(IrActionsBase, models.BaseModel, TimeStampedModel):
     _order = 'name, id'
     _allow_sudo_commands = False
 
-    TYPE = 'ir.actions.client'
+    #: ≙ ``type`` (``odoo19c: odoo/addons/base/models/ir_actions.py:1434``).
+    type = fields.Char(
+        max_length=64, default='ir.actions.client',
+        verbose_name='Tipo de acción')
 
     TARGET_CHOICES = IrActionsActWindow.TARGET_CHOICES
 
@@ -1324,7 +1351,10 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
     _order = 'sequence,name,id'
     _allow_sudo_commands = False
 
-    TYPE = 'ir.actions.server'
+    #: ≙ ``type`` (``odoo19c: odoo/addons/base/models/ir_actions.py:607``).
+    type = fields.Char(
+        max_length=64, default='ir.actions.server',
+        verbose_name='Tipo de acción')
 
     STATE_CHOICES = [
         ('object_write', 'Actualizar registro'),
@@ -1727,8 +1757,8 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
             'type': 'ir.actions.act_window',
             'target': 'current',
             'views': [[False, 'form']],
-            'res_model': self.TYPE,
-            'res_id': self.parent_id,
+            'res_model': self._name,
+            'res_id': self.parent.id,
         }
 
     def action_open_scheduled_action(self):

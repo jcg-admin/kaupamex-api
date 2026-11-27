@@ -203,7 +203,7 @@ import fields
 import models
 
 from addons.base import report_catalog, report_template
-from addons.base.models.ir_actions import IrActionsBase
+from addons.base.models.ir_actions import BINDING_TYPE_CHOICES, IrActionsBase
 from addons.base.models.timestamped_mixin import TimeStampedModel
 from addons.base.models.ir_ui_view import VIEW_TYPE_TEMPLATE, IrUiView
 from addons.base.models.ir_attachment import IrAttachment
@@ -446,6 +446,18 @@ class IrActionsReport(IrActionsBase, models.BaseModel, TimeStampedModel):
     _order = 'name, id'
     _allow_sudo_commands = False
 
+    #: ≙ ``type`` y ``binding_type`` (``odoo19c: odoo/addons/base/models/
+    #: ir_actions_report.py:165-166``): el subtipo redeclara su valor por
+    #: defecto sobre el campo que hereda de la base abstracta.
+    type = fields.Char(
+        max_length=64, default=ACTION_TYPE, verbose_name='Tipo de acción')
+    binding_type = fields.Selection(
+        max_length=16,
+        choices=BINDING_TYPE_CHOICES,
+        default=BINDING_TYPE_REPORT,
+        verbose_name='Tipo de anclaje',
+    )
+
     model = fields.Char(
         max_length=255,
         db_index=True,
@@ -568,19 +580,6 @@ class IrActionsReport(IrActionsBase, models.BaseModel, TimeStampedModel):
         ordering = ['name', 'id']
         verbose_name = 'Acción de reporte'
         verbose_name_plural = 'Acciones de reporte'
-
-    def save(self, *args, **kwargs):
-        """Fija los dos valores por defecto que la referencia pone en el campo.
-
-        Allá son ``default=`` de ``type`` y ``binding_type``, que su ORM
-        aplica por herencia; aquí los campos vienen del abstracto y no pueden
-        redefinir su ``default`` sin duplicar la columna.
-        """
-        if not self.type:
-            self.type = ACTION_TYPE
-        if not self.binding_type or self.binding_type == 'action':
-            self.binding_type = BINDING_TYPE_REPORT
-        super().save(*args, **kwargs)
 
     # --- Anclaje contextual ---------------------------------------------
 

@@ -570,13 +570,12 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
     y un ``_search_*`` de campo calculado es un ``annotate()``. El
     comportamiento vive donde el stack lo pone, no ausente.
 
-    **3. Contabilidad para su vista de ajustes — 5 símbolos.** DIVERGENCIA DE
+    **3. Contabilidad para su vista de ajustes — 4 símbolos.** DIVERGENCIA DE
     MECANISMO. ``_compute_companies_count``, ``_compute_accesses_count``,
-    ``_compute_share``, ``_compute_tz_offset``, ``_check_action_id``. Los
-    cuatro primeros alimentan contadores de su formulario; ``share`` sí existe
-    aquí, como ``property``. ``_check_action_id`` valida el campo *home
-    action*, que este árbol no tiene: BLOQUEADO por ``action_id`` — no hay
-    campo que validar.
+    ``_compute_share``, ``_compute_tz_offset``. Alimentan contadores de su
+    formulario; ``share`` sí existe aquí, como ``property``.
+    ``_check_action_id`` está portado junto a ``action_id``
+    (``designs/res-users-home-action.md``).
 
     **4. La superficie de cuenta propia — 4 de 6 portados, 2 divergen.**
     Son el control de qué campos puede leerse y escribirse un usuario **a sí
@@ -1295,6 +1294,7 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
         super().clean()
         self._check_user_company()
         self._check_disjoint_groups()
+        self._check_action_id()
 
     # ------------------------------------------------------------------
     # Las tres restricciones de integridad — ≙ :535-556 y :647-660
@@ -1434,16 +1434,15 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
         uno devuelve su lista entera en vez de sumarla. Ver la tarea #66.
 
         La lista se porta verbatim salvo los campos que este árbol no tiene, y
-        cada ausencia se nombra: ``tz_offset`` (derivado que no declaramos),
-        ``action_id`` (BLOQUEADO por ``ir.actions.act_window``, ver el bloque 3
-        del docstring de este archivo).
+        cada ausencia se nombra: ``tz_offset`` (derivado que no declaramos).
         """
         return [
             'signature', 'company_id', 'login', 'email', 'name',
             'image_1920', 'image_1024', 'image_512', 'image_256', 'image_128',
             'lang', 'tz', 'group_ids', 'partner_id', 'write_date',
-            'avatar_1920', 'avatar_1024', 'avatar_512', 'avatar_256',
-            'avatar_128', 'share', 'device_ids', 'api_key_ids', 'phone',
+            'action_id', 'avatar_1920', 'avatar_1024', 'avatar_512',
+            'avatar_256', 'avatar_128', 'share', 'device_ids', 'api_key_ids',
+            'phone',
             'display_name',
         ]
 
@@ -1455,8 +1454,8 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
         lectura: la fuente los declara por separado y un campo legible no es
         por ello escribible.
         """
-        return ['signature', 'company_id', 'email', 'name', 'image_1920',
-                'lang', 'tz', 'api_key_ids', 'phone']
+        return ['signature', 'action_id', 'company_id', 'email', 'name',
+                'image_1920', 'lang', 'tz', 'api_key_ids', 'phone']
 
     @classmethod
     def _self_accessible_fields(cls):
@@ -2490,6 +2489,68 @@ class ResUsers(models.DefaultGetMixin, TimeStampedModel):
         elemento; una sin guardar, ninguno.
         """
         return [self.pk] if self.pk else []
+
+    #: ≙ ``action_id`` (``odoo19c: odoo/addons/base/models/res_users.py:
+    #: 229-230``).
+    action_id = fields.Many2one(
+        'base.IrActionsActions',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        # Sin clave foránea: ``ir_actions`` se hereda (``odoo19c:
+        # odoo/orm/fields_relational.py:313-314``).
+        db_constraint=False,
+        related_name='+',
+        db_column='action_id',
+        verbose_name='Home Action',
+        help_text=(
+            'If specified, this action will be opened at log on for this '
+            'user, in addition to the standard menu.'
+        ),
+    )
+
+    def _check_action_id(self):
+        """≙ ``_check_action_id`` (``odoo19c: res_users.py:512-533``).
+
+        La fuente lo declara ``@api.constrains('action_id')``; aquí corre en
+        :meth:`clean`, como sus dos hermanas. ``action_id`` apunta a
+        ``ir.actions.actions``, cuyas filas incluyen las de las tablas
+        heredadas, así que el subtipo se lee de nuevo por su id, como el
+        ``browse`` marcado ``# magic`` de la fuente.
+        """
+        environment = Environment()
+        action_open_website = environment.ref(
+            'base.action_open_website', raise_if_not_found=False)
+        if (action_open_website
+                and self.action_id_id == action_open_website.id):
+            raise ValidationError(environment._(
+                'The "App Switcher" action cannot be selected as home '
+                'action.'))
+        # We use sudo() because "Access rights" admins can't read action
+        # models
+        with sudo():
+            home = self.action_id
+            if not home:
+                return
+            if home.type == "ir.actions.client":
+                # Prevent using reload actions.
+                action = environment["ir.actions.client"].browse(
+                    home.id)  # magic
+                if action.tag == "reload":
+                    raise ValidationError(environment._(
+                        'The "%s" action cannot be selected as home action.',
+                        action.name))
+            elif home.type == "ir.actions.act_window":
+                # Restrict actions that include 'active_id' in their context.
+                action = environment["ir.actions.act_window"].browse(
+                    home.id)  # magic
+                if not action.context:
+                    return
+                if "active_id" in action.context:
+                    raise ValidationError(environment._(
+                        'The action "%s" cannot be set as the home action '
+                        'because it requires a record to be selected '
+                        'beforehand.', action.name))
 
 
 class ResUsersLog(models.BaseModel, TimeStampedModel):
