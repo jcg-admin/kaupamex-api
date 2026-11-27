@@ -2149,6 +2149,13 @@
         "ir-embedded-actions-basemodel-0397"
       ],
       "writtenAt": "2026-11-27T08:05:05Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "ir-actions-actions-basemodel-0397"
+      ],
+      "writtenAt": "2026-11-27T09:49:39Z"
     }
   ]
 }
