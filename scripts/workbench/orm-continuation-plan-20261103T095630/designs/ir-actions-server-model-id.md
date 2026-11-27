@@ -56,3 +56,22 @@ La lectura de `model_name` hoy acepta las dos formas de nombrar un modelo
 (etiqueta de Django y `_name`); con el `related`, el valor es siempre el
 `ir.model.model` de la fila. Hay que medir qué consumidores comparan
 `model_name` contra una etiqueta de Django antes de cambiarlo.
+
+### Respuesta medida
+
+Lectores de `IrActionsServer.model_name` en `ir_actions.py`, `ir_cron.py` y
+`base_automation` (`grep -nE "\.model_name\b"`, 21 líneas):
+
+- resuelven por `model_by_key` (`:2141, :2668, :2716, :2858`) o comparan con
+  `identity_for_key` (`:2863`): admiten las dos formas;
+- comparan contra otro valor que también sale de `ir.model.model`:
+  `child.model_name != self.model_name` (`:1938`), `link.model ==
+  self.model_name` (`:2331`, `ir.model.fields.model`) y los filtros
+  `model=self.model_name` (`:2766, :2786`);
+- lo copian o lo exponen (`:2137, :2267, :2614, :2657, :3020`,
+  `ir_cron.py:530`).
+
+Ninguno compara contra una etiqueta de Django escrita a mano. Con el
+`related`, el valor es siempre la clave de `ir.model`, que es la forma con la
+que ya se comparan `:1938` y `:2331`: el cambio los vuelve coherentes en vez
+de romperlos.
