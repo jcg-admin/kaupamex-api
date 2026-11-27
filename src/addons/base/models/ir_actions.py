@@ -178,7 +178,7 @@ from exceptions import AccessError, UserError
 from fields import Command, Domain
 from addons.base.models.ir_model import IrModelData
 from orm.environments import (context_scope, env, get_context,
-                              get_current_user, sudo)
+                              get_current_uid, get_current_user, sudo)
 from orm.models_transient import TransientModel
 from orm.registry import (identity_for_key, identity_of, model_by_key,
                           registry_of)
@@ -625,7 +625,10 @@ class IrActionsActWindow(models.BaseModel, IrActionsBase):
         después los de ``view_mode`` que falten, **adelantando el de
         ``view_id``** si está entre ellos; el resto, con vista vacía.
         """
-        declared = [(v.view_id, v.view_mode) for v in self.view_ids.all()]
+        declared = [
+            (view.view_id.pk if view.view_id else None, view.view_mode)
+            for view in self.view_ids
+        ]
         got_modes = [mode for _vid, mode in declared]
         all_modes = [m for m in (self.view_mode or '').split(',') if m]
         missing = [m for m in all_modes if m not in got_modes]
@@ -766,31 +769,43 @@ class IrActionsActWindow(models.BaseModel, IrActionsBase):
         }
 
 
-class IrActionsActWindowView(TimeStampedModel):
+class IrActionsActWindowView(models.BaseModel, TimeStampedModel):
     """
     Una vista concreta de una acción de ventana
-    (``ir.actions.act_window.view``).
+    (``ir.actions.act_window.view``,
+    ``odoo19c: odoo/addons/base/models/ir_actions.py:411-425``).
     """
 
+    _name = 'ir.actions.act_window.view'
+    _description = 'Action Window View'
+    _table = 'ir_act_window_view'
+    _rec_name = 'view_id'
+    _order = 'sequence,id'
+    _allow_sudo_commands = False
+
     sequence = fields.Integer(null=True, blank=True, verbose_name='Secuencia')
-    view_id = fields.Integer(
+    #: ≙ ``view_id`` (``odoo19c: odoo/addons/base/models/ir_actions.py:422``).
+    view_id = fields.Many2one(
+        'base.IrUiView',
         null=True,
         blank=True,
-        verbose_name='Vista',
-        help_text=(
-            'Odoo view_id (Many2one a ir.ui.view). Entero mientras '
-            'ir_ui_view.py no esté portado.'
-        ),
+        on_delete=models.SET_NULL,
+        related_name='+',
+        db_column='view_id',
+        verbose_name='View',
     )
     view_mode = fields.Selection(
         max_length=16, choices=VIEW_TYPES, verbose_name='Tipo de vista'
     )
-    act_window = fields.Many2one(
+    #: ≙ ``act_window_id`` (``odoo19c: odoo/addons/base/models/
+    #: ir_actions.py:424``), con ``ondelete='cascade'``.
+    act_window_id = fields.Many2one(
         IrActionsActWindow,
         on_delete=models.CASCADE, null=True, blank=True,
         db_index=True,
         related_name='view_ids',
-        verbose_name='Acción',
+        db_column='act_window_id',
+        verbose_name='Action',
     )
     multi = fields.Boolean(
         default=False,
@@ -809,7 +824,7 @@ class IrActionsActWindowView(TimeStampedModel):
         constraints = [
             # ``_unique_mode_per_action`` de la fuente.
             models.UniqueConstraint(
-                fields=['act_window', 'view_mode'],
+                fields=['act_window_id', 'view_mode'],
                 name='ir_act_window_view_unique_mode_per_action',
             ),
         ]
@@ -818,8 +833,16 @@ class IrActionsActWindowView(TimeStampedModel):
         return f'{self.act_window_id}: {self.view_mode}'
 
 
-class IrActionsActUrl(IrActionsBase):
-    """Navega a una URL (``ir.actions.act_url``)."""
+class IrActionsActUrl(models.BaseModel, IrActionsBase):
+    """Navega a una URL (``ir.actions.act_url``,
+    ``odoo19c: odoo/addons/base/models/ir_actions.py:445-460``)."""
+
+    _name = 'ir.actions.act_url'
+    _description = 'Action URL'
+    _table = 'ir_act_url'
+    _inherit = ['ir.actions.actions']
+    _order = 'name, id'
+    _allow_sudo_commands = False
 
     TYPE = 'ir.actions.act_url'
 
@@ -845,9 +868,24 @@ class IrActionsActUrl(IrActionsBase):
         verbose_name = 'Acción de URL'
         verbose_name_plural = 'Acciones de URL'
 
+    def _get_readable_fields(self):
+        """≙ ``_get_readable_fields``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:458-461``)."""
+        return super()._get_readable_fields() | {
+            'target', 'url', 'close',
+        }
 
-class IrActionsClient(IrActionsBase):
-    """Acción resuelta por el cliente (``ir.actions.client``)."""
+
+class IrActionsClient(models.BaseModel, IrActionsBase):
+    """Acción resuelta por el cliente (``ir.actions.client``,
+    ``odoo19c: odoo/addons/base/models/ir_actions.py:1426-1462``)."""
+
+    _name = 'ir.actions.client'
+    _description = 'Client Action'
+    _inherit = ['ir.actions.actions']
+    _table = 'ir_act_client'
+    _order = 'name, id'
+    _allow_sudo_commands = False
 
     TYPE = 'ir.actions.client'
 
@@ -867,15 +905,27 @@ class IrActionsClient(IrActionsBase):
     res_model = fields.Char(
         max_length=120, blank=True, default='', verbose_name='Modelo destino'
     )
-    context = fields.Json(default=dict, verbose_name='Contexto')
-    params_store = fields.Json(
-        default=dict,
-        blank=True,
-        verbose_name='Parámetros',
+    #: ≙ ``context`` (``odoo19c: odoo/addons/base/models/
+    #: ir_actions.py:1442``).
+    context = fields.Char(
+        default='{}',
+        verbose_name='Context Value',
         help_text=(
-            'Odoo params_store. Allá es Binary con un compute/inverse '
-            'que lo serializa; aquí es Json, que es lo que guarda.'
+            'Context dictionary as Python expression, empty by default '
+            '(Default: {})'
         ),
+    )
+    #: ≙ ``params`` (``odoo19c: odoo/addons/base/models/
+    #: ir_actions.py:1443-1445``): calculado desde ``params_store``.
+    params = fields.Binary(
+        compute='_compute_params', inverse='_inverse_params',
+        verbose_name='Supplementary arguments',
+        help_text='Arguments sent to the client along with the view tag',
+    )
+    #: ≙ ``params_store`` (``odoo19c: odoo/addons/base/models/
+    #: ir_actions.py:1446``): ``repr`` del dict de ``params``.
+    params_store = fields.Binary(
+        null=True, blank=True, verbose_name='Params storage',
     )
 
     class Meta:
@@ -883,6 +933,38 @@ class IrActionsClient(IrActionsBase):
         ordering = ['name', 'id']
         verbose_name = 'Acción de cliente'
         verbose_name_plural = 'Acciones de cliente'
+
+    def _compute_params(self):
+        """≙ ``_compute_params``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:1449-1452``):
+        ``params_store`` evaluado con ``safe_eval``."""
+        for record in self:
+            store = record.params_store
+            if isinstance(store, memoryview):
+                store = store.tobytes()
+            if isinstance(store, bytes):
+                store = store.decode()
+            record.params = store and safe_eval(
+                store, {'uid': get_current_uid()})
+
+    def _inverse_params(self):
+        """≙ ``_inverse_params``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:1454-1457``):
+        un dict se guarda como su ``repr``. La asignación de la fuente es una
+        escritura en su ORM; aquí se escribe con ``write``."""
+        for record in self:
+            params = record.params
+            value = repr(params) if isinstance(params, dict) else params
+            if isinstance(value, str):
+                value = value.encode()
+            record.write({'params_store': value})
+
+    def _get_readable_fields(self):
+        """≙ ``_get_readable_fields``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:1460-1463``)."""
+        return super()._get_readable_fields() | {
+            'context', 'params', 'res_model', 'tag', 'target',
+        }
 
 
 class ServerActionHistoryWizard(TransientModel):
