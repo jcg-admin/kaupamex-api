@@ -79,7 +79,7 @@ su `save`: son la unidad siguiente.
 | `IrActionsBase._check_path` con `@api.constrains('path')`; se retiran `IrActionsBase.clean`, `PATH_PATTERN`, `RESERVED_PATH_PREFIXES` y `RESERVED_PATH_WORD` | `src/addons/base/models/ir_actions.py` | `odoo19c: odoo/addons/base/models/ir_actions.py:81-103` |
 | `IrActionsActWindow._check_model` con `@api.constrains('res_model', 'binding_model_id')`; se retira `IrActionsActWindow.clean` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:270-276` |
 | `IrActionsActWindow._check_view_mode` con `@api.constrains('view_mode')` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:300-307` |
-| `ClassCheckShadow` | `src/orm/models.py` | — (mecanismo del stack: Django declara `Model._check_model` como `classmethod`) |
+| `ClassCheckShadow`, `ClassCheckShadow.__init__`, `ClassCheckShadow.__set_name__` y `ClassCheckShadow.__get__` | `src/orm/models.py` | — (mecanismo del stack: Django declara `Model._check_model` como `classmethod`, `django/db/models/base.py:1746`); prueba: `test_the_django_class_check_keeps_its_own_check_model` |
 
 Prueba: `tests/integration/base/test_ir_actions_constraints.py`, las clases
 `TestCheckPath`, `TestCheckModel` y `TestCheckViewMode` reescritas para crear
