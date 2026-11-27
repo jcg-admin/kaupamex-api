@@ -223,7 +223,6 @@
   "TASK-GEN-0060",
   "TASK-GEN-0062",
   "TASK-GEN-0312",
-  "TASK-GEN-0391",
   "TASK-GEN-0453",
   "TASK-GEN-0558",
   "TASK-GEN-0559",
@@ -247,7 +246,8 @@
   "TASK-API-0504",
   "TASK-API-0510",
   "TASK-GEN-0058",
-  "TASK-GEN-0356"
+  "TASK-GEN-0356",
+  "TASK-GEN-0391"
  ],
  "obligations": {
   "satisfied": 980,
@@ -698,7 +698,8 @@
   "res-users-home-action-0397",
   "ir-actions-bindings-0397",
   "ir-actions-constraints-0397",
-  "ir-actions-server-parent-id-0397"
+  "ir-actions-server-parent-id-0397",
+  "ir-actions-server-model-id-0391"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
