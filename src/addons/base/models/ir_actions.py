@@ -516,12 +516,15 @@ class IrActionsActWindow(models.BaseModel, IrActionsBase):
             'Este archivo NO lo evalúa — ver el docstring del módulo.'
         ),
     )
-    context = fields.Json(
-        default=dict,
+    #: ≙ ``context``
+    #: (``odoo19c: odoo/addons/base/models/ir_actions.py:312-313``): el
+    #: texto de una expresión de Python, que ``read`` evalúa.
+    context = fields.Char(
+        default='{}',
         verbose_name='Contexto',
         help_text=(
-            'Odoo context. Allá es texto de una expresión Python; aquí '
-            'es JSON, que es lo que de verdad se guarda.'
+            'Context dictionary as Python expression, empty by default '
+            '(Default: {})'
         ),
     )
     res_id = fields.Integer(
@@ -563,12 +566,16 @@ class IrActionsActWindow(models.BaseModel, IrActionsBase):
         verbose_name='Límite',
         help_text='Tamaño de página por defecto de la vista de lista.',
     )
-    groups = fields.Many2many(
+    #: ≙ ``group_ids``
+    #: (``odoo19c: odoo/addons/base/models/ir_actions.py:328-329``), con
+    #: la tabla y las columnas de la fuente.
+    group_ids = fields.Many2many(
         ResGroups,
+        relation='ir_act_window_group_rel',
+        column1='act_id', column2='gid',
         blank=True,
         related_name='act_window_ids',
-        db_table='ir_act_window_group_rel',
-        verbose_name='Grupos',
+        verbose_name='Groups',
     )
     #: ≙ ``view_id`` (``odoo19c: odoo/addons/base/models/ir_actions.py:309``),
     #: la vista de referencia que ``views`` adelanta entre los modos que
@@ -724,6 +731,27 @@ class IrActionsActWindow(models.BaseModel, IrActionsBase):
         with connections[env().db_alias].cursor() as cr:
             cr.execute('SELECT id FROM %s' % cls._table)
             return {row[0] for row in cr.fetchall()}
+
+    def read(self, fields=None, load='_classic_read'):
+        """≙ ``read``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:341-355``), con su
+        docstring: *"call the method get_empty_list_help of the model and set
+        the window action help message"*."""
+        result = super().read(fields, load=load)
+        if not fields or 'help' in fields:
+            for values in result:
+                model = values.get('res_model')
+                if model in env():
+                    eval_ctx = dict(get_context())
+                    # ≙ el ``except:`` de la fuente: un contexto que no se
+                    # evalúa no impide leer la acción.
+                    try:
+                        ctx = safe_eval(values.get('context', '{}'), eval_ctx)
+                    except Exception:
+                        ctx = {}
+                    values['help'] = self.with_context(**ctx).env[
+                        model].get_empty_list_help(values.get('help', ''))
+        return result
 
     def _get_readable_fields(self):
         """≙ ``_get_readable_fields``

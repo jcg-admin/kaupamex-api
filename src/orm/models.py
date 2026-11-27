@@ -11390,6 +11390,18 @@ class BaseModel(DefaultGetMixin, RecordLoaderMixin, OrderMixin,
             return recordsets[0].browse(ids)
         return field.related_model._default_manager.filter(pk__in=ids)
 
+    def get_empty_list_help(self, help_message):
+        """Hook method to customize the help message in empty list/kanban
+        views. — ≙ ``get_empty_list_help`` del modelo ``base``
+        (``odoo19c: odoo/addons/base/models/ir_ui_view.py:2747-2758``).
+
+        Docstring de la fuente: *"By default, it returns the help received as
+        parameter."* Todo modelo lo recibe; ``Base`` de
+        ``src/addons/base/models/ir_model.py`` es abstracto y ningún modelo
+        hereda de él, así que el método vive aquí.
+        """
+        return help_message
+
 
 class IdFromIds:
     """El porte de ``Id.__get__`` — ≙ ``odoo19c:
