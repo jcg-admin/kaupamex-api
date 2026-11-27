@@ -57,7 +57,10 @@ def test_the_warning_follows_a_child_model_change():
         'model_id': _model('res.partner').pk})
     child = IrActionsServer.create({
         'name': 'Hija', 'model_id': _model('res.partner').pk})
-    parent.write({'child_ids': [(4, child.id)]})
+    # El inverso, no un comando sobre ``child_ids``: el modelo declara
+    # ``_allow_sudo_commands = False`` (``fields_relational.py:772-777``),
+    # así que un comando x2many bajo ``sudo()`` correría sin elevación.
+    child.write({'parent_id': parent.id})
     assert not parent.warning
     child.write({'model_id': _model('res.country').pk})
     assert parent.warning
