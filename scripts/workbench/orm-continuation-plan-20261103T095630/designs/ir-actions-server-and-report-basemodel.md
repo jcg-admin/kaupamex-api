@@ -77,3 +77,48 @@ Tres hechos medidos al implementarlo:
 - El control de informes de la primera versión de la prueba afirmaba que un
   usuario interno no los lee: lo contradice la fila de `mail`. La prueba
   se corrigió a la fuente.
+
+## Lo que el cambio obligó a portar, medido en el subconjunto
+
+La primera ejecución del subconjunto derivado (70 archivos) dio 82
+fallidos. No eran ruido: sobre `BaseModel` el modelo deja de ser una fila
+de Django y su código tenía que tomar la forma de la fuente. Cada pieza,
+con su fuente:
+
+| Símbolo | Archivo | Fuente |
+|---|---|---|
+| `IrActionsServer.run` itera y evalúa con `action.sudo()`, y llama a `_can_execute_action_on_records` | `src/addons/base/models/ir_actions.py` | `odoo19c: odoo/addons/base/models/ir_actions.py:1151-1181` |
+| `IrActionsServer._can_execute_action_on_records` lee la acción elevada; importa `AccessError`, que faltaba | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:1215-1243` |
+| `IrActionsServer.copy_data` devuelve la lista de la fuente | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:1320-1326` |
+| `IrActionsServer._run_action_multi` recorre `child_ids.sorted()` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:1019-1023` |
+| `IrActionsServer._get_warning_messages` recorre el recordset de hijas | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:761-799` |
+| `IrActionsReport.valid_reports_for` sin `prefetch_related` | `src/addons/base/models/ir_actions_report.py` | `odoo19c: odoo/addons/base/models/ir_actions_report.py:157-163` |
+| `_copies` no copia un `GenericForeignKey` | `src/orm/models.py` | `odoo19c: odoo/orm/fields.py:443-450` |
+| `sembrar_cron` como superusuario, cuerpo en `_seed_cron` | `src/addons/base/data/cron.py` | `odoo19c: odoo/addons/base/security/ir.model.access.csv:107` |
+| `IrCron._process_jobs_loop` y `IrCron.method_direct_trigger` leen el job elevados | `src/addons/base/models/ir_cron.py` | `odoo19c: odoo/addons/base/models/ir_cron.py:150-184` |
+
+- `_can_execute_action_on_records` no tenía llamador: `run` no lo
+  invocaba. Al llamarlo, como la fuente, salieron dos defectos que nunca
+  se habían ejecutado: `AccessError` sin importar y `check_access` llamado
+  sobre la clase.
+- Un `GenericForeignKey` es el mecanismo de `fields.Reference` en este
+  árbol. Su valor vive en sus dos columnas concretas, que sí se copian;
+  copiar el campo virtual asignaba `False` a la relación y rompía.
+- El planificador de la fuente lee sus jobs por SQL, sin ACL. Sólo el
+  `_callback` corre con el usuario del cron, y el puerto ya lo fija
+  explícitamente.
+
+Las pruebas que trabajaban sin usuario pasan a correr como superusuario
+(el `TransactionCase` de la fuente), con el fixture que ya tiene
+`test_copy_follows_the_one2many_copy_flag.py`; las que miden ACL elevan
+sólo la lectura que lo necesita. Las de historial pasan a `create` y
+`write`, que son quienes anotan la revisión en la fuente, y las que usaban
+la API de Django sobre una relación (`.all()`, `.count()`, `.add()`) pasan
+a la del recordset.
+
+Subconjunto ampliado (108 archivos, `-n 4`): 1894 pasan, 0 fallan.
+
+Anulaciones, restauradas con `cmp`: sin la revisión de `write` y sin la
+copia desde el padre en `create` caen exactamente cuatro casos —el del
+hijo que copia modelo y grupos, y tres de revisiones al escribir— y pasan
+los otros 20.
