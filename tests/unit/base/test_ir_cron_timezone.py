@@ -53,7 +53,8 @@ from zoneinfo import ZoneInfo
 import pytest
 from django.utils import timezone
 
-from addons.base.models import IrActionsServer, IrCron, ResPartner, ResUsers
+from addons.base.models import (
+    IrActionsServer, IrCron, IrModel, ResPartner, ResUsers)
 from addons.base.models.ir_cron import _add_interval, _resolve_tz
 from orm.environments import context_scope
 
@@ -67,7 +68,7 @@ def action():
     return IrActionsServer.objects.create(
         name='Tarea con zona',
         state='code',
-        model_name='ir.config_parameter',
+        model_id=IrModel._get('ir.config_parameter'),
         method_name='noop_test',
     )
 

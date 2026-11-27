@@ -14,7 +14,6 @@ import pytest
 from addons.base.models import IrActionsServer, IrModel
 from addons.base_automation.models.base_automation import (
     BaseAutomation,
-    BaseAutomationAction,
 )
 from addons.base_automation.models.ir_actions_server import (
     USAGE_BASE_AUTOMATION,
@@ -218,9 +217,11 @@ class TestGetWarningMessages:
             model='res.users', name='Usuario'
         )
         action = IrActionsServer.objects.create(
-            name='Acción dispar', state='object_create', model_name=otro.model
+            name='Acción dispar', state='object_create',
+            model_id=IrModel._get(otro.model)
         )
-        BaseAutomationAction.objects.create(action=action, automation=rule)
+        action.base_automation_id = rule
+        action.save()
         avisos = action._get_warning_messages()
         assert any('Acción dispar' in aviso for aviso in avisos)
 
@@ -228,9 +229,10 @@ class TestGetWarningMessages:
         action = IrActionsServer.objects.create(
             name='Acción alineada',
             state='object_create',
-            model_name=partner_model.model,
+            model_id=IrModel._get(partner_model.model),
         )
-        BaseAutomationAction.objects.create(action=action, automation=rule)
+        action.base_automation_id = rule
+        action.save()
         assert not any(
             'Acción alineada' in aviso
             for aviso in action._get_warning_messages()
@@ -238,7 +240,8 @@ class TestGetWarningMessages:
 
     def test_an_action_without_a_rule_does_not_warn(self, partner_model):
         action = IrActionsServer.objects.create(
-            name='Suelta', state='object_create', model_name='res.users'
+            name='Suelta', state='object_create',
+            model_id=IrModel._get('res.users')
         )
         assert not any(
             'Suelta' in aviso for aviso in action._get_warning_messages()
@@ -250,8 +253,8 @@ class TestGetChildrenDomain:
     ≙ ``_get_children_domain`` (``:41-45``) — una hija no es de una regla.
     """
 
-    def test_it_adds_the_condition_over_the_link(self):
-        assert 'base_automation_link' in repr(
+    def test_it_adds_the_condition_over_base_automation_id(self):
+        assert 'base_automation_id' in repr(
             IrActionsServer._get_children_domain()
         )
 
@@ -266,7 +269,8 @@ class TestComputeAvailableModelIds:
 
     def test_without_the_automation_usage_the_base_universe_survives(self):
         action = IrActionsServer.objects.create(
-            name='Normal', state='object_create', usage='ir_actions_server'
+            name='Normal', state='object_create', usage='ir_actions_server',
+            model_id=IrModel._get('res.partner')
         )
         assert len(action._compute_available_model_ids()) > 1
 
@@ -274,9 +278,12 @@ class TestComputeAvailableModelIds:
         self, rule, partner_model
     ):
         action = IrActionsServer.objects.create(
-            name='De regla', state='object_create', usage=USAGE_BASE_AUTOMATION
+            name='De regla', state='object_create',
+            usage=USAGE_BASE_AUTOMATION,
+            model_id=IrModel._get('res.partner')
         )
-        BaseAutomationAction.objects.create(action=action, automation=rule)
+        action.base_automation_id = rule
+        action.save()
         # Filas de ``ir.model``, como el recordset que asigna la fuente.
         assert action._compute_available_model_ids() == [partner_model]
         assert action.available_model_ids == [partner_model]
@@ -286,7 +293,7 @@ class TestComputeAvailableModelIds:
         action = IrActionsServer.objects.create(
             name='Sin regla',
             state='object_create',
-            usage=USAGE_BASE_AUTOMATION,
+            usage=USAGE_BASE_AUTOMATION, model_id=IrModel._get('res.partner')
         )
         assert action._compute_available_model_ids() == []
 
@@ -296,20 +303,23 @@ class TestGetEvalContext:
 
     def test_code_state_publishes_json(self):
         action = IrActionsServer.objects.create(
-            name='Código', state='code', code='x = 1'
+            name='Código', state='code', code='x = 1',
+            model_id=IrModel._get('res.partner')
         )
         assert 'json' in action._get_eval_context()
 
     def test_another_state_does_not_publish_json(self):
         action = IrActionsServer.objects.create(
-            name='No código', state='object_create'
+            name='No código', state='object_create',
+            model_id=IrModel._get('res.partner')
         )
         assert 'json' not in action._get_eval_context()
 
     def test_the_context_of_base_survives(self):
         """``super()`` primero: lo que la base ponía sigue puesto."""
         action = IrActionsServer.objects.create(
-            name='Código dos', state='code', code='x = 1'
+            name='Código dos', state='code', code='x = 1',
+            model_id=IrModel._get('res.partner')
         )
         contexto = action._get_eval_context()
         assert len(contexto) > 1
@@ -320,13 +330,16 @@ class TestAutomationOfHelper:
 
     def test_it_finds_the_linked_rule(self, rule):
         action = IrActionsServer.objects.create(
-            name='Ligada', state='object_create'
+            name='Ligada', state='object_create',
+            model_id=IrModel._get('res.partner')
         )
-        BaseAutomationAction.objects.create(action=action, automation=rule)
+        action.base_automation_id = rule
+        action.save()
         assert _automation_of(action) == rule
 
     def test_without_a_link_it_is_none(self):
         action = IrActionsServer.objects.create(
-            name='Sin ligar', state='object_create'
+            name='Sin ligar', state='object_create',
+            model_id=IrModel._get('res.partner')
         )
         assert _automation_of(action) is None

@@ -33,7 +33,8 @@ import pytest
 from django.db import connection, transaction
 from django.utils import timezone
 
-from addons.base.models import IrActionsServer, IrCron, SystemParameter
+from addons.base.models import (
+    IrActionsServer, IrCron, IrModel, SystemParameter)
 from orm.environments import SUPERUSER_ID, get_current_uid
 from tests.subprocess_env import subprocess_env
 
@@ -74,7 +75,7 @@ def _accion(name='Tarea', model_name='ir.config_parameter',
     acciones en el mismo test con ``path=''`` chocan contra su UNIQUE —
     ``NULL`` sí admite múltiples filas."""
     return IrActionsServer.objects.create(
-        name=name, model_name=model_name, method_name=method_name,
+        name=name, model_id=IrModel._get(model_name), method_name=method_name,
         state='code', code=f'model.{method_name}()', path=None,
     )
 

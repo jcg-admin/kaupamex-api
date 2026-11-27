@@ -17,7 +17,6 @@ import pytest
 from addons.base.models import IrActionsServer, IrModel, ResCompany, ResPartner
 from addons.base_automation.models.base_automation import (
     BaseAutomation,
-    BaseAutomationAction,
 )
 from addons.resource.models import ResourceCalendar
 from orm.environments import sudo
@@ -46,8 +45,10 @@ def _rule(model_label, **values):
     rule = BaseAutomation.objects.create(
         name='Regla', model_id=ir_model, trigger='on_write', **values)
     action = IrActionsServer.objects.create(
-        name='Espía', state='object_create', model_name=model_label)
-    BaseAutomationAction.objects.create(action=action, automation=rule)
+        name='Espía', state='object_create',
+        model_id=IrModel._get(model_label))
+    action.base_automation_id = rule
+    action.save()
     return action
 
 

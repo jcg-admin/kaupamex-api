@@ -50,7 +50,6 @@ from addons.base_automation.models.base_automation import (
     CREATE_TRIGGERS,
     WRITE_TRIGGERS,
     BaseAutomation,
-    BaseAutomationAction,
 )
 
 _local = threading.local()
@@ -90,7 +89,7 @@ def _skip(sender):
     normal (``recorder.py:102``) y disparaba la consulta — es el traceback
     medido del ``ProgrammingError``. Su ``app_label`` es ``migrations``."""
     return (
-        sender in (BaseAutomation, BaseAutomationAction)
+        sender is BaseAutomation
         or sender.__module__ == '__fake__'
         or sender._meta.app_label == 'migrations'
     )

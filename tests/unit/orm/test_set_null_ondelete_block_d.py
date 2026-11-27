@@ -20,6 +20,7 @@ pytestmark = pytest.mark.django_db
 
 IrSequence = apps.get_model('base', 'IrSequence')
 IrActionsServer = apps.get_model('base', 'IrActionsServer')
+IrModel = apps.get_model('base', 'IrModel')
 AccountReport = apps.get_model('account', 'AccountReport')
 AccountReportColumn = apps.get_model('account', 'AccountReportColumn')
 ProductTemplate = apps.get_model('product', 'ProductTemplate')
@@ -59,7 +60,7 @@ def test_deleting_a_sequence_keeps_the_action_that_used_it():
     sequence = IrSequence.objects.create(name='Secuencia D')
     action = IrActionsServer.objects.create(
         name='Acción D', type='ir.actions.server', state='code',
-        model_name='res.partner', sequence_id=sequence)
+        model_id=IrModel._get('res.partner'), sequence_id=sequence)
     _delete(sequence)
     action.refresh_from_db()
     assert action.sequence_id_id is None

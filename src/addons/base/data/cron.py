@@ -178,7 +178,7 @@ def _find_seeded_action(ir_model_data, ir_cron, ir_actions_server, alias,
             if cron is not None:
                 return cron.ir_actions_server
     accion, _ = using(ir_actions_server.objects).get_or_create(
-        model_name=registry.identity_for_key(spec['model_name']),
+        **_model_key(ir_actions_server, alias, spec['model_name']),
         method_name=spec['method_name'],
         defaults={
             'name': spec['name'],
@@ -189,3 +189,24 @@ def _find_seeded_action(ir_model_data, ir_cron, ir_actions_server, alias,
         },
     )
     return accion
+
+
+def _model_key(ir_actions_server, alias, model_name):
+    """El modelo de la acción en la forma que su estado declara.
+
+    Una migración histórica ve ``ir.actions.server`` con ``model_name`` hasta
+    ``0149`` y con ``model_id`` (≙ ``odoo19c: ir_actions.py:635``) desde ahí;
+    un addon cuya migración corre después recibe el segundo. Con ``model_id``
+    la fila de ``ir.model`` se crea si falta: en una base nueva la siembra
+    corre antes del reflejo de modelos, que después la completa por su clave
+    ``model`` (``IrModel._reflect_models``, ``ON CONFLICT (model)``).
+    """
+    identity = registry.identity_for_key(model_name)
+    if not any(field.name == 'model_id'
+               for field in ir_actions_server._meta.fields):
+        return {'model_name': identity}
+    ir_model = ir_actions_server._meta.get_field('model_id').related_model
+    manager = ir_model.objects.using(alias) if alias else ir_model.objects
+    row, _ = manager.get_or_create(model=identity,
+                                   defaults={'name': identity})
+    return {'model_id': row}

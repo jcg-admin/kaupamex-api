@@ -20,6 +20,7 @@ import pytest
 from django.db.migrations import executor as executor_module
 from django.utils import timezone
 
+from addons.base.models.ir_model import IrModel
 from addons.base.models.ir_actions import IrActionsServer
 from addons.base.models.ir_cron import (
     MAX_FAIL_TIME,
@@ -35,7 +36,7 @@ pytestmark = pytest.mark.django_db
 
 def _cron(nextcall_delta=timedelta(minutes=-5)):
     action = IrActionsServer.objects.create(
-        name='Guarda', model_name='ir.config_parameter',
+        name='Guarda', model_id=IrModel._get('ir.config_parameter'),
         method_name='noop_test', state='code', path=None)
     return IrCron.objects.create(
         ir_actions_server=action,
@@ -51,7 +52,8 @@ def _module_in_transit():
     mano —Django no valida ``choices`` en ``save()``— porque sin ella la rama
     del umbral no se puede medir.
     """
-    return IrModule.objects.create(name='addon_en_transito', state='to install')
+    return IrModule.objects.create(
+        name='addon_en_transito', state='to install')
 
 
 # --- _check_modules_state ---------------------------------------------------

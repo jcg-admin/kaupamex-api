@@ -19,6 +19,7 @@ ausente, así que hay uno que guarda el mismo código dos veces y afirma falso.
 
 import pytest
 
+from addons.base.models.ir_model import IrModel
 from addons.base.models.ir_actions import (
     IrActionsServer,
     IrActionsServerHistory,
@@ -41,6 +42,7 @@ def _action(**kwargs):
     """Por ``create``, que es quien anota la primera revisión
     (``odoo19c: odoo/addons/base/models/ir_actions.py:711-728``)."""
     kwargs.setdefault('name', 'Accion')
+    kwargs.setdefault('model_id', IrModel._get_id('res.partner'))
     kwargs.setdefault('state', 'code')
     return IrActionsServer.create(kwargs)
 

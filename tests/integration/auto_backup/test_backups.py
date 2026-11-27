@@ -24,7 +24,7 @@ import pytest
 
 from addons.auto_backup.models import DbBackup, DbBackupDetails
 from addons.auto_backup.models import db_backup as db_backup_model
-from addons.base.models import SystemParameter
+from addons.base.models import IrModel, SystemParameter
 from orm.registry import clear_cache
 from addons.base.models.ir_cron import IrCron
 from tests.mocks.mail_server import sent_mails
@@ -166,7 +166,7 @@ class TestTriggerRunsTheCron:
     def test_trigger_without_a_seeded_cron_503(self, admin_client, config):
         """Sin el cron sembrado no hay nada que disparar, y se dice."""
         IrCron.objects.filter(
-            ir_actions_server__model_name='db.backup',
+            ir_actions_server__model_id=IrModel._get_id('db.backup'),
             ir_actions_server__method_name='schedule_backup',
         ).delete()
         r = admin_client.post(TRIGGER_URL)

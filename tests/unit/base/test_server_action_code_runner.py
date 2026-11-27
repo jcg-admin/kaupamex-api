@@ -19,6 +19,7 @@ import logging
 
 import pytest
 
+from addons.base.models.ir_model import IrModel
 from addons.base.models.ir_actions import IrActionsServer, LoggerProxy
 from addons.base.models.res_partner import ResPartner
 from fields import Command
@@ -37,7 +38,8 @@ def _elevated():
 
 def _code(code, model_name=PARTNER):
     return IrActionsServer.objects.create(
-        name='Codigo', state='code', model_name=model_name, code=code)
+        name='Codigo', state='code',
+        model_id=IrModel._get(model_name), code=code)
 
 
 def test_empty_code_returns_none():
@@ -88,6 +90,6 @@ def test_the_logger_is_the_proxy(caplog):
 
 def test_an_equation_value_is_evaluated():
     action = IrActionsServer.objects.create(
-        name='Ecuacion', state='object_write', model_name=PARTNER,
+        name='Ecuacion', state='object_write', model_id=IrModel._get(PARTNER),
         evaluation_type='equation', value='2 + 3')
     assert action._eval_value(action._get_eval_context()) == {action.pk: 5}

@@ -67,24 +67,18 @@ Vocabulario Odoo-Studio (``x_studio_*``) — omitido de los dominios de
 esos nombres alternativos de campo nunca podrían matchear nada. No es un
 símbolo omitido — es un valor de lista literal sin referente.
 
-Decisión de mecanismo — ``action_server_ids`` / ``base_automation_id``
+``action_server_ids`` / ``base_automation_id``
 =========================================================================
 
-La referencia declara ``base_automation_id`` (Many2one) SOBRE
-``ir.actions.server`` (en su ``base_automation/models/ir_actions_server.py``,
-un ``_inherit``) y expone ``action_server_ids`` como el O2M inverso aquí.
-Django no admite declarar un campo nuevo sobre una clase de modelo ya
-definida en otro addon (los campos se fijan al evaluar el cuerpo de la
-clase, antes de que exista la app que la extiende) — mismo problema que
-resolvió ``account_payment`` con ``PaymentGatewayJournal`` (ver su
-docstring, ``addons/account_payment/models/account_journal.py``): una
-tabla-liga nueva, propia del addon que extiende, en vez de una columna en
-el modelo ajeno. ``BaseAutomationAction`` (abajo) es esa tabla-liga —
-reemplaza el Many2one de la referencia por un OneToOne
-``action -> automation``, misma cardinalidad (una acción, a lo sumo una
-regla dueña). ``action_server_ids`` se conserva como el nombre del
-accesor (``@property``), fiel a la referencia, aunque su mecanismo interno
-sea la tabla-liga y no un O2M directo.
+La referencia declara ``base_automation_id`` (Many2one) sobre
+``ir.actions.server`` en su ``base_automation/models/ir_actions_server.py``
+(un ``_inherit``) y expone ``action_server_ids`` como el O2M inverso aquí.
+Se porta igual: ``extend_model(campos=…)`` cuelga el Many2one de la acción
+de servidor, y ``action_server_ids`` lo lee. Antes una tabla-liga
+(``BaseAutomationAction``) lo sustituía con el argumento de que Django no
+admite un campo nuevo sobre el modelo de otro addon; ``extend_model`` ya lo
+hace para ``hr``, ``account`` y ``base_vat``, y la liga se retiró en la
+migración ``base_automation/0010``.
 """
 import api
 import logging
@@ -279,34 +273,6 @@ def _domain_fields_differences(model_row, domain1, domain2):
     in_d1_only = IrModelFields.objects.filter(pk__in=(d1_ids - d2_ids))
     in_d2_only = IrModelFields.objects.filter(pk__in=(d2_ids - d1_ids))
     return in_d1_only, in_d2_only
-
-
-class BaseAutomationAction(TimeStampedModel):
-    """Tabla-liga acción-servidor ↔ regla de automatización.
-
-    Reemplaza el Many2one ``ir.actions.server.base_automation_id`` de la
-    referencia — ver la sección "Decisión de mecanismo" del docstring del
-    módulo. ``OneToOneField`` en ``action`` porque cada ``ir.actions.
-    server`` pertenece a lo sumo a una regla (misma cardinalidad que el
-    Many2one original).
-    """
-
-    action = models.OneToOneField(
-        IrActionsServer, on_delete=models.CASCADE,
-        related_name='base_automation_link', verbose_name='Acción servidor',
-    )
-    automation = models.ForeignKey(
-        'base_automation.BaseAutomation', on_delete=models.CASCADE,
-        related_name='action_links', verbose_name='Regla de automatización',
-    )
-
-    class Meta:
-        db_table = 'base_automation_action'
-        verbose_name = 'Liga acción-automatización'
-        verbose_name_plural = 'Ligas acción-automatización'
-
-    def __str__(self):
-        return f'{self.action_id} -> {self.automation_id}'
 
 
 class BaseAutomation(models.BaseModel, MailThread, MailActivityMixin,
@@ -510,18 +476,11 @@ class BaseAutomation(models.BaseModel, MailThread, MailActivityMixin,
 
     @property
     def action_server_ids(self):
-        """≙ ``action_server_ids`` de la referencia — vía la tabla-liga
-        ``BaseAutomationAction`` (ver "Decisión de mecanismo" del
-        docstring del módulo). Requiere ``pk`` (accede al reverso
-
-        ≙ ``_compute_action_server_ids`` (``odoo19c:
-        base_automation/models/base_automation.py``).
-        ``action_links``, que no existe sobre una instancia sin guardar)."""
+        """≙ ``action_server_ids`` de la referencia: las acciones cuyo
+        ``base_automation_id`` es esta regla. Sin ``pk`` no hay ninguna."""
         if self.pk is None:
             return IrActionsServer.objects.none()
-        return IrActionsServer.objects.filter(
-            base_automation_link__automation=self,
-        )
+        return IrActionsServer.objects.filter(base_automation_id=self)
 
     # -- Sincronización de campos derivados (≙ cadena de @api.depends) ------
 
@@ -849,21 +808,17 @@ class BaseAutomation(models.BaseModel, MailThread, MailActivityMixin,
                 'negate the delay.')
 
     def _compute_action_server_ids(self):
-        """≙ ``_compute_action_server_ids`` — al cambiar ``model_id``,
-        desvincula (no borra) las acciones que apuntaban a otro modelo.
-        Requiere ``pk`` (opera sobre la tabla-liga ``BaseAutomationAction``);
-        se invoca desde ``save()`` después del ``INSERT``/``UPDATE``.
-
-        ``IrActionsServer`` no tiene ``model_id`` (FK) — sólo ``model_name``
-        (``Char`` plano, ver ``src/addons/base/models/ir_actions.py``); la
-        comparación de la referencia (``action.model_id != rule.model_id``)
-        se traduce a comparar contra ``self.model_id.model`` (el nombre
-        técnico, mismo valor que ``BaseAutomation.model_name`` sincroniza)."""
+        """≙ ``_compute_action_server_ids`` (``odoo19c:
+        base_automation/models/base_automation.py:312-320``): al cambiar
+        ``model_id``, desvincula —``(3, id)``, no borra— las acciones que
+        apuntan a otro modelo. Se invoca desde ``save()`` tras el
+        ``INSERT``/``UPDATE``."""
         if self.pk is None or self.model_id is None:
             return
-        stale = BaseAutomationAction.objects.filter(
-            automation=self).exclude(action__model_name=self.model_id.model)
-        stale.delete()
+        stale = self.action_server_ids.exclude(model_id=self.model_id)
+        env()['ir.actions.server'].browse(
+            list(stale.values_list('pk', flat=True))).write(
+                {'base_automation_id': False})
 
     @classmethod
     def _register_hook(cls):
@@ -1136,11 +1091,8 @@ class BaseAutomation(models.BaseModel, MailThread, MailActivityMixin,
             action_clone = IrActionsServer.objects.get(pk=action_pk)
             action_clone.pk = None
             action_clone._state.adding = True
+            action_clone.base_automation_id = clone
             action_clone.save()
-            BaseAutomationAction.objects.create(
-                action=action_clone,
-                automation=clone,
-            )
         return clone
 
     # -- Acciones ------------------------------------------------------

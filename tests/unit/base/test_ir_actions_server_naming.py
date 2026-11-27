@@ -52,6 +52,7 @@ PARTNER = 'base.ResPartner'
 
 def _action(**kwargs):
     kwargs.setdefault('name', 'Accion')
+    kwargs.setdefault('model_id', IrModel._get('res.partner'))
     kwargs.setdefault('state', 'multi')
     return IrActionsServer.objects.create(**kwargs)
 
@@ -331,7 +332,8 @@ class TestTheOnchangeSetters:
         )
         link = _field(model_row, 'ajeno', 'many2one')
         action = _action(
-            model_name=PARTNER, crud_model_id=other, link_field_id=link
+            model_id=IrModel._get(PARTNER), crud_model_id=other,
+            link_field_id=link,
         )
 
         action._set_crud_model_id()

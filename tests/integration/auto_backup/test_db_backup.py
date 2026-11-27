@@ -25,6 +25,7 @@ from unittest import mock
 import pytest
 from django.db import DEFAULT_DB_ALIAS, connections
 
+from addons.base.models.ir_model import IrModel
 from addons.auto_backup.data import CRON_BACKUP
 from addons.auto_backup.models import DbBackup, DbBackupDetails
 from addons.auto_backup.models.db_backup import _get_db_name
@@ -108,7 +109,8 @@ class TestSeededCron:
 
     def _cron(self):
         return IrCron.objects.filter(
-            ir_actions_server__model_name=CRON_BACKUP['model_name'],
+            ir_actions_server__model_id=IrModel._get_id(
+                CRON_BACKUP['model_name']),
             ir_actions_server__method_name=CRON_BACKUP['method_name'],
         ).first()
 
@@ -153,7 +155,8 @@ class TestScheduleBackup:
         crear el detalle comprueba el acceso de ese entorno.
         """
         cron = IrCron.objects.get(
-            ir_actions_server__model_name=CRON_BACKUP['model_name'],
+            ir_actions_server__model_id=IrModel._get_id(
+                CRON_BACKUP['model_name']),
             ir_actions_server__method_name=CRON_BACKUP['method_name'],
         )
         cron._callback()

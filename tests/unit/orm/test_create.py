@@ -31,7 +31,7 @@ retira el lote de padres de ``_inherits`` hace caer exactamente el caso de
 import pytest
 from django.core.exceptions import PermissionDenied
 
-from addons.base.models import ResPartner
+from addons.base.models import IrModel, ResPartner
 from addons.base.models.ir_cron import IrCron
 from addons.base.models.res_partner import ResPartnerCategory
 from addons.base.models.res_users import ResUsers
@@ -182,7 +182,7 @@ class TestInheritsParents:
                 [
                     {
                         'name': 'Cron de alta',
-                        'model_name': 'res.partner',
+                        'model_id': IrModel._get_id('res.partner'),
                         'code': 'x',
                         'interval_number': 1,
                         'interval_type': 'days',

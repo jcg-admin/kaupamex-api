@@ -50,7 +50,8 @@ import pytest
 from django.db.models.signals import post_save
 from django.utils import timezone
 
-from addons.base.models import IrActionsServer, IrCron, SystemParameter
+from addons.base.models import (
+    IrActionsServer, IrCron, IrModel, SystemParameter)
 from addons.base.models import ir_cron as modulo_ir_cron
 from addons.base.models.ir_cron import (
     CompletionStatus,
@@ -70,7 +71,7 @@ def cron():
     action = IrActionsServer.objects.create(
         name='Tarea de prueba',
         state='code',
-        model_name='ir.config_parameter',
+        model_id=IrModel._get('ir.config_parameter'),
         method_name='noop_test',
     )
     return IrCron.objects.create(

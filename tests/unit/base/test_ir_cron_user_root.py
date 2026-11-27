@@ -9,7 +9,7 @@ orm-continuation-plan-20261103T095630/designs/ir-cron-user-root.md``.
 import pytest
 from django.contrib.auth import get_user_model
 
-from addons.base.models import IrActionsServer, IrModelData
+from addons.base.models import IrActionsServer, IrModel, IrModelData
 from addons.base.models.ir_cron import IrCron
 from orm.environments import sudo, user_scope
 
@@ -22,7 +22,7 @@ def _root_id():
 
 def _action():
     return IrActionsServer.objects.create(
-        name='probe', model_name='ir.cron', method_name='_noop',
+        name='probe', model_id=IrModel._get('ir.cron'), method_name='_noop',
         state='code', code='')
 
 

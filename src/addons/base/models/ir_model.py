@@ -691,13 +691,10 @@ class IrModel(models.OriginMixin, TimeStampedModel):
         # para un ciclo entre modelos, y una llamada —no un ``import`` dentro
         # de una función—, así que el gate de imports perezosos la admite.
         #
-        # Y apunta por ``model_name``, no por ``model_id``: aquí el cron nombra
-        # su modelo con la etiqueta en un ``Char`` que delega en
-        # ``ir.actions.server``, no con la FK a ``ir.model`` que la fuente usa.
-        # Convertir ese ``Char`` en FK es la tarea **#139**; hasta entonces el
-        # filtro es por etiqueta.
+        # Apunta por el ``model_id`` de la acción delegada, la FK a
+        # ``ir.model`` que la fuente usa.
         apps.get_model('base', 'IrCron').objects.filter(
-            ir_actions_server__model_name=model_name).delete()
+            ir_actions_server__model_id=self).delete()
         IrModelData.objects.filter(model=model_name).delete()
         result = super().delete(*args, **kwargs)
         registry.registry_of_row(self).clear_cache('stable')

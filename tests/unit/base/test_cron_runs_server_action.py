@@ -18,7 +18,7 @@ import pytest
 from django.apps import apps
 
 from addons.base.data.cron import sembrar_cron_vivo
-from addons.base.models import IrActionsServer, IrCron
+from addons.base.models import IrActionsServer, IrCron, IrModel
 from addons.base.models.res_partner import ResPartner
 from orm.environments import sudo
 
@@ -35,7 +35,7 @@ def _elevated():
 
 def _cron(code, method_name=''):
     action = IrActionsServer.objects.create(
-        name='Cron de prueba', state='code', model_name=PARTNER,
+        name='Cron de prueba', state='code', model_id=IrModel._get(PARTNER),
         method_name=method_name, code=code)
     return IrCron.objects.create(ir_actions_server=action,
                                  interval_number=1, interval_type='days')

@@ -39,10 +39,11 @@ def _as_superuser():
 
 def test_a_child_action_travels_with_the_copy(db):
     parent = IrActionsServer.objects.create(
-        name='Padre 1161', type='ir.actions.server', state='multi')
+        name='Padre 1161', type='ir.actions.server', state='multi',
+        model_id=IrModel._get('res.partner'))
     IrActionsServer.objects.create(
         name='Hija 1161', type='ir.actions.server', state='code',
-        parent_id=parent)
+        parent_id=parent, model_id=IrModel._get('res.partner'))
     copy = parent.copy()
     assert [child.parent_id.id for child in copy.child_ids] == [copy.pk]
     assert len(parent.child_ids) == 1

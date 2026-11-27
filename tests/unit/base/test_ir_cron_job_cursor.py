@@ -15,7 +15,8 @@ import pytest
 from django.apps import apps
 from django.utils import timezone
 
-from addons.base.models import IrActionsServer, IrCron, SystemParameter
+from addons.base.models import (
+    IrActionsServer, IrCron, IrModel, SystemParameter)
 from orm.environments import env, get_transaction
 from tests.factories.user_factory import UserFactory
 
@@ -31,7 +32,7 @@ def _only_our_crons(db):
 
 def _cron(user, method_name):
     action = IrActionsServer.objects.create(
-        name=method_name, model_name='ir.config_parameter',
+        name=method_name, model_id=IrModel._get('ir.config_parameter'),
         method_name=method_name, state='code',
         code=f'model.{method_name}()', path=None)
     return IrCron.objects.create(

@@ -7,10 +7,10 @@ Diseño: ``designs/ir-actions-bindings.md``.
 
 import pytest
 
-from addons.base.models import IrModelData, ResGroups, ResPartner, ResUsers
+from addons.base.models import (
+    IrModel, IrModelData, ResGroups, ResPartner, ResUsers)
 from addons.base.models.ir_actions import (
     IrActionsActions, IrActionsActWindow, IrActionsServer)
-from addons.base.models.ir_model import IrModel
 from orm.environments import Environment, sudo, user_scope
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
@@ -61,10 +61,12 @@ def test_bound_actions_are_sorted_by_sequence():
     """``_get_bindings`` (``:218-221``)."""
     model = _partner_model()
     later = IrActionsServer.create({
-        'name': 'Después', 'model_name': 'res.partner', 'sequence': 20,
+        'name': 'Después',
+        'model_id': IrModel._get_id('res.partner'), 'sequence': 20,
         'binding_model_id': model.pk})
     first = IrActionsServer.create({
-        'name': 'Antes', 'model_name': 'res.partner', 'sequence': 5,
+        'name': 'Antes',
+        'model_id': IrModel._get_id('res.partner'), 'sequence': 5,
         'binding_model_id': model.pk})
     ids = [row['id'] for row in Environment()['ir.actions.actions']
            ._get_bindings('res.partner')['action']]
@@ -93,8 +95,10 @@ def test_a_user_outside_the_action_groups_does_not_get_it():
 def test_server_create_and_unlink_action_set_the_binding():
     """``create_action`` y ``unlink_action`` (``:989-1000``)."""
     model = _partner_model()
-    action = IrActionsServer.create({'name': 'Contextual',
-                                     'model_name': 'res.partner'})
+    action = IrActionsServer.create({
+        'name': 'Contextual',
+        'model_id': IrModel._get_id('res.partner'),
+    })
     action.create_action()
     assert action.binding_model_id.pk == model.pk
     assert action.binding_type == 'action'

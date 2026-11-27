@@ -8,7 +8,8 @@ ir-cron-env-su.md``.
 """
 import pytest
 
-from addons.base.models import IrActionsServer, IrCron, SystemParameter
+from addons.base.models import (
+    IrActionsServer, IrCron, IrModel, SystemParameter)
 from orm.environments import SUPERUSER_ID, is_su, sudo
 
 pytestmark = pytest.mark.django_db
@@ -27,7 +28,7 @@ def seen(monkeypatch):
 
 def _cron(user=None):
     action = IrActionsServer.objects.create(
-        name='su probe', model_name='ir.config_parameter',
+        name='su probe', model_id=IrModel._get('ir.config_parameter'),
         method_name='su_probe', state='code',
         code='model.su_probe()', path=None)
     values = {'ir_actions_server': action}

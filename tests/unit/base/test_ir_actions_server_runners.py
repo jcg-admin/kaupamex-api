@@ -57,6 +57,7 @@ def _elevated():
 
 def _action(**kwargs):
     kwargs.setdefault('name', 'Accion')
+    kwargs.setdefault('model_id', IrModel._get('res.partner'))
     kwargs.setdefault('state', 'multi')
     return IrActionsServer.objects.create(**kwargs)
 
@@ -121,12 +122,12 @@ class TestMulti:
     def test_children_run_in_sequence_order(self):
         partner = ResPartner.objects.create(name='Zylandia')
         model_row = _partner_model()
-        parent = _action(state='multi', model_name=PARTNER)
+        parent = _action(state='multi', model_id=IrModel._get(PARTNER))
         _action(
             name='Segunda',
             state='object_write',
             sequence=2,
-            model_name=PARTNER,
+            model_id=IrModel._get(PARTNER),
             crud_model_id=model_row,
             update_field_id=_field(model_row, 'name'),
             update_path='name',
@@ -137,7 +138,7 @@ class TestMulti:
             name='Primera',
             state='object_write',
             sequence=1,
-            model_name=PARTNER,
+            model_id=IrModel._get(PARTNER),
             crud_model_id=model_row,
             update_field_id=_field(model_row, 'name'),
             update_path='name',
@@ -161,7 +162,7 @@ class TestObjectWrite:
         kwargs.setdefault('update_path', 'name')
         return _action(
             state='object_write',
-            model_name=PARTNER,
+            model_id=IrModel._get(PARTNER),
             crud_model_id=model_row,
             update_field_id=_field(
                 model_row, kwargs.pop('field', 'name'), ttype
@@ -198,7 +199,7 @@ class TestObjectWrite:
         model_row = _partner_model()
         action = _action(
             state='object_write',
-            model_name=PARTNER,
+            model_id=IrModel._get(PARTNER),
             crud_model_id=model_row,
             update_field_id=_field(model_row, 'color', 'integer'),
             update_path='color',
@@ -222,7 +223,7 @@ class TestObjectWrite:
         model_row = _partner_model()
         action = _action(
             state='object_write',
-            model_name=PARTNER,
+            model_id=IrModel._get(PARTNER),
             crud_model_id=model_row,
             update_path='name',
         )
@@ -242,7 +243,7 @@ class TestObjectCreate:
         anchor = ResPartner.objects.create(name='Zylandia')
         action = _action(
             state='object_create',
-            model_name=PARTNER,
+            model_id=IrModel._get(PARTNER),
             crud_model_id=model_row,
             value='Nuevo contacto',
         )
@@ -261,7 +262,8 @@ class TestObjectCopy:
         partner = ResPartner.objects.create(name='Zylandia')
         model_row = _partner_model()
         action = _action(
-            state='object_copy', model_name=PARTNER, crud_model_id=model_row
+            state='object_copy',
+            model_id=IrModel._get(PARTNER), crud_model_id=model_row
         )
         action.resource_ref = partner
         action.save()
@@ -278,11 +280,11 @@ class TestTheWarningGuardOfRun:
     """≙ ``_run``: una acción con aviso NO se ejecuta."""
 
     def test_an_action_with_warnings_refuses_to_run(self):
-        parent = _action(state='multi', model_name=PARTNER)
+        parent = _action(state='multi', model_id=IrModel._get(PARTNER))
         _action(
             name='Hija',
             state='multi',
-            model_name='res.country',
+            model_id=IrModel._get('res.country'),
             parent_id=parent,
         )
 
@@ -297,7 +299,7 @@ class TestTheEvalContext:
 
     def test_the_active_record_is_bound(self):
         partner = ResPartner.objects.create(name='Zylandia')
-        action = _action(model_name=PARTNER)
+        action = _action(model_id=IrModel._get(PARTNER))
 
         with context_scope(active_model=PARTNER, active_id=partner.pk):
             context = action._get_eval_context(action)
@@ -306,7 +308,7 @@ class TestTheEvalContext:
         assert context['model'] is ResPartner
 
     def test_without_an_active_model_there_is_no_record(self):
-        action = _action(model_name=PARTNER)
+        action = _action(model_id=IrModel._get(PARTNER))
 
         assert action._get_eval_context(action)['record'] is None
 
@@ -314,7 +316,7 @@ class TestTheEvalContext:
         """≙ ``log`` (``odoo19c: ir_actions.py``, ``_get_eval_context``): la
         fuente inserta con ``self.pool.cursor()``, un cursor propio, así que la
         traza queda aunque la acción se revierta."""
-        action = _action(model_name=PARTNER)
+        action = _action(model_id=IrModel._get(PARTNER))
         log = action._get_eval_context(action)['log']
         marker = 'traza-que-sobrevive-%s' % action.pk
 
@@ -344,7 +346,7 @@ class TestTheContextualActionHelpers:
     """≙ ``create_action`` / ``unlink_action``."""
 
     def test_create_action_binds_the_model(self):
-        action = _action(model_name=PARTNER)
+        action = _action(model_id=IrModel._get(PARTNER))
 
         action.create_action()
 
@@ -353,7 +355,7 @@ class TestTheContextualActionHelpers:
         assert action.binding_type == 'action'
 
     def test_unlink_action_clears_the_binding(self):
-        action = _action(model_name=PARTNER)
+        action = _action(model_id=IrModel._get(PARTNER))
         action.create_action()
 
         action.unlink_action()

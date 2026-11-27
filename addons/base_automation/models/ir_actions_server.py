@@ -10,10 +10,9 @@ modelo ya definida en otro addon evaluando su cuerpo de nuevo — la
 extensión de un modelo ajeno en este árbol se hace desde ``ready()``,
 colgando funciones con ``orm.method_chain.chain_method`` (ver su
 docstring: es el reemplazo de ``super()`` para el idioma ``_inherit`` sin
-MRO real). ``base_automation_id``/``action_server_ids`` usan una tabla-liga
-en vez de una columna — ver la sección "Decisión de mecanismo" del
-docstring de ``base_automation.py``; esa pieza NO va aquí, va donde vive
-``BaseAutomationAction``.
+MRO real). El campo nuevo, ``base_automation_id``, lo cuelga
+``extend_model(campos=…)`` desde el mismo ``ready()``
+(:func:`add_base_automation_id`).
 
 Los seis que este docstring declaraba sin receptor — y su medición nueva
 =====================================================================
@@ -28,7 +27,9 @@ declaraba ``_get_eval_context`` sin contexto que extender.
 
 .. code-block:: text
 
-   grep -nE "def _warning_depends|def _get_warning_messages|def _get_children_domain|def _compute_available_model_ids|def _get_eval_context" \
+   grep -nE "def _warning_depends|def _get_warning_messages\
+   |def _get_children_domain|def _compute_available_model_ids\
+   |def _get_eval_context" \
        src/addons/base/models/ir_actions.py
    → 1181, 1204, 1431, 1308, 2089   (cinco, ninguno ausente)
 
@@ -41,14 +42,13 @@ clase de veredicto caducado que :ref:`h-api-1018` registró para
 ``base_install_request``, y la razón por la que un bloqueo se declara **por
 símbolo con su medición** y se vuelve a medir al retomarlo.
 
-Lo que sí sigue divergiendo, y no es alcance sino mecanismo
+``base_automation_id``, columna de la acción de servidor
 =====================================================================
 
-``base_automation_id`` no es una columna aquí: la liga vive en
-``BaseAutomationAction`` (``OneToOneField`` sobre la acción), por la
-"Decisión de mecanismo" del docstring de ``base_automation.py``. Los tres
-métodos que la fuente escribe contra ``base_automation_id`` navegan esa liga
-en vez de la FK; el conjunto que seleccionan es el mismo.
+La fuente lo declara en este ``_inherit`` (``:17``). Una tabla-liga
+(``BaseAutomationAction``, ``OneToOneField`` sobre la acción) lo sustituyó
+hasta la migración ``base_automation/0010``; hoy es la columna de la fuente
+y los tres métodos que la leen la leen directamente.
 
 ``_get_eval_context`` se porta **entero** aunque ningún corredor de este
 árbol evalúe el modo ``code``: es el contrato que un corredor propio
@@ -70,39 +70,33 @@ propio ``chain_method(...)`` de abajo corre una sola vez, al importarse
 este módulo.
 """
 
-from fields import Domain
+from fields import Domain, Many2one
 from tools.json import scriptsafe
 from tools.translate import _
 
 from addons.base.models import IrActionsServer, IrCron
 from addons.base_automation.models.base_automation import (
-    BaseAutomationAction,
     get_webhook_request_payload,
 )
 from orm.method_chain import chain_method, extend_list, wrap_method
-from orm.model_classes import extend_selection_choices
+from orm.model_classes import extend_model, extend_selection_choices
 
 #: ≙ el valor que ``selection_add`` añade a ``usage``
-#: (``odoo19c: base_automation/models/ir_actions_server.py:14-16``).
+#: (``odoo19c: addons/base_automation/models/ir_actions_server.py:14-16``).
 USAGE_BASE_AUTOMATION = 'base_automation'
 
 
 def _automation_of(action):
     """La regla ligada a esta acción, o ``None``.
 
-    ≙ leer ``action.base_automation_id`` en la fuente. Aquí la liga es
-    ``BaseAutomationAction`` y no una columna, así que la navegación se
-    concentra en un ayudante: los tres métodos que la fuente escribe contra
-    la FK la consultan por aquí y ninguno repite la travesía.
+    ≙ leer ``action.base_automation_id`` en la fuente.
     """
-    link = BaseAutomationAction.objects.filter(action=action).first()
-    return link.automation if link is not None else None
+    return action.base_automation_id or None
 
 
 def _action_open_automation(self):
     """≙ ``IrActionsServer.action_open_automation`` de la referencia."""
-    link = BaseAutomationAction.objects.filter(action=self).first()
-    return link.automation if link else None
+    return self.base_automation_id or None
 
 
 def _ircron_action_open_automation(self):
@@ -121,11 +115,8 @@ def _warning_depends(cls):
     de :mod:`orm.method_chain`, que es el mecanismo de este árbol para el
     ``super() + [...]`` de la referencia.
 
-    Los dos nombres van **verbatim**, ``base_automation_id`` incluido, aunque
-    aquí la liga sea una tabla: la base ya declara su lista *"con los nombres
-    de la fuente, incluidos los de campos que este árbol aún no tiene"*
-    (``src/addons/base/models/ir_actions.py:1181``), y recortarla escondería
-    de qué depende el aviso.
+    Los dos nombres son campos de la acción de servidor: ``model_id`` (la
+    base) y ``base_automation_id`` (este addon).
     """
     return ['model_id', 'base_automation_id']
 
@@ -143,7 +134,7 @@ def _get_warning_messages(self, previous, seen=None):
     """
     warnings = previous(seen=seen)
     automation = _automation_of(self)
-    if automation is not None and self.model_name != automation.model_name:
+    if automation is not None and self.model_id != automation.model_id:
         warnings.append(
             _(
                 'El modelo de la acción %(action_name)s debería coincidir con'
@@ -163,14 +154,10 @@ def _get_children_domain(cls, previous):
 
     La fuente lo escribe ``super() & Domain("base_automation_id", "=",
     False)``.
-    Aquí la liga es la relación inversa ``base_automation_link``, así que la
-    condición se expresa sobre ella: una acción **sin** liga es la que puede
-    ser hija. El conjunto que selecciona es el mismo.
-
     Va por ``overrides=`` porque el ``&`` necesita el dominio de la base **en
     la mano**, no un resultado que se combine después.
     """
-    return previous() & Domain([('base_automation_link', '=', False)])
+    return previous() & Domain("base_automation_id", "=", False)
 
 
 def _compute_available_model_ids(self, previous):
@@ -237,7 +224,25 @@ def add_base_automation_usage():
     )
 
 
+def add_base_automation_id():
+    """≙ ``base_automation_id = fields.Many2one('base.automation',
+    string='Automation Rule', index='btree_not_null', ondelete='cascade')``
+    (``odoo19c: addons/base_automation/models/ir_actions_server.py:17``)."""
+    extend_model('base', 'IrActionsServer', campos={
+        'base_automation_id': Many2one(
+            'base_automation.BaseAutomation',
+            ondelete='cascade',
+            index='btree_not_null',
+            db_index=False,
+            related_name='+',
+            db_column='base_automation_id',
+            verbose_name='Automation Rule',
+        ),
+    })
+
+
 add_base_automation_usage()
+add_base_automation_id()
 chain_method(
     IrActionsServer, 'action_open_automation', _action_open_automation
 )

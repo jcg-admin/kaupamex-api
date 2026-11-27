@@ -1506,13 +1506,15 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
         verbose_name='Secuencia',
         help_text='Orden de ejecución en una acción de tipo "varias".',
     )
-    model_name = fields.Char(
-        max_length=120,
+    model_id = fields.Many2one(
+        'base.IrModel',
+        null=False,
+        ondelete='cascade',
         db_index=True,
-        verbose_name='Modelo',
-        help_text=(
-            'Odoo model_id. Label del modelo; 0 clases IrModel en este árbol.'
-        ),
+        related_name='+',
+        db_column='model_id',
+        verbose_name='Model',
+        help_text='Model on which the server action runs.',
     )
     code = fields.Text(
         blank=True,
@@ -1931,18 +1933,18 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
         warnings = []
         children = list(self.child_ids) if self.pk else []
 
-        if self.model_name:
+        if self.model_id:
             children_with_different_model = [
                 child
                 for child in children
-                if child.model_name != self.model_name
+                if child.model_id != self.model_id
             ]
             if children_with_different_model:
                 warnings.append(
                     'Las siguientes acciones hijas deberían tener el mismo '
                     'modelo (%s): %s'
                     % (
-                        self.model_name,
+                        self.model_id.name,
                         ', '.join(
                             child.name
                             for child in children_with_different_model
@@ -1961,16 +1963,19 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
 
         return warnings
 
+    @api.depends(lambda self: self._warning_depends())
     def _compute_warning(self):
-        """≙ ``_compute_warning`` (``odoo19c: ir_actions.py:804-810``).
+        """≙ ``_compute_warning`` (``odoo19c: ir_actions.py:803-809``).
 
         Une los motivos con línea en blanco, o deja el campo en falso. El
         ``False`` —y no la cadena vacía— es de la fuente y es lo que hace que
         ``child_ids.filtered('warning')`` seleccione sólo a las que avisan.
         """
-        warnings = self._get_warning_messages()
-        self.warning = value = '\n\n'.join(warnings) if warnings else False
-        return value
+        for action in self:
+            if (warnings := action._get_warning_messages()):
+                action.warning = "\n\n".join(warnings)
+            else:
+                action.warning = False
 
     #: ≙ ``warning`` (``odoo19c: ir_actions.py:639``):
     #: ``fields.Text(compute='_compute_warning', recursive=True)``.
@@ -1978,14 +1983,8 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
     #: Es **no persistido**, como allá: se calcula al leerlo y no tiene
     #: columna.
     #:
-    #: BLOQUEO MEDIDO: la fuente declara ``@api.depends`` con
-    #: ``_warning_depends``, y dos de sus nombres —``model_id`` y
-    #: ``child_ids.model_id``— no existen aquí: este modelo guarda
-    #: ``model_name`` como ``Char`` en vez de la FK a ``ir.model``. Declarar
-    #: esa dependencia hace fallar el arranque del registro
-    #: (``Wrong @depends``), así que el compute se despacha al leer y no se
-    #: recalcula por dependencia hasta que **TASK-GEN-0391** convierta
-    #: ``model_name`` en FK.
+    #: Se recalcula por las dependencias de ``_warning_depends``, como en
+    #: la fuente (``:803``).
     warning = fields.Text(
         'Warning', compute='_compute_warning', recursive=True,
         help_text='Odoo warning. Por qué esta acción está mal configurada.',
@@ -3010,14 +3009,13 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
         """≙ ``create``
         (``odoo19c: odoo/addons/base/models/ir_actions.py:711-728``).
 
-        Un hijo toma el modelo y los grupos de su padre; ``model_name`` es
-        el ``model_id`` de la fuente. Cada
-        acción que llega con ``code`` anota su primera revisión.
+        Un hijo toma el modelo y los grupos de su padre. Cada acción que
+        llega con ``code`` anota su primera revisión.
         """
         for vals in vals_list:
             if parent_id := vals.get('parent_id'):
                 parent = env()[cls._name].browse(parent_id)
-                vals['model_name'] = parent.model_name
+                vals['model_id'] = parent.model_id.id
                 vals['group_ids'] = list(
                     parent.group_ids.values_list('pk', flat=True))
         actions = super().create(vals_list)
@@ -3040,6 +3038,12 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
             IrActionsServerHistory.create(
                 {'action': self.id, 'code': new_code})
         return super().write(vals)
+
+    #: ≙ ``model_name = fields.Char(related='model_id.model')`` (``:638``):
+    #: sin columna, se lee de la fila de ``ir.model``.
+    model_name = fields.Char(
+        'Model Name', related='model_id.model', readonly=True,
+    )
 
 
 class IrActionsTodo(models.BaseModel, TimeStampedModel):

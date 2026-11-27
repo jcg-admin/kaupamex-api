@@ -1,4 +1,6 @@
-from .base_automation import BaseAutomation, BaseAutomationAction  # noqa: F401
+from .base_automation import BaseAutomation
+
+__all__ = ['BaseAutomation']
 
 # ir_actions_server.py NO se importa aquí: instala chain_method() como
 # efecto de importación (excepción #4 de no-lazy-imports), y sólo debe

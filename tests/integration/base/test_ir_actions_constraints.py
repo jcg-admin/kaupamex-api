@@ -105,7 +105,7 @@ class TestCheckPath:
         _window(path='compartida')
         with pytest.raises(ValidationError):
             IrActionsServer.create({
-                'name': 'Servidor', 'model_name': 'res.partner',
+                'name': 'Servidor', 'model_id': IrModel._get_id('res.partner'),
                 'path': 'compartida'})
 
 
@@ -177,7 +177,8 @@ class TestCheckChildren:
         """El eje. Mensaje de la fuente: *"Recursion found in child server
         actions"*."""
         action = IrActionsServer.objects.create(
-            name='Ciclo', type='ir.actions.server', state='multi'
+            name='Ciclo', type='ir.actions.server', state='multi',
+            model_id=IrModel._get('res.partner')
         )
         action.parent_id = action
         with pytest.raises(ValidationError):
@@ -186,13 +187,16 @@ class TestCheckChildren:
     def test_a_cycle_of_three_is_refused(self, db):
         """CONTROL de la profundidad del recorrido."""
         a = IrActionsServer.objects.create(
-            name='A', type='ir.actions.server', state='multi'
+            name='A', type='ir.actions.server', state='multi',
+            model_id=IrModel._get('res.partner')
         )
         b = IrActionsServer.objects.create(
-            name='B', type='ir.actions.server', state='multi', parent_id=a
+            name='B', type='ir.actions.server', state='multi', parent_id=a,
+            model_id=IrModel._get('res.partner')
         )
         c = IrActionsServer.objects.create(
-            name='C', type='ir.actions.server', state='multi', parent_id=b
+            name='C', type='ir.actions.server', state='multi', parent_id=b,
+            model_id=IrModel._get('res.partner')
         )
         a.parent_id = c
         with pytest.raises(ValidationError):
@@ -205,10 +209,12 @@ class TestCheckChildren:
         impidiera vaciaría el modo de contenido.
         """
         a = IrActionsServer.objects.create(
-            name='Raiz', type='ir.actions.server', state='multi'
+            name='Raiz', type='ir.actions.server', state='multi',
+            model_id=IrModel._get('res.partner')
         )
         b = IrActionsServer.objects.create(
-            name='Hija', type='ir.actions.server', state='multi', parent_id=a
+            name='Hija', type='ir.actions.server', state='multi', parent_id=a,
+            model_id=IrModel._get('res.partner')
         )
         assert b.parent_id == a
 

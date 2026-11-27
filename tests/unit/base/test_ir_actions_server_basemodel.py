@@ -11,7 +11,8 @@ import pytest
 
 import models
 
-from addons.base.models import IrModelData, ResGroups, ResPartner, ResUsers
+from addons.base.models import (
+    IrModel, IrModelData, ResGroups, ResPartner, ResUsers)
 from addons.base.models.ir_actions import (
     IrActionsServer, IrActionsServerHistory)
 from addons.base.models.ir_actions_report import IrActionsReport
@@ -48,7 +49,8 @@ def test_a_system_user_creates_and_writes_server_actions():
     """ACL de ``group_system`` (``ir.model.access.csv:107``)."""
     user, env = _system_env('ir.actions.server')
     with user_scope(user.pk):
-        action = env.create({'name': 'Probe', 'model_name': 'res.partner',
+        action = env.create({'name': 'Probe',
+                             'model_id': IrModel._get_id('res.partner'),
                              'state': 'code'})
         action.write({'name': 'Probe 2'})
     assert IrActionsServer.objects.get(pk=action.id).name == 'Probe 2'
@@ -56,7 +58,7 @@ def test_a_system_user_creates_and_writes_server_actions():
 
 def test_an_internal_user_cannot_read_server_actions():
     action = IrActionsServer.objects.create(
-        name='Hidden', model_name='res.partner', state='code')
+        name='Hidden', model_id=IrModel._get('res.partner'), state='code')
     user = _user('server-internal@kaupamex.test', 'base.group_user')
     with user_scope(user.pk):
         env = Environment(uid=user.pk)['ir.actions.server']
@@ -90,9 +92,11 @@ def test_creating_a_child_copies_the_model_and_groups_of_the_parent():
     user, env = _system_env('ir.actions.server')
     group = _group('base.group_user')
     with user_scope(user.pk):
-        parent = env.create({'name': 'Parent', 'model_name': 'res.partner',
+        parent = env.create({'name': 'Parent',
+                             'model_id': IrModel._get_id('res.partner'),
                              'state': 'multi', 'group_ids': [group.pk]})
-        child = env.create({'name': 'Child', 'model_name': 'res.users',
+        child = env.create({'name': 'Child',
+                            'model_id': IrModel._get_id('res.users'),
                             'state': 'code', 'parent_id': parent.id})
     row = IrActionsServer.objects.get(pk=child.id)
     assert row.model_name == 'res.partner'
@@ -103,7 +107,8 @@ def test_creating_with_code_records_the_first_revision():
     """``create`` (``ir_actions.py:720-726``)."""
     user, env = _system_env('ir.actions.server')
     with user_scope(user.pk):
-        action = env.create({'name': 'Coded', 'model_name': 'res.partner',
+        action = env.create({'name': 'Coded',
+                             'model_id': IrModel._get_id('res.partner'),
                              'state': 'code', 'code': 'records = records'})
     assert list(IrActionsServerHistory.objects.filter(
         action_id=action.id).values_list('code', flat=True)) == [
@@ -113,7 +118,8 @@ def test_creating_with_code_records_the_first_revision():
 def test_creating_without_code_records_no_revision():
     user, env = _system_env('ir.actions.server')
     with user_scope(user.pk):
-        action = env.create({'name': 'Plain', 'model_name': 'res.partner',
+        action = env.create({'name': 'Plain',
+                             'model_id': IrModel._get_id('res.partner'),
                              'state': 'object_write'})
     assert not IrActionsServerHistory.objects.filter(
         action_id=action.id).exists()
@@ -123,7 +129,8 @@ def test_writing_new_code_records_a_revision_and_same_code_does_not():
     """``write`` (``ir_actions.py:730-733``)."""
     user, env = _system_env('ir.actions.server')
     with user_scope(user.pk):
-        action = env.create({'name': 'Edited', 'model_name': 'res.partner',
+        action = env.create({'name': 'Edited',
+                             'model_id': IrModel._get_id('res.partner'),
                              'state': 'code', 'code': 'a = 1'})
         action.write({'code': 'a = 2'})
         action.write({'code': 'a = 2'})

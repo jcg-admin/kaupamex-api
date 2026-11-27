@@ -66,7 +66,12 @@ CONSTRAIN_SQL = ' '.join(
     f'(binding_model_id);'
     for table in TABLES)
 
-DROP_SQL = 'ALTER TABLE ir_actions DROP COLUMN binding_model_name;'
+#: Cada tabla hija conserva su propia ``binding_model_name``: era local antes
+#: de ``0140`` (``ALTER TABLE … INHERIT ir_actions``) y PostgreSQL no retira
+#: una columna local de la hija al retirarla del padre. Se retira en las seis.
+DROP_SQL = ' '.join(
+    f'ALTER TABLE {table} DROP COLUMN IF EXISTS binding_model_name;'
+    for table in TABLES)
 
 
 class Migration(migrations.Migration):

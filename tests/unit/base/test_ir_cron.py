@@ -30,20 +30,20 @@ from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError, RestrictedError
 
-from addons.base.models import IrActionsServer, IrCron
+from addons.base.models import IrActionsServer, IrCron, IrModel
 from orm.utils import SUPERUSER_ID
 from tests.factories.user_factory import UserFactory
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
 
 
-def _accion(name='Tarea', model_name='orders.Order', method_name='run'):
+def _accion(name='Tarea', model_name='res.partner', method_name='run'):
     """Crea la ``ir.actions.server`` en la que el cron delega su "qué
     ejecutar" (``_inherits``). Antes estos tres campos eran columnas de
     ``IrCron``; desde la portación de la delegación viven aquí."""
     return IrActionsServer.objects.create(
         name=name,
-        model_name=model_name,
+        model_id=IrModel._get(model_name),
         method_name=method_name,
         state='code',
     )
@@ -118,7 +118,7 @@ def test_create_minimo_aplica_defaults():
     nextcall = datetime(2026, 8, 1, 3, 0, 0, tzinfo=dt_timezone.utc)
     cron = IrCron.objects.create(
         ir_actions_server=_accion(
-            'Enviar recordatorios', 'orders.Order', 'send_reminders'
+            'Enviar recordatorios', 'res.partner', 'send_reminders'
         ),
         nextcall=nextcall,
     )
@@ -141,7 +141,7 @@ def test_create_minimo_aplica_defaults():
 )
 def test_interval_type_accepts_the_five_reference_choices(interval_type):
     cron = IrCron(
-        ir_actions_server=_accion('Tarea', 'orders.Order', 'run'),
+        ir_actions_server=_accion('Tarea', 'res.partner', 'run'),
         nextcall=datetime(2026, 1, 1, tzinfo=dt_timezone.utc),
         interval_type=interval_type,
     )
@@ -150,7 +150,7 @@ def test_interval_type_accepts_the_five_reference_choices(interval_type):
 
 def test_interval_type_invalido_rechazado_por_full_clean():
     cron = IrCron(
-        ir_actions_server=_accion('Tarea', 'orders.Order', 'run'),
+        ir_actions_server=_accion('Tarea', 'res.partner', 'run'),
         nextcall=datetime(2026, 1, 1, tzinfo=dt_timezone.utc),
         interval_type='fortnights',
     )
@@ -215,7 +215,7 @@ def test_user_defaults_to_root():
     """``user_id`` es obligatorio y, sin usuario actuante, el raíz
     (``odoo19c: odoo/addons/base/models/ir_cron.py:110``)."""
     cron = IrCron.objects.create(
-        ir_actions_server=_accion('Sin usuario', 'orders.Order', 'run'),
+        ir_actions_server=_accion('Sin usuario', 'res.partner', 'run'),
         nextcall=datetime(2026, 1, 1, tzinfo=dt_timezone.utc),
     )
     assert cron.user_id == SUPERUSER_ID
@@ -226,7 +226,7 @@ def test_deleting_the_user_is_restricted():
     cron se rehúsa."""
     user = UserFactory()
     IrCron.objects.create(
-        ir_actions_server=_accion('Con usuario', 'orders.Order', 'run'),
+        ir_actions_server=_accion('Con usuario', 'res.partner', 'run'),
         nextcall=datetime(2026, 1, 1, tzinfo=dt_timezone.utc),
         user=user,
     )
@@ -240,7 +240,7 @@ def test_deleting_the_user_is_restricted():
 def test_interval_number_cero_viola_check_constraint():
     with pytest.raises(IntegrityError), transaction.atomic():
         IrCron.objects.create(
-            ir_actions_server=_accion('Invalido', 'orders.Order', 'run'),
+            ir_actions_server=_accion('Invalido', 'res.partner', 'run'),
             nextcall=datetime(2026, 1, 1, tzinfo=dt_timezone.utc),
             interval_number=0,
         )
@@ -251,7 +251,7 @@ def test_interval_number_cero_viola_check_constraint():
 
 def test_str_devuelve_name():
     cron = IrCron.objects.create(
-        ir_actions_server=_accion('Mi tarea', 'orders.Order', 'run'),
+        ir_actions_server=_accion('Mi tarea', 'res.partner', 'run'),
         nextcall=datetime(2026, 1, 1, tzinfo=dt_timezone.utc),
     )
     assert str(cron) == 'Mi tarea'
