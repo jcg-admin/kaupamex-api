@@ -689,7 +689,8 @@
   "basemodel-adoption-base-res-users-log-0397",
   "basemodel-adoption-base-report-layout-0397",
   "ir-actions-table-inheritance-0397",
-  "ir-actions-server-report-basemodel-0397"
+  "ir-actions-server-report-basemodel-0397",
+  "ir-actions-act-window-basemodel-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
