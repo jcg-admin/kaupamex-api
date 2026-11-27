@@ -93,7 +93,7 @@ def test_creating_a_child_copies_the_model_and_groups_of_the_parent():
         parent = env.create({'name': 'Parent', 'model_name': 'res.partner',
                              'state': 'multi', 'group_ids': [group.pk]})
         child = env.create({'name': 'Child', 'model_name': 'res.users',
-                            'state': 'code', 'parent': parent.id})
+                            'state': 'code', 'parent_id': parent.id})
     row = IrActionsServer.objects.get(pk=child.id)
     assert row.model_name == 'res.partner'
     assert list(row.group_ids.values_list('pk', flat=True)) == [group.pk]

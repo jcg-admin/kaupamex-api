@@ -105,8 +105,9 @@ Qué NO se porta, con su medición
   desde 2026-11-22) y ``create``/``write``, que aquí son un solo
   ``save()`` — deuda **contada**, no divergencia, registrada en **#77**.
 
-  Los **4 campos** son todos renombres o reversos, ninguno un hueco:
-  ``parent_id`` es ``parent``; ``child_ids`` e ``ir_cron_ids`` son los
+  Los **4 campos** de entonces eran renombres o reversos, ninguno un hueco:
+  ``parent_id`` se llamaba ``parent`` (con su nombre de la fuente desde la
+  migración ``0148``); ``child_ids`` e ``ir_cron_ids`` eran los
   ``related_name`` de ``parent`` y de la FK de ``IrCron`` (``crons``); y
   ``model_id`` es ``model_name`` (``Char``) hasta que **#139** lo convierta.
 
@@ -1542,20 +1543,21 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
     #: como ``One2many`` con su ``copy=True``: duplicar una acción compuesta
     #: duplica sus hijas (H-API-1161). Este ``Many2one`` lleva
     #: ``related_name='+'`` para no competir por el nombre.
-    parent = fields.Many2one(
+    parent_id = fields.Many2one(
         'self',
         on_delete=models.CASCADE,
         db_index=True,
         null=True,
         blank=True,
         related_name='+',
-        verbose_name='Acción padre',
-        help_text='Odoo parent_id. Acción compuesta que encadena a ésta.',
+        db_column='parent_id',
+        verbose_name='Parent Action',
+        help_text='Acción compuesta que encadena a ésta.',
     )
     #: ≙ ``child_ids`` (``odoo19c: ir_actions.py:649-650``), con su
     #: ``domain``, ``string`` y ``help``.
     child_ids = fields.One2many(
-        'ir.actions.server', 'parent', copy=True,
+        'ir.actions.server', 'parent_id', copy=True,
         domain=lambda self: str(self._get_children_domain()),
         string='Child Actions',
         help='Child server actions that will be executed. Note that the last '
@@ -1820,15 +1822,15 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
         padre. ``ir.cron`` delega aqui (``ir_cron.py:889-891``), que es por
         que el metodo vive en este modelo y no alli.
 
-        Sin ``parent`` declarado —el estado hasta este pase— no habia a que
-        apuntar y el metodo era una firma vacia.
+        Sin el ``Many2one`` al padre —``parent_id``, antes ``parent``— no
+        habia a que apuntar y el metodo era una firma vacia.
         """
         return {
             'type': 'ir.actions.act_window',
             'target': 'current',
             'views': [[False, 'form']],
             'res_model': self._name,
-            'res_id': self.parent.id,
+            'res_id': self.parent_id.id,
         }
 
     def action_open_scheduled_action(self):
@@ -2448,14 +2450,14 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
           bloqueada por ``warning``, que ahora existe (tarea **#116**).
         """
         seen = set()
-        current = self.parent
+        current = self.parent_id
         while current:
             if current.pk == self.pk or current.pk in seen:
                 raise ValidationError(
                     'Recursión encontrada en las acciones de servidor hijas.'
                 )
             seen.add(current.pk)
-            current = current.parent
+            current = current.parent_id
 
         children_with_warnings = (
             self.child_ids.filtered('warning') if self.pk else ())
@@ -3008,12 +3010,12 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
         """≙ ``create``
         (``odoo19c: odoo/addons/base/models/ir_actions.py:711-728``).
 
-        Un hijo toma el modelo y los grupos de su padre; ``parent`` es el
-        ``parent_id`` de la fuente y ``model_name`` su ``model_id``. Cada
+        Un hijo toma el modelo y los grupos de su padre; ``model_name`` es
+        el ``model_id`` de la fuente. Cada
         acción que llega con ``code`` anota su primera revisión.
         """
         for vals in vals_list:
-            if parent_id := vals.get('parent'):
+            if parent_id := vals.get('parent_id'):
                 parent = env()[cls._name].browse(parent_id)
                 vals['model_name'] = parent.model_name
                 vals['group_ids'] = list(

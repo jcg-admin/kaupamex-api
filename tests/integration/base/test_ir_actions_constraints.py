@@ -179,7 +179,7 @@ class TestCheckChildren:
         action = IrActionsServer.objects.create(
             name='Ciclo', type='ir.actions.server', state='multi'
         )
-        action.parent = action
+        action.parent_id = action
         with pytest.raises(ValidationError):
             action.save()
 
@@ -189,12 +189,12 @@ class TestCheckChildren:
             name='A', type='ir.actions.server', state='multi'
         )
         b = IrActionsServer.objects.create(
-            name='B', type='ir.actions.server', state='multi', parent=a
+            name='B', type='ir.actions.server', state='multi', parent_id=a
         )
         c = IrActionsServer.objects.create(
-            name='C', type='ir.actions.server', state='multi', parent=b
+            name='C', type='ir.actions.server', state='multi', parent_id=b
         )
-        a.parent = c
+        a.parent_id = c
         with pytest.raises(ValidationError):
             a.save()
 
@@ -208,9 +208,9 @@ class TestCheckChildren:
             name='Raiz', type='ir.actions.server', state='multi'
         )
         b = IrActionsServer.objects.create(
-            name='Hija', type='ir.actions.server', state='multi', parent=a
+            name='Hija', type='ir.actions.server', state='multi', parent_id=a
         )
-        assert b.parent_id == a.pk
+        assert b.parent_id == a
 
 
 class TestCheckParentNotCircular:

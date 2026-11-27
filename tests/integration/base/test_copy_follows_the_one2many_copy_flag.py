@@ -42,9 +42,9 @@ def test_a_child_action_travels_with_the_copy(db):
         name='Padre 1161', type='ir.actions.server', state='multi')
     IrActionsServer.objects.create(
         name='Hija 1161', type='ir.actions.server', state='code',
-        parent=parent)
+        parent_id=parent)
     copy = parent.copy()
-    assert [child.parent_id for child in copy.child_ids] == [copy.pk]
+    assert [child.parent_id.id for child in copy.child_ids] == [copy.pk]
     assert len(parent.child_ids) == 1
 
 

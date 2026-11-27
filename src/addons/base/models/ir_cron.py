@@ -1324,7 +1324,7 @@ class IrCron(models.DefaultGetMixin, models.RecordLoaderMixin,
         """≙ ``action_open_parent_action`` (``odoo19c: ir_cron.py:889-891``).
 
         Delega en la accion servidor, igual que la fuente. El bloqueo que
-        este metodo declaraba —``IrActionsServer`` sin campo ``parent``— se
+        este metodo declaraba —``IrActionsServer`` sin campo ``parent_id``— se
         cerro: el campo esta portado en ``ir_actions.py`` con el
         ``ondelete='cascade'`` y el indice de la fuente.
         """

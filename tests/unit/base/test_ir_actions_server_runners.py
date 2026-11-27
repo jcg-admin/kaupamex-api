@@ -131,7 +131,7 @@ class TestMulti:
             update_field_id=_field(model_row, 'name'),
             update_path='name',
             value='Segunda escribio',
-            parent=parent,
+            parent_id=parent,
         )
         _action(
             name='Primera',
@@ -142,7 +142,7 @@ class TestMulti:
             update_field_id=_field(model_row, 'name'),
             update_path='name',
             value='Primera escribio',
-            parent=parent,
+            parent_id=parent,
         )
 
         with context_scope(active_model=PARTNER, active_id=partner.pk):
@@ -283,7 +283,7 @@ class TestTheWarningGuardOfRun:
             name='Hija',
             state='multi',
             model_name='res.country',
-            parent=parent,
+            parent_id=parent,
         )
 
         assert parent.warning

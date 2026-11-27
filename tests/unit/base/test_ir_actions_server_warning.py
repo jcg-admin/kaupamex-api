@@ -49,7 +49,7 @@ class TestTheWarningIsSilentWhenNothingIsWrong:
 
     def test_a_child_with_the_same_model_does_not_warn(self):
         parent = _action(model_name='res.partner')
-        _action(model_name='res.partner', parent=parent)
+        _action(model_name='res.partner', parent_id=parent)
 
         assert parent.warning is False
 
@@ -60,13 +60,13 @@ class TestTheModelBranch:
 
     def test_a_child_with_another_model_warns(self):
         parent = _action(model_name='res.partner')
-        _action(name='Hija', model_name='res.country', parent=parent)
+        _action(name='Hija', model_name='res.country', parent_id=parent)
 
         assert 'Hija' in parent.warning
 
     def test_the_message_names_the_model_of_the_parent(self):
         parent = _action(model_name='res.partner')
-        _action(name='Hija', model_name='res.country', parent=parent)
+        _action(name='Hija', model_name='res.country', parent_id=parent)
 
         assert 'res.partner' in parent.warning
 
@@ -75,7 +75,7 @@ class TestTheModelBranch:
         La guarda ``if self.model_id`` de la fuente: sin modelo no compara.
         """
         parent = _action()
-        _action(name='Hija', model_name='res.country', parent=parent)
+        _action(name='Hija', model_name='res.country', parent_id=parent)
 
         assert parent.warning is False
 
@@ -88,17 +88,17 @@ class TestTheRecursiveBranch:
         """El caso que exige la recursión: sin ella el abuelo no se entera."""
         grandparent = _action(name='Abuela')
         parent = _action(
-            name='Madre', model_name='res.partner', parent=grandparent
+            name='Madre', model_name='res.partner', parent_id=grandparent
         )
-        _action(name='Nieta', model_name='res.country', parent=parent)
+        _action(name='Nieta', model_name='res.country', parent_id=parent)
 
         assert 'Madre' in grandparent.warning
 
     def test_the_cycle_guard_stops_the_recursion(self):
         """Un ciclo no puede colgar el cómputo; lo corta el conjunto visto."""
         first = _action(name='Primera')
-        second = _action(name='Segunda', parent=first)
-        IrActionsServer.objects.filter(pk=first.pk).update(parent=second)
+        second = _action(name='Segunda', parent_id=first)
+        IrActionsServer.objects.filter(pk=first.pk).update(parent_id=second)
 
         assert first.__class__.objects.get(pk=first.pk).warning is not None
 
@@ -109,14 +109,15 @@ class TestCheckChildrenRefusesTheSave:
 
     def test_saving_with_a_warning_child_is_refused(self):
         parent = _action(name='Madre', model_name='res.partner')
-        _action(name='Hija', model_name='res.country', parent=parent)
+        _action(name='Hija', model_name='res.country', parent_id=parent)
         nieta_parent = IrActionsServer.objects.get(pk=parent.pk)
         _action(
-            name='Nieta', model_name='res.country', parent=nieta_parent
+            name='Nieta', model_name='res.country', parent_id=nieta_parent
         )
 
         grandparent = _action(name='Abuela')
-        IrActionsServer.objects.filter(pk=parent.pk).update(parent=grandparent)
+        IrActionsServer.objects.filter(pk=parent.pk).update(
+            parent_id=grandparent)
         grandparent.name = 'Abuela editada'
 
         with pytest.raises(ValidationError, match='avisos'):
@@ -124,7 +125,7 @@ class TestCheckChildrenRefusesTheSave:
 
     def test_saving_without_warning_children_is_allowed(self):
         parent = _action(name='Madre', model_name='res.partner')
-        _action(name='Hija', model_name='res.partner', parent=parent)
+        _action(name='Hija', model_name='res.partner', parent_id=parent)
 
         parent.name = 'Madre editada'
         parent.save()
@@ -136,8 +137,8 @@ class TestCheckChildrenRefusesTheSave:
     def test_the_cycle_half_still_refuses(self):
         """La mitad que ya existía no se pierde al añadir la segunda."""
         first = _action(name='Primera')
-        second = _action(name='Segunda', parent=first)
-        IrActionsServer.objects.filter(pk=first.pk).update(parent=second)
+        second = _action(name='Segunda', parent_id=first)
+        IrActionsServer.objects.filter(pk=first.pk).update(parent_id=second)
 
         reloaded = IrActionsServer.objects.get(pk=first.pk)
         with pytest.raises(ValidationError, match='Recursión'):
