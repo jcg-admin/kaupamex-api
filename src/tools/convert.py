@@ -593,14 +593,16 @@ class XmlImport:
             if '.' not in a_action:
                 a_action = '%s.%s' % (self.module, a_action)
             IrModelData = _model_of('ir.model.data')
+            # ≙ ``act = self.env.ref(a_action).sudo()``: la acción se lee
+            # elevada (``odoo19c: odoo/tools/convert.py:305-309``).
             with sudo():
                 act = IrModelData.ref(a_action, using=self.using)
-            values['action'] = '%s,%d' % (act.type, act.pk)
-            if (not values.get('name')
-                    and act.type.endswith(('act_window', 'wizard', 'url',
-                                           'client', 'server'))
-                    and act.name):
-                values['name'] = act.name
+                values['action'] = '%s,%d' % (act.type, act.pk)
+                if (not values.get('name')
+                        and act.type.endswith(('act_window', 'wizard', 'url',
+                                               'client', 'server'))
+                        and act.name):
+                    values['name'] = act.name
 
         if not values.get('name'):
             values['name'] = rec_id or '?'

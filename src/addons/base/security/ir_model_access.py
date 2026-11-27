@@ -446,6 +446,12 @@ _ACCESS = (
     ),
     ('ir_asset_group_system', 'base.IrAsset', 'group_system', (1, 1, 1, 1)),
     (
+        'ir_actions_act_window_system',
+        'base.IrActionsActWindow',
+        'group_system',
+        (1, 1, 1, 1),
+    ),
+    (
         'ir_actions_report_group_system',
         'base.IrActionsReport',
         'group_system',

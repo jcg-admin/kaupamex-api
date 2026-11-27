@@ -180,7 +180,9 @@ from addons.base.models.ir_model import IrModelData
 from orm.environments import (context_scope, env, get_context,
                               get_current_user, sudo)
 from orm.models_transient import TransientModel
-from orm.registry import identity_for_key, identity_of, model_by_key
+from orm.registry import (identity_for_key, identity_of, model_by_key,
+                          registry_of)
+from tools.cache import ormcache
 from tools.misc import get_diff, get_lang, unquote
 from tools.float_utils import float_compare
 from tools.safe_eval import datetime as eval_datetime
@@ -261,19 +263,21 @@ class IrActionsBase(
     models.OriginMixin,
     TimeStampedModel,
 ):
-    """Campos comunes de toda acción — el ``_inherit`` de la referencia.
+    """Los campos y métodos de ``ir.actions.actions``
+    (``odoo19c: odoo/addons/base/models/ir_actions.py:55-259``).
 
-    Abstracto porque allá la herencia es **por prototipo**: cada subtipo copia
-    estos campos a su propia tabla en vez de compartirla.
+    En la fuente los cinco subtipos declaran
+    ``_inherit = ['ir.actions.actions']`` con su propio ``_table``
+    (``ir_actions.py:262-265``, ``:429-433``, ``:446-451``, ``:586-591``,
+    ``:1427-1431``), así que reciben estos campos y métodos en su tabla. Este
+    árbol traduce un ``_inherit`` dentro de la misma app a herencia de Python
+    desde una base abstracta (``src/orm/model_classes.py:20``); esta es esa
+    base, y ``IrActionsActions`` es la clase de la tabla ``ir_actions``.
 
-    ``models.CopyMixin`` y ``models.OriginMixin`` entran aquí y no en un
-    subtipo
-    suelto porque allá ``copy``, ``copy_data`` y ``_origin`` viven en
-    ``BaseModel``: **todo** modelo los tiene. Aquí son mixins explícitos, así
-    que el sitio fiel es el abstracto que las siete acciones comparten, no la
-    única que además los consume (``IrActionsServer``: redefine ``copy_data``,
-    ``:1320-1326``, y lee el código guardado para decidir si anota revisión,
-    ``:730``). Ninguno declara campos: no hay migración.
+    ``models.CopyMixin`` y ``models.OriginMixin`` portan ``copy``,
+    ``copy_data`` y ``_origin`` del ``BaseModel`` de la fuente
+    (``odoo/orm/models.py``) para los subtipos que aún no son
+    ``models.BaseModel``. No declaran campos.
     """
 
     name = fields.Char(max_length=255, verbose_name='Nombre de la acción')
@@ -398,13 +402,13 @@ class IrActionsBase(
         used by the web client should included. Accessing content useful for
         the server-side must be done manually with superuser"*.
 
-        La fuente lo declara en ``ir.actions.actions``, que allá es a la vez el
-        modelo concreto y el portador de los campos comunes. Aquí esos dos
-        papeles están repartidos —``IrActionsBase`` lleva los campos,
-        ``IrActionsActions`` es la fila— y el método vive en el portador,
-        porque es de quien heredan los subtipos: ``IrActionsServer`` y
-        ``IrActionsReport`` ya lo extendían con ``super()``, que hasta ahora no
-        tenía a quién llamar (:ref:`h-api-921`).
+        La fuente lo declara en ``ir.actions.actions``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:55-60``), y cada
+        subtipo lo recibe por ``_inherit = ['ir.actions.actions']``
+        (``ir_actions.py:265``, ``:431``, ``:449``, ``:589``, ``:1429``;
+        ``ir_actions_report.py:160``). Este árbol traduce un ``_inherit``
+        dentro de la misma app a herencia de Python desde una base abstracta
+        (``src/orm/model_classes.py:20``); esa base es ``IrActionsBase``.
         """
         return {
             'binding_model_id',
@@ -485,8 +489,15 @@ class IrActionsActWindowClose(IrActionsActions):
         return super().save(*args, **kwargs)
 
 
-class IrActionsActWindow(IrActionsBase):
+class IrActionsActWindow(models.BaseModel, IrActionsBase):
     """Abre una ventana sobre un modelo (``ir.actions.act_window``)."""
+
+    _name = 'ir.actions.act_window'
+    _description = 'Action Window'
+    _table = 'ir_act_window'
+    _inherit = ['ir.actions.actions']
+    _order = 'name, id'
+    _allow_sudo_commands = False
 
     TARGET_CHOICES = [
         ('current', 'Ventana actual'),
@@ -559,6 +570,29 @@ class IrActionsActWindow(IrActionsBase):
         db_table='ir_act_window_group_rel',
         verbose_name='Grupos',
     )
+    #: ≙ ``view_id`` (``odoo19c: odoo/addons/base/models/ir_actions.py:309``),
+    #: la vista de referencia que ``views`` adelanta entre los modos que
+    #: faltan.
+    view_id = fields.Many2one(
+        'base.IrUiView',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='+',
+        db_column='view_id',
+        verbose_name='Vista de referencia',
+    )
+    #: ≙ ``search_view_id`` (``odoo19c: odoo/addons/base/models/
+    #: ir_actions.py:331``).
+    search_view_id = fields.Many2one(
+        'base.IrUiView',
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name='+',
+        db_column='search_view_id',
+        verbose_name='Vista de búsqueda',
+    )
     filter = fields.Boolean(default=False, verbose_name='Filtro')
     cache = fields.Boolean(
         default=True,
@@ -590,8 +624,8 @@ class IrActionsActWindow(IrActionsBase):
         missing = [m for m in all_modes if m not in got_modes]
 
         result = list(declared)
-        reference = getattr(self, 'view_id', None)
-        reference_type = getattr(reference, 'type', None)
+        reference = self.view_id
+        reference_type = reference.type if reference else None
         if missing and reference_type in missing:
             # El adelanto de view_id: la línea que se pierde al portar
             # "más o menos".
@@ -652,6 +686,56 @@ class IrActionsActWindow(IrActionsBase):
         if self.mobile_view_mode in available:
             return self.mobile_view_mode
         return available[0] if available else self.mobile_view_mode
+
+    @api.model_create_multi
+    @classmethod
+    def create(cls, vals_list):
+        """≙ ``create``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:357-363``): una
+        acción sin nombre toma la ``_description`` de su modelo, y la caché
+        del registro se limpia."""
+        registry_of(cls).clear_cache()
+        for vals in vals_list:
+            if not vals.get('name') and vals.get('res_model'):
+                vals['name'] = env()[vals['res_model']]._description
+        return super().create(vals_list)
+
+    def unlink(self):
+        """≙ ``unlink``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:365-367``)."""
+        registry_of(self).clear_cache()
+        return super().unlink()
+
+    def exists(self):
+        """≙ ``exists``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:369-372``): las
+        acciones cuyo id está en el conjunto que :meth:`_existing`
+        memoriza."""
+        ids = self._existing()
+        return self.filtered(lambda rec: rec.id in ids)
+
+    @classmethod
+    @ormcache()
+    def _existing(cls):
+        """≙ ``_existing``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:374-378``): los
+        ids de la tabla, leídos por SQL y memorizados hasta que ``create`` o
+        ``unlink`` limpian la caché."""
+        with connections[env().db_alias].cursor() as cr:
+            cr.execute('SELECT id FROM %s' % cls._table)
+            return {row[0] for row in cr.fetchall()}
+
+    def _get_readable_fields(self):
+        """≙ ``_get_readable_fields``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:380-386``)."""
+        return super()._get_readable_fields() | {
+            'context', 'cache', 'mobile_view_mode', 'domain', 'filter',
+            'group_ids', 'limit', 'res_id', 'res_model', 'search_view_id',
+            'target', 'view_id', 'view_mode', 'views', 'embedded_action_ids',
+            # this is used by frontend, with the document layout wizard
+            # before send and print
+            'close_on_report_download',
+        }
 
 
 class IrActionsActWindowView(TimeStampedModel):
