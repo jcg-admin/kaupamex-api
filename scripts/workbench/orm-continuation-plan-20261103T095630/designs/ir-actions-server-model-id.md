@@ -137,7 +137,11 @@ registrar al asentar esta.
 | `add_base_automation_id` (`base_automation_id` por `extend_model`), `_automation_of`, `_action_open_automation`, `_get_warning_messages`, `_get_children_domain` | `addons/base_automation/models/ir_actions_server.py` | `odoo19c: addons/base_automation/models/ir_actions_server.py:17-43,61-68` |
 | `BaseAutomation.action_server_ids`, `BaseAutomation._compute_action_server_ids`, `BaseAutomation.copy`; se retira `BaseAutomationAction` | `addons/base_automation/models/base_automation.py` | `odoo19c: addons/base_automation/models/base_automation.py:136-142,312-320` |
 | `_skip` sin la tabla-liga | `addons/base_automation/models/signals.py` | — |
-| migraciones `0149`, `0150`, `0151` y `base_automation/0010`; `0147` retira `binding_model_name` de las seis tablas | `src/addons/base/migrations/`, `addons/base_automation/migrations/` | ídem |
+| migración `0149_ir_actions_server_model_id`: columna, resolución por `identity_for_key` y retiro de `model_name` | `src/addons/base/migrations/0149_ir_actions_server_model_id.py` | `odoo19c: odoo/addons/base/models/ir_actions.py:635-638` |
+| migración `0150_ir_actions_server_base_automation_id`: columna, índice parcial y copia desde la tabla-liga | `src/addons/base/migrations/0150_ir_actions_server_base_automation_id.py` | `odoo19c: addons/base_automation/models/ir_actions_server.py:17` |
+| migración `0151_drop_child_binding_model_name`: retira la columna local de las cinco tablas hijas | `src/addons/base/migrations/0151_drop_child_binding_model_name.py` | `odoo19c: odoo/addons/base/models/ir_actions.py:74-75` |
+| migración `0010_delete_baseautomationaction`: retira la tabla-liga | `addons/base_automation/migrations/0010_delete_baseautomationaction.py` | `odoo19c: addons/base_automation/models/ir_actions_server.py:17` |
+| `0147_ir_actions_bindings`: `DROP_SQL` sobre las seis tablas | `src/addons/base/migrations/0147_ir_actions_bindings.py` | ídem |
 
 Prueba: `tests/unit/base/test_ir_actions_server_model_id.py`, 4 casos (RED: 4
 de 4). Los escritores de las pruebas pasan a `model_id`; los ayudantes que
