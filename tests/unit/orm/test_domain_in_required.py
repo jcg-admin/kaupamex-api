@@ -580,9 +580,12 @@ class TestTheThirdConsumerAsksTheSameQuestion:
         # ``ir_actions`` (``designs/ir-actions-actions-basemodel.md``): sus
         # nueve campos con columna dan ``is_not_null`` falso porque
         # ``registry.is_not_null`` descarta todo modelo con
-        # ``managed = False`` (``src/orm/registry.py:1742``).
-        assert len(discrepan) == 37, (
-            f'{len(discrepan)} discrepancias en base, se esperaban 37. Es '
+        # ``managed = False`` (``src/orm/registry.py:1742``). 36 desde que
+        # ``binding_model_name`` (texto NOT NULL) es ``binding_model_id``,
+        # anulable (``designs/ir-actions-bindings.md``): uno de esos nueve
+        # deja de discrepar.
+        assert len(discrepan) == 36, (
+            f'{len(discrepan)} discrepancias en base, se esperaban 36. Es '
             'evidencia fechada; si cambia, se re-mide y se actualiza con su '
             'razón — no se relaja la aserción'
         )

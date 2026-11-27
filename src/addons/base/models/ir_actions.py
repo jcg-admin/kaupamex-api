@@ -150,6 +150,7 @@ import base64
 import json
 import logging
 import re
+from collections import defaultdict
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import api
@@ -174,7 +175,7 @@ from addons.base.models.ir_model import (
 from addons.base.models.ir_sequence import IrSequence
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.timestamped_mixin import TimeStampedModel
-from exceptions import AccessError, UserError
+from exceptions import AccessError, MissingError, UserError
 from fields import Command, Domain
 from addons.base.models.ir_model import IrModelData
 from orm.environments import (context_scope, env, get_context,
@@ -183,7 +184,7 @@ from orm.models_transient import TransientModel
 from orm.registry import (identity_for_key, identity_of, model_by_key,
                           registry_of)
 from tools.cache import ormcache
-from tools.misc import get_diff, get_lang, unquote
+from tools.misc import frozendict, get_diff, get_lang, unquote
 from tools.float_utils import float_compare
 from tools.safe_eval import datetime as eval_datetime
 from tools.safe_eval import dateutil as eval_dateutil
@@ -302,15 +303,18 @@ class IrActionsBase(models.Model):
         verbose_name='Descripción de la acción',
         help_text='Texto de ayuda opcional que describe la vista destino.',
     )
-    binding_model_name = fields.Char(
-        max_length=120,
+    #: ≙ ``binding_model_id`` (``odoo19c: odoo/addons/base/models/
+    #: ir_actions.py:74-75``).
+    binding_model_id = fields.Many2one(
+        'base.IrModel',
+        on_delete=models.CASCADE,
+        null=True,
         blank=True,
-        default='',
-        db_index=True,
-        verbose_name='Modelo de anclaje',
+        related_name='+',
+        db_column='binding_model_id',
         help_text=(
-            'Odoo binding_model_id. Con valor, la acción aparece en la '
-            'barra lateral de ese modelo.'
+            'Setting a value makes this action available in the sidebar for '
+            'the given model.'
         ),
     )
     binding_type = fields.Selection(
@@ -405,6 +409,91 @@ class IrActionsBase(models.Model):
             'b64decode': base64.b64decode,
             'Command': Command,
         }
+
+    def get_bindings(self, model_name):
+        """ Retrieve the list of actions bound to the given model.
+
+           :return: a dict mapping binding types to a list of dict describing
+                    actions, where the latter is given by calling the method
+                    ``read`` on the action record.
+
+        ≙ ``get_bindings``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:155-182``).
+        """
+        result = {}
+        for action_type, all_actions in self._get_bindings(
+                model_name).items():
+            actions = []
+            for action in all_actions:
+                action = dict(action)
+                groups = action.pop('group_ids', None)
+                if groups and not any(self.env.user.has_group(ext_id)
+                                      for ext_id in groups):
+                    # the user may not perform this action
+                    continue
+                res_model = action.pop('res_model', None)
+                if res_model and not self.env['ir.model.access'].check(
+                    res_model,
+                    mode='read',
+                    raise_exception=False
+                ):
+                    # the user won't be able to read records
+                    continue
+                actions.append(action)
+            if actions:
+                result[action_type] = actions
+        return result
+
+    @ormcache('model_name', 'self.env.lang')
+    def _get_bindings(self, model_name):
+        """≙ ``_get_bindings``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:184-223``).
+
+        La consulta une ``ir_actions`` con ``ir_model`` por
+        ``binding_model_id``, como la fuente; ``ir_model.model`` guarda la
+        identidad del modelo (``registry.identity_for_key``), así que el
+        nombre se normaliza antes de compararlo. ``res.groups`` no es
+        ``models.BaseModel``: el ``_ensure_xml_id`` de la fuente, que recorre
+        el recordset, es aquí el de cada grupo.
+        """
+        # discard unauthorized actions, and read action definitions
+        result = defaultdict(list)
+
+        with connections[env().db_alias].cursor() as cr:
+            cr.execute("""
+                SELECT a.id, a.type, a.binding_type
+                  FROM ir_actions a
+                  JOIN ir_model m ON a.binding_model_id = m.id
+                 WHERE m.model = %s
+              ORDER BY a.id
+            """, [identity_for_key(model_name)])
+            rows = cr.fetchall()
+        for action_id, action_model, binding_type in rows:
+            try:
+                action = self.env[action_model].sudo().browse(action_id)
+                fields = ['name', 'binding_view_types']
+                for field in ('group_ids', 'res_model', 'sequence', 'domain'):
+                    if field in action._fields:
+                        fields.append(field)
+                action = action.read(fields)[0]
+                if action.get('group_ids'):
+                    # transform the list of ids into a list of xml ids
+                    groups = ResGroups.objects.filter(
+                        pk__in=action['group_ids'])
+                    action['group_ids'] = [
+                        xmlid for group in groups
+                        for xmlid in group._ensure_xml_id().values()]
+                if 'domain' in action and not action.get('domain'):
+                    action.pop('domain')
+                result[binding_type].append(frozendict(action))
+            except (MissingError):
+                continue
+
+        # sort actions by their sequence if sequence available
+        if result.get('action'):
+            result['action'] = tuple(sorted(
+                result['action'], key=lambda vals: vals.get('sequence', 0)))
+        return frozendict(result)
 
     def _for_xml_id(self, full_xml_id):
         """Devuelve el contenido de la acción con ese identificador externo.
@@ -752,13 +841,13 @@ class IrActionsActWindow(IrActionsBase, models.BaseModel, TimeStampedModel):
         resuelve contra ningun tipo de vista. Rechazar el espacio es mas util
         que aceptarlo y fallar despues.
 
-        **Divergencia de nombre, declarada:** el ``binding_model_id`` de la
-        fuente es aqui ``binding_model_name`` (``Char``), la misma conversion
-        diferida a FK que ``model_name`` — ver el docstring del modulo.
+        ``binding_model_id`` es el Many2one de la fuente: se comprueba el
+        ``model`` de su fila de ``ir.model``.
         """
         super().clean()
-        for fname in ('res_model', 'binding_model_name'):
-            model_name = getattr(self, fname, '')
+        binding = self.binding_model_id
+        for model_name in (self.res_model,
+                           binding.model if binding else ''):
             # Se admiten las DOS formas de nombrar un modelo, por la misma
             # razón que en los otros tres sitios: la columna guarda el label
             # de Django y ``MODELS_BY_NAME`` indexa por ``_name``. Con la
@@ -2911,17 +3000,25 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
     # ---- Las dos acciones contextuales ------------------------------------
 
     def create_action(self):
-        """≙ ``create_action`` (``:989-994``) — ancla la acción a su modelo."""
-        self.binding_model_name = self.model_name
-        self.binding_type = 'action'
-        self.save(update_fields=['binding_model_name', 'binding_type'])
+        """ Create a contextual action for each server action.
+
+        ≙ ``create_action`` (``:989-994``). La fuente escribe
+        ``action.model_id.id``; aquí el modelo de la acción es ``model_name``,
+        así que su fila de ``ir.model`` se resuelve con ``IrModel._get_id``.
+        """
+        for action in self:
+            action.write({
+                'binding_model_id': IrModel._get_id(action.model_name),
+                'binding_type': 'action'})
         return True
 
     def unlink_action(self):
-        """≙ ``unlink_action`` (``:996-1000``) — retira el anclaje."""
-        if self.binding_model_name:
-            self.binding_model_name = ''
-            self.save(update_fields=['binding_model_name'])
+        """ Remove the contextual actions created for the server actions.
+
+        ≙ ``unlink_action`` (``:996-1000``).
+        """
+        self.check_access('write')
+        self.filtered('binding_model_id').write({'binding_model_id': False})
         return True
 
     @api.model_create_multi

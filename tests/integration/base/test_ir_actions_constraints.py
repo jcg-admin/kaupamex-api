@@ -27,6 +27,7 @@ from addons.base.models.ir_actions import (
     IrActionsActions,
     IrActionsServer,
 )
+from addons.base.models.ir_model import IrModel
 from addons.base.models.ir_module import IrModuleCategory
 
 pytestmark = pytest.mark.integration
@@ -134,12 +135,14 @@ class TestCheckModel:
         un modelo inexistente no aparecería en ninguna barra lateral sin que
         nadie supiera por qué.
         """
+        missing = IrModel.objects.create(
+            name='No existe', model='x_no_existe', state='manual')
         action = IrActionsActWindow(
             name='Anclada',
             type='ir.actions.act_window',
             res_model='res.partner',
             view_mode='list,form',
-            binding_model_name='no.existe',
+            binding_model_id=missing,
         )
         with pytest.raises(ValidationError):
             action.clean()

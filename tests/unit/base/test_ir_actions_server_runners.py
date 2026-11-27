@@ -349,7 +349,7 @@ class TestTheContextualActionHelpers:
         action.create_action()
 
         action.refresh_from_db()
-        assert action.binding_model_name == PARTNER
+        assert action.binding_model_id.pk == IrModel._get_id(PARTNER)
         assert action.binding_type == 'action'
 
     def test_unlink_action_clears_the_binding(self):
@@ -359,4 +359,4 @@ class TestTheContextualActionHelpers:
         action.unlink_action()
 
         action.refresh_from_db()
-        assert action.binding_model_name == ''
+        assert not action.binding_model_id

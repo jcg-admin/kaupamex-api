@@ -683,23 +683,24 @@ class IrActionsReport(IrActionsBase, models.BaseModel, TimeStampedModel):
         }
 
     def create_action(self):
-        """``create_action`` — ancla el reporte al modelo sobre el que imprime.
+        """ Create a contextual action for each report.
 
-        Con el anclaje puesto, la acción aparece en la barra contextual de ese
-        modelo.
+        ≙ ``create_action`` (``odoo19c: ir_actions_report.py:244-248``).
         """
-        self.binding_model_name = self.model
-        self.binding_type = BINDING_TYPE_REPORT
-        self.save(
-            update_fields=['binding_model_name', 'binding_type', 'write_date']
-        )
+        for report in self:
+            model = IrModel._get(report.model)
+            report.write({'binding_model_id': model.pk,
+                          'binding_type': BINDING_TYPE_REPORT})
+        return True
 
     def unlink_action(self):
-        """``unlink_action`` — quita el anclaje sin borrar el reporte."""
-        if not self.binding_model_name:
-            return
-        self.binding_model_name = ''
-        self.save(update_fields=['binding_model_name', 'write_date'])
+        """ Remove the contextual actions created for the reports.
+
+        ≙ ``unlink_action`` (``odoo19c: ir_actions_report.py:250-254``).
+        """
+        self.check_access('write')
+        self.filtered('binding_model_id').write({'binding_model_id': False})
+        return True
 
     def associated_view(self):
         """La acción de ventana que lista las vistas de este reporte.
