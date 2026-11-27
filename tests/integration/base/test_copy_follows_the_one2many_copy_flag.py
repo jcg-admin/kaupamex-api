@@ -44,8 +44,8 @@ def test_a_child_action_travels_with_the_copy(db):
         name='Hija 1161', type='ir.actions.server', state='code',
         parent=parent)
     copy = parent.copy()
-    assert [child.parent_id for child in copy.child_ids.all()] == [copy.pk]
-    assert parent.child_ids.count() == 1
+    assert [child.parent_id for child in copy.child_ids] == [copy.pk]
+    assert len(parent.child_ids) == 1
 
 
 def test_the_access_rows_of_a_group_travel_with_the_copy(db):

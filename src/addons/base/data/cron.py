@@ -25,6 +25,7 @@ se respeta, que es lo que ``noupdate`` garantiza en la referencia.
 from django.apps import apps as apps_vivos
 
 from orm import registry
+from orm.environments import sudo
 
 
 def cron_code(spec):
@@ -60,7 +61,15 @@ def sembrar_cron(apps, alias, spec):
     Escribe sobre los modelos **históricos** (``apps.get_model``), nunca sobre
     los vivos: una migración no debe ejecutar comportamiento de la app, que
     cambia bajo sus pies.
+
+    Corre como superusuario, igual que :func:`sembrar_cron_vivo`.
     """
+    with sudo():
+        return _seed_cron(apps, alias, spec)
+
+
+def _seed_cron(apps, alias, spec):
+    """El cuerpo de :func:`sembrar_cron`, ya elevado."""
     IrActionsServer = apps.get_model('base', 'IrActionsServer')
     IrCron = apps.get_model('base', 'IrCron')
     IrModelData = apps.get_model('base', 'IrModelData')
@@ -98,7 +107,18 @@ def sembrar_cron_vivo(spec):
 
     Escribe sobre el mismo ``spec`` que la migracion importa: no hay dos copias
     que puedan divergir.
+
+    Corre como superusuario, como la carga de ``ir_cron_data.xml`` en la
+    fuente: ``ir.actions.server`` sólo lo lee ``group_system``
+    (``odoo19c: odoo/addons/base/security/ir.model.access.csv:107``), y la
+    siembra no tiene usuario.
     """
+    with sudo():
+        return _seed_live_cron(spec)
+
+
+def _seed_live_cron(spec):
+    """El cuerpo de :func:`sembrar_cron_vivo`, ya elevado."""
     IrActionsServer = apps_vivos.get_model('base', 'IrActionsServer')
     IrCron = apps_vivos.get_model('base', 'IrCron')
     IrModelData = apps_vivos.get_model('base', 'IrModelData')

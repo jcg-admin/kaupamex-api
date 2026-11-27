@@ -26,7 +26,7 @@ from addons.loyalty.data import CRON_EXPIRE_VOUCHERS
 from addons.mail.data import CRON_EMAIL_QUEUE
 from addons.website_sale.models.website import CRON_SEND_ABANDONED_CART_EMAIL
 from addons.account_edi.data import CRON_EDI_NETWORK
-from orm.environments import env
+from orm.environments import env, sudo
 
 pytestmark = pytest.mark.django_db
 
@@ -35,6 +35,17 @@ SEEDED_SPECS = (
     CRON_AUTO_CLOSE_TICKETS, CRON_EXPIRE_VOUCHERS, CRON_EMAIL_QUEUE,
     CRON_SEND_ABANDONED_CART_EMAIL, CRON_EDI_NETWORK,
 )
+
+
+@pytest.fixture(autouse=True)
+def _as_superuser():
+    """≙ ``TransactionCase`` de la fuente, que corre como superusuario:
+    ``ir.actions.server`` es ``BaseModel`` y sólo ``group_system`` lo lee
+    (``odoo19c: odoo/addons/base/security/ir.model.access.csv:107``).
+    Precedente: ``test_copy_follows_the_one2many_copy_flag.py``."""
+    with sudo():
+        yield
+
 
 SPEC = {
     'name': 'Control de identidad',

@@ -174,7 +174,7 @@ from addons.base.models.ir_model import (
 from addons.base.models.ir_sequence import IrSequence
 from addons.base.models.res_groups import ResGroups
 from addons.base.models.timestamped_mixin import TimeStampedModel
-from exceptions import UserError
+from exceptions import AccessError, UserError
 from fields import Command, Domain
 from addons.base.models.ir_model import IrModelData
 from orm.environments import (context_scope, env, get_context,
@@ -887,7 +887,7 @@ class IrActionsServerHistory(models.BaseModel, TimeStampedModel):
     """≙ ``IrActionsServerHistory`` (``odoo19c: ir_actions.py:503-539``).
 
     Una fila por versión del código de una acción de servidor. La escribe
-    ``IrActionsServer.save()`` cuando el código cambia, y la poda
+    ``IrActionsServer.create`` y ``write`` cuando el código cambia, y la poda
     ``_gc_histories`` cuando una acción acumula más de
     ``_max_entries_per_action``.
     """
@@ -1020,7 +1020,7 @@ class ServerActionWithWarningsError(UserError):
     """
 
 
-class IrActionsServer(IrActionsBase):
+class IrActionsServer(models.BaseModel, IrActionsBase):
     """Acción ejecutada en el servidor (``ir.actions.server``).
 
     Los seis modos se portan como **vocabulario** —clasifican la acción— pero
@@ -1537,7 +1537,7 @@ class IrActionsServer(IrActionsBase):
         seen = seen | {self.pk}
 
         warnings = []
-        children = list(self.child_ids.all()) if self.pk else []
+        children = list(self.child_ids) if self.pk else []
 
         if self.model_name:
             children_with_different_model = [
@@ -1852,48 +1852,56 @@ class IrActionsServer(IrActionsBase):
 
         El rechazo se registra antes de levantar, con el mismo detalle que la
         fuente: qué acción, qué usuario y sobre qué modelo.
+
+        Lee la acción elevada (``su_self``), como la fuente
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:1215-1243``), y
+        comprueba los permisos con el usuario que la invoca.
         """
-        action_groups = list(self.group_ids.all()) if self.pk else []
+        su_self = self.sudo()
         user = get_current_user()
+        login = getattr(user, 'login', None)
+        action_groups = set(su_self.group_ids.values_list('pk', flat=True))
         if action_groups:
             user_groups = (
-                set(user.all_group_ids)
+                {getattr(group, 'pk', group) for group in user.all_group_ids}
                 if user is not None and hasattr(user, 'all_group_ids')
                 else set()
             )
-            if not (set(action_groups) & user_groups):
+            if not (action_groups & user_groups):
                 raise AccessError(
                     'No tiene permisos suficientes para ejecutar esta acción.'
                 )
-            return
-
-        model = model_by_key(self.model_name)
-        login = getattr(user, 'login', None)
-        if model is not None and hasattr(model, 'check_access'):
+        else:
+            model_name = su_self.model_name
             try:
-                model.check_access('write')
-            except AccessError:
-                _logger.warning(
-                    'Acción de servidor prohibida %r ejecutada mientras el '
-                    'usuario %s no tiene acceso a %s.',
-                    self.name,
-                    login,
-                    self.model_name,
-                )
-                raise AccessError(
-                    'No tiene permisos suficientes para ejecutar esta acción.'
-                )
+                target = env()[model_name]
+            except KeyError:
+                target = None
+            if target is not None and hasattr(target, 'check_access'):
+                try:
+                    target.check_access('write')
+                except AccessError:
+                    _logger.warning(
+                        'Acción de servidor prohibida %r ejecutada mientras '
+                        'el usuario %s no tiene acceso a %s.',
+                        su_self.name, login, model_name,
+                    )
+                    raise AccessError(
+                        'No tiene permisos suficientes para ejecutar esta '
+                        'acción.'
+                    )
 
-        if records is not None and hasattr(records, 'check_access'):
+        if (not action_groups and records is not None
+                and hasattr(records, 'check_access') and records):
+            # ≙ «check access rules on real records only; base automations
+            # of type 'onchange' can run server actions on new records».
             try:
                 records.check_access('write')
             except AccessError:
                 _logger.warning(
                     'Acción de servidor prohibida %r ejecutada mientras el '
                     'usuario %s no tiene acceso a %s.',
-                    self.name,
-                    login,
-                    records,
+                    su_self.name, login, records,
                 )
                 raise AccessError(
                     'No tiene permisos suficientes para ejecutar esta acción.'
@@ -1950,30 +1958,21 @@ class IrActionsServer(IrActionsBase):
         ):
             self.value = self.selection_value.value
 
-    def copy_data(self, default=None, seen=None):
-        """≙ ``copy_data`` (``:1320-1326``) — el duplicado se nombra como tal.
+    def copy_data(self, default=None):
+        """≙ ``copy_data``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:1320-1326``): el
+        duplicado se nombra como tal.
 
-        La fuente itera ``vals_list`` porque allá ``self`` es un recordset y
-        ``super().copy_data()`` responde **uno por registro**. Aquí una
-        instancia **es** un registro y la base devuelve un ``dict``: es la
-        divergencia que ``CopyMixin.copy_data`` declara —*"Devuelve un dict, no
-        una lista … la forma plural la recupera quien la necesite iterando"*—.
-        El bucle de la fuente se lee entonces como su caso de un solo elemento;
-        el resto del cuerpo es verbatim.
-
-        ``seen`` viaja porque la base lo usa como guarda contra la recursión de
-        una relación circular, y una sobrescritura que lo tragara la anularía:
-        ``copy`` lo pasa al duplicar las hijas, que en este modelo son otras
-        acciones (``child_ids``) y pueden encadenarse.
-
-        ``None`` de la base —el registro ya se visitó— sale tal cual: añadirle
-        el sufijo a un duplicado que no se va a crear sería inventar valores.
+        Sobre ``BaseModel`` la base devuelve un ``dict`` por registro, como
+        la fuente; el bucle es el suyo.
         """
         default = default or {}
-        values = super().copy_data(default=default, seen=seen)
-        if values is not None and not default.get('name'):
-            values['name'] = '%s (copia)' % (values.get('name', ''),)
-        return values
+        vals_list = super().copy_data(default=default)
+        if not default.get('name'):
+            for vals in vals_list:
+                if vals is not None:
+                    vals['name'] = '%s (copia)' % (vals.get('name', ''),)
+        return vals_list
 
     #: ≙ ``sensible_default_fields`` (``:599``), traducida a nuestros nombres.
     #: Los cuatro primeros pierden el sufijo ``_id`` por la convención de FK
@@ -2060,7 +2059,7 @@ class IrActionsServer(IrActionsBase):
         """
         seen = set()
         current = self.parent
-        while current is not None:
+        while current:
             if current.pk == self.pk or current.pk in seen:
                 raise ValidationError(
                     'Recursión encontrada en las acciones de servidor hijas.'
@@ -2068,15 +2067,12 @@ class IrActionsServer(IrActionsBase):
             seen.add(current.pk)
             current = current.parent
 
-        children_with_warnings = [
-            child
-            for child in (self.child_ids.all() if self.pk else [])
-            if child.warning
-        ]
+        children_with_warnings = (
+            self.child_ids.filtered('warning') if self.pk else ())
         if children_with_warnings:
             raise ValidationError(
                 'Las siguientes acciones hijas tienen avisos: %s'
-                % ', '.join(child.name for child in children_with_warnings)
+                % ', '.join(children_with_warnings.mapped('name'))
             )
 
     def save(self, *args, **kwargs):
@@ -2095,50 +2091,14 @@ class IrActionsServer(IrActionsBase):
         Va **antes** del ``super()`` por eso mismo: después, la fila ya se
         escribió y las dos columnas irían a disco en un segundo ``UPDATE``.
 
-        Aquí se registra también la revisión del código. La fuente lo hace en
-        **dos** métodos —``create`` (``:720-726``) anota la primera y ``write``
-        (``:730-732``) cada cambio posterior—; en este stack los dos caminos
-        pasan por ``save``, así que la rama la decide si la fila ya existe.
+        La revisión del código no se anota aquí: la anotan :meth:`create` y
+        :meth:`write`, como en la fuente (``:711-734``). Un ``save`` directo
+        de Django no es la API del modelo y no la anota.
         """
-        creating = self._state.adding or self.pk is None
-        previous_code = None if creating else (self._origin.code or '')
-
         self._check_children()
         self._check_python_code()
         self._compute_name()
-        result = super().save(*args, **kwargs)
-        self._record_code_revision(creating, previous_code)
-        return result
-
-    def _record_code_revision(self, creating, previous_code):
-        """Anota la revisión del código — ≙ ``create`` (``:720-726``) y
-        ``write`` (``:730-732``).
-
-        Al **crear**, la fuente anota la primera revisión sólo si ``"code" in
-        vals``: una acción que nace sin código no tiene nada que versionar. Su
-        equivalente aquí es que el campo traiga texto — el ``in vals`` de allá
-        distingue *ausente* de *vacío*, y aquí ambos llegan como cadena vacía
-        porque la columna declara ``default=''``.
-
-        Al **escribir**, la guarda de la fuente es ``new_code != self.code``,
-        donde ``self.code`` es el valor **guardado**: dentro de ``write`` el
-        registro todavía no se ha actualizado. Aquí ``self`` ya trae el valor
-        nuevo cuando ``save`` corre, así que el anterior se lee de
-        ``self._origin`` **antes** del ``super()`` y llega como parámetro. Sin
-        eso la comparación sería del valor consigo mismo y toda escritura
-        anotaría una revisión.
-
-        Va **después** del ``super()`` y no antes: la revisión apunta a la
-        acción por clave ajena, y al crear esa clave no existe hasta que la
-        fila se escribe.
-        """
-        code = self.code or ''
-        if creating:
-            if code:
-                IrActionsServerHistory.objects.create(action=self, code=code)
-            return
-        if code and code != previous_code:
-            IrActionsServerHistory.objects.create(action=self, code=code)
+        return super().save(*args, **kwargs)
 
     # ---- El motor de ejecución (#117) -------------------------------------
     #
@@ -2180,12 +2140,11 @@ class IrActionsServer(IrActionsBase):
         """≙ ``_run_action_multi`` (``:1019-1023``).
 
         Encadena a las hijas **en su orden**, y devuelve el último resultado
-        que no sea falso. El ``sorted()`` de la fuente es el ``_order`` del
-        modelo (``sequence,name,id``), que aquí es el ``ordering`` del ``Meta``
-        — o sea que el reverso ya llega ordenado y no hace falta repetirlo.
+        que no sea falso. El ``sorted()`` de la fuente ordena por el
+        ``_order`` del modelo (``sequence,name,id``).
         """
         result = False
-        for child in self.child_ids.all():
+        for child in self.child_ids.sorted():
             result = child.run() or result
         return result
 
@@ -2568,18 +2527,23 @@ class IrActionsServer(IrActionsBase):
     def run(self):
         """≙ ``run`` (``:1151-1181``) — el punto de entrada del motor.
 
-        La fuente itera sobre ``self`` porque allá un recordset puede traer
-        varias acciones; aquí ``self`` es **una** instancia y ese bucle
-        colapsa. El resto es idéntico: se arma el contexto de evaluación, se
-        determinan los registros sobre los que operar y se delega en ``_run``.
+        Itera ``self`` como la fuente: cada acción arma su contexto de
+        evaluación **elevada** (``action.sudo()``), comprueba con el usuario
+        que la invoca que puede ejecutarla sobre esos registros, y corre
+        elevada. Así un usuario sin acceso a ``ir.actions.server`` —el de un
+        cron, el que pulsa un botón— ejecuta la acción sin leerla.
         """
-        eval_context = self._get_eval_context(self)
-        records = eval_context.get('records')
-        if records is None and eval_context.get('record') is not None:
-            records = type(eval_context['record']).objects.filter(
-                pk=eval_context['record'].pk
-            )
-        return self._run(records, eval_context)
+        res = False
+        for action in self:
+            eval_context = self._get_eval_context(action.sudo())
+            records = eval_context.get('records')
+            if records is None and eval_context.get('record') is not None:
+                records = type(eval_context['record']).objects.filter(
+                    pk=eval_context['record'].pk
+                )
+            action._can_execute_action_on_records(records)
+            res = action.sudo()._run(records, eval_context)
+        return res
 
     def _run(self, records, eval_context):
         """≙ ``_run`` (``:1183-1207``).
@@ -2639,6 +2603,43 @@ class IrActionsServer(IrActionsBase):
             self.binding_model_name = ''
             self.save(update_fields=['binding_model_name'])
         return True
+
+    @api.model_create_multi
+    @classmethod
+    def create(cls, vals_list):
+        """≙ ``create``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:711-728``).
+
+        Un hijo toma el modelo y los grupos de su padre; ``parent`` es el
+        ``parent_id`` de la fuente y ``model_name`` su ``model_id``. Cada
+        acción que llega con ``code`` anota su primera revisión.
+        """
+        for vals in vals_list:
+            if parent_id := vals.get('parent'):
+                parent = env()[cls._name].browse(parent_id)
+                vals['model_name'] = parent.model_name
+                vals['group_ids'] = list(
+                    parent.group_ids.values_list('pk', flat=True))
+        actions = super().create(vals_list)
+
+        history_vals = []
+        for action, vals in zip(actions, vals_list):
+            if 'code' in vals:
+                history_vals.append(
+                    {'action': action.id, 'code': vals.get('code')})
+        if history_vals:
+            IrActionsServerHistory.create(history_vals)
+
+        return actions
+
+    def write(self, vals):
+        """≙ ``write``
+        (``odoo19c: odoo/addons/base/models/ir_actions.py:730-733``): un
+        código nuevo anota su revisión antes de escribirse."""
+        if (new_code := vals.get('code')) and new_code != self.code:
+            IrActionsServerHistory.create(
+                {'action': self.id, 'code': new_code})
+        return super().write(vals)
 
 
 class IrActionsTodo(models.BaseModel, TimeStampedModel):

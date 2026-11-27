@@ -17,7 +17,9 @@ import pytest
 from addons.base.models.ir_actions_report import IrActionsReport
 from addons.base.models.ir_model import IrModel
 from addons.base.models.res_groups import ResGroups
+from orm.commands import Command
 from orm.domains import Domain
+from orm.environments import sudo
 
 pytestmark = pytest.mark.django_db
 
@@ -166,7 +168,8 @@ class TestTheReportsApplicableToAModel:
         report = IrActionsReport.objects.create(
             name='Restringido', model='x_restricted', report_name='restringido'
         )
-        report.group_ids.add(group)
+        with sudo():
+            report.write({'group_ids': [Command.link(group.pk)]})
 
         assert IrActionsReport.valid_reports_for('x_restricted') == []
         assert (

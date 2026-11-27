@@ -6901,7 +6901,15 @@ def _copies(field):
     fuente por tipo — ``False`` para un ``One2many`` (``odoo19c:
     odoo/orm/fields_relational.py:869``) y ``True`` para el resto
     (``odoo/orm/fields.py:281``). Una relación inversa de Django no lleva el
-    atributo."""
+    atributo.
+
+    Un ``GenericForeignKey`` —el mecanismo de ``fields.Reference`` en este
+    árbol— no se copia: su valor vive en sus dos columnas concretas
+    (``ct_field`` y ``fk_field``), que sí se copian. Es la regla de la fuente
+    para un campo calculado sin almacenar (``odoo19c:
+    odoo/orm/fields.py:443-450``); asignarle ``False`` no tiene receptor."""
+    if hasattr(field, 'ct_field') and hasattr(field, 'fk_field'):
+        return False
     return getattr(field, 'copy', field.type != 'one2many')
 
 

@@ -34,7 +34,18 @@ from addons.base.models.ir_model import (
     IrModelFields,
     IrModelFieldsSelection,
 )
-from orm.environments import context_scope
+from orm.environments import context_scope, sudo
+
+
+@pytest.fixture(autouse=True)
+def _as_superuser():
+    """≙ ``TransactionCase`` de la fuente, que corre como superusuario:
+    ``ir.actions.server`` es ``BaseModel`` y sólo ``group_system`` lo lee
+    (``odoo19c: odoo/addons/base/security/ir.model.access.csv:107``).
+    Precedente: ``test_copy_follows_the_one2many_copy_flag.py``."""
+    with sudo():
+        yield
+
 
 PARTNER = 'base.ResPartner'
 
@@ -292,21 +303,19 @@ class TestThePythonCodeIsCheckedWithoutRunningIt:
 class TestTheCopyIsMarkedAsOne:
     """≙ ``copy_data``: el duplicado se nombra como tal.
 
-    Se indexa como ``dict`` y no como lista porque ésa es la forma que
-    ``CopyMixin.copy_data`` declara en este árbol: allá ``self`` es un
-    recordset y responde uno por registro; aquí una instancia **es** un
-    registro. Un ``[0]`` aquí mediría la forma de la fuente, no la nuestra.
+    ``ir.actions.server`` es ``BaseModel``: ``copy_data`` responde una lista
+    con un ``dict`` por registro, como la fuente.
     """
 
     def test_the_duplicate_says_it_is_a_copy(self):
         action = _action(name='Original')
 
-        assert action.copy_data()['name'] == 'Original (copia)'
+        assert action.copy_data()[0]['name'] == 'Original (copia)'
 
     def test_an_explicit_name_wins_over_the_suffix(self):
         action = _action(name='Original')
 
-        assert action.copy_data({'name': 'Otro'})['name'] == 'Otro'
+        assert action.copy_data({'name': 'Otro'})[0]['name'] == 'Otro'
 
 
 @pytest.mark.django_db

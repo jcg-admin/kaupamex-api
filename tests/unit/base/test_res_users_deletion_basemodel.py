@@ -93,5 +93,6 @@ def test_the_cron_is_seeded():
         'base.ir_cron_res_users_deletion', raise_if_not_found=True)
     cron = IrCron.objects.get(pk=from_xmlid)
     assert cron.priority == 8
-    assert cron.ir_actions_server.code == (
-        'model._gc_portal_users(batch_size=50)')
+    with sudo():
+        assert cron.ir_actions_server.code == (
+            'model._gc_portal_users(batch_size=50)')

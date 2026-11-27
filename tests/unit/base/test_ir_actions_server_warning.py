@@ -21,6 +21,17 @@ import pytest
 from django.core.exceptions import ValidationError
 
 from addons.base.models.ir_actions import IrActionsServer
+from orm.environments import sudo
+
+
+@pytest.fixture(autouse=True)
+def _as_superuser():
+    """≙ ``TransactionCase`` de la fuente, que corre como superusuario:
+    ``ir.actions.server`` es ``BaseModel`` y sólo ``group_system`` lo lee
+    (``odoo19c: odoo/addons/base/security/ir.model.access.csv:107``).
+    Precedente: ``test_copy_follows_the_one2many_copy_flag.py``."""
+    with sudo():
+        yield
 
 
 def _action(**kwargs):

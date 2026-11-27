@@ -24,13 +24,25 @@ from addons.base.models.ir_actions import (
     IrActionsServerHistory,
     ServerActionHistoryWizard,
 )
-from orm.environments import context_scope
+from orm.environments import context_scope, sudo
+
+
+@pytest.fixture(autouse=True)
+def _as_superuser():
+    """≙ ``TransactionCase`` de la fuente, que corre como superusuario:
+    ``ir.actions.server`` es ``BaseModel`` y sólo ``group_system`` lo lee
+    (``odoo19c: odoo/addons/base/security/ir.model.access.csv:107``).
+    Precedente: ``test_copy_follows_the_one2many_copy_flag.py``."""
+    with sudo():
+        yield
 
 
 def _action(**kwargs):
+    """Por ``create``, que es quien anota la primera revisión
+    (``odoo19c: odoo/addons/base/models/ir_actions.py:711-728``)."""
     kwargs.setdefault('name', 'Accion')
     kwargs.setdefault('state', 'code')
-    return IrActionsServer.objects.create(**kwargs)
+    return IrActionsServer.create(kwargs)
 
 
 @pytest.mark.django_db
@@ -40,12 +52,10 @@ class TestTheFirstRevisionIsBornWithTheAction:
     def test_creating_with_code_records_it(self):
         action = _action(code='x = 1\n')
 
-        assert list(action.code_history.values_list('code', flat=True)) == [
-            'x = 1\n'
-        ]
+        assert action.code_history.mapped('code') == ['x = 1\n']
 
     def test_creating_without_code_records_nothing(self):
-        assert _action(state='multi').code_history.count() == 0
+        assert len(_action(state='multi').code_history) == 0
 
 
 @pytest.mark.django_db
@@ -54,24 +64,22 @@ class TestEachChangeOfCodeAddsARevision:
 
     def test_a_new_code_is_recorded(self):
         action = _action(code='x = 1\n')
-        action.code = 'x = 2\n'
-        action.save()
+        action.write({'code': 'x = 2\n'})
 
-        assert action.code_history.count() == 2
+        assert len(action.code_history) == 2
 
     def test_writing_the_same_code_again_records_nothing(self):
         """El control que discrimina: sin la comparacion, esto daria 2."""
         action = _action(code='x = 1\n')
-        action.save()
+        action.write({'code': 'x = 1\n'})
 
-        assert action.code_history.count() == 1
+        assert len(action.code_history) == 1
 
     def test_the_newest_revision_comes_first(self):
         action = _action(code='x = 1\n')
-        action.code = 'x = 2\n'
-        action.save()
+        action.write({'code': 'x = 2\n'})
 
-        assert action.code_history.first().code == 'x = 2\n'
+        assert action.code_history[0].code == 'x = 2\n'
 
 
 @pytest.mark.django_db
@@ -80,8 +88,7 @@ class TestWhetherTheFormOffersTheHistory:
 
     def test_an_action_with_an_older_code_offers_it(self):
         action = _action(code='x = 1\n')
-        action.code = 'x = 2\n'
-        action.save()
+        action.write({'code': 'x = 2\n'})
 
         assert action.show_code_history is True
 
@@ -122,8 +129,7 @@ class TestTheWizardComparesTheTwoTexts:
 
     def test_the_default_revision_is_the_last_one_that_differs(self):
         action = _action(code='x = 1\n')
-        action.code = 'x = 2\n'
-        action.save()
+        action.write({'code': 'x = 2\n'})
 
         with context_scope(default_action_id=action.pk):
             assert (
@@ -132,8 +138,7 @@ class TestTheWizardComparesTheTwoTexts:
 
     def test_the_diff_names_both_columns(self):
         action = _action(code='x = 1\n')
-        action.code = 'x = 2\n'
-        action.save()
+        action.write({'code': 'x = 2\n'})
         with context_scope(default_action_id=action.pk):
             wizard = ServerActionHistoryWizard(
                 action=action,
@@ -144,8 +149,7 @@ class TestTheWizardComparesTheTwoTexts:
 
     def test_restoring_brings_the_old_code_back(self):
         action = _action(code='x = 1\n')
-        action.code = 'x = 2\n'
-        action.save()
+        action.write({'code': 'x = 2\n'})
         with context_scope(default_action_id=action.pk):
             wizard = ServerActionHistoryWizard(
                 action=action,
@@ -170,7 +174,7 @@ class TestTheHistoryIsPruned:
 
         IrActionsServerHistory()._gc_histories()
 
-        assert action.code_history.count() == 5
+        assert len(action.code_history) == 5
 
     def test_above_the_cap_only_the_newest_survive(self, monkeypatch):
         monkeypatch.setattr(
@@ -184,4 +188,4 @@ class TestTheHistoryIsPruned:
 
         IrActionsServerHistory()._gc_histories()
 
-        assert action.code_history.count() == 3
+        assert len(action.code_history) == 3

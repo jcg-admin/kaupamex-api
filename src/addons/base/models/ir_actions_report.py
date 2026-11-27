@@ -424,7 +424,7 @@ def run_helper(helper, descriptor):
     return completed.stdout
 
 
-class IrActionsReport(IrActionsBase):
+class IrActionsReport(models.BaseModel, IrActionsBase):
     """``ir.actions.report`` — declaración de un reporte imprimible.
 
     Hereda ``IrActionsBase`` (abstracto) porque la referencia declara
@@ -952,9 +952,7 @@ class IrActionsReport(IrActionsBase):
         group_ids = {getattr(group, 'pk', group) for group in groups}
         applicable = []
         for report in cls.objects.filter(
-                model=registry.identity_for_key(model_name)).prefetch_related(
-            'group_ids'
-        ):
+                model=registry.identity_for_key(model_name)):
             declared = set(report.group_ids.values_list('pk', flat=True))
             if not declared or (declared & group_ids):
                 applicable.append(report)
@@ -1788,8 +1786,8 @@ class IrActionsReport(IrActionsBase):
         contrato de retorno: una lista del mismo largo que ``bodies``, con los
         bytes de cada imagen o ``None`` donde el dibujo falló.
 
-        :param bodies: descriptores; una cadena se envuelve como ``{'body': …}``
-            igual que en :meth:`_run_wkhtmltopdf`.
+        :param bodies: descriptores; una cadena se envuelve como
+            ``{'body': …}`` igual que en :meth:`_run_wkhtmltopdf`.
         :param width: ancho en píxeles.
         :param height: alto en píxeles.
         :param image_format: ``'jpg'`` o ``'png'``.

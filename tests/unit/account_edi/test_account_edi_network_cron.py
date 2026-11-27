@@ -35,7 +35,8 @@ def cron():
 
 def test_the_cron_is_seeded_inactive_with_its_external_id(cron):
     assert cron.active is False
-    assert cron.method_name == '_cron_process_documents_web_services'
+    with sudo():
+        assert cron.method_name == '_cron_process_documents_web_services'
 
 
 def test_a_format_with_web_services_activates_it(cron, monkeypatch):

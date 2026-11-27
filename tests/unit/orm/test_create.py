@@ -189,4 +189,4 @@ class TestInheritsParents:
                     }
                 ]
             )
-        assert cron.pk is not None and cron.name == 'Cron de alta'
+            assert cron.pk is not None and cron.name == 'Cron de alta'

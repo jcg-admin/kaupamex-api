@@ -1010,27 +1010,32 @@ class IrCron(models.DefaultGetMixin, models.RecordLoaderMixin,
 
         :raises UserError: si el job ya lo tiene tomado otro worker.
         """
-        with transaction.atomic(using=using):
-            job = type(self)._acquire_one_job(
-                self.pk, using=using, include_not_ready=True)
-            if job is None:
-                raise UserError(
-                    "El trabajo %r ya se está ejecutando" % (self.name,))
-            # ``ListLogHandler`` es de la fuente (``ir_cron.py:167-168``) y su
-            # razon de ser es esta: capturar el log de ERROR de la corrida para
-            # saber si dejo una excepcion. La fuente devuelve con ella un
-            # ``ir.actions.client`` para que su cliente la muestre; aqui no hay
-            # ese canal, asi que se registra el resumen y se devuelve True —
-            # divergencia declarada abajo.
-            with ListLogHandler(_logger, logging.ERROR) as capture:
-                type(self)._process_job(job, using=using)
-            registro = next(
-                (lr for lr in capture if getattr(lr, 'exc_info', None)), None)
-            if registro is not None:
-                _logger.error(
-                    'El disparo directo del job %r (%s) dejo una excepcion en '
-                    'el log; el resultado se lee en los datos que escribio.',
-                    self.name, self.pk)
+        # Como el planificador (``_process_jobs``): las lecturas del job no
+        # pasan por la ACL, y el ``_callback`` fija el usuario del cron.
+        with sudo():
+            with transaction.atomic(using=using):
+                job = type(self)._acquire_one_job(
+                    self.pk, using=using, include_not_ready=True)
+                if job is None:
+                    raise UserError(
+                        "El trabajo %r ya se está ejecutando" % (self.name,))
+                # ``ListLogHandler`` es de la fuente (``ir_cron.py:167-168``)
+                # y su razon de ser es esta: capturar el log de ERROR de la
+                # corrida para saber si dejo una excepcion. La fuente devuelve
+                # con ella un ``ir.actions.client`` para que su cliente la
+                # muestre; aqui no hay ese canal, asi que se registra el
+                # resumen y se devuelve True — divergencia declarada abajo.
+                with ListLogHandler(_logger, logging.ERROR) as capture:
+                    type(self)._process_job(job, using=using)
+                registro = next(
+                    (lr for lr in capture if getattr(lr, 'exc_info', None)),
+                    None)
+                if registro is not None:
+                    _logger.error(
+                        'El disparo directo del job %r (%s) dejo una '
+                        'excepcion en el log; el resultado se lee en los '
+                        'datos que escribio.',
+                        self.name, self.pk)
         return True
 
     # ---- Disparo puntual (≙ _trigger / _trigger_list / _notifydb) ------
@@ -1391,12 +1396,15 @@ class IrCron(models.DefaultGetMixin, models.RecordLoaderMixin,
         procesados = 0
         for job_id in job_ids:
             try:
-                with transaction.atomic(using=using):
+                # ≙ la lectura de los jobs por SQL de la fuente: el
+                # planificador no pasa por la ACL; el ``_callback`` fija el
+                # usuario del cron.
+                with transaction.atomic(using=using), sudo():
                     job = cls._acquire_one_job(job_id, using=using)
                     if job is None:
                         _logger.debug(
-                            'el job %s lo esta procesando otro worker, se omite',
-                            job_id)
+                            'el job %s lo esta procesando otro worker, '
+                            'se omite', job_id)
                         continue
                     _logger.debug('job %s adquirido', job_id)
                     cls._process_job(job, using=using)

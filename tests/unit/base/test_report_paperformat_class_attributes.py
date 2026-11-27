@@ -58,7 +58,7 @@ class TestReportIdsSeesOnlyItsOwnReports:
 
     def test_a_paperformat_with_no_reports_has_an_empty_report_ids(self):
         empty = _paperformat(name='Sin reportes')
-        assert list(empty.report_ids.all()) == []
+        assert list(empty.report_ids) == []
 
     def test_a_linked_report_shows_up_on_its_own_paperformat_only(self):
         mine = _paperformat(name='Mío')
@@ -70,15 +70,15 @@ class TestReportIdsSeesOnlyItsOwnReports:
             report_name='base.report_y',
         )
 
-        assert list(mine.report_ids.all()) == [linked]
-        assert list(other.report_ids.all()) != [linked]
+        assert list(mine.report_ids) == [linked]
+        assert list(other.report_ids) != [linked]
 
     def test_unlinking_the_report_clears_it_from_report_ids(self):
         paperformat = _paperformat(name='Con y sin')
         report = _report(paperformat_id=paperformat)
-        assert list(paperformat.report_ids.all()) == [report]
+        assert list(paperformat.report_ids) == [report]
 
         report.paperformat_id = None
         report.save()
 
-        assert list(paperformat.report_ids.all()) == []
+        assert list(paperformat.report_ids) == []

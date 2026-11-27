@@ -46,8 +46,20 @@ from addons.helpdesk.data import CRON_AUTO_CLOSE_TICKETS
 from addons.loyalty.data import CRON_EXPIRE_VOUCHERS
 from addons.mail.data import CRON_EMAIL_QUEUE
 from orm import registry
+from orm.environments import sudo
 
 pytestmark = pytest.mark.django_db
+
+
+@pytest.fixture(autouse=True)
+def _as_superuser():
+    """≙ ``TransactionCase`` de la fuente, que corre como superusuario:
+    ``ir.actions.server`` es ``BaseModel`` y sólo ``group_system`` lo lee
+    (``odoo19c: odoo/addons/base/security/ir.model.access.csv:107``).
+    Precedente: ``test_copy_follows_the_one2many_copy_flag.py``."""
+    with sudo():
+        yield
+
 
 # Los cuatro specs sembrados por data-migration. Tres vienen de la tarea #124
 # (management commands sueltos que ganaron horario); el cuarto es el barrido de

@@ -31,8 +31,19 @@ import pytest
 from django.utils import timezone
 
 from addons.base.models import IrActionsServer, IrCron
+from orm.environments import sudo
 
 pytestmark = [pytest.mark.unit, pytest.mark.django_db]
+
+
+@pytest.fixture(autouse=True)
+def _as_superuser():
+    """≙ ``TransactionCase`` de la fuente, que corre como superusuario:
+    ``ir.actions.server`` es ``BaseModel`` y sólo ``group_system`` lo lee
+    (``odoo19c: odoo/addons/base/security/ir.model.access.csv:107``).
+    Precedente: ``test_copy_follows_the_one2many_copy_flag.py``."""
+    with sudo():
+        yield
 
 
 @pytest.fixture
@@ -70,14 +81,15 @@ def test_an_action_can_declare_its_parent(action):
         parent=action,
     )
     assert child.parent == action
-    assert list(action.child_ids.all()) == [child]
+    assert list(action.child_ids) == [child]
 
 
 def test_the_parent_is_optional(action):
     """
     La fuente lo declara sin ``required``: una accion suelta no tiene padre.
+    Sobre ``BaseModel`` el ``Many2one`` vacío es un recordset vacío.
     """
-    assert action.parent is None
+    assert not action.parent
 
 
 def test_deleting_the_parent_takes_the_children(action):
