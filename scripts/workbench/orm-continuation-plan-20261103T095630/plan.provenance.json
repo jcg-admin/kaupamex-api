@@ -2107,6 +2107,13 @@
         "basemodel-adoption-base-report-layout-0397"
       ],
       "writtenAt": "2026-11-26T22:48:31Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "ir-actions-table-inheritance-0397"
+      ],
+      "writtenAt": "2026-11-27T00:04:41Z"
     }
   ]
 }
