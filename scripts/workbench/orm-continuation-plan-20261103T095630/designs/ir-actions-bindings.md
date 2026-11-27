@@ -80,3 +80,26 @@ tres piezas.
   (`0140`): la migración añade la columna una vez en `ir_actions` y la clave
   foránea `DEFERRABLE INITIALLY DEFERRED` y el índice por cada una de las
   seis tablas hijas.
+
+## Defecto medido después del asentamiento
+
+La primera `0147` retiraba `binding_model_name` sólo de `ir_actions`, con el
+argumento de que `DROP COLUMN` sobre el padre se propaga a las hijas. Medido
+al construir una base nueva (`pytest --create-db`, unidad 5b): es falso para
+estas cinco tablas. `ir_act_window`, `ir_act_report_xml`, `ir_act_url`,
+`ir_act_server` e `ir_act_client` ya tenían la columna cuando `0140` las hizo
+heredar (`ALTER TABLE … INHERIT ir_actions`), así que la suya es **local**, y
+PostgreSQL no retira de una hija la columna local que se retira del padre.
+Quedaba `NOT NULL` y sin campo en el modelo: la siembra del cron de
+`helpdesk` fallaba con `null value in column "binding_model_name" of relation
+"ir_act_server"`.
+
+`information_schema.columns` lo confirma en las dos formas de base: en
+`orm_x2hokp_qa` (nueva) las cinco columnas siguen `NOT NULL`; en las bases
+reutilizadas de los trabajadores (`_gw0`…) siguen presentes pero anulables,
+que es por qué ni el subconjunto ni F2 (`--reuse-db`) lo vieron.
+
+Corrección: `0147` retira la columna de las seis tablas (`DROP COLUMN IF
+EXISTS`), y `0151` la retira en las bases que aplicaron la versión anterior.
+La rama no está integrada, así que reescribir `0147` no afecta a una base
+ajena; `0151` cubre las de esta máquina.
