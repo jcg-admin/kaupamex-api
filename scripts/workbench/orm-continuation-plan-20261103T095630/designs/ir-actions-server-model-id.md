@@ -75,3 +75,38 @@ Ninguno compara contra una etiqueta de Django escrita a mano. Con el
 `related`, el valor es siempre la clave de `ir.model`, que es la forma con la
 que ya se comparan `:1938` y `:2331`: el cambio los vuelve coherentes en vez
 de romperlos.
+
+## Ampliación: `base_automation_id`, medido al implementar
+
+`_warning_depends` de `base_automation` acumula `'base_automation_id'`
+(`odoo19c: addons/base_automation/models/ir_actions_server.py:20-25`). Con
+`@api.depends` cableado, `resolve_depends` rehúsa el nombre: aquí el campo no
+existía, lo sustituía la tabla-liga `BaseAutomationAction` (`OneToOneField`
+sobre la acción), con el argumento de que Django no admite un campo nuevo
+sobre el modelo de otro addon. `extend_model(campos=…)` ya lo hace (`hr`,
+`account`, `base_vat`), así que la divergencia no se sostiene y se porta en
+esta unidad:
+
+- `base_automation_id = Many2one('base.automation', index='btree_not_null',
+  ondelete='cascade')` (`:17`) por `extend_model`, con `db_index=False` para
+  que el único índice sea el parcial, como en la fuente;
+- los tres lectores (`_automation_of`, `action_open_automation`,
+  `_get_children_domain`) leen la columna;
+  `BaseAutomation.action_server_ids`, `copy` y
+  `_compute_action_server_ids` (`odoo19c: base_automation.py:312-320`, que
+  desvincula con `(3, id)`) también;
+- migración `base/0150` (columna, índice parcial, copia de la liga) y
+  `base_automation/0010` (retiro de la liga), en ese orden: el detector las
+  generaba al revés, retirando la liga antes de copiarla.
+
+Y dos hallazgos del paso de datos de `0149`:
+
+- las claves foráneas son `DEFERRABLE INITIALLY DEFERRED`; los disparadores
+  del paso de datos quedan pendientes y PostgreSQL rehúsa el `ALTER TABLE`
+  siguiente (`cannot ALTER TABLE "ir_model" because it has pending trigger
+  events`). `SET CONSTRAINTS ALL IMMEDIATE` entre los dos pasos lo resuelve;
+- el sembrador de crons es compartido por migraciones de dos estados: antes
+  de `0149` la acción tiene `model_name` y desde ahí `model_id`, y una
+  migración de addon que corre después recibe el segundo.
+  `data/cron.py::_model_key` elige la forma por los campos del modelo que
+  recibe.
