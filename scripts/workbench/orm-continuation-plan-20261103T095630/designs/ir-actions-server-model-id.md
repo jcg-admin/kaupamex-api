@@ -110,3 +110,16 @@ Y dos hallazgos del paso de datos de `0149`:
   migración de addon que corre después recibe el segundo.
   `data/cron.py::_model_key` elige la forma por los campos del modelo que
   recibe.
+
+### Hallazgo: el x2many de un registro de `new()` sobre `IrActionsServer`
+
+La guarda `if self.model_id` de `_get_warning_messages`
+(`odoo19c: odoo/addons/base/models/ir_actions.py:765`) sólo es alcanzable,
+con `model_id` requerido, sobre un registro de `new()` (el formulario). Medido
+al probarla: `env['ir.actions.server'].new({..., 'child_ids': [(6, 0, ids)]})`
+levanta `AttributeError: 'One2many' object has no attribute
+'convert_to_cache'`. Es un hueco del ORM en la conversión de comandos de un
+`One2many` declarado con `fields.One2many` sobre un registro nuevo, fuera de
+esta unidad; la prueba de la guarda no se puede escribir de forma que pueda
+fallar hasta cerrarlo, así que no se escribe. Sucesor: unidad propia, a
+registrar al asentar esta.
