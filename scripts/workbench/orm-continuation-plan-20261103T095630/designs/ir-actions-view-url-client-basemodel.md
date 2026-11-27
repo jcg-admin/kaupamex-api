@@ -61,3 +61,30 @@ puede ser `BaseModel` antes que su padre: pasa al paso 4, con
   fuente.
 
 Prueba: `tests/unit/base/test_ir_actions_view_url_client_basemodel.py`.
+
+## Medido
+
+| Símbolo | Archivo | Fuente |
+|---|---|---|
+| `IrActionsActWindowView` sobre `models.BaseModel`, campos `view_id` y `act_window_id` en forma C | `src/addons/base/models/ir_actions.py` | `odoo19c: odoo/addons/base/models/ir_actions.py:411-425` |
+| `IrActionsActWindow.views` sobre el recordset de `view_ids` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:282-296` |
+| `IrActionsActUrl` sobre `models.BaseModel` y `IrActionsActUrl._get_readable_fields` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:445-461` |
+| `IrActionsClient` sobre `models.BaseModel`; campos `context`, `params` y `params_store`; `IrActionsClient._compute_params`, `IrActionsClient._inverse_params`, `IrActionsClient._get_readable_fields` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:1426-1463` |
+| filas `ir_actions_act_window_view_group_system`, `ir_actions_act_url_group_system` e `ir_actions_client all` de `_ACCESS` | `src/addons/base/security/ir_model_access.py` | `odoo19c: odoo/addons/base/security/ir.model.access.csv:105-110` |
+| migración `0143_ir_actions_view_url_client` con `clear_dangling_view_ids`, `context_as_python_literal` y `params_as_python_literal` | `src/addons/base/migrations/0143_ir_actions_view_url_client.py` | ídem |
+
+Prueba: `tests/unit/base/test_ir_actions_view_url_client_basemodel.py`, 11
+casos. RED antes del cambio: 11 fallidos.
+
+- El control de `views` pasaba también antes: con `view_id` entero, la
+  vista declarada salía con su pk igual. No discriminaba el cambio a
+  Many2one; se le añadió la aserción sobre el tipo del campo.
+- `create` con `params` no guardaba nada: el paso de inversos de
+  `BaseModel.create` llama a `_inverse_params`
+  (`src/orm/models.py:1082-1105`), pero asignar el campo de Django en el
+  registro no lo persiste. La asignación de la fuente es una escritura en
+  su ORM; el inverso escribe con `write`, como `ir_attachment._inverse_raw`
+  escribe con `save`.
+- `params_store` pasa de `jsonb` a `bytea` con `convert_to(…::text,
+  'UTF8')` y después se reescribe con `repr`; `view_id` se vacía donde no
+  apunta a una vista antes de añadir la clave foránea.
