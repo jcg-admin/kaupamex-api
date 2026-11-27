@@ -123,3 +123,37 @@ levanta `AttributeError: 'One2many' object has no attribute
 esta unidad; la prueba de la guarda no se puede escribir de forma que pueda
 fallar hasta cerrarlo, así que no se escribe. Sucesor: unidad propia, a
 registrar al asentar esta.
+
+## Medido
+
+| Símbolo | Archivo | Fuente |
+|---|---|---|
+| `IrActionsServer.model_id` (forma C, requerido, `ondelete='cascade'`) e `IrActionsServer.model_name` como `related` sin columna | `src/addons/base/models/ir_actions.py` | `odoo19c: odoo/addons/base/models/ir_actions.py:635-638` |
+| `IrActionsServer._compute_warning` con `@api.depends(lambda self: self._warning_depends())` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:803-809` |
+| `IrActionsServer._get_warning_messages`, rama del modelo sobre `model_id` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:765-768` |
+| `IrActionsServer.create`: el hijo toma `model_id` del padre | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:711-728` |
+| `IrModel.delete`: los crons del modelo por `model_id` | `src/addons/base/models/ir_model.py` | `odoo19c: odoo/addons/base/models/ir_model.py:346` (cascada de `model_id`) |
+| `_find_seeded_action` y `_model_key` | `src/addons/base/data/cron.py` | `odoo19c: odoo/addons/base/models/ir_actions.py:635` |
+| `add_base_automation_id` (`base_automation_id` por `extend_model`), `_automation_of`, `_action_open_automation`, `_get_warning_messages`, `_get_children_domain` | `addons/base_automation/models/ir_actions_server.py` | `odoo19c: addons/base_automation/models/ir_actions_server.py:17-43,61-68` |
+| `BaseAutomation.action_server_ids`, `BaseAutomation._compute_action_server_ids`, `BaseAutomation.copy`; se retira `BaseAutomationAction` | `addons/base_automation/models/base_automation.py` | `odoo19c: addons/base_automation/models/base_automation.py:136-142,312-320` |
+| `_skip` sin la tabla-liga | `addons/base_automation/models/signals.py` | — |
+| migraciones `0149`, `0150`, `0151` y `base_automation/0010`; `0147` retira `binding_model_name` de las seis tablas | `src/addons/base/migrations/`, `addons/base_automation/migrations/` | ídem |
+
+Prueba: `tests/unit/base/test_ir_actions_server_model_id.py`, 4 casos (RED: 4
+de 4). Los escritores de las pruebas pasan a `model_id`; los ayudantes que
+creaban acciones sin modelo reciben `res.partner`, porque la fuente lo exige.
+
+Anulación (copias restauradas y comparadas con `cmp`): sin el `@api.depends`
+de `_compute_warning`, sin la copia de `model_id` en `create` y con
+`_automation_of` devolviendo `None` caen exactamente seis casos: los dos de
+`model_id` que dependen de ellos, el del hijo en
+`test_ir_actions_server_basemodel.py` y los tres de `base_automation` que
+leen la regla ligada (aviso de modelo, `available_model_ids`, ayudante).
+
+Subconjunto derivado (99 archivos): `1768 passed, 42 skipped, 2 xfailed`;
+los 15 errores son `test_multidb_isolation`, que va aparte.
+
+Base nueva: las 627 migraciones aplican sobre una base vacía, con
+`binding_model_name` fuera de `ir_act_server`. El `migrate` completo tarda
+más de 45 min aquí (medido con `-v 1` sobre `orm_x2hokp_fresh5b`: seguía
+aplicando `resource.0004` al vencer el plazo); no se colgó.
