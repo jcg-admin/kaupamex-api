@@ -696,7 +696,8 @@
   "ir-embedded-actions-basemodel-0397",
   "ir-actions-actions-basemodel-0397",
   "res-users-home-action-0397",
-  "ir-actions-bindings-0397"
+  "ir-actions-bindings-0397",
+  "ir-actions-constraints-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
