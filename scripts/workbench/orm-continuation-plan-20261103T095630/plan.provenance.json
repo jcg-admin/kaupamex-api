@@ -2156,6 +2156,13 @@
         "ir-actions-actions-basemodel-0397"
       ],
       "writtenAt": "2026-11-27T09:49:39Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "res-users-home-action-0397"
+      ],
+      "writtenAt": "2026-11-27T11:43:20Z"
     }
   ]
 }
