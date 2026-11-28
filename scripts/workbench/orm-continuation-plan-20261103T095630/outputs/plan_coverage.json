@@ -700,7 +700,8 @@
   "ir-actions-constraints-0397",
   "ir-actions-server-parent-id-0397",
   "ir-actions-server-model-id-0391",
-  "ir-actions-server-constraints-name-0391"
+  "ir-actions-server-constraints-name-0391",
+  "new-record-one2many-commands-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
