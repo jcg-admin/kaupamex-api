@@ -6,7 +6,7 @@ aquí porque esta VM no escribe en el store de Thyrox.
 
 | # | Gate en vuelo | Boot antes → después | Arranque del contenedor | Monitor emitiendo |
 |---|---|---|---|---|
-| 1 | F2 de `68a38841` | `16588863` | 07:39:18Z | sí, cada 300 s |
+| 1 | F2 de `68a38841` | sin registrar → `16588863` | 07:39:18Z | sí, cada 300 s |
 | 2 | F2 de `b7e25879` | `16588863` → `65738af1` | 11:51:06Z | sí, cada 240 s; ningún evento antes del reclamo (el primero tocaba a los 4 min) |
 | 3 | F2 de `d1d14c71` | `65738af1` → `599aa1e6` | 14:08:56Z | sí: 5 eventos en ~20 min (13:51Z → 14:07Z), el último 2 min antes |
 
