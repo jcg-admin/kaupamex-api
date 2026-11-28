@@ -2226,6 +2226,13 @@
         "ir-module-group-a-0397"
       ],
       "writtenAt": "2026-11-28T08:36:01Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "ir-module-group-b-0397"
+      ],
+      "writtenAt": "2026-11-28T10:13:00Z"
     }
   ]
 }
