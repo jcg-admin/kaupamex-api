@@ -56,7 +56,7 @@ def test_a_wizard_step_can_point_at_a_window_action():
     window = IrActionsActWindow.objects.create(
         name='inherit-todo-window', type='ir.actions.act_window',
         res_model='base.ResPartner')
-    step = IrActionsTodo.objects.create(action_id=window.pk)
+    step = IrActionsTodo.objects.create(action_id_id=window.pk)
     assert IrActionsTodo.objects.filter(pk=step.pk).exists()
 
 

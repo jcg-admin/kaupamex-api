@@ -107,6 +107,14 @@ class Binary(models.BinaryField):
             path = 'django.db.models.BinaryField'
         return name, path, args, kwargs
 
+    @property
+    def column_type(self):
+        """≙ ``Binary.column_type`` (``odoo19c: odoo/orm/fields_binary.py:
+        40-42``): sin columna cuando el valor vive en ``ir.attachment``; con
+        ``bytea`` cuando vive en la tabla. Sin él, ``Field.read`` no sabía
+        leer un ``Binary`` con columna y levantaba ``NotImplementedError``."""
+        return None if self.attachment else ('bytea', 'bytea')
+
 
 class Image(models.ImageField):
     """≙ ``class Image(Binary)`` (``odoo19c: :243``).

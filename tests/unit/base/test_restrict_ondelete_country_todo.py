@@ -42,7 +42,7 @@ def test_deleting_a_country_with_a_city_is_refused():
 def test_deleting_an_action_with_a_wizard_step_is_refused():
     action = IrActionsActions.objects.create(
         name='probe', type='ir.actions.actions')
-    wizard_step = IrActionsTodo.objects.create(action=action)
+    wizard_step = IrActionsTodo.objects.create(action_id=action)
     _refuses_and_keeps(action, wizard_step)
 
 

@@ -26,8 +26,8 @@ def _action(name):
 
 def test_only_the_lowest_sequence_stays_open():
     """``ensure_one_open_todo`` (``:1376-1380``)."""
-    first = _env().create({'action': _action('todo-a').pk, 'sequence': 5})
-    second = _env().create({'action': _action('todo-b').pk, 'sequence': 1})
+    first = _env().create({'action_id': _action('todo-a').pk, 'sequence': 5})
+    second = _env().create({'action_id': _action('todo-b').pk, 'sequence': 1})
     first.invalidate_recordset()
     second.invalidate_recordset()
     assert second.state == 'open'
@@ -36,8 +36,8 @@ def test_only_the_lowest_sequence_stays_open():
 
 def test_reopening_closes_the_other_open_step():
     """``write`` con ``state='open'`` (``:1370-1374``)."""
-    first = _env().create({'action': _action('todo-c').pk, 'sequence': 1})
-    second = _env().create({'action': _action('todo-d').pk, 'sequence': 2})
+    first = _env().create({'action_id': _action('todo-c').pk, 'sequence': 1})
+    second = _env().create({'action_id': _action('todo-d').pk, 'sequence': 2})
     assert second.state == 'done'
     second.write({'sequence': 0})
     second.action_open()
@@ -55,5 +55,5 @@ def test_an_internal_user_cannot_create_steps():
     action = _action('todo-acl')
     with user_scope(user.pk), pytest.raises(AccessError):
         Environment(uid=user.pk)['ir.actions.todo'].create(
-            {'action': action.pk})
-    assert not IrActionsTodo.objects.filter(action=action).exists()
+            {'action_id': action.pk})
+    assert not IrActionsTodo.objects.filter(action_id=action).exists()

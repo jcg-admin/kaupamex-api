@@ -35,7 +35,7 @@ CORRECTED = {
     'stock.StockQuant.lot',
     # designs/country-and-todo-restrict-ondelete.md
     'base.ResCountryState.country', 'base_address_extended.ResCity.country_id',
-    'base.IrActionsTodo.action',
+    'base.IrActionsTodo.action_id',
     # designs/product-lot-bom-restrict-ondelete.md
     'stock.StockLot.product', 'mrp.MrpBom.product_tmpl_id',
     # designs/hr-workorder-restrict-ondelete.md
@@ -214,12 +214,12 @@ def test_a_raw_delete_of_an_action_leaves_the_step_in_place():
     """``ir_actions`` no admite clave foránea: la heredan cinco tablas y
     una FK hacia ella no vería sus filas, así que la fuente no la crea
     (``odoo19c: odoo/orm/fields_relational.py:313-314``). La política de
-    borrado de ``IrActionsTodo.action`` vive sólo en el camino ORM —el
+    borrado de ``IrActionsTodo.action_id`` vive sólo en el camino ORM —el
     caso de la matriz—, y un DELETE en SQL del padre no cascada al paso:
     lo deja apuntando a un id que ya no existe, como en la fuente."""
     action = IrActionsActions.objects.create(
         name='probe', type='ir.actions.actions')
-    wizard_step = IrActionsTodo.objects.create(action=action)
+    wizard_step = IrActionsTodo.objects.create(action_id=action)
     table = IrActionsActions._meta.db_table
     with transaction.atomic():
         with connection.cursor() as cr:

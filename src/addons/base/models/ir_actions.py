@@ -3031,24 +3031,15 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
 class IrActionsTodo(models.BaseModel, TimeStampedModel):
     """Paso pendiente de configuración (``ir.actions.todo``).
 
-    ≙ ``odoo19c: odoo/addons/base/models/ir_actions.py:1347-1422``. El campo
-    se llama ``action`` (columna ``action_id``), así que ``_rec_name`` lo
-    nombra por el campo.
-
-    // pendiente: ``action_launch`` (``:1394-1418``). Lee la acción con
-    ``self.env[action.type]``, y ``ir.actions.actions`` y sus subtipos no
-    declaran ``_name`` aquí, así que el entorno no los resuelve
-    (``KeyError: 'ir.actions.actions'``, medido). Además la fuente crea las
-    tablas de los subtipos con ``INHERITS (ir_actions)``
-    (``odoo19c: odoo/addons/base/data/base_data.sql:9-13``) y este puerto
-    les da tablas propias, así que un paso no puede apuntar a una acción de
-    ventana. Se completa con la adopción de ``ir.actions.*`` sobre
-    ``models.BaseModel`` (``designs/basemodel-adoption-ir-actions-todo.md``).
+    ≙ ``odoo19c: odoo/addons/base/models/ir_actions.py:1347-1422``. Los
+    subtipos de ``ir.actions.*`` declaran ``_name`` y sus tablas heredan de
+    ``ir_actions`` (``0140_ir_actions_table_inheritance``), así que un paso
+    apunta a cualquier acción y ``action_launch`` la lee por su tipo.
     """
 
     _name = 'ir.actions.todo'
     _description = 'Configuration Wizards'
-    _rec_name = 'action'
+    _rec_name = 'action_id'
     _order = 'sequence, id'
     _allow_sudo_commands = False
 
@@ -3061,14 +3052,15 @@ class IrActionsTodo(models.BaseModel, TimeStampedModel):
 
     #: Obligatorio sin ``ondelete`` en la fuente (``ir_actions.py:1357``): su
     #: defecto es ``restrict``; borrar una acción con pasos falla.
-    action = fields.Many2one(
+    action_id = fields.Many2one(
         IrActionsActions,
         null=False, on_delete=models.PROTECT,
         db_index=True,
+        db_column='action_id',
         # Sin clave foránea: ``ir_actions`` se hereda (``odoo19c:
         # odoo/orm/fields_relational.py:313-314``).
         db_constraint=False,
-        related_name='todos',
+        related_name='+',
         verbose_name='Acción',
     )
     sequence = fields.Integer(default=10, verbose_name='Secuencia')
@@ -3124,19 +3116,46 @@ class IrActionsTodo(models.BaseModel, TimeStampedModel):
         recupera la acción ``base.action_client_base_menu``. Sin el registro
         sembrado se sigue, como el ``except ValueError: pass`` de la fuente.
 
-        // pendiente: la rama de ``base.open_menu`` no tiene control. Ninguno
-        de los dos registros se siembra aquí, y
-        ``base.action_client_base_menu`` es un ``ir.actions.client``, que no
-        declara ``_name`` (la misma causa que ``action_launch``)."""
+        Los dos registros se siembran en ``base_menus.xml`` (``:37-47``); su
+        carga es otra unidad, y la prueba los siembra con su
+        ``ir.model.data``."""
         if self:
             open_menu_step = self.env.ref(
                 'base.open_menu', raise_if_not_found=False)
             if open_menu_step and open_menu_step in self:
                 base_menu = self.env.ref('base.action_client_base_menu')
-                open_menu_step.write({'action': base_menu.id})
+                open_menu_step.write({'action_id': base_menu.id})
                 self -= open_menu_step
         return super(IrActionsTodo, self).unlink()
 
     def action_open(self):
         """≙ ``action_open`` (``:1420-1422``)."""
         return self.write({'state': self.STATE_OPEN})
+
+    def action_launch(self):
+        """ Launch Action of Wizard — ≙ ``action_launch``
+        (``:1394-1418``)."""
+        self.ensure_one()
+
+        self.write({'state': 'done'})
+
+        # Load action
+        action_type = self.action_id.type
+        action = self.env[action_type].browse(self.action_id.id)
+
+        result = action.read()[0]
+        if action_type != 'ir.actions.act_window':
+            return result
+        result.setdefault('context', '{}')
+
+        # Open a specific record when res_id is provided in the context
+        ctx = safe_eval(result['context'], {'user': self.env.user})
+        if ctx.get('res_id'):
+            result['res_id'] = ctx.pop('res_id')
+
+        # disable log for automatic wizards
+        ctx['disable_log'] = True
+
+        result['context'] = ctx
+
+        return result
