@@ -707,7 +707,8 @@
   "ir-module-group-a-0397",
   "ir-module-group-b-0397",
   "ir-module-dependency-module-id-0397",
-  "ir-module-versions-0397"
+  "ir-module-versions-0397",
+  "ir-module-country-ids-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
