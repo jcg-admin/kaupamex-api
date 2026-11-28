@@ -2233,6 +2233,13 @@
         "ir-module-group-b-0397"
       ],
       "writtenAt": "2026-11-28T10:13:00Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "ir-module-dependency-module-id-0397"
+      ],
+      "writtenAt": "2026-11-28T11:26:36Z"
     }
   ]
 }
