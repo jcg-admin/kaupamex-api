@@ -86,6 +86,7 @@ from django.core.exceptions import FieldDoesNotExist, ValidationError
 from django.db import DatabaseError
 from django.db import DEFAULT_DB_ALIAS, connections, router
 from django.db.models.deletion import Collector
+from django.core.serializers import python as _python_serializer
 
 import api
 
@@ -6681,6 +6682,35 @@ def _x2many_descriptor_set(self, instance, value):
 
 _related_descriptors.ReverseManyToOneDescriptor.__set__ = (
     _x2many_descriptor_set)
+
+
+def _serialize_many2many(self, obj, field):
+    """El serializador de Django lee un ``Many2many`` por su gestor.
+
+    ``python.Serializer.handle_m2m_field`` toma ``getattr(obj, field.name)``
+    como gestor de Django (``select_related(None).only("pk").iterator()``).
+    Entre ``BaseModel`` ese atributo es un recordset
+    (``_x2many_descriptor_get``), así que el ``dumpdata`` y la serialización
+    de la base de pruebas morían. Se lee la relación por el gestor que
+    ``related_manager`` entrega, con las dos ramas del serializador: clave
+    natural o clave primaria.
+    """
+    if not (isinstance(obj, BaseModel)
+            and field.remote_field.through._meta.auto_created):
+        return _DJANGO_SERIALIZE_MANY2MANY(self, obj, field)
+    manager = related_manager(obj, field.name)
+    if self.use_natural_foreign_keys and hasattr(
+            field.remote_field.model, 'natural_key'):
+        values = [row.natural_key() for row in manager.iterator()]
+    else:
+        values = [self._value_from_field(row, row._meta.pk)
+                  for row in manager.select_related(None).only('pk')
+                  .iterator()]
+    self._current[field.name] = values
+
+
+_DJANGO_SERIALIZE_MANY2MANY = _python_serializer.Serializer.handle_m2m_field
+_python_serializer.Serializer.handle_m2m_field = _serialize_many2many
 _DJANGO_FORWARD_GET_OBJECT = (
     _related_descriptors.ForwardManyToOneDescriptor.get_object)
 

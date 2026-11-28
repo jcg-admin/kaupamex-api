@@ -203,19 +203,18 @@ class IrModule(models.BaseModel, TimeStampedModel):
 
     La ruta fuente de categoría también se conserva sin un tope arbitrario.
 
-    Cobertura de campos — 24 de 31, medida
+    Cobertura de campos — 25 de 31, medida
     ======================================
 
     ``odoo19c: odoo/addons/base/models/ir_module.py:158-330`` declara **31**
-    campos; el puerto declara **24** con el mismo nombre (medido por AST sobre
+    campos; el puerto declara **25** con el mismo nombre (medido por AST sobre
     las dos clases). ``version`` y ``category_path`` son forma nuestra:
     conservan metadata del manifiesto. ``latest_version`` guarda la versión
     realmente instalada y ``installed_version`` se calcula desde el manifiesto,
     con los nombres «incorrectos» que la fuente declara a propósito; el valor
     histórico desconocido permanece NULL: no se infiere del catálogo.
 
-    Faltan **7**: ``country_ids`` (``Many2many`` a ``res.country`` por
-    ``module_country``), ``description_html`` (QWeb), ``icon_image`` e
+    Faltan **6**: ``description_html`` (QWeb), ``icon_image`` e
     ``icon_flag`` (Binary servido) y los tres ``*_by_module`` (introspección
     de menús, vistas e informes). Su porte cuelga de TASK-API-0397.
 
@@ -320,6 +319,9 @@ class IrModule(models.BaseModel, TimeStampedModel):
     exclusion_ids = fields.One2many(
         'ir.module.module.exclusion', 'module_id', string='Exclusions',
         readonly=True)
+    country_ids = fields.Many2many(
+        'res.country', 'module_country', 'module_id', 'country_id',
+        blank=True, related_name='+')
     demo = fields.Boolean(
         default=False,
         help_text='Odoo demo: el addon tiene datos de demostración cargados.',

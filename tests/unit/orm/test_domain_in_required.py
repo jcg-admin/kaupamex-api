@@ -583,9 +583,12 @@ class TestTheThirdConsumerAsksTheSameQuestion:
         # ``managed = False`` (``src/orm/registry.py:1742``). 36 desde que
         # ``binding_model_name`` (texto NOT NULL) es ``binding_model_id``,
         # anulable (``designs/ir-actions-bindings.md``): uno de esos nueve
-        # deja de discrepar.
-        assert len(discrepan) == 36, (
-            f'{len(discrepan)} discrepancias en base, se esperaban 36. Es '
+        # deja de discrepar. 37 desde que ``ir.module.module`` declara
+        # ``country_ids`` (``odoo19c: ir_module.py:297``): un Many2many más,
+        # sin columna propia, de la misma familia que ``ir.filters.user_ids``
+        # (``designs/ir-module-country-ids.md``).
+        assert len(discrepan) == 37, (
+            f'{len(discrepan)} discrepancias en base, se esperaban 37. Es '
             'evidencia fechada; si cambia, se re-mide y se actualiza con su '
             'razón — no se relaja la aserción'
         )

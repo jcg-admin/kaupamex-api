@@ -36,6 +36,10 @@ def storage_models(legacy=False):
         item.options['constraints'] = []
         if model is IrDemoFailure and legacy:
             item.fields['error'].max_length = 255
+        if model is IrModule:
+            # ``res.country`` no está en este estado fabricado: el
+            # ``Many2many`` ``country_ids`` (0157) no tiene comodelo aquí.
+            item.fields.pop('country_ids', None)
         # ``res.users`` no está en este estado fabricado: la autoría del
         # log-access viaja como entero, con el mismo nombre de campo.
         for name in ('create_uid', 'write_uid'):

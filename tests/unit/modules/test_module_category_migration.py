@@ -44,6 +44,9 @@ def historical_category_tables():
             item.fields['installed_version'] = item.fields.pop(
                 'latest_version')
             item.fields.pop('published_version', None)
+            #: ``country_ids`` (0157) es posterior a 0090, y ``res.country``
+            #: no está en este estado fabricado.
+            item.fields.pop('country_ids', None)
         # ``res.users`` no está en este estado fabricado: la autoría del
         # log-access viaja como entero, con el mismo nombre de campo.
         for name in ('create_uid', 'write_uid'):
