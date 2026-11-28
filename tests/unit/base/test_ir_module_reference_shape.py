@@ -156,3 +156,9 @@ def test_dependency_and_exclusion_are_basemodel(model):
     fuente todo modelo con ``_name`` es ``BaseModel``."""
     assert issubclass(model, models.BaseModel)
 
+
+def test_module_is_basemodel():
+    """≙ ``class IrModuleModule(models.Model)``
+    (``odoo19c: ir_module.py:157``): el módulo también es ``BaseModel``,
+    como el resto de ``ir.module.*``."""
+    assert issubclass(IrModule, models.BaseModel)

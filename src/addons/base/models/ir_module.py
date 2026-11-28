@@ -130,7 +130,7 @@ class IrModuleCategory(models.BaseModel, TimeStampedModel):
         return self.name
 
 
-class IrModule(TimeStampedModel):
+class IrModule(models.BaseModel, TimeStampedModel):
     """Un addon del árbol, con la metadata que declara su ``__manifest__.py``.
 
     ``name`` es el **nombre técnico** —la carpeta—, igual que en la referencia.
@@ -196,15 +196,15 @@ class IrModule(TimeStampedModel):
     # Estado persistido por base: las transiciones programan el trabajo del
     # loader.
     STATE_UNINSTALLABLE = 'uninstallable'
-    STATE_UNINSTALLED   = 'uninstalled'
-    STATE_INSTALLED     = 'installed'
+    STATE_UNINSTALLED = 'uninstalled'
+    STATE_INSTALLED = 'installed'
     STATE_TO_INSTALL = 'to install'
     STATE_TO_UPGRADE = 'to upgrade'
     STATE_TO_REMOVE = 'to remove'
     STATES = [
         (STATE_UNINSTALLABLE, 'No instalable'),
-        (STATE_UNINSTALLED,   'No instalado'),
-        (STATE_INSTALLED,     'Instalado'),
+        (STATE_UNINSTALLED, 'No instalado'),
+        (STATE_INSTALLED, 'Instalado'),
         (STATE_TO_INSTALL, 'Pendiente de instalación'),
         (STATE_TO_UPGRADE, 'Pendiente de actualización'),
         (STATE_TO_REMOVE, 'Pendiente de desinstalación'),
@@ -230,47 +230,51 @@ class IrModule(TimeStampedModel):
         ('Confidential', 'Propietaria de Kaupamex'),
     ]
 
-    name         = fields.Char(
+    name = fields.Char(
         unique=True, db_index=True,
-        help_text='Nombre técnico = carpeta del addon (Odoo ir.module.module.name).',
+        help_text=('Nombre técnico = carpeta del addon (Odoo '
+                   'ir.module.module.name).'),
     )
-    shortdesc    = fields.Char(
+    shortdesc = fields.Char(
         blank=True, default='',
-        help_text='Nombre legible del manifest (Odoo shortdesc ← manifest name).',
+        help_text=('Nombre legible del manifest (Odoo shortdesc ← manifest '
+                   'name).'),
     )
-    summary      = fields.Char(blank=True, default='')
-    description  = fields.Text(
+    summary = fields.Char(blank=True, default='')
+    description = fields.Text(
         blank=True, default='',
         help_text='Descripción larga del manifest (Odoo description).',
     )
-    author       = fields.Char(
+    author = fields.Char(
         blank=True, default='',
         help_text='Odoo author. NO cae a "Unknown": modules.module ya rellena '
                   'el autor del proyecto cuando el manifest calla, así que '
                   'ese literal guardaría un dato falso para un addon propio.',
     )
-    maintainer   = fields.Char(blank=True, default='')
+    maintainer = fields.Char(blank=True, default='')
     contributors = fields.Text(
         blank=True, default='',
         help_text='Odoo contributors. La fuente la declara Text porque la '
                   'lista se aplana a una cadena separada por comas.',
     )
-    website      = fields.Char(blank=True, default='')
-    url          = fields.Char(
+    website = fields.Char(blank=True, default='')
+    url = fields.Char(
         blank=True, default='',
         help_text='Odoo url, con respaldo a live_test_url del manifest.',
     )
-    icon         = fields.Char(
+    icon = fields.Char(
         blank=True, default='',
         help_text='Odoo icon: la RUTA del icono, no el binario. El binario es '
-                  'icon_image, computado, y ése no se porta (ver el docstring).',
+                  'icon_image, computado, y ése no se porta (ver el '
+                  'docstring).',
     )
-    to_buy       = fields.Boolean(
+    to_buy = fields.Boolean(
         default=False,
         help_text='Odoo to_buy. Siempre False aquí: marca un módulo del '
-                  'catálogo comercial de la fuente, que este árbol no consulta.',
+                  'catálogo comercial de la fuente, que este árbol no '
+                  'consulta.',
     )
-    demo         = fields.Boolean(
+    demo = fields.Boolean(
         default=False,
         help_text='Odoo demo: el addon tiene datos de demostración cargados.',
     )
@@ -281,35 +285,40 @@ class IrModule(TimeStampedModel):
     )
     category_path = fields.Char(
         blank=True, default='Uncategorized', editable=False,
-        help_text='Ruta original del manifiesto; preserva historia y contrato HTTP.',
+        help_text=('Ruta original del manifiesto; preserva historia y '
+                   'contrato HTTP.'),
     )
-    version      = fields.Char(blank=True, default='1.0')
+    version = fields.Char(blank=True, default='1.0')
     installed_version = fields.Char(
         blank=True, null=True, default=None, editable=False,
-        help_text='Versión realmente instalada; NULL si no existe evidencia de instalación.',
+        help_text=('Versión realmente instalada; NULL si no existe evidencia '
+                   'de instalación.'),
     )
     # Lo nombra ``_order``; sin él el atributo describiría un orden que este
     # modelo no puede cumplir. ``odoo19c: …/ir_module.py:294`` — default 100.
-    sequence     = fields.Integer(default=100)
-    license      = fields.Selection(
+    sequence = fields.Integer(default=100)
+    license = fields.Selection(
         max_length=32, choices=LICENSES, default='LGPL-3',
-        help_text='Licencia declarada por el manifest. NO se re-etiqueta (DEC-KX-03).',
+        help_text=('Licencia declarada por el manifest. NO se re-etiqueta '
+                   '(DEC-KX-03).'),
     )
-    application  = fields.Boolean(
+    application = fields.Boolean(
         default=False,
-        help_text='Addon vendible como aplicación, no técnico (Odoo application).',
+        help_text=('Addon vendible como aplicación, no técnico (Odoo '
+                   'application).'),
     )
     auto_install = fields.Boolean(default=False)
-    state        = fields.Selection(
-        max_length=16, choices=STATES, default=STATE_UNINSTALLED, db_index=True,
+    state = fields.Selection(
+        max_length=16, choices=STATES, default=STATE_UNINSTALLED,
+        db_index=True,
         help_text='Estado de instalación persistido en la base del módulo.',
     )
 
     class Meta:
-        db_table     = 'ir_module_module'
+        db_table = 'ir_module_module'
         # Derivado de _order. ``application desc`` es ``-application``: las
         # aplicaciones vendibles primero, luego la secuencia, luego el nombre.
-        ordering     = ['-application', 'sequence', 'name']
+        ordering = ['-application', 'sequence', 'name']
         verbose_name = 'Módulo técnico'
 
     def __str__(self):
@@ -323,7 +332,8 @@ class IrModule(TimeStampedModel):
         return getattr(self, self._rec_name, '') or self.name
 
     def button_install(self):
-        """Programa instalación y dependencias; no declara ejecutado el loader."""
+        """Programa instalación y dependencias; no declara ejecutado el
+        loader."""
         return self._request_module_change('install')
 
     def button_upgrade(self):
@@ -331,38 +341,47 @@ class IrModule(TimeStampedModel):
         return self._request_module_change('upgrade')
 
     def button_uninstall(self):
-        """Programa retirada de dependientes sin borrar datos ni esquema aún."""
+        """Programa retirada de dependientes sin borrar datos ni esquema
+        aún."""
         return self._request_module_change('uninstall')
 
     def _request_module_change(self, operation):
         if not is_system():
-            raise PermissionDenied('Module changes require system administration')
+            raise PermissionDenied(
+                'Module changes require system administration')
         if self.pk is None:
             raise ValidationError('A persisted module is required')
-        using = self._state.db or router.db_for_write(type(self), instance=self)
+        using = self._state.db or router.db_for_write(
+            type(self), instance=self)
         with transaction.atomic(using=using):
             # Orden estable y mismo cerrojo para operaciones incompatibles.
             rows = {row.name: row for row in type(self).objects.using(using)
                     .select_for_update().order_by('pk')}
             current = rows.get(self.name)
             if current is None or current.pk != self.pk:
-                raise ValidationError('Module does not exist in the selected database')
+                raise ValidationError(
+                    'Module does not exist in the selected database')
             active_states = {self.STATE_INSTALLED, self.STATE_TO_UPGRADE}
             requested = {self.name}
             if operation != 'install':
                 if current.state not in active_states:
-                    raise ValidationError(f'Module {self.name} is not installed')
+                    raise ValidationError(
+                        f'Module {self.name} is not installed')
                 if operation == 'uninstall' and self.name == 'base':
-                    raise ValidationError('The base module cannot be uninstalled')
+                    raise ValidationError(
+                        'The base module cannot be uninstalled')
                 requested.update(self.downstream_dependencies(
-                    exclude_states=(self.STATE_UNINSTALLED, self.STATE_UNINSTALLABLE,
-                                    self.STATE_TO_INSTALL, self.STATE_TO_REMOVE)
+                    exclude_states=(self.STATE_UNINSTALLED,
+                                    self.STATE_UNINSTALLABLE,
+                                    self.STATE_TO_INSTALL,
+                                    self.STATE_TO_REMOVE)
                 ).values_list('name', flat=True))
                 if operation == 'uninstall':
                     if 'base' in requested:
-                        raise ValidationError('The base module cannot be uninstalled')
-                    type(self).objects.using(using).filter(name__in=requested).update(
-                        state=self.STATE_TO_REMOVE)
+                        raise ValidationError(
+                            'The base module cannot be uninstalled')
+                    type(self).objects.using(using).filter(
+                        name__in=requested).update(state=self.STATE_TO_REMOVE)
                     self.state = self.STATE_TO_REMOVE
                     return sorted(requested)
 
@@ -376,15 +395,20 @@ class IrModule(TimeStampedModel):
                       active_states | {self.STATE_TO_INSTALL}}
             while True:
                 graph.extend(tuple(requested))
-                ordered = list(graph)  # Rechaza ciclos antes de escribir estados.
+                # Rechaza ciclos antes de escribir estados.
+                ordered = list(graph)
                 for node in ordered:
                     row = rows.get(node.name)
                     if row is None or not node.manifest:
-                        raise ValidationError(f'Missing module dependency: {node.name}')
+                        raise ValidationError(
+                            f'Missing module dependency: {node.name}')
                     if not node.manifest.get('installable', True):
-                        raise ValidationError(f'Module is not installable: {node.name}')
-                    if row.state in {self.STATE_UNINSTALLABLE, self.STATE_TO_REMOVE}:
-                        raise ValidationError(f'Invalid module state: {node.name}: {row.state}')
+                        raise ValidationError(
+                            f'Module is not installable: {node.name}')
+                    if row.state in {self.STATE_UNINSTALLABLE,
+                                     self.STATE_TO_REMOVE}:
+                        raise ValidationError(
+                            f'Invalid module state: {node.name}: {row.state}')
                     self._check_module_dependencies(node.manifest)
                 active.update(node.name for node in ordered)
                 automatic = set(available.auto_installable(active)) - requested
@@ -395,12 +419,15 @@ class IrModule(TimeStampedModel):
             exclusions = IrModuleExclusion.objects.using(using).filter(
                 module__name__in=active, name__in=active)
             if exclusions.exists():
-                raise ValidationError('Incompatible modules in the selected database')
+                raise ValidationError(
+                    'Incompatible modules in the selected database')
             if operation == 'upgrade':
-                type(self).objects.using(using).filter(name__in=requested,
-                    state__in=active_states).update(state=self.STATE_TO_UPGRADE)
-            type(self).objects.using(using).filter(name__in=selected,
-                state=self.STATE_UNINSTALLED).update(state=self.STATE_TO_INSTALL)
+                type(self).objects.using(using).filter(
+                    name__in=requested, state__in=active_states,
+                ).update(state=self.STATE_TO_UPGRADE)
+            type(self).objects.using(using).filter(
+                name__in=selected, state=self.STATE_UNINSTALLED,
+            ).update(state=self.STATE_TO_INSTALL)
             self.state = type(self).objects.using(using).get(pk=self.pk).state
             return [node.name for node in ordered]
 
@@ -411,7 +438,8 @@ class IrModule(TimeStampedModel):
             check_python_external_dependency(dependency)
         for dependency in external.get('bin', ()):
             if shutil.which(dependency) is None:
-                raise ValidationError(f'Missing executable dependency: {dependency}')
+                raise ValidationError(
+                    f'Missing executable dependency: {dependency}')
 
     @classmethod
     def get_module_info(cls, name):
@@ -422,7 +450,8 @@ class IrModule(TimeStampedModel):
         tres.
 
         **Divergencia de mecanismo:** allá el resolutor es
-        ``modules.Manifest.for_addon``; aquí es ``modules.module.load_manifest``,
+        ``modules.Manifest.for_addon``; aquí es
+        ``modules.module.load_manifest``,
         que es la pieza equivalente de este árbol y ya evalúa el archivo con
         ``ast.literal_eval`` en vez de importarlo. El contrato —dict, o ``{}``
         si el addon no existe o no declara manifest— es el mismo.
@@ -459,7 +488,8 @@ class IrModule(TimeStampedModel):
         Aquí basta ``values_list``: la razón de aquel SQL es el ``flush_model``
         previo, que es un mecanismo de su ORM y no del nuestro.
         """
-        return cls.objects.filter(name=name).values_list('pk', flat=True).first()
+        return cls.objects.filter(name=name).values_list(
+            'pk', flat=True).first()
 
     @classmethod
     def _get(cls, name):
@@ -507,7 +537,8 @@ class IrModule(TimeStampedModel):
 
         La fuente los escribe como dos métodos recursivos con dos consultas SQL
         casi idénticas —difieren en qué columna cruza con cuál—. Aquí el
-        recorrido es uno y el sentido es un parámetro: la duplicación de allá no
+        recorrido es uno y el sentido es un parámetro: la duplicación de allá
+        no
         expresa nada que aquí no exprese el booleano, y dos copias divergen.
 
         Se recorre por oleadas y con marca de visitado, no por recursión: el
