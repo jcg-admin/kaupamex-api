@@ -2212,6 +2212,13 @@
         "ir-actions-todo-action-id-launch-0397"
       ],
       "writtenAt": "2026-11-28T05:06:47Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "basemodel-adoption-ir-module-0397"
+      ],
+      "writtenAt": "2026-11-28T06:27:22Z"
     }
   ]
 }
