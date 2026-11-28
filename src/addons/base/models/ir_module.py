@@ -19,12 +19,13 @@ from django.db import router, transaction
 
 from addons.base.models.ir_http import get_current_request
 from addons.base.models.timestamped_mixin import TimeStampedModel
-from exceptions import AccessDenied
+from exceptions import AccessDenied, UserError
 from modules.module import (adapt_version,
                             check_python_external_dependency, load_manifest)
 from modules.module_graph import ModuleGraph
 from orm.environments import is_system
 from tools.cache import ormcache
+from tools.sql import SQL
 
 T = typing.TypeVar('T')
 _logger = logging.getLogger(__name__)
@@ -315,6 +316,7 @@ class IrModule(models.BaseModel, TimeStampedModel):
                   'catálogo comercial de la fuente, que este árbol no '
                   'consulta.',
     )
+    has_iap = fields.Boolean(compute='_compute_has_iap')
     demo = fields.Boolean(
         default=False,
         help_text='Odoo demo: el addon tiene datos de demostración cargados.',
@@ -416,7 +418,7 @@ class IrModule(models.BaseModel, TimeStampedModel):
                                     self.STATE_UNINSTALLABLE,
                                     self.STATE_TO_INSTALL,
                                     self.STATE_TO_REMOVE)
-                ).values_list('name', flat=True))
+                ).mapped('name'))
                 if operation == 'uninstall':
                     if 'base' in requested:
                         raise ValidationError(
@@ -547,6 +549,28 @@ class IrModule(models.BaseModel, TimeStampedModel):
             return None
         return cls.objects.filter(name=name).first()
 
+    def _compute_has_iap(self):
+        """≙ ``_compute_has_iap`` (``odoo19c: ir_module.py:333-335``)."""
+        for module in self:
+            module.has_iap = bool(module.id) and 'iap' in (
+                module.upstream_dependencies(exclude_states=('',))
+                .mapped('name'))
+
+    @api.ondelete(at_uninstall=False)
+    def _unlink_except_installed(self):
+        """≙ ``_unlink_except_installed`` (``ir_module.py:337-341``)."""
+        for module in self:
+            if module.state in ('installed', 'to upgrade', 'to remove',
+                                'to install'):
+                raise UserError(self.env._(
+                    'You are trying to remove a module that is installed or '
+                    'will be installed.'))
+
+    def unlink(self):
+        """≙ ``unlink`` (``odoo19c: ir_module.py:343-345``)."""
+        self.env.registry.clear_cache('stable')
+        return super().unlink()
+
     def _get_modules_to_load_domain(self):
         """≙ ``_get_modules_to_load_domain`` (``ir_module.py:347-349``)."""
         return [('state', '=', 'installed')]
@@ -595,74 +619,77 @@ class IrModule(models.BaseModel, TimeStampedModel):
             for module in self.sudo().search([('state', '=', 'installed')])
         }
 
-    def downstream_dependencies(self,
-                                exclude_states=(STATE_UNINSTALLED,
-                                                STATE_UNINSTALLABLE,
-                                                STATE_TO_REMOVE)):
-        """≙ ``downstream_dependencies`` (``odoo19c: ir_module.py:531-555``).
+    def downstream_dependencies(self, known_deps=None,
+                                exclude_states=('uninstalled', 'uninstallable',
+                                                'to remove')):
+        """≙ ``downstream_dependencies`` (``odoo19c: ir_module.py:532-555``).
 
-        Reutiliza el recorrido por oleadas del catálogo de la misma base.
-        Excluye módulos retirados o ya programados para retirada; conserva
-        la distinción entre programar una operación y ejecutarla.
+        Return the modules that directly or indirectly depend on the modules
+        in `self`, and that satisfy the `exclude_states` filter.
+
+        Los ``IN %s`` con tupla de la fuente son aquí ``= ANY(%s)`` y
+        ``<> ALL(%s)`` con lista: psycopg 3 no adapta una tupla (ver la
+        cabecera de ``_field_condition_to_sql`` en ``orm/fields.py``).
         """
-        return self._walk_dependencies(forward=False,
-                                       exclude_states=exclude_states)
+        if not self:
+            return self
+        self.flush_model(['name', 'state'])
+        self.env['ir.module.module.dependency'].flush_model(
+            ['module_id', 'name'])
+        known_deps = known_deps or self.browse()
+        query = SQL(
+            """ SELECT DISTINCT m.id
+                FROM ir_module_module_dependency d
+                JOIN ir_module_module m ON (d.module_id=m.id)
+                WHERE
+                    d.name = ANY(SELECT name from ir_module_module
+                                 where id = ANY(%s)) AND
+                    m.state <> ALL(%s) AND
+                    m.id <> ALL(%s) """,
+            list(self.ids), list(exclude_states),
+            list(known_deps.ids or self.ids))
+        new_deps = self.browse(
+            [row[0] for row in self.env.execute_query(query)])
+        missing_mods = new_deps - known_deps
+        known_deps |= new_deps
+        if missing_mods:
+            known_deps |= missing_mods.downstream_dependencies(
+                known_deps, exclude_states)
+        return known_deps
 
-    def upstream_dependencies(self,
-                              exclude_states=(STATE_INSTALLED,
-                                              STATE_UNINSTALLABLE)):
-        """≙ ``upstream_dependencies`` (``odoo19c: ir_module.py:556-580``).
+    def upstream_dependencies(self, known_deps=None,
+                              exclude_states=('installed', 'uninstallable',
+                                              'to remove')):
+        """≙ ``upstream_dependencies`` (``odoo19c: ir_module.py:557-580``).
 
-        De quién dependo, directa o indirectamente. La fuente la usa antes de
-        instalar; el default de estados a excluir es el simétrico del anterior
-        —lo ya instalado no hace falta traerlo—, y por eso los dos defaults
-        difieren en un solo valor.
+        Return the dependency tree of modules of the modules in `self`, and
+        that satisfy the `exclude_states` filter.
         """
-        return self._walk_dependencies(forward=True,
-                                       exclude_states=exclude_states)
-
-    def _walk_dependencies(self, forward, exclude_states):
-        """El recorrido que comparten los dos sentidos.
-
-        La fuente los escribe como dos métodos recursivos con dos consultas SQL
-        casi idénticas —difieren en qué columna cruza con cuál—. Aquí el
-        recorrido es uno y el sentido es un parámetro: la duplicación de allá
-        no
-        expresa nada que aquí no exprese el booleano, y dos copias divergen.
-
-        Se recorre por oleadas y con marca de visitado, no por recursión: el
-        grafo admite ciclos —dos addons pueden declararse mutuamente— y una
-        recursión ingenua no terminaría. Es la misma razón que en
-        ``IrModuleDependency.all_dependencies``.
-        """
-        using = self._state.db or router.db_for_read(type(self), instance=self)
-        modules = type(self).objects.using(using)
-        dependencies = IrModuleDependency.objects.using(using)
-        seen = set()
-        frontier = {self.name} if forward else {self.pk}
-
-        while frontier:
-            if forward:
-                names = list(dependencies.filter(
-                    module__name__in=frontier).values_list('name', flat=True))
-                found = modules.filter(name__in=names)
-            else:
-                names = list(modules.filter(
-                    pk__in=frontier).values_list('name', flat=True))
-                found = modules.filter(
-                    dependencies__name__in=names)
-
-            found = found.exclude(state__in=exclude_states).exclude(
-                pk__in=seen | {self.pk})
-            fresh = {module.pk for module in found}
-            if not fresh:
-                break
-            seen |= fresh
-            frontier = ({module.name for module in
-                         modules.filter(pk__in=fresh)}
-                        if forward else fresh)
-
-        return modules.filter(pk__in=seen)
+        if not self:
+            return self
+        self.flush_model(['name', 'state'])
+        self.env['ir.module.module.dependency'].flush_model(
+            ['module_id', 'name'])
+        known_deps = known_deps or self.browse()
+        query = SQL(
+            """ SELECT DISTINCT m.id
+                FROM ir_module_module_dependency d
+                JOIN ir_module_module m ON (d.module_id=m.id)
+                WHERE
+                    m.name = ANY(SELECT name from ir_module_module_dependency
+                                 where module_id = ANY(%s)) AND
+                    m.state <> ALL(%s) AND
+                    m.id <> ALL(%s) """,
+            list(self.ids), list(exclude_states),
+            list(known_deps.ids or self.ids))
+        new_deps = self.browse(
+            [row[0] for row in self.env.execute_query(query)])
+        missing_mods = new_deps - known_deps
+        known_deps |= new_deps
+        if missing_mods:
+            known_deps |= missing_mods.upstream_dependencies(
+                known_deps, exclude_states)
+        return known_deps
 
 
 class IrModuleDependency(models.BaseModel, TimeStampedModel):

@@ -72,7 +72,7 @@ from orm.environments import get_transaction
 from orm.utils import SUPERUSER_ID
 from service.db import savepoint
 from orm.environments import _discard_connection_transaction, get_transaction
-from orm.environments import Environment
+from orm.environments import Environment, context_scope
 from orm.registry import Registry, clear_cache
 from tests.cursor_support import TestCursor
 from tests.mocks.mail_server import MockSmtplibCase
@@ -671,8 +671,15 @@ def empty_module_catalog(db):
     módulos instalados. Una prueba que construye su propio catálogo
     (``base``, ``sale``…) parte de éste; el borrado arrastra dependencias y
     restricciones reflejadas, y la transacción lo deshace al terminar.
+
+    Vaciarlo es retirar módulos instalados, que es lo que hace la
+    desinstalación: corre con ``module_uninstall``, el equivalente de
+    ``MODULE_UNINSTALL_FLAG``, y por eso ``_unlink_except_installed``
+    (``@api.ondelete(at_uninstall=False)``,
+    ``odoo19c: odoo/addons/base/models/ir_module.py:337-341``) no lo impide.
     """
-    IrModule.objects.all().delete()
+    with context_scope(module_uninstall=True):
+        IrModule.objects.all().delete()
 
 
 #: El ``Registry.cursor`` del núcleo, para las pruebas que ejercen la conexión

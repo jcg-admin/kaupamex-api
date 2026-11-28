@@ -24,6 +24,8 @@ from addons.base_install_request.wizard.base_module_install_request import (
 )
 from exceptions import UserError
 from modules import module_graph
+from orm.environments import user_scope
+from orm.utils import SUPERUSER_ID
 
 pytestmark = pytest.mark.django_db
 
@@ -48,7 +50,13 @@ def sale():
 
 @pytest.fixture
 def product(sale):
-    """Una dependencia de ``sale`` que también es aplicación."""
+    """Una dependencia de ``sale`` que también es aplicación.
+
+    Declara a su vez ``base``, como en la fuente: ``upstream_dependencies``
+    une ``ir_module_module m`` por ``d.module_id=m.id``
+    (``odoo19c: odoo/addons/base/models/ir_module.py:569``) y sólo alcanza
+    módulos con dependencias propias.
+    """
     dep = IrModule.objects.create(
         name='product',
         shortdesc='Productos',
@@ -56,6 +64,7 @@ def product(sale):
         state='uninstalled',
     )
     IrModuleDependency.objects.create(module=sale, name='product')
+    IrModuleDependency.objects.create(module=dep, name='base')
     return dep
 
 
@@ -202,6 +211,13 @@ class TestRenderModulesDescription:
 class TestGetDependingApps:
     """≙ ``_get_depending_apps`` — el cierre hacia arriba y sus dos guardas."""
 
+    @pytest.fixture(autouse=True)
+    def _as_superuser(self):
+        # ``upstream_dependencies`` lee por ``self.env``; la fuente lo llama
+        # desde el asistente, con el usuario de la petición.
+        with user_scope(SUPERUSER_ID):
+            yield
+
     def test_without_a_module_it_raises(self):
         with pytest.raises(UserError):
             BaseModuleInstallReview._get_depending_apps(None)
@@ -227,6 +243,13 @@ class TestGetDependingApps:
 
 class TestComputeModulesDescription:
     """≙ ``_compute_modules_description`` — los dos campos en una pasada."""
+
+    @pytest.fixture(autouse=True)
+    def _as_superuser(self):
+        # ``upstream_dependencies`` lee por ``self.env``; la fuente lo llama
+        # desde el asistente, con el usuario de la petición.
+        with user_scope(SUPERUSER_ID):
+            yield
 
     def test_both_fields_come_from_the_same_pass(self, sale, product):
         review = BaseModuleInstallReview.objects.create(module_id=sale)

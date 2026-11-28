@@ -17,6 +17,8 @@ import pytest
 from django.db import IntegrityError, transaction
 
 from addons.base.models import IrModule, IrModuleDependency, IrModuleExclusion
+from orm.environments import user_scope
+from orm.utils import SUPERUSER_ID
 
 pytestmark = pytest.mark.integration
 
@@ -208,17 +210,28 @@ class TestExclusion:
 class TestWalkDependencies:
     """≙ ``downstream_dependencies`` / ``upstream_dependencies``
     (``odoo19c: ir_module.py:531-580``).
+
+    Corren como el super-usuario, que es el entorno de las pruebas de la
+    fuente: los dos métodos leen por ``self.env``.
     """
 
-    def test_upstream_reaches_the_transitive_dependency(self, catalogue):
-        """``sale`` no declara ``base``; lo alcanza por ``product``.
+    @pytest.fixture(autouse=True)
+    def _as_superuser(self):
+        with user_scope(SUPERUSER_ID):
+            yield
 
-        Los dos están ``installed``, así que se excluyen por el default. El
-        caso pasa ``()`` para medir el recorrido y no el filtro — son dos
-        cosas distintas y el caso siguiente mide la otra.
+    def test_upstream_reaches_only_modules_with_dependencies(self, catalogue):
+        """``sale`` alcanza ``product``, y no ``base``.
+
+        La consulta de la fuente une ``ir_module_module m`` por
+        ``d.module_id=m.id`` (``odoo19c: ir_module.py:569``): sólo
+        aparece un módulo que declara dependencias propias. ``base`` no
+        declara ninguna y no se alcanza nunca hacia arriba. El caso pasa
+        ``()`` para medir el recorrido y no el filtro; el siguiente mide el
+        filtro.
         """
         reached = catalogue['sale'].upstream_dependencies(exclude_states=())
-        assert {module.name for module in reached} == {'product', 'base'}
+        assert {module.name for module in reached} == {'product'}
 
     def test_upstream_excludes_what_is_already_installed(self, catalogue):
         """El default de la fuente: lo instalado no hace falta traerlo.
@@ -243,18 +256,21 @@ class TestWalkDependencies:
         reached = catalogue['base'].downstream_dependencies()
         assert {module.name for module in reached} == {'product'}
 
-    def test_a_module_never_reaches_itself(self, catalogue):
-        """La marca de visitado incluye al origen.
+    def test_a_cycle_brings_the_origin_back(self, catalogue):
+        """En un ciclo, el origen vuelve por la arista que lo cierra.
 
-        Sin ella, un ciclo devolvería el propio módulo como su dependencia, que
-        no es un hecho del grafo sino un artefacto del recorrido.
+        Cada nivel de la fuente excluye sólo ``known_deps.ids or self.ids``
+        (``odoo19c: ir_module.py:573-574``), no el origen de la primera
+        llamada: con ``base`` dependiendo de ``sale``, el recorrido desde
+        ``sale`` llega a ``product``, a ``base`` y otra vez a ``sale``. Es
+        también el caso que mide el alcance transitivo.
         """
         IrModuleDependency.objects.create(
             module=catalogue['base'], name='sale'
         )
         reached = catalogue['sale'].upstream_dependencies(exclude_states=())
-        assert catalogue['sale'] not in reached
-        assert {module.name for module in reached} == {'product', 'base'}
+        assert {module.name for module in reached} == {
+            'product', 'base', 'sale'}
 
     def test_a_cycle_terminates_in_both_directions(self, catalogue):
         """Igual que ``all_dependencies``: sin marca de visitado esto cuelga,
