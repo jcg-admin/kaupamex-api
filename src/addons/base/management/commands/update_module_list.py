@@ -187,12 +187,12 @@ class Command(UnitOfWorkCommand):
         """
         declared = set(depends)
         dependencies = IrModuleDependency.objects.using(using).filter(
-            module_id=module.pk
+            module_id_id=module.pk
         )
         existing = set(dependencies.values_list('name', flat=True))
         for name in sorted(declared - existing):
             IrModuleDependency.objects.using(using).create(
-                module_id=module.pk, name=name
+                module_id_id=module.pk, name=name
             )
         if existing - declared:
             dependencies.filter(name__in=existing - declared).delete()

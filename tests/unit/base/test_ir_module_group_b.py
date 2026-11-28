@@ -21,7 +21,7 @@ def _modules():
 def _module(name, state='uninstalled', depends=()):
     module = IrModule.objects.create(name=name, shortdesc=name, state=state)
     for dependency in depends:
-        IrModuleDependency.objects.create(module=module, name=dependency)
+        IrModuleDependency.objects.create(module_id=module, name=dependency)
     return _modules().browse(module.id)
 
 

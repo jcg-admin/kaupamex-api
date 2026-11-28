@@ -63,8 +63,8 @@ def product(sale):
         application=True,
         state='uninstalled',
     )
-    IrModuleDependency.objects.create(module=sale, name='product')
-    IrModuleDependency.objects.create(module=dep, name='base')
+    IrModuleDependency.objects.create(module_id=sale, name='product')
+    IrModuleDependency.objects.create(module_id=dep, name='base')
     return dep
 
 
@@ -287,7 +287,7 @@ class TestAutoInstallApps:
             IrModule.objects.update_or_create(
                 name=name, defaults={'state': 'uninstalled'})
         IrModuleDependency.objects.filter(
-            module__name__in=('project', 'survey', 'sale')).delete()
+            module_id__name__in=('project', 'survey', 'sale')).delete()
 
     @staticmethod
     def states():

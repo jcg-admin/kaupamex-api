@@ -88,7 +88,7 @@ def test_refresh_preserves_existing_state_and_updates_metadata(manifests):
     )
     assert list(
         IrModuleDependency.objects.filter(
-            module__name='catalog_leaf'
+            module_id__name='catalog_leaf'
         ).values_list('name', flat=True)
     ) == ['catalog_root']
 
@@ -189,7 +189,7 @@ def test_dry_run_does_not_change_states_or_dependencies(manifests):
         == IrModule.STATE_INSTALLED
     )
     assert not IrModuleDependency.objects.filter(
-        module__name__in=manifests
+        module_id__name__in=manifests
     ).exists()
 
 

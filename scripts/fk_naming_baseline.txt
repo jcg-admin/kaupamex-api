@@ -580,8 +580,6 @@ src/addons/base/models/ir_model.py::IrModelFieldsSelection.field
 src/addons/base/models/ir_model.py::IrModelRelation.model
 src/addons/base/models/ir_model.py::IrModelRelation.module
 src/addons/base/models/ir_module.py::IrModuleCategory.parent
-src/addons/base/models/ir_module.py::IrModuleDependency.module
-src/addons/base/models/ir_module.py::IrModuleExclusion.module
 src/addons/base/models/ir_sequence.py::IrSequence.company
 src/addons/base/models/ir_sequence.py::IrSequenceDateRange.sequence
 src/addons/base/models/ir_ui_menu.py::IrUiMenu.group

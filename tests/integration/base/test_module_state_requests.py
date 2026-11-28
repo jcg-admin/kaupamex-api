@@ -23,7 +23,7 @@ def module_rows(monkeypatch, empty_module_catalog):
     IrModuleDependency.objects.bulk_create(
         [
             IrModuleDependency(
-                module=IrModule.objects.get(name=name), name=dep
+                module_id=IrModule.objects.get(name=name), name=dep
             )
             for name, manifest in manifests.items()
             for dep in manifest.get('depends', [])
@@ -123,7 +123,7 @@ def test_uninstall_schedules_installed_dependents_without_deleting(
     assert set(states().values()) == {'to remove'}
     assert (
         IrModuleDependency.objects.filter(
-            module__name__startswith='state_'
+            module_id__name__startswith='state_'
         ).count()
         == 2
     )

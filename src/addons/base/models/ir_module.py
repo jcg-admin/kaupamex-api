@@ -203,29 +203,26 @@ class IrModule(models.BaseModel, TimeStampedModel):
 
     La ruta fuente de categoría también se conserva sin un tope arbitrario.
 
-    Cobertura de campos — 9 de 31, declarada
-    =========================================
+    Cobertura de campos — 22 de 31, medida
+    ======================================
 
     ``odoo19c: odoo/addons/base/models/ir_module.py:158-330`` declara **31**
-    campos; de ellos coinciden por nombre **9** (``name``, ``shortdesc``,
-    ``summary``, ``sequence``, ``application``, ``auto_install``, ``state``,
-    ``license``, ``category_id``). Otro es forma nuestra: ``version``, que
-    conserva metadata del manifiesto. ``category_id`` se llamaba ``category``
-    hasta TASK-API-0481. ``installed_version`` conserva por separado la versión
-    realmente instalada (``latest_version`` persistido de la referencia). Su
+    campos; el puerto declara **22** con el mismo nombre (medido por AST sobre
+    las dos clases). ``version`` y ``category_path`` son forma nuestra:
+    conservan metadata del manifiesto. ``installed_version`` guarda la versión
+    realmente instalada (``latest_version`` persistido de la referencia); su
     valor histórico desconocido permanece NULL: no se infiere del catálogo.
 
-    Quedan **23 ausentes**, y la mayoría **no** está bloqueada por nada — son
-    ``Char`` planos del manifest (``author``, ``maintainer``, ``website``,
-    ``url``, ``icon``). El resto sí depende de mecanismos que este árbol
-    todavía no tiene: ``description_html`` (QWeb), ``icon_image`` (Binary
-    servido), los tres ``*_by_module`` (introspección de
-    menús/vistas/reportes), y ``exclusion_ids``
-    (``ir.module.module.exclusion``, sin portar).
+    Faltan **9**: ``latest_version`` y ``published_version`` (``Char``),
+    ``country_ids`` (``Many2many`` a ``res.country`` por ``module_country``),
+    ``description_html`` (QWeb), ``icon_image`` e ``icon_flag`` (Binary
+    servido) y los tres ``*_by_module`` (introspección de menús, vistas e
+    informes). Su porte cuelga de TASK-API-0397.
 
-    **No se portan en este pase por alcance, no por imposibilidad** — el pase
-    es la corrección del tope de ``Char`` (:ref:`h-api-756`). Su porte es la
-    tarea **#452**, que ya cubre la reestructuración de ``category`` a FK.
+    .. note:: Este párrafo decía «9 de 31» y «``exclusion_ids`` sin portar».
+       Las dos cosas quedaron atrás: el modelo de exclusiones se portó, y
+       ``dependencies_id`` y ``exclusion_ids`` se declaran con la forma de la
+       fuente (``designs/ir-module-dependency-module-id.md``).
     """
 
     _name = 'ir.module.module'
@@ -317,6 +314,12 @@ class IrModule(models.BaseModel, TimeStampedModel):
                   'consulta.',
     )
     has_iap = fields.Boolean(compute='_compute_has_iap')
+    dependencies_id = fields.One2many(
+        'ir.module.module.dependency', 'module_id', string='Dependencies',
+        readonly=True)
+    exclusion_ids = fields.One2many(
+        'ir.module.module.exclusion', 'module_id', string='Exclusions',
+        readonly=True)
     demo = fields.Boolean(
         default=False,
         help_text='Odoo demo: el addon tiene datos de demostración cargados.',
@@ -460,7 +463,7 @@ class IrModule(models.BaseModel, TimeStampedModel):
                 requested |= automatic
             selected = {node.name for node in ordered}
             exclusions = IrModuleExclusion.objects.using(using).filter(
-                module__name__in=active, name__in=active)
+                module_id__name__in=active, name__in=active)
             if exclusions.exists():
                 raise ValidationError(
                     'Incompatible modules in the selected database')
@@ -714,9 +717,9 @@ class IrModuleDependency(models.BaseModel, TimeStampedModel):
     _log_access = False   # ver la divergencia declarada en el docstring
     _allow_sudo_commands = False
 
-    module = fields.Many2one(
+    module_id = fields.Many2one(
         IrModule, on_delete=models.CASCADE, null=True, blank=True,
-        related_name='dependencies',
+        related_name='+', db_column='module_id',
         help_text='El addon que declara la dependencia.',
     )
     name = fields.Char(
@@ -738,7 +741,7 @@ class IrModuleDependency(models.BaseModel, TimeStampedModel):
 
     class Meta:
         db_table = 'ir_module_module_dependency'
-        unique_together = [('module', 'name')]
+        unique_together = [('module_id', 'name')]
         ordering = ['name']
         verbose_name = 'Dependencia de módulo'
         verbose_name_plural = 'Dependencias de módulo'
@@ -836,8 +839,8 @@ class IrModuleDependency(models.BaseModel, TimeStampedModel):
         while to_search:
             searching = list(to_search)
             edges = cls.objects.filter(
-                module__name__in=searching
-            ).values_list('module__name', 'name')
+                module_id__name__in=searching
+            ).values_list('module_id__name', 'name')
             to_search.clear()
             for module_name, dependency_name in edges:
                 if (dependency_name not in result
@@ -866,9 +869,9 @@ class IrModuleExclusion(models.BaseModel, TimeStampedModel):
     _description = "Module exclusion"
     _allow_sudo_commands = False
 
-    module = fields.Many2one(
+    module_id = fields.Many2one(
         IrModule, on_delete=models.CASCADE, null=True, blank=True,
-        related_name='exclusions',
+        related_name='+', db_column='module_id',
         help_text='El addon que declara la exclusión.',
     )
     name = fields.Char(
@@ -878,7 +881,7 @@ class IrModuleExclusion(models.BaseModel, TimeStampedModel):
 
     class Meta:
         db_table = 'ir_module_module_exclusion'
-        unique_together = [('module', 'name')]
+        unique_together = [('module_id', 'name')]
         ordering = ['name']
         verbose_name = 'Exclusión de módulo'
         verbose_name_plural = 'Exclusiones de módulo'
