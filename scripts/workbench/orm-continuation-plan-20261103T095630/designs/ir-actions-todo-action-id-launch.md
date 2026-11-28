@@ -74,3 +74,11 @@ de la acción de ventana. Un caso por pieza, ninguno más.
 
 Subconjunto derivado (archivos que nombran `ir.actions.todo`,
 `IrActionsClient`, `fields.Binary` o `params_store`): `185 passed, 3 xfailed`.
+
+El primer F2 (`2018f827`, 15094 aprobadas) subió los `xfailed` de 8 a 9: la
+matriz de `tests/unit/orm/test_delete_policy_contract.py` lee las filas de
+`outputs/fk_reference_ondelete.tsv`, evidencia fechada que nombra el campo
+`action`; tras el renombre `get_field('action')` levantaba y el caso, sin su
+clave en `CORRECTED`, quedaba en `xfail` estricto. Un contrato no se cierra
+por `xfail`: la prueba lee el campo por su nombre nuevo con `RENAMED`, y la
+fila conserva su identidad y su entrada en `CORRECTED`.
