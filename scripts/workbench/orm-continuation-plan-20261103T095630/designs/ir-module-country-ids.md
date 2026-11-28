@@ -56,3 +56,20 @@ Pruebas: `tests/unit/base/test_ir_module_country_ids.py` (2 casos; RED 2 de
 
 Anulación (copia restaurada y comparada con `cmp`): sin instalar
 `_serialize_many2many` vuelve el error de preparación de la base de pruebas.
+
+Subconjunto derivado (35 objetivos: los archivos que nombran `IrModule`,
+`ir.module.module`, los serializadores de Django o `country_ids`, más
+`tests/unit/orm`): `8 failed, 4014 passed`. Las ocho, medidas:
+
+- siete reconstruyen estados históricos de `IrModule` desde el modelo vigente
+  (`test_module_category_migration.py`, `test_demo_failure_storage.py`), y el
+  campo nuevo apunta a `base.rescountry`, que esos estados fabricados no
+  contienen; se retira `country_ids` del estado fabricado, como ya se hacía
+  con los campos posteriores a la migración que reproducen;
+- `test_domain_in_required.py::test_the_count_over_a_fixed_population` cuenta
+  los campos cuyo `null` discrepa de `is_not_null` y declara la cifra como
+  evidencia fechada: `country_ids` es un `Many2many` sin columna propia, de la
+  misma familia que `ir.filters.user_ids`; la cifra pasa de 36 a 37 con su
+  razón.
+
+Tras la corrección, esos tres archivos: `12 passed`.
