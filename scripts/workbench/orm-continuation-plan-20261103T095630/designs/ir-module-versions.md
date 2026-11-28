@@ -55,3 +55,29 @@ ruptura del contrato HTTP y no es parte del porte.
 `tests/unit/base/test_ir_module_versions.py`: la columna `latest_version`,
 `installed_version` calculado desde el manifiesto, `published_version`, y la
 lectura del grafo.
+
+## Medido
+
+| Símbolo | Archivo | Fuente |
+|---|---|---|
+| `IrModule.installed_version` (calculado, sin columna) y `IrModule.latest_version` (columna) | `src/addons/base/models/ir_module.py` | `odoo19c: odoo/addons/base/models/ir_module.py:285-290` |
+| `IrModule.published_version` | ídem | `odoo19c: odoo/addons/base/models/ir_module.py:291` |
+| `IrModule._get_latest_version`: asigna `installed_version` (`@api.depends('name')`) | ídem | `odoo19c: odoo/addons/base/models/ir_module.py:211-215` |
+| docstring de `IrModule`: cobertura medida 24 de 31 | ídem | `odoo19c: odoo/addons/base/models/ir_module.py:158-330` |
+| migración `0156_ir_module_versions`: `RenameField` de la columna y `AddField` | `src/addons/base/migrations/0156_ir_module_versions.py` | `odoo19c: odoo/addons/base/models/ir_module.py:290-291` |
+| `ModuleGraph._update_from_database`: lee `latest_version` | `src/modules/module_graph.py` | `odoo19c: odoo/modules/module_graph.py:286` |
+| `TechnicalModuleSerializer.installed_version`: `source='latest_version'` | `src/addons/base/controllers/module_catalogue.py` | `odoo19c: odoo/addons/base/models/ir_module.py:285-290` |
+
+Pruebas: `tests/unit/base/test_ir_module_versions.py` (3 casos; RED 3 de 3).
+Consumidores corregidos: `test_ir_module_manifest.py` (lee el campo
+calculado en vez de llamar al método), `test_module_catalog_database.py`,
+`test_module_catalogue_api.py` y `test_module_graph_database.py` (escriben
+`latest_version`), y el estado fabricado de
+`test_module_category_migration.py`, que reconstruye el modelo previo a 0090
+y ahora devuelve el nombre previo a 0156.
+
+Anulación (copias restauradas y comparadas con `cmp`), dos piezas en una
+ejecución con casos disjuntos: con `installed_version` fijo a `False` caen
+exactamente los tres casos que leen el cálculo; sin `source='latest_version'`
+en el serializador cae exactamente el caso del contrato del catálogo
+(4 de 34).
