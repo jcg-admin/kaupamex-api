@@ -699,7 +699,8 @@
   "ir-actions-bindings-0397",
   "ir-actions-constraints-0397",
   "ir-actions-server-parent-id-0397",
-  "ir-actions-server-model-id-0391"
+  "ir-actions-server-model-id-0391",
+  "ir-actions-server-constraints-name-0391"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
