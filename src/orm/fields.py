@@ -1938,8 +1938,28 @@ class FieldDescriptor(DeferredAttribute):
         que ``Field.write`` hace —descartar el recálculo pendiente, filtrar la
         fila cuyo valor ya coincide, marcar la caché sucia— más ``modified()``,
         que es la mitad de disparo; el volcado sigue siendo ``save()``.
+
+        Un recordset de varios registros sigue el reparto de la fuente: los
+        protegidos y los nuevos reciben la asignación de uno en uno (el camino
+        de abajo), y los persistidos van a ``records.write({name: value})``,
+        la «full business logic» de ``:1837-1841``.
         """
         field = self.field
+        ids = getattr(instance, '_ids', None)
+        if ids is not None and len(ids) > 1:
+            environment = instance.env
+            singles, other_ids = [], []
+            for record_id in ids:
+                if (not record_id
+                        or environment.is_protected(field, record_id)):
+                    singles.append(record_id)
+                else:
+                    other_ids.append(record_id)
+            for record in instance.browse(singles):
+                self.__set__(record, value)
+            if other_ids:
+                instance.browse(other_ids).write({field.name: value})
+            return
         previous = instance.__dict__.get(field.attname, SENTINEL)
         if (previous is not SENTINEL and field.store and not field.compute
                 and not field.related):

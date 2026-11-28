@@ -3536,3 +3536,5 @@ tests/unit/website/test_website_configurator.py::otro
 tests/unit/website/test_website_resolution.py::corto
 tests/unit/website/test_website_resolution.py::largo
 tests/unit/website/test_website_resolution.py::resultado
+src/addons/base/models/ir_module.py::Todos
+src/addons/base/models/ir_module.py::active_todo

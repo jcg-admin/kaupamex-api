@@ -5,18 +5,59 @@ abe4040ec1a45beee90fb694e4eae4453e46b389. Las solicitudes administrativas
 programan estados transitorios; no sustituyen la ejecución del loader,
 la preparación del esquema, los hooks ni la composición efectiva del registro.
 """
+import functools
+import logging
 import shutil
+import typing
 
+import api
 import fields
 import models
 from django.apps import apps
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import router, transaction
 
+from addons.base.models.ir_http import get_current_request
 from addons.base.models.timestamped_mixin import TimeStampedModel
-from modules.module import adapt_version, check_python_external_dependency, load_manifest
+from exceptions import AccessDenied
+from modules.module import (adapt_version,
+                            check_python_external_dependency, load_manifest)
 from modules.module_graph import ModuleGraph
 from orm.environments import is_system
+from tools.cache import ormcache
+
+T = typing.TypeVar('T')
+_logger = logging.getLogger(__name__)
+
+
+def assert_log_admin_access(method: T, /) -> T:
+    """Decorator checking that the calling user is an administrator, and
+    logging the call.
+
+    Raises an AccessDenied error if the user does not have administrator
+    privileges, according to `user._is_admin()`.
+
+    ≙ ``odoo19c: odoo/addons/base/models/ir_module.py:57-74``. El
+    ``request.httprequest.remote_addr`` de la fuente es aquí el ``REMOTE_ADDR``
+    de la petición Django en curso.
+    """
+    @functools.wraps(method)
+    def check_and_log(self, *args, **kwargs):
+        user = self.env.user
+        request = get_current_request()
+        origin = request.META.get('REMOTE_ADDR') if request else 'n/a'
+        log_data = (method.__name__, self.sudo().mapped('display_name'),
+                    user.login, user.id, origin)
+        if not self.env.is_admin():
+            _logger.warning(
+                'DENY access to module.%s on %s to user %s ID #%s via %s',
+                *log_data)
+            raise AccessDenied()
+        _logger.info(
+            'ALLOW access to module.%s on %s to user %s #%s via %s',
+            *log_data)
+        return method(self, *args, **kwargs)
+    return check_and_log
 
 
 class IrModuleCategory(models.BaseModel, TimeStampedModel):
@@ -505,6 +546,54 @@ class IrModule(models.BaseModel, TimeStampedModel):
         if not name:
             return None
         return cls.objects.filter(name=name).first()
+
+    def _get_modules_to_load_domain(self):
+        """≙ ``_get_modules_to_load_domain`` (``ir_module.py:347-349``)."""
+        return [('state', '=', 'installed')]
+
+    @assert_log_admin_access
+    @api.model
+    def button_reset_state(self):
+        """≙ ``button_reset_state`` (``odoo19c: ir_module.py:495-501``)."""
+        # reset the transient state for all modules in case the module
+        # operation is stopped in an unexpected way.
+        self.search([('state', '=', 'to install')]).state = 'uninstalled'
+        self.search(
+            [('state', 'in', ('to upgrade', 'to remove'))]).state = 'installed'
+        return True
+
+    @api.model
+    def check_module_update(self):
+        """≙ ``check_module_update`` (``odoo19c: ir_module.py:503-505``)."""
+        return bool(self.sudo().search_count(
+            [('state', 'in', ('to install', 'to upgrade', 'to remove'))],
+            limit=1))
+
+    def next(self):
+        """≙ ``next`` (``odoo19c: ir_module.py:581-597``)."""
+        Todos = self.env['ir.actions.todo']
+        _logger.info('getting next %s', Todos)
+        active_todo = Todos.search([('state', '=', 'open')], limit=1)
+        if active_todo:
+            _logger.info('next action is "%s"', active_todo.name)
+            return active_todo.action_launch()
+        return {
+            'type': 'ir.actions.act_url',
+            'target': 'self',
+            'url': '/odoo',
+        }
+
+    @api.model
+    @ormcache(cache='stable')
+    def _installed(self):
+        """≙ ``_installed`` (``odoo19c: ir_module.py:912-919``).
+
+        Return the set of installed modules as a dictionary {name: id}.
+        """
+        return {
+            module.name: module.id
+            for module in self.sudo().search([('state', '=', 'installed')])
+        }
 
     def downstream_dependencies(self,
                                 exclude_states=(STATE_UNINSTALLED,
