@@ -35,7 +35,7 @@ CORRECTED = {
     'stock.StockQuant.lot',
     # designs/country-and-todo-restrict-ondelete.md
     'base.ResCountryState.country', 'base_address_extended.ResCity.country_id',
-    'base.IrActionsTodo.action_id',
+    'base.IrActionsTodo.action',
     # designs/product-lot-bom-restrict-ondelete.md
     'stock.StockLot.product', 'mrp.MrpBom.product_tmpl_id',
     # designs/hr-workorder-restrict-ondelete.md
@@ -169,7 +169,8 @@ def test_the_population_is_the_measured_one():
 @pytest.mark.parametrize('row, kind', _ROWS)
 def test_the_django_policy_matches_the_source_ondelete(row, kind):
     model = apps.get_model(row['django_field'])
-    field = model._meta.get_field(row['field'])
+    ident = f"{row['django_field']}.{row['field']}"
+    field = model._meta.get_field(RENAMED.get(ident, row['field']))
     assert field.remote_field.on_delete in _EXPECTED[kind]
 
 
@@ -227,3 +228,13 @@ def test_a_raw_delete_of_an_action_leaves_the_step_in_place():
             cr.execute(f'DELETE FROM {table} WHERE id = %s', [action.pk])
     assert IrActionsTodo.objects.filter(
         pk=wizard_step.pk, action_id=action.pk).exists()
+
+
+#: La matriz es evidencia fechada y nombra los campos como eran al medirla.
+#: Un campo que después tomó el nombre de la fuente se lee por el nombre
+#: nuevo; la fila conserva su identidad (y su entrada en ``CORRECTED``).
+RENAMED = {
+    # 0154_ir_actions_todo_action_id (designs/ir-actions-todo-action-id-
+    # launch.md)
+    'base.IrActionsTodo.action': 'action_id',
+}
