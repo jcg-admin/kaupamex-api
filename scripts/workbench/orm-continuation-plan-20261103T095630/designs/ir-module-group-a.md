@@ -55,3 +55,10 @@ registros de `Field.__set__` caen exactamente los dos casos de
 `test_field_set_recordset.py` y el de `button_reset_state` (3 de 9); sin la
 comprobación de `is_admin` del decorador cae exactamente el caso de rechazo
 (1 de 7).
+
+`scripts/identifier_language_baseline.txt` gana `ir_module.py::Todos` y
+`ir_module.py::active_todo`: son los nombres ingleses de la fuente (*to-do*,
+`ir_module.py:584,586`), que el léxico del gate lee como el español *todo*. Es
+el mismo falso positivo que ya congela `ir_actions.py::IrActionsTodo` y
+`ensure_one_open_todo`; se conserva el nombre de la fuente en vez de
+rebautizarlo.
