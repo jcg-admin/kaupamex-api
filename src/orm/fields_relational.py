@@ -3617,3 +3617,26 @@ def _restrict_through_column(through, field_name, ondelete):
         return
     field = through._meta.get_field(field_name)
     field.remote_field.on_delete = _MANY2MANY_ON_DELETE[ondelete]
+
+
+def _one2many_inverse_rel(self):
+    """La relación inversa de Django sobre la que un ``One2many`` declarado
+    guarda su caché: la clave que lee :meth:`One2many.__get__` en un registro
+    de ``new()`` y que escriben ``write_new`` y ``_update_inverse``."""
+    return self._inverse_field()[1].remote_field
+
+
+def _one2many_convert_to_cache(self, value, record, validate=True):
+    """≙ ``_RelationalMulti.convert_to_cache`` (``odoo19c: odoo/orm/
+    fields_relational.py:589-641``) en el ``One2many`` declarado.
+
+    En la fuente lo hereda de ``_RelationalMulti``; aquí ``One2many`` no
+    hereda de ella (ver la clase), y la conversión ya vive en su relación
+    inversa, donde está la caché. ``_update_cache`` de ``new()`` lo llama para
+    cada valor; sin él, un comando sobre el campo levantaba ``AttributeError``.
+    """
+    return _one2many_inverse_rel(self).convert_to_cache(
+        value, record, validate)
+
+
+One2many.convert_to_cache = _one2many_convert_to_cache

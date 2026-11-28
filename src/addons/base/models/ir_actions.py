@@ -1911,10 +1911,9 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
         Portadas
         ========
 
-        1. **El modelo de una hija no coincide** con el del padre. Aquí la
-           comparación es sobre ``model_name`` (``Char``) en vez de sobre la FK
-           ``model_id``; la conversión a FK es la tarea **#139** y no cambia
-           esta rama, sólo el tipo del lado que compara.
+        1. **El modelo de una hija no coincide** con el del padre, sobre
+           ``model_id``. Se leen las hijas también en un registro de
+           ``new()``, como la fuente: el formulario las trae por comando.
         2. **Alguna hija trae aviso.** Es la rama recursiva —``recursive=True``
            en el campo de la fuente— y es la que ``_check_children`` consume.
 
@@ -1944,7 +1943,7 @@ class IrActionsServer(IrActionsBase, models.BaseModel, TimeStampedModel):
         seen = seen | {self.pk}
 
         warnings = []
-        children = list(self.child_ids) if self.pk else []
+        children = list(self.child_ids)
 
         if self.model_id:
             children_with_different_model = [

@@ -2294,6 +2294,18 @@ class StoredMany2oneIdDescriptor(FieldDescriptor):
                 instance.__dict__[self.field.attname] = value
                 return value
             if isinstance(instance.pk, NewId):
+                # ≙ ``Field.__get__`` (``odoo19c: odoo/orm/fields.py:
+                # 1715-1734``): un registro nuevo con origen toma el valor de
+                # la fila guardada que lo origina, salvo un calculado de sólo
+                # lectura, que se calcula.
+                origin = getattr(instance, '_origin', None)
+                if origin and not (getattr(self.field, 'compute', None)
+                                   and getattr(self.field, 'readonly',
+                                               False)):
+                    value = getattr(origin, self.field.attname)
+                    self.field._update_cache(instance, value)
+                    instance.__dict__[self.field.attname] = value
+                    return value
                 return None
         if (instance is None
                 or self.field.attname in instance.__dict__):
@@ -5809,3 +5821,22 @@ def _add_declared_column_index(field, cls):
     # ``ModelState.from_model`` sólo copia los índices declarados en ``Meta``.
     meta.original_attrs['indexes'] = meta.indexes
 
+
+def _one2many_update_cache(self, records, cache_value, dirty=False):
+    """≙ ``_RelationalMulti._update_cache`` (``odoo19c: odoo/orm/
+    fields_relational.py:576-586``) en el ``One2many`` declarado.
+
+    Un ``One2many`` almacenado guarda la caché de sus registros nuevos en la
+    relación inversa de Django, que es la clave que lee
+    :meth:`One2many.__get__`; el protocolo común que el bucle de arriba le
+    instala escribía en la caché propia del objeto declarado, y ``new()``
+    perdía las líneas que se le daban. Un calculado o ``related`` conserva la
+    suya.
+    """
+    if self.compute or self.related:
+        return _update_cache(self, records, cache_value, dirty)
+    return self._inverse_field()[1].remote_field._update_cache(
+        records, cache_value, dirty)
+
+
+One2many._update_cache = _one2many_update_cache
