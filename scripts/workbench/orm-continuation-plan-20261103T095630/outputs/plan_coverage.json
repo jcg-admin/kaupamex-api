@@ -705,7 +705,8 @@
   "ir-actions-todo-action-id-launch-0397",
   "basemodel-adoption-ir-module-0397",
   "ir-module-group-a-0397",
-  "ir-module-group-b-0397"
+  "ir-module-group-b-0397",
+  "ir-module-dependency-module-id-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
