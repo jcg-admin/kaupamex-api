@@ -45,3 +45,32 @@ TASK-API-0397 (adopción de `ir.actions.*` sobre `models.BaseModel`).
   contexto y `disable_log`; una acción de cliente se devuelve sin contexto; el
   paso queda `done`; `unlink` de `base.open_menu` lo conserva con
   `base.action_client_base_menu`.
+
+## Medido
+
+| Símbolo | Archivo | Fuente |
+|---|---|---|
+| `IrActionsTodo.action_id` (forma C, `db_column='action_id'`, `related_name='+'`) y `_rec_name = 'action_id'` | `src/addons/base/models/ir_actions.py` | `odoo19c: odoo/addons/base/models/ir_actions.py:1353-1357` |
+| `IrActionsTodo.action_launch` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:1394-1418` |
+| `IrActionsTodo.unlink`: la rama de `base.open_menu` escribe `action_id` | ídem | `odoo19c: odoo/addons/base/models/ir_actions.py:1382-1392` |
+| `Binary.column_type`: `bytea` sin adjunto, sin columna con adjunto | `src/orm/fields_binary.py` | `odoo19c: odoo/orm/fields_binary.py:40-42` |
+| migración `0154_ir_actions_todo_action_id`: sólo de estado | `src/addons/base/migrations/0154_ir_actions_todo_action_id.py` | `odoo19c: odoo/addons/base/models/ir_actions.py:1357` |
+
+Medido al implementar: `action_launch` lee la acción con `read()[0]`, y
+`read()` de una acción de cliente moría en `params_store` con
+`NotImplementedError: Method read() undefined`, porque el `Binary` del puerto
+no declaraba `column_type`. Se porta el de la fuente.
+
+`scripts/fk_naming_baseline.txt` pierde la línea `IrActionsTodo.action`: era
+la deuda de nombre que esta unidad salda.
+
+Prueba: `tests/unit/base/test_ir_actions_todo_launch.py`, 5 casos (RED: 5 de
+5).
+
+Anulación, cada pieza por separado (copias restauradas y comparadas con
+`cmp`): sin `Binary.column_type` cae el caso de la acción de cliente; sin la
+rama de `base.open_menu`, el de `unlink`; sin sacar `res_id` del contexto, el
+de la acción de ventana. Un caso por pieza, ninguno más.
+
+Subconjunto derivado (archivos que nombran `ir.actions.todo`,
+`IrActionsClient`, `fields.Binary` o `params_store`): `185 passed, 3 xfailed`.
