@@ -33,8 +33,25 @@ administrador.
 | `IrModule.check_module_update` | ídem | `odoo19c: odoo/addons/base/models/ir_module.py:503-505` |
 | `IrModule.next` | ídem | `odoo19c: odoo/addons/base/models/ir_module.py:581-597` |
 | `IrModule._installed` | ídem | `odoo19c: odoo/addons/base/models/ir_module.py:912-919` |
+| `Field.__set__` sobre un recordset de varios registros: protegidos y nuevos de uno en uno, persistidos a `write` | `src/orm/fields.py` | `odoo19c: odoo/orm/fields.py:1807-1841` |
 
 El `request.httprequest.remote_addr` del decorador es aquí el `REMOTE_ADDR`
 de la petición Django en curso (`addons.base.models.ir_http.get_current_request`).
 
-Prueba: `tests/unit/base/test_ir_module_group_a.py`.
+Medido al implementar: `button_reset_state` asigna `state` sobre el resultado
+de `search`, un recordset de varios registros. El `Field.__set__` del puerto
+sólo atendía un registro y levantaba `Expected singleton`; se porta el reparto
+de la fuente.
+
+El entorno de las pruebas es el de instalación de la fuente,
+`Environment(uid=SUPERUSER_ID)`: el decorador lee `env.user.login`, y en la
+fuente `env.user` existe siempre.
+
+Pruebas: `tests/unit/base/test_ir_module_group_a.py` (7 casos, RED 7 de 7) y
+`tests/unit/orm/test_field_set_recordset.py` (2).
+
+Anulación (copias restauradas y comparadas con `cmp`): sin la rama de varios
+registros de `Field.__set__` caen exactamente los dos casos de
+`test_field_set_recordset.py` y el de `button_reset_state` (3 de 9); sin la
+comprobación de `is_admin` del decorador cae exactamente el caso de rechazo
+(1 de 7).
