@@ -2219,6 +2219,13 @@
         "basemodel-adoption-ir-module-0397"
       ],
       "writtenAt": "2026-11-28T06:27:22Z"
+    },
+    {
+      "planner": "conversational-session",
+      "items": [
+        "ir-module-group-a-0397"
+      ],
+      "writtenAt": "2026-11-28T08:36:01Z"
     }
   ]
 }
