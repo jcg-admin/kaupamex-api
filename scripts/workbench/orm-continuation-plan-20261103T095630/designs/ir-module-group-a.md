@@ -27,7 +27,7 @@ administrador.
 
 | Símbolo | Archivo | Fuente |
 |---|---|---|
-| `assert_log_admin_access` (decorador de módulo, con `T` y `_logger`) | `src/addons/base/models/ir_module.py` | `odoo19c: odoo/addons/base/models/ir_module.py:57-74` |
+| `assert_log_admin_access` y su envoltura `assert_log_admin_access.check_and_log` (decorador de módulo, con `T` y `_logger`) | `src/addons/base/models/ir_module.py` | `odoo19c: odoo/addons/base/models/ir_module.py:57-74` |
 | `IrModule._get_modules_to_load_domain` | ídem | `odoo19c: odoo/addons/base/models/ir_module.py:347-349` |
 | `IrModule.button_reset_state` | ídem | `odoo19c: odoo/addons/base/models/ir_module.py:495-501` |
 | `IrModule.check_module_update` | ídem | `odoo19c: odoo/addons/base/models/ir_module.py:503-505` |
