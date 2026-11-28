@@ -703,7 +703,8 @@
   "ir-actions-server-constraints-name-0391",
   "new-record-one2many-commands-0397",
   "ir-actions-todo-action-id-launch-0397",
-  "basemodel-adoption-ir-module-0397"
+  "basemodel-adoption-ir-module-0397",
+  "ir-module-group-a-0397"
  ],
  "integration_ref": "origin/feature/codex-workspace-bootstrap"
 }
