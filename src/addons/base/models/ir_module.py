@@ -203,21 +203,21 @@ class IrModule(models.BaseModel, TimeStampedModel):
 
     La ruta fuente de categoría también se conserva sin un tope arbitrario.
 
-    Cobertura de campos — 22 de 31, medida
+    Cobertura de campos — 24 de 31, medida
     ======================================
 
     ``odoo19c: odoo/addons/base/models/ir_module.py:158-330`` declara **31**
-    campos; el puerto declara **22** con el mismo nombre (medido por AST sobre
+    campos; el puerto declara **24** con el mismo nombre (medido por AST sobre
     las dos clases). ``version`` y ``category_path`` son forma nuestra:
-    conservan metadata del manifiesto. ``installed_version`` guarda la versión
-    realmente instalada (``latest_version`` persistido de la referencia); su
-    valor histórico desconocido permanece NULL: no se infiere del catálogo.
+    conservan metadata del manifiesto. ``latest_version`` guarda la versión
+    realmente instalada y ``installed_version`` se calcula desde el manifiesto,
+    con los nombres «incorrectos» que la fuente declara a propósito; el valor
+    histórico desconocido permanece NULL: no se infiere del catálogo.
 
-    Faltan **9**: ``latest_version`` y ``published_version`` (``Char``),
-    ``country_ids`` (``Many2many`` a ``res.country`` por ``module_country``),
-    ``description_html`` (QWeb), ``icon_image`` e ``icon_flag`` (Binary
-    servido) y los tres ``*_by_module`` (introspección de menús, vistas e
-    informes). Su porte cuelga de TASK-API-0397.
+    Faltan **7**: ``country_ids`` (``Many2many`` a ``res.country`` por
+    ``module_country``), ``description_html`` (QWeb), ``icon_image`` e
+    ``icon_flag`` (Binary servido) y los tres ``*_by_module`` (introspección
+    de menús, vistas e informes). Su porte cuelga de TASK-API-0397.
 
     .. note:: Este párrafo decía «9 de 31» y «``exclusion_ids`` sin portar».
        Las dos cosas quedaron atrás: el modelo de exclusiones se portó, y
@@ -335,11 +335,20 @@ class IrModule(models.BaseModel, TimeStampedModel):
                    'contrato HTTP.'),
     )
     version = fields.Char(blank=True, default='1.0')
-    installed_version = fields.Char(
-        blank=True, null=True, default=None, editable=False,
+    # attention: Incorrect field names !!
+    #   installed_version refers the latest version (the one on disk)
+    #   latest_version refers the installed version (the one in database)
+    #   published_version refers the version available on the repository
+    installed_version = fields.Char('Latest Version',
+                                    compute='_get_latest_version')
+    latest_version = fields.Char(
+        'Installed Version', blank=True, null=True, default=None,
+        editable=False,
         help_text=('Versión realmente instalada; NULL si no existe evidencia '
                    'de instalación.'),
     )
+    published_version = fields.Char(
+        'Published Version', blank=True, null=True, editable=False)
     # Lo nombra ``_order``; sin él el atributo describiría un orden que este
     # modelo no puede cumplir. ``odoo19c: …/ir_module.py:294`` — default 100.
     sequence = fields.Integer(default=100)
@@ -511,20 +520,17 @@ class IrModule(models.BaseModel, TimeStampedModel):
             return name
         return {}
 
+    @api.depends('name')
     def _get_latest_version(self):
         """≙ ``_get_latest_version`` (``odoo19c: ir_module.py:211-215``).
 
-        Devuelve la versión que el manifest declara **en disco**, que puede
-        diferir de la metadata guardada por el catálogo y de la versión
-        instalada. Este getter no acredita una instalación.
-
-        La fuente asigna su campo computado ``installed_version`` desde el
-        manifiesto; guarda lo instalado en ``latest_version``. Aquí el getter
-        devuelve la versión del manifiesto y nuestro campo persistido
-        ``installed_version`` conserva por separado lo realmente instalado.
+        Asigna ``installed_version``, la versión que el manifest declara en
+        disco; lo instalado vive en ``latest_version``.
         """
-        return self.get_module_info(self.name).get(
-            'version', adapt_version('1.0'))
+        default_version = adapt_version('1.0')
+        for module in self:
+            module.installed_version = self.get_module_info(module.name).get(
+                'version', default_version)
 
     @classmethod
     def _get_id(cls, name):

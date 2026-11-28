@@ -14,6 +14,8 @@ import pytest
 
 from addons.authz.declaration import values_from_manifest
 from addons.base.models import IrModule
+from orm.environments import Environment
+from orm.utils import SUPERUSER_ID
 
 pytestmark = pytest.mark.integration
 
@@ -161,6 +163,17 @@ class TestGetModuleInfo:
         assert IrModule.get_module_info(42) == {}
 
 
+def _record(module):
+    """El registro en el entorno de instalación de la fuente.
+
+    ``_get_latest_version`` es el cálculo de ``installed_version``
+    (``odoo19c: ir_module.py:211-215,289``): se lee el campo, no se llama al
+    método.
+    """
+    return Environment(uid=SUPERUSER_ID)['ir.module.module'].browse(
+        module.id)
+
+
 class TestGetLatestVersion:
     """≙ ``_get_latest_version`` (``odoo19c: ir_module.py:211-215``)."""
 
@@ -172,17 +185,18 @@ class TestGetLatestVersion:
         método NO la devuelve. Sin esta divergencia entre fila y disco, un
         método que leyera ``self.version`` pasaría igual.
         """
-        row = IrModule.objects.create(name='base', version='0.0.0-falsa')
-        assert row._get_latest_version() != '0.0.0-falsa'
+        row = _record(IrModule.objects.create(
+            name='base', version='0.0.0-falsa'))
+        assert row.installed_version != '0.0.0-falsa'
         assert (
-            row._get_latest_version()
+            row.installed_version
             == IrModule.get_module_info('base')['version']
         )
 
     def test_an_addon_without_manifest_falls_back_to_one_dot_zero(
             self, empty_module_catalog):
-        row = IrModule.objects.create(name='no_existe_este_addon')
-        assert row._get_latest_version().endswith('1.0')
+        row = _record(IrModule.objects.create(name='no_existe_este_addon'))
+        assert row.installed_version.endswith('1.0')
 
 
 class TestGetAndGetId:

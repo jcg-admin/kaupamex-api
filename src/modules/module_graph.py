@@ -145,8 +145,9 @@ class ModuleGraph:
     ) -> None:
         """Copia estado por base; la versión instalada nunca sale del manifest.
 
-        ``IrModule.installed_version`` corresponde al ``latest_version``
-        persistido de la referencia, incluido NULL para historia desconocida.
+        Lee ``latest_version AS installed_version`` como la fuente
+        (``odoo19c: odoo/modules/module_graph.py:286``), incluido NULL para
+        historia desconocida.
         ``load_*`` conserva el snapshot inicial aunque se muten los nodos.
         """
         names = tuple(name for name in names if name in self)
@@ -157,7 +158,7 @@ class ModuleGraph:
             model.objects.using(using)
             .filter(name__in=names)
             .order_by()
-            .values_list('name', 'id', 'state', 'demo', 'installed_version')
+            .values_list('name', 'id', 'state', 'demo', 'latest_version')
         )
         for name, identifier, state, demo, version in rows:
             # Un antecesor puede haber retirado este dependiente antes

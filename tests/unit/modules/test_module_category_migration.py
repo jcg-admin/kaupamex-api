@@ -38,6 +38,12 @@ def historical_category_tables():
                 blank=True,
                 default='Uncategorized',
             )
+            #: Antes de 0156 la columna de lo instalado se llamaba
+            #: ``installed_version`` y no existía ``published_version``
+            #: (``designs/ir-module-versions.md``).
+            item.fields['installed_version'] = item.fields.pop(
+                'latest_version')
+            item.fields.pop('published_version', None)
         # ``res.users`` no está en este estado fabricado: la autoría del
         # log-access viaja como entero, con el mismo nombre de campo.
         for name in ('create_uid', 'write_uid'):

@@ -12,6 +12,10 @@ class TechnicalModuleSerializer(serializers.ModelSerializer):
     """Separa versión disponible de versión instalada conocida."""
 
     category = serializers.CharField(source='category_path', read_only=True)
+    # La clave del contrato HTTP publica lo instalado, que en la fuente es la
+    # columna ``latest_version`` (``odoo19c: ir_module.py:285-290``).
+    installed_version = serializers.CharField(
+        source='latest_version', read_only=True, allow_null=True)
 
     class Meta:
         model = IrModule

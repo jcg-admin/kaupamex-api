@@ -30,7 +30,7 @@ def seed(state='installed'):
                 name='base',
                 state=state,
                 version='manifest-new',
-                installed_version='installed-old',
+                latest_version='installed-old',
                 demo=True,
             ),
             IrModule(name='snapshot_child', state='installed'),

@@ -68,7 +68,7 @@ def catalogue():
                 application=True,
                 sequence=20,
                 version='19.0.2.0',
-                installed_version='19.0.1.0',
+                latest_version='19.0.1.0',
                 state='installed',
             ),
             IrModule(
