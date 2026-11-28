@@ -47,6 +47,7 @@ corrige a la conducta de la fuente, citándola.
 | `IrModule._request_module_change`: lee el resultado con `mapped('name')` | ídem | `odoo19c: odoo/addons/base/models/ir_module.py:532-555` |
 | `IrModule._walk_dependencies`: retirado | ídem | — (sin contraparte en la fuente) |
 | fixture `empty_module_catalog`: borra bajo `module_uninstall` | `tests/conftest.py` | `odoo19c: odoo/orm/decorators.py:139-149` |
+| fixture `product` del asistente de instalación: declara `base` | `tests/unit/base_install_request/test_install_request_wizard.py` | `odoo19c: odoo/addons/base/models/ir_module.py:569` |
 
 Los `IN %s` con tupla de la fuente son `= ANY(%s)` y `<> ALL(%s)` con lista:
 psycopg 3 no adapta tuplas (cabecera de `_field_condition_to_sql` en
@@ -83,3 +84,19 @@ recordset (1 de 33); sin la guarda de `_unlink_except_installed`, el del
 rechazo (1 de 33); con `has_iap` siempre falso, el de `has_iap` (1 de 33); sin
 `module_uninstall` en el fixture, los 24 casos que lo usan dan error de
 preparación.
+
+Subconjunto derivado (31 archivos que nombran `IrModule`,
+`ir.module.module`, `empty_module_catalog` o los dos recorridos):
+`2 failed, 385 passed`. Los dos rojos eran del consumidor
+`addons/base_install_request` (`_get_depending_apps`, `odoo19c:
+addons/base_install_request/wizard/base_module_install_request.py:69-79`): su
+fixture `product` no declaraba dependencias, y el `JOIN` de la fuente no lo
+alcanza. Se le da `base`, como en la fuente, y sus dos clases corren como
+`SUPERUSER_ID`. Tras la corrección: `27 passed` en ese archivo.
+
+## Lo que esta unidad no cierra
+
+`_get_depending_apps` del consumidor compone el resultado con una lista y un
+`dict` por clave primaria; la fuente usa `module | deps.filtered(...)` sobre
+recordsets. Con los recorridos ya devolviendo recordsets, el porte verbatim es
+la unidad sucesora de este consumidor, a registrar como fila del plan.
